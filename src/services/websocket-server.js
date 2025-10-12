@@ -95,14 +95,17 @@ class WebSocketServer {
                 // For now, we'll accept the sessionID and validate on first emit
                 socket.sessionID = sessionID;
 
-                // Extract user info from session if available
-                if (socket.handshake.auth.userId) {
-                    socket.userId = socket.handshake.auth.userId;
-                    socket.user = {
-                        id: socket.handshake.auth.userId,
-                        name: socket.handshake.auth.userName || 'User'
-                    };
+                // Extract user info from session - userId is required
+                const userId = socket.handshake.auth.userId;
+                if (!userId) {
+                    return next(new Error('Authentication required: No user ID provided'));
                 }
+
+                socket.userId = userId;
+                socket.user = {
+                    id: userId,
+                    name: socket.handshake.auth.userName || 'User'
+                };
 
                 next();
             } catch (error) {
