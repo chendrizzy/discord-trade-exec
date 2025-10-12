@@ -136,7 +136,7 @@ class WebSocketServer {
     }
 
     /**
-     * Setup connection tracking for monitoring
+     * Setup connection tracking and performance monitoring
      */
     setupConnectionTracking() {
         this.connectionStats = {
@@ -145,11 +145,39 @@ class WebSocketServer {
             byUser: new Map()
         };
 
-        // Store interval ID for cleanup
+        // Performance metrics
+        this.performanceMetrics = {
+            messagesOut: 0,           // Total outbound messages
+            messagesIn: 0,            // Total inbound messages
+            messageRateOut: 0,        // Messages per second (outbound)
+            messageRateIn: 0,         // Messages per second (inbound)
+            latencySum: 0,            // Sum of all latencies for averaging
+            latencyCount: 0,          // Count of latency measurements
+            avgLatency: 0,            // Average latency in ms
+            lastMinuteLatencies: [],  // Rolling window for 1-minute average
+            connectionDrops: 0,       // Count of unexpected disconnections
+            lastAlert: null           // Timestamp of last alert
+        };
+
+        // Alert thresholds
+        this.ALERT_THRESHOLDS = {
+            HIGH_LATENCY: 500,         // Alert if avg latency > 500ms
+            CONNECTION_DROP_RATE: 5,   // Alert if >5 drops per minute
+            MIN_ALERT_INTERVAL: 300000 // 5 minutes between alerts
+        };
+
+        // Periodic metrics calculation
+        this.metricsInterval = setInterval(() => {
+            this.calculateMetrics();
+            this.checkAlerts();
+        }, 60000); // Every minute
+
+        // Store interval IDs for cleanup
         this.statsInterval = setInterval(() => {
             const active = this.io.sockets.sockets.size;
             if (active > 0) {
-                console.log(`📊 WebSocket Stats: ${active} active connections`);
+                const metrics = this.getPerformanceMetrics();
+                console.log(`📊 WebSocket Stats: ${active} active | ${metrics.messageRateOut.toFixed(1)} msg/s out | ${metrics.avgLatency.toFixed(0)}ms latency`);
             }
         }, 60000); // Log every minute
     }
@@ -230,6 +258,11 @@ class WebSocketServer {
             socket.on('disconnect', (reason) => {
                 console.log(`❌ WebSocket disconnected: ${socket.id} (${reason})`);
 
+                // Track unexpected disconnections for alerts
+                if (reason === 'transport error' || reason === 'transport close' || reason === 'ping timeout') {
+                    this.performanceMetrics.connectionDrops++;
+                }
+
                 this.connectionStats.active = this.io.sockets.sockets.size;
 
                 // Update user connection count
@@ -289,6 +322,8 @@ class WebSocketServer {
             return;
         }
 
+        const startTime = Date.now();
+
         this.io.to(`user:${userId}`).emit('portfolio:update', {
             totalValue: portfolio.totalValue,
             cash: portfolio.cash,
@@ -298,6 +333,10 @@ class WebSocketServer {
             dayChangePercent: portfolio.dayChangePercent,
             timestamp: new Date().toISOString()
         });
+
+        // Track performance metrics
+        this.performanceMetrics.messagesOut++;
+        this.trackLatency(startTime);
 
         console.log(`📊 Portfolio update sent to user ${userId}: $${portfolio.totalValue?.toFixed(2)}`);
     }
@@ -313,6 +352,8 @@ class WebSocketServer {
             return;
         }
 
+        const startTime = Date.now();
+
         const notification = {
             id: trade.id || trade.orderId,
             symbol: trade.symbol,
@@ -324,6 +365,10 @@ class WebSocketServer {
         };
 
         this.io.to(`user:${userId}`).emit('trade:executed', notification);
+
+        // Track performance metrics
+        this.performanceMetrics.messagesOut++;
+        this.trackLatency(startTime);
 
         console.log(`🔔 Trade notification sent to user ${userId}: ${notification.side} ${notification.quantity} ${notification.symbol} @ $${notification.price}`);
     }
@@ -339,11 +384,17 @@ class WebSocketServer {
             return;
         }
 
+        const startTime = Date.now();
+
         this.io.to(`user:${userId}`).emit('trade:failed', {
             error: error.message || error.reason || 'Unknown error',
             signal: error.signal,
             timestamp: new Date().toISOString()
         });
+
+        // Track performance metrics
+        this.performanceMetrics.messagesOut++;
+        this.trackLatency(startTime);
 
         console.warn(`⚠️  Trade failure sent to user ${userId}: ${error.message || error.reason}`);
     }
@@ -359,6 +410,8 @@ class WebSocketServer {
             return;
         }
 
+        const startTime = Date.now();
+
         this.io.to(`symbol:${symbol}`).emit('quote:update', {
             symbol,
             price: quote.price,
@@ -367,6 +420,10 @@ class WebSocketServer {
             volume: quote.volume,
             timestamp: quote.timestamp || new Date().toISOString()
         });
+
+        // Track performance metrics
+        this.performanceMetrics.messagesOut++;
+        this.trackLatency(startTime);
 
         // Only log significant price changes to avoid spam
         if (Math.abs(quote.changePercent || 0) > 1) {
@@ -390,6 +447,76 @@ class WebSocketServer {
     }
 
     /**
+     * Calculate performance metrics (called every minute)
+     */
+    calculateMetrics() {
+        const now = Date.now();
+
+        // Calculate message rates (messages per second over last minute)
+        this.performanceMetrics.messageRateOut = this.performanceMetrics.messagesOut / 60;
+        this.performanceMetrics.messageRateIn = this.performanceMetrics.messagesIn / 60;
+
+        // Calculate average latency from rolling window
+        if (this.performanceMetrics.lastMinuteLatencies.length > 0) {
+            const sum = this.performanceMetrics.lastMinuteLatencies.reduce((a, b) => a + b, 0);
+            this.performanceMetrics.avgLatency = sum / this.performanceMetrics.lastMinuteLatencies.length;
+        }
+
+        // Reset counters for next minute
+        this.performanceMetrics.messagesOut = 0;
+        this.performanceMetrics.messagesIn = 0;
+        this.performanceMetrics.lastMinuteLatencies = [];
+    }
+
+    /**
+     * Check alert conditions and trigger warnings
+     */
+    checkAlerts() {
+        const now = Date.now();
+        const metrics = this.performanceMetrics;
+
+        // Check if enough time has passed since last alert
+        if (metrics.lastAlert && (now - metrics.lastAlert) < this.ALERT_THRESHOLDS.MIN_ALERT_INTERVAL) {
+            return; // Too soon to alert again
+        }
+
+        // Alert on high latency
+        if (metrics.avgLatency > this.ALERT_THRESHOLDS.HIGH_LATENCY) {
+            console.error(`🚨 ALERT: High WebSocket latency detected: ${metrics.avgLatency.toFixed(0)}ms (threshold: ${this.ALERT_THRESHOLDS.HIGH_LATENCY}ms)`);
+            metrics.lastAlert = now;
+
+            // In production, this would trigger monitoring system alerts
+            // Example: send to DataDog, New Relic, or PagerDuty
+        }
+
+        // Alert on connection drop rate
+        if (metrics.connectionDrops > this.ALERT_THRESHOLDS.CONNECTION_DROP_RATE) {
+            console.error(`🚨 ALERT: High connection drop rate: ${metrics.connectionDrops} drops in last minute (threshold: ${this.ALERT_THRESHOLDS.CONNECTION_DROP_RATE})`);
+            metrics.lastAlert = now;
+
+            // Reset connection drops counter
+            metrics.connectionDrops = 0;
+        }
+    }
+
+    /**
+     * Track latency for an emit operation
+     * @param {number} startTime - Operation start time from Date.now()
+     */
+    trackLatency(startTime) {
+        const latency = Date.now() - startTime;
+
+        this.performanceMetrics.latencySum += latency;
+        this.performanceMetrics.latencyCount++;
+        this.performanceMetrics.lastMinuteLatencies.push(latency);
+
+        // Keep rolling window reasonable size (max 1000 samples)
+        if (this.performanceMetrics.lastMinuteLatencies.length > 1000) {
+            this.performanceMetrics.lastMinuteLatencies.shift();
+        }
+    }
+
+    /**
      * Get current connection statistics
      * @returns {Object} Connection stats
      */
@@ -401,6 +528,40 @@ class WebSocketServer {
             averageConnectionsPerUser: this.connectionStats.byUser.size > 0
                 ? (this.connectionStats.active / this.connectionStats.byUser.size).toFixed(2)
                 : 0
+        };
+    }
+
+    /**
+     * Get comprehensive performance metrics
+     * @returns {Object} Performance metrics
+     */
+    getPerformanceMetrics() {
+        return {
+            connections: {
+                total: this.connectionStats.total,
+                active: this.connectionStats.active,
+                uniqueUsers: this.connectionStats.byUser.size,
+                avgPerUser: this.connectionStats.byUser.size > 0
+                    ? (this.connectionStats.active / this.connectionStats.byUser.size).toFixed(2)
+                    : 0
+            },
+            throughput: {
+                messagesOut: this.performanceMetrics.messagesOut,
+                messagesIn: this.performanceMetrics.messagesIn,
+                rateOut: this.performanceMetrics.messageRateOut,
+                rateIn: this.performanceMetrics.messageRateIn
+            },
+            latency: {
+                current: this.performanceMetrics.lastMinuteLatencies.length > 0
+                    ? this.performanceMetrics.lastMinuteLatencies[this.performanceMetrics.lastMinuteLatencies.length - 1]
+                    : 0,
+                average: this.performanceMetrics.avgLatency,
+                total: this.performanceMetrics.latencyCount
+            },
+            health: {
+                connectionDrops: this.performanceMetrics.connectionDrops,
+                lastAlert: this.performanceMetrics.lastAlert
+            }
         };
     }
 
