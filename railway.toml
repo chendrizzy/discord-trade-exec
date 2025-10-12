@@ -3,9 +3,17 @@ builder = "NIXPACKS"
 
 [deploy]
 startCommand = "npm start"
+restartPolicyType = "on_failure"
+restartPolicyMaxRetries = 10
 
 [build.nixpacksPlan.phases.setup]
 cmds = ["npm install"]
 
 [build.nixpacksPlan.phases.build]
 cmds = ["npm run build:dashboard"]
+
+# Health check configuration
+[deploy.healthcheck]
+path = "/health"
+interval = 30
+timeout = 10

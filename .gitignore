@@ -3,13 +3,12 @@ node_modules/
 
 # Build outputs
 dist/
-.vercel/
 
 # Environment variables
 .env
 .env.local
 .env.*.local
-VERCEL-ENV-VARS.txt
+RAILWAY-ENV-VARS.txt
 *-env-vars.txt
 
 # Operating System

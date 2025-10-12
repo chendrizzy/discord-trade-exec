@@ -266,10 +266,19 @@ Discord Trade Executor is an automated trading bot SaaS platform that:
   - Used for: Automated customer acquisition, content marketing
 
 ### Deployment Platforms
-- **Recommended:** Railway, Heroku, or any Node.js hosting
-- **Database:** MongoDB Atlas (managed)
+- **Recommended:** Railway (WebSocket support, long-running processes, Nixpacks builder)
+- **Alternative:** Heroku (fully supported, traditional platform)
+- **Historical:** Vercel (archived, see `openspec/archive/vercel/migration-guide.md`)
+- **Database:** MongoDB Atlas (managed, recommended)
 - **CDN:** Not required (self-hosted static assets via Express)
 - **Domain:** Custom domain required for production OAuth callbacks
+
+**Why Railway?**
+- Native WebSocket support for Discord bot persistent connection
+- No serverless timeouts for long-running webhook listeners
+- Stateful Express session management works seamlessly
+- Build flexibility with Nixpacks (configured in `railway.toml`)
+- Automatic restarts with configurable retry policies
 
 ### Development Dependencies
 - **No external dev services required**
