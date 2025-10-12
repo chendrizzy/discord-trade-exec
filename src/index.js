@@ -344,8 +344,19 @@ const server = app.listen(PORT, () => {
 });
 
 // Initialize WebSocket Server for real-time updates
+console.log('🔍 DEBUG: About to initialize WebSocket server');
+console.log('🔍 DEBUG: server object type:', typeof server);
+console.log('🔍 DEBUG: server is defined:', !!server);
+console.log('🔍 DEBUG: WebSocketServer type:', typeof WebSocketServer);
+console.log('🔍 DEBUG: WebSocketServer is defined:', !!WebSocketServer);
+console.log('🔍 DEBUG: NODE_ENV:', process.env.NODE_ENV);
+console.log('🔍 DEBUG: REDIS_URL exists:', !!process.env.REDIS_URL);
+console.log('🔍 DEBUG: REDIS_URL value:', process.env.REDIS_URL ? 'SET (redacted)' : 'NOT SET');
+
 try {
+    console.log('🔍 DEBUG: Entered try block for WebSocket initialization');
     webSocketServer = new WebSocketServer(server);
+    console.log('🔍 DEBUG: WebSocketServer constructor called successfully');
     console.log('✅ WebSocket server initialized successfully');
 
     // Connect TradeExecutor events to WebSocket emissions
@@ -402,6 +413,10 @@ try {
         console.log('✅ TradeExecutor event listeners connected to WebSocket');
     }
 } catch (error) {
+    console.log('🔍 DEBUG: Caught error in WebSocket initialization');
+    console.log('🔍 DEBUG: Error type:', typeof error);
+    console.log('🔍 DEBUG: Error message:', error?.message);
+    console.log('🔍 DEBUG: Error stack:', error?.stack);
     console.error('❌ Failed to initialize WebSocket server:', error);
 }
 
