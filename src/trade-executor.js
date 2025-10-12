@@ -1,4 +1,5 @@
 const ccxt = require('ccxt');
+const EventEmitter = require('events');
 const { BrokerFactory } = require('./brokers');
 
 /**
@@ -11,9 +12,18 @@ const { BrokerFactory } = require('./brokers');
  * - Automated stop-loss and take-profit
  * - Daily loss limits and trading hours
  * - Demo mode support
+ * - Real-time event emissions for WebSocket integration
+ *
+ * Events:
+ * - 'trade:executed' - Emitted after successful trade execution
+ * - 'trade:failed' - Emitted when trade execution fails
+ * - 'portfolio:updated' - Emitted after trade affects portfolio
+ * - 'position:closed' - Emitted when a position is closed
  */
-class TradeExecutor {
+class TradeExecutor extends EventEmitter {
     constructor() {
+        super();
+
         // Initialize crypto exchanges via CCXT
         this.exchanges = this.initializeExchanges();
 
@@ -241,7 +251,7 @@ class TradeExecutor {
             // Track daily loss/profit
             await this.trackTradeResult(user, order, positionData);
 
-            return {
+            const tradeResult = {
                 success: true,
                 orderId: order.orderId || order.id,
                 symbol: signal.symbol,
@@ -254,8 +264,48 @@ class TradeExecutor {
                 assetType: this.detectAssetType(signal.symbol)
             };
 
+            // Emit trade:executed event for real-time WebSocket notifications
+            this.emit('trade:executed', {
+                userId: user._id || user.id,
+                trade: {
+                    id: tradeResult.orderId,
+                    symbol: tradeResult.symbol,
+                    side: tradeResult.action,
+                    quantity: tradeResult.amount,
+                    price: tradeResult.price,
+                    status: 'filled',
+                    broker: tradeResult.broker,
+                    assetType: tradeResult.assetType,
+                    timestamp: new Date().toISOString()
+                }
+            });
+
+            // Emit portfolio:updated event to trigger real-time portfolio refresh
+            this.emit('portfolio:updated', {
+                userId: user._id || user.id,
+                trigger: 'trade_execution',
+                symbol: tradeResult.symbol
+            });
+
+            return tradeResult;
+
         } catch (error) {
             console.error('Trade execution error:', error);
+
+            // Emit trade:failed event for real-time error notifications
+            this.emit('trade:failed', {
+                userId: user._id || user.id,
+                error: {
+                    message: error.message,
+                    reason: error.message
+                },
+                signal: {
+                    symbol: signal.symbol,
+                    action: signal.action,
+                    price: signal.price
+                }
+            });
+
             return { success: false, reason: error.message };
         }
     }
@@ -572,11 +622,12 @@ class TradeExecutor {
         try {
             const { adapter, type, key } = this.getTradingAdapter(symbol, preferredAdapter);
 
+            let result;
             if (type === 'broker') {
                 // Use BrokerAdapter interface
                 await adapter.closePosition(symbol);
                 console.log(`✅ Position closed: ${percentage}% of ${symbol} via ${key}`);
-                return { success: true, symbol, percentage };
+                result = { success: true, symbol, percentage };
             } else {
                 // Use CCXT exchange interface
                 const positions = await adapter.fetchPositions([symbol]);
@@ -596,7 +647,7 @@ class TradeExecutor {
                 );
 
                 console.log(`✅ Position closed: ${percentage}% of ${symbol} via ${key}`);
-                return {
+                result = {
                     success: true,
                     orderId: order.id,
                     symbol,
@@ -604,6 +655,27 @@ class TradeExecutor {
                     side
                 };
             }
+
+            // Emit position:closed event for real-time notifications
+            this.emit('position:closed', {
+                userId: user._id || user.id,
+                position: {
+                    symbol: result.symbol,
+                    percentage: percentage,
+                    broker: key,
+                    timestamp: new Date().toISOString()
+                }
+            });
+
+            // Emit portfolio:updated event since position closure affects portfolio
+            this.emit('portfolio:updated', {
+                userId: user._id || user.id,
+                trigger: 'position_closed',
+                symbol: result.symbol
+            });
+
+            return result;
+
         } catch (error) {
             console.error('Error closing position:', error);
             return { success: false, reason: error.message };

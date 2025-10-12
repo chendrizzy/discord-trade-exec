@@ -3,10 +3,13 @@ import { Card, CardHeader, CardTitle, CardDescription, CardContent } from './com
 import { Badge } from './components/ui/badge';
 import { Button } from './components/ui/button';
 import { Navigation } from './components/Navigation';
+import { WebSocketProvider } from './contexts/WebSocketContext';
+import { ConnectionStatusIndicator } from './components/ConnectionStatusIndicator';
+import { getSessionID, getUserID } from './utils/session';
 
 // Lazy load heavy components to reduce initial bundle size
+const PortfolioOverview = lazy(() => import('./components/PortfolioOverview').then(mod => ({ default: mod.PortfolioOverview })));
 const TradeHistoryTable = lazy(() => import('./components/TradeHistoryTable').then(mod => ({ default: mod.TradeHistoryTable })));
-const PortfolioSparkline = lazy(() => import('./components/PortfolioChart').then(mod => ({ default: mod.PortfolioSparkline })));
 const PortfolioChart = lazy(() => import('./components/PortfolioChart').then(mod => ({ default: mod.PortfolioChart })));
 const PerformanceMetricsChart = lazy(() => import('./components/PortfolioChart').then(mod => ({ default: mod.PerformanceMetricsChart })));
 const BotConfigWizard = lazy(() => import('./components/BotConfigWizard').then(mod => ({ default: mod.BotConfigWizard })));
@@ -14,14 +17,18 @@ const BrokerConfigWizard = lazy(() => import('./components/BrokerConfigWizard').
 const APIKeyManagement = lazy(() => import('./components/APIKeyManagement').then(mod => ({ default: mod.APIKeyManagement })));
 const CommandPalette = lazy(() => import('./components/CommandPalette').then(mod => ({ default: mod.CommandPalette })));
 const AdminDashboard = lazy(() => import('./components/AdminDashboard').then(mod => ({ default: mod.AdminDashboard })));
+const TradeNotifications = lazy(() => import('./components/TradeNotifications').then(mod => ({ default: mod.TradeNotifications })));
+const LiveWatchlist = lazy(() => import('./components/LiveWatchlist').then(mod => ({ default: mod.LiveWatchlist })));
 
 function App() {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('overview');
   const [commandPaletteOpen, setCommandPaletteOpen] = useState(false);
-  const [portfolioData, setPortfolioData] = useState(null);
-  const [portfolioLoading, setPortfolioLoading] = useState(false);
+
+  // Extract session credentials for WebSocket authentication
+  const sessionID = getSessionID();
+  const userId = user ? getUserID(user) : null;
 
   useEffect(() => {
     // Check authentication status
@@ -36,25 +43,6 @@ function App() {
         setLoading(false);
       });
   }, []);
-
-  useEffect(() => {
-    // Fetch portfolio data when user is authenticated
-    if (user) {
-      setPortfolioLoading(true);
-      fetch('/api/portfolio')
-        .then(res => res.json())
-        .then(data => {
-          if (data.success) {
-            setPortfolioData(data);
-          }
-          setPortfolioLoading(false);
-        })
-        .catch(err => {
-          console.error('Failed to fetch portfolio data:', err);
-          setPortfolioLoading(false);
-        });
-    }
-  }, [user]);
 
   // Command Palette keyboard shortcut (⌘K or Ctrl+K)
   useEffect(() => {
@@ -121,30 +109,33 @@ function App() {
   }
 
   return (
-    <div className="min-h-screen bg-background">
-      {/* Responsive Navigation */}
-      <Navigation
-        activeTab={activeTab}
-        onTabChange={setActiveTab}
-        userName={`${user.username}#${user.discriminator}`}
-        onLogout={handleLogout}
-        user={user}
-      />
+    <WebSocketProvider sessionID={sessionID} userId={userId} enabled={!!user}>
+      <div className="min-h-screen bg-background">
+        {/* Responsive Navigation */}
+        <Navigation
+          activeTab={activeTab}
+          onTabChange={setActiveTab}
+          userName={`${user.username}#${user.discriminator}`}
+          onLogout={handleLogout}
+          user={user}
+        />
 
-      {/* Main Content - Adjusted for sidebar and mobile nav */}
-      <main className="pt-[192px] pb-32 md:pt-0 md:pb-0 md:pl-64 min-h-screen">
+        {/* Main Content - Adjusted for sidebar and mobile nav */}
+        <main className="pt-[192px] pb-32 md:pt-0 md:pb-0 md:pl-64 min-h-screen">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
         {/* Tab Content - Controlled by Navigation state */}
         <div className="space-y-10">
           {activeTab === 'overview' && (
             <div className="space-y-6">
-            {/* Page Header */}
-            <div className="flex items-center justify-between mb-8">
-              <div>
-                <h1 className="text-5xl font-black tracking-tight">Portfolio Overview</h1>
-                <p className="text-muted-foreground mt-3 text-lg">Monitor your trading performance and portfolio metrics</p>
-              </div>
-            </div>
+            {/* Portfolio Overview with Real-Time Updates */}
+            <Suspense fallback={<div className="h-96 flex items-center justify-center text-sm text-muted-foreground">Loading portfolio...</div>}>
+              <PortfolioOverview />
+            </Suspense>
+
+            {/* Live Watchlist with Real-Time Quote Updates */}
+            <Suspense fallback={<div className="h-64 flex items-center justify-center text-sm text-muted-foreground">Loading watchlist...</div>}>
+              <LiveWatchlist />
+            </Suspense>
 
             {/* KPI Stats - Clean sections without heavy card borders */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6" role="region" aria-label="Key Performance Indicators">
@@ -154,7 +145,7 @@ function App() {
                   <h3 id="portfolio-value-title" className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
                     Portfolio Value
                   </h3>
-                  <Badge variant="info" className="animate-pulse-glow text-xs" aria-label="Live data">Live</Badge>
+                  <ConnectionStatusIndicator />
                 </div>
                 <div>
                   <div className="text-4xl font-black text-foreground font-mono mb-1" aria-live="polite" aria-atomic="true">
@@ -468,7 +459,13 @@ function App() {
           onAction={handleCommandAction}
         />
       </Suspense>
-    </div>
+
+      {/* Trade Notifications - Global toast notifications for trades */}
+      <Suspense fallback={null}>
+        <TradeNotifications />
+      </Suspense>
+      </div>
+    </WebSocketProvider>
   );
 }
 

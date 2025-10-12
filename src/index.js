@@ -22,6 +22,7 @@ const MarketingAutomation = require('./marketing-automation');
 const PaymentProcessor = require('./payment-processor');
 const TradingViewParser = require('./tradingview-parser');
 const TradeExecutor = require('./trade-executor');
+const WebSocketServer = require('./services/websocket-server');
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -40,12 +41,20 @@ process.on('unhandledRejection', (reason, promise) => {
     // Don't exit process, keep running
 });
 
-process.on('SIGTERM', () => {
+process.on('SIGTERM', async () => {
     console.log('Received SIGTERM, shutting down gracefully...');
+    if (webSocketServer) {
+        await webSocketServer.close();
+    }
+    process.exit(0);
 });
 
-process.on('SIGINT', () => {
+process.on('SIGINT', async () => {
     console.log('Received SIGINT, shutting down gracefully...');
+    if (webSocketServer) {
+        await webSocketServer.close();
+    }
+    process.exit(0);
 });
 
 // Security middleware - Helmet
@@ -56,7 +65,7 @@ app.use(helmet({
             styleSrc: ["'self'", "'unsafe-inline'"],
             scriptSrc: ["'self'", "'unsafe-inline'"],
             imgSrc: ["'self'", "data:", "https://cdn.discordapp.com"],
-            connectSrc: ["'self'", "https://discord.com"],
+            connectSrc: ["'self'", "ws:", "wss:", "https://discord.com"],
             fontSrc: ["'self'"],
             objectSrc: ["'none'"],
             mediaSrc: ["'self'"],
@@ -153,9 +162,10 @@ try {
     console.error('❌ Failed to initialize payment processor:', error);
 }
 
-// Initialize TradingView Parser
+// Initialize TradingView Parser and Trade Executor
 let tradingViewParser;
 let tradeExecutor;
+let webSocketServer; // Declare here for access in shutdown handlers
 try {
     tradingViewParser = new TradingViewParser();
     tradeExecutor = new TradeExecutor();
@@ -258,12 +268,19 @@ app.post('/webhook/tradingview', express.raw({type: 'application/json'}), async 
 
 // Health check
 app.get('/health', (req, res) => {
-    res.json({ 
-        status: 'healthy', 
+    const health = {
+        status: 'healthy',
         timestamp: new Date().toISOString(),
         uptime: process.uptime(),
         memory: process.memoryUsage()
-    });
+    };
+
+    // Include WebSocket statistics if available
+    if (webSocketServer) {
+        health.websocket = webSocketServer.getStats();
+    }
+
+    res.json(health);
 });
 
 // API info endpoint
@@ -280,7 +297,16 @@ app.get('/api', (req, res) => {
                 brokers: ['/api/brokers', '/api/brokers/:brokerKey', '/api/brokers/test', '/api/brokers/configure', '/api/brokers/user/configured', '/api/brokers/compare', '/api/brokers/recommend']
             },
             webhooks: ['/webhook/stripe', '/webhook/tradingview'],
-            health: ['/health']
+            health: ['/health'],
+            websocket: {
+                url: 'ws://' + (process.env.FRONTEND_URL || 'localhost:5000'),
+                events: {
+                    client: ['subscribe:portfolio', 'subscribe:trades', 'subscribe:watchlist', 'unsubscribe:watchlist'],
+                    server: ['portfolio:update', 'trade:executed', 'trade:failed', 'quote:update', 'market:status', 'server:shutdown']
+                },
+                authentication: 'sessionID via handshake.auth',
+                rateLimit: 'Per event type (portfolio: 1/min, trades: 1/min, watchlist: 10/min)'
+            }
         },
         features: [
             'Discord OAuth2 authentication',
@@ -290,7 +316,9 @@ app.get('/api', (req, res) => {
             'Multi-broker trading (stocks & crypto)',
             'Subscription billing',
             'Risk management dashboard',
-            'Multi-signal provider support'
+            'Multi-signal provider support',
+            'Real-time WebSocket updates (portfolio, trades, quotes)',
+            'Horizontal scaling with Redis adapter'
         ]
     });
 });
@@ -314,6 +342,68 @@ const server = app.listen(PORT, () => {
     console.log(`🔄 Node.js version: ${process.version}`);
     console.log(`🌐 Server accessible at: http://localhost:${PORT}`);
 });
+
+// Initialize WebSocket Server for real-time updates
+try {
+    webSocketServer = new WebSocketServer(server);
+    console.log('✅ WebSocket server initialized successfully');
+
+    // Connect TradeExecutor events to WebSocket emissions
+    if (tradeExecutor) {
+        // Listen for successful trade executions
+        tradeExecutor.on('trade:executed', (data) => {
+            console.log(`📡 Broadcasting trade:executed for user ${data.userId}`);
+            webSocketServer.emitTradeNotification(data.userId, data.trade);
+        });
+
+        // Listen for trade failures
+        tradeExecutor.on('trade:failed', (data) => {
+            console.log(`📡 Broadcasting trade:failed for user ${data.userId}`);
+            webSocketServer.emitTradeFailure(data.userId, data.error);
+        });
+
+        // Listen for portfolio updates
+        tradeExecutor.on('portfolio:updated', async (data) => {
+            try {
+                console.log(`📡 Portfolio update triggered for user ${data.userId}`);
+                // Note: In production, fetch actual portfolio data from database/broker
+                // For now, we'll emit a notification to refresh
+                const User = mongoose.model('User');
+                const user = await User.findById(data.userId);
+                if (user) {
+                    // Get portfolio data from brokers/exchanges
+                    const positions = await tradeExecutor.getOpenPositions(user);
+                    const portfolio = {
+                        totalValue: 0, // Calculate from positions
+                        cash: 0, // Get from broker balance
+                        equity: 0, // Calculate from positions
+                        positions: positions,
+                        dayChange: 0,
+                        dayChangePercent: 0
+                    };
+                    webSocketServer.emitPortfolioUpdate(data.userId, portfolio);
+                }
+            } catch (error) {
+                console.error('Error fetching portfolio for WebSocket update:', error);
+            }
+        });
+
+        // Listen for position closures
+        tradeExecutor.on('position:closed', (data) => {
+            console.log(`📡 Position closed for user ${data.userId}: ${data.position.symbol}`);
+            // Trigger portfolio update since position affects portfolio
+            tradeExecutor.emit('portfolio:updated', {
+                userId: data.userId,
+                trigger: 'position_closed',
+                symbol: data.position.symbol
+            });
+        });
+
+        console.log('✅ TradeExecutor event listeners connected to WebSocket');
+    }
+} catch (error) {
+    console.error('❌ Failed to initialize WebSocket server:', error);
+}
 
 // Handle server errors
 server.on('error', (error) => {

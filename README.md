@@ -27,20 +27,25 @@ No manual configuration needed! See `AUTOMATED-SETUP.md` for details.
 
 ## 🎯 Features
 
-✅ Millisecond trade execution  
-✅ Natural language signal parsing  
-✅ Multi-broker support  
-✅ Automatic risk management  
-✅ Performance analytics  
-✅ Discord bot integration  
-✅ Stripe subscription billing  
-✅ Beautiful dashboard  
-🆕 **AUTOMATED MARKETING** (NEW!)  
-✅ 24/7 social media automation  
-✅ Viral content detection & amplification  
-✅ Email marketing sequences  
-✅ SEO content generation  
-✅ Community outreach automation  
+✅ Millisecond trade execution
+✅ Natural language signal parsing
+✅ Multi-broker support
+✅ Automatic risk management
+✅ Performance analytics
+✅ Discord bot integration
+✅ Stripe subscription billing
+✅ Beautiful dashboard
+🆕 **REAL-TIME WEBSOCKET UPDATES** (NEW!)
+✅ Live portfolio updates
+✅ Instant trade notifications
+✅ Real-time market quotes
+✅ Horizontal scaling support (1000+ concurrent connections)
+🆕 **AUTOMATED MARKETING**
+✅ 24/7 social media automation
+✅ Viral content detection & amplification
+✅ Email marketing sequences
+✅ SEO content generation
+✅ Community outreach automation
 ✅ Referral program management
 
 ## 📈 Projected Revenue
@@ -119,6 +124,15 @@ discord-trade-exec/
 └── quickstart.sh         # One-command deployment
 ```
 
+## 📚 Technical Documentation
+
+For developers and technical users:
+
+- **[WebSocket Real-Time Guide](docs/WEBSOCKET-GUIDE.md)** - Complete guide for real-time portfolio updates, trade notifications, and live market quotes
+- **[Railway Redis Setup](docs/railway-redis-setup.md)** - Production horizontal scaling configuration
+- **[Automated Setup Guide](AUTOMATED-SETUP.md)** - Zero-configuration deployment automation
+- **[Marketing Automation](MARKETING-SETUP.md)** - 24/7 customer acquisition system
+
 ## 💡 How It Works
 
 1. **Signal Detection:** Bot monitors Discord channels for trading signals
@@ -127,7 +141,8 @@ discord-trade-exec/
 4. **Trade Execution:** Executes trades across multiple exchanges
 5. **User Billing:** Manages subscriptions via Stripe
 6. **Analytics:** Tracks performance and user metrics
-7. **🆕 Automated Marketing:** Acquires customers 24/7 via social media, email, SEO
+7. **🆕 Real-Time Updates:** WebSocket connections for instant portfolio and trade updates
+8. **🆕 Automated Marketing:** Acquires customers 24/7 via social media, email, SEO
 
 ## 📞 Support
 
