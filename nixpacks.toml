@@ -1,0 +1,11 @@
+[variables]
+NODE_VERSION = "20.19.0"
+
+[phases.install]
+cmds = ["npm install"]
+
+[phases.build]
+cmds = ["npm run build:dashboard"]
+
+[start]
+cmd = "npm start"

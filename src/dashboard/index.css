@@ -1,0 +1,96 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    /* Modern dark theme with high contrast */
+    --background: 222 47% 5%; /* Deep slate background #06080b */
+    --foreground: 0 0% 95%; /* Near-white text for readability */
+
+    --card: 222 47% 8%; /* Slightly elevated card background #0d1117 */
+    --card-foreground: 0 0% 95%; /* White text on cards */
+
+    --popover: 222 47% 10%;
+    --popover-foreground: 0 0% 95%;
+
+    --primary: 42 93% 58%; /* Vibrant gold for accents #f5c644 */
+    --primary-foreground: 222 47% 5%;
+
+    --secondary: 222 47% 12%; /* Subtle elevated background */
+    --secondary-foreground: 0 0% 90%;
+
+    --muted: 222 47% 15%; /* Muted backgrounds */
+    --muted-foreground: 0 0% 65%; /* Medium gray for secondary text */
+
+    --accent: 222 47% 18%; /* Hover states */
+    --accent-foreground: 0 0% 95%;
+
+    --destructive: 0 84% 60%; /* Brighter red */
+    --destructive-foreground: 0 0% 98%;
+
+    --border: 222 47% 18%; /* Subtle borders with slight blue tint */
+    --input: 222 47% 15%;
+    --ring: 42 93% 58%;
+
+    --radius: 0.75rem; /* Slightly larger radius for modern look */
+
+    /* Typography */
+    font-family: Inter, system-ui, Avenir, Helvetica, Arial, sans-serif;
+    line-height: 1.6; /* Better readability */
+    font-weight: 400;
+
+    color-scheme: dark;
+
+    font-synthesis: none;
+    text-rendering: optimizeLegibility;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  .dark {
+    --background: 222 47% 5%;
+    --foreground: 0 0% 95%;
+
+    --card: 222 47% 8%;
+    --card-foreground: 0 0% 95%;
+
+    --popover: 222 47% 10%;
+    --popover-foreground: 0 0% 95%;
+
+    --primary: 42 93% 58%;
+    --primary-foreground: 222 47% 5%;
+
+    --secondary: 222 47% 12%;
+    --secondary-foreground: 0 0% 90%;
+
+    --muted: 222 47% 15%;
+    --muted-foreground: 0 0% 65%;
+
+    --accent: 222 47% 18%;
+    --accent-foreground: 0 0% 95%;
+
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 0 0% 98%;
+
+    --border: 222 47% 18%;
+    --input: 222 47% 15%;
+    --ring: 42 93% 58%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-background text-foreground;
+    margin: 0;
+    display: flex;
+    min-width: 320px;
+    min-height: 100vh;
+  }
+  #root {
+    width: 100%;
+  }
+}

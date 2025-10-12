@@ -1,0 +1,45 @@
+# Dependencies
+node_modules/
+
+# Build outputs
+dist/
+.vercel/
+
+# Environment variables
+.env
+.env.local
+.env.*.local
+VERCEL-ENV-VARS.txt
+*-env-vars.txt
+
+# Operating System
+.DS_Store
+Thumbs.db
+
+# Claude Code / AI Assistant
+.claude-flow/
+.swarm/
+.browser-session/
+.playwright-mcp/
+
+# Logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+app.log
+server.log
+setup.log
+
+# Testing
+coverage/
+.nyc_output/
+test-results/
+
+# Temporary files
+*.tmp
+*.temp
+deploy-railway.sh
+
+# Railway (if using local deployment)
+.railway/
