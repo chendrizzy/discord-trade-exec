@@ -26,6 +26,8 @@ function App() {
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('overview');
   const [commandPaletteOpen, setCommandPaletteOpen] = useState(false);
+  const [portfolioLoading, setPortfolioLoading] = useState(false);
+  const [portfolioData, setPortfolioData] = useState(null);
 
   // Extract session credentials for WebSocket authentication
   const sessionID = getSessionID();
