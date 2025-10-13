@@ -56,6 +56,23 @@ class BrokerFactory {
       status: 'planned'
     });
 
+    // Moomoo - Modern mobile-first trading platform
+    this.registerBroker('moomoo', {
+      name: 'Moomoo',
+      type: 'stock',
+      class: null, // To be implemented
+      features: ['stocks', 'options', 'etfs', 'futures', 'commission-free', 'paper-trading', 'mobile-first'],
+      description: 'Modern mobile-first trading platform with comprehensive OpenAPI',
+      authMethods: ['api-key'],
+      websiteUrl: 'https://www.moomoo.com',
+      docsUrl: 'https://openapi.moomoo.com/moomoo-api-doc/en/',
+      minDeposit: 0,
+      accountTypes: ['individual', 'margin'],
+      markets: ['US', 'HK', 'China'],
+      apiFeatures: ['gateway-required', 'multi-language-sdk', 'real-time-quotes', 'paper-trading'],
+      status: 'planned'
+    });
+
     // Crypto exchange placeholders (to be implemented in Phase 4)
     this.registerBroker('coinbase-pro', {
       name: 'Coinbase Pro',
@@ -354,6 +371,21 @@ class BrokerFactory {
         if (!credentials.port && !process.env.IBKR_PORT) {
           result.valid = false;
           result.errors.push('port required for IBKR connection');
+        }
+        break;
+
+      case 'moomoo':
+        if (!credentials.moomooId && !process.env.MOOMOO_ID) {
+          result.valid = false;
+          result.errors.push('moomooId required for Moomoo connection');
+        }
+        if (!credentials.password && !process.env.MOOMOO_PASSWORD) {
+          result.valid = false;
+          result.errors.push('password required for Moomoo connection');
+        }
+        if (!credentials.host && !process.env.MOOMOO_HOST) {
+          result.valid = false;
+          result.errors.push('host required for Moomoo OpenD gateway connection (default: 127.0.0.1)');
         }
         break;
 
