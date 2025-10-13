@@ -12,6 +12,7 @@ const PortfolioOverview = lazy(() => import('./components/PortfolioOverview').th
 const TradeHistoryTable = lazy(() => import('./components/TradeHistoryTable').then(mod => ({ default: mod.TradeHistoryTable })));
 const PortfolioChart = lazy(() => import('./components/PortfolioChart').then(mod => ({ default: mod.PortfolioChart })));
 const PerformanceMetricsChart = lazy(() => import('./components/PortfolioChart').then(mod => ({ default: mod.PerformanceMetricsChart })));
+const PortfolioSparkline = lazy(() => import('./components/PortfolioChart').then(mod => ({ default: mod.PortfolioSparkline })));
 const BotConfigWizard = lazy(() => import('./components/BotConfigWizard').then(mod => ({ default: mod.BotConfigWizard })));
 const BrokerConfigWizard = lazy(() => import('./components/BrokerConfigWizard').then(mod => ({ default: mod.BrokerConfigWizard })));
 const APIKeyManagement = lazy(() => import('./components/APIKeyManagement').then(mod => ({ default: mod.APIKeyManagement })));
