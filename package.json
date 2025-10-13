@@ -25,6 +25,7 @@
     "@radix-ui/react-toast": "^1.2.15",
     "@radix-ui/react-tooltip": "^1.2.8",
     "@socket.io/redis-adapter": "^8.3.0",
+    "@stoqey/ib": "^1.5.1",
     "@tanstack/react-table": "^8.21.3",
     "axios": "^1.12.2",
     "ccxt": "^4.1.99",

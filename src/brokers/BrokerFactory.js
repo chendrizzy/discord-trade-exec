@@ -1,4 +1,5 @@
 const AlpacaAdapter = require('./adapters/AlpacaAdapter');
+const IBKRAdapter = require('./adapters/IBKRAdapter');
 
 /**
  * BrokerFactory - Central factory for creating and managing broker adapters
@@ -25,11 +26,11 @@ class BrokerFactory {
       dataFeedOptions: ['IEX', 'SIP']
     });
 
-    // Placeholders for future brokers (to be implemented in Phase 1 Week 4)
+    // Interactive Brokers (IBKR) - Professional trading platform
     this.registerBroker('ibkr', {
       name: 'Interactive Brokers',
       type: 'stock',
-      class: null, // To be implemented
+      class: IBKRAdapter,
       features: ['stocks', 'options', 'futures', 'forex', 'bonds', 'global-markets'],
       description: 'Professional trading platform with global market access',
       authMethods: ['api-key'],
@@ -37,8 +38,7 @@ class BrokerFactory {
       docsUrl: 'https://interactivebrokers.github.io',
       minDeposit: 0,
       accountTypes: ['individual', 'ira', 'margin', 'joint'],
-      markets: ['US', 'Europe', 'Asia', 'Canada'],
-      status: 'planned'
+      markets: ['US', 'Europe', 'Asia', 'Canada']
     });
 
     this.registerBroker('schwab', {
@@ -343,6 +343,20 @@ class BrokerFactory {
         break;
 
       case 'ibkr':
+        if (!credentials.clientId && !process.env.IBKR_CLIENT_ID) {
+          result.valid = false;
+          result.errors.push('clientId required for IBKR connection');
+        }
+        if (!credentials.host && !process.env.IBKR_HOST) {
+          result.valid = false;
+          result.errors.push('host required for IBKR connection');
+        }
+        if (!credentials.port && !process.env.IBKR_PORT) {
+          result.valid = false;
+          result.errors.push('port required for IBKR connection');
+        }
+        break;
+
       case 'schwab':
       case 'coinbase-pro':
       case 'kraken':
