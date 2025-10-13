@@ -19,6 +19,7 @@ const CommandPalette = lazy(() => import('./components/CommandPalette').then(mod
 const AdminDashboard = lazy(() => import('./components/AdminDashboard').then(mod => ({ default: mod.AdminDashboard })));
 const TradeNotifications = lazy(() => import('./components/TradeNotifications').then(mod => ({ default: mod.TradeNotifications })));
 const LiveWatchlist = lazy(() => import('./components/LiveWatchlist').then(mod => ({ default: mod.LiveWatchlist })));
+const ProviderLeaderboard = lazy(() => import('./components/ProviderLeaderboard').then(mod => ({ default: mod.ProviderLeaderboard })));
 
 function App() {
   const [user, setUser] = useState(null);
@@ -390,6 +391,14 @@ function App() {
                 </Suspense>
               </CardContent>
             </Card>
+            </div>
+          )}
+
+          {activeTab === 'leaderboard' && (
+            <div className="space-y-4">
+              <Suspense fallback={<div className="h-96 flex items-center justify-center text-sm text-muted-foreground">Loading leaderboard...</div>}>
+                <ProviderLeaderboard />
+              </Suspense>
             </div>
           )}
 

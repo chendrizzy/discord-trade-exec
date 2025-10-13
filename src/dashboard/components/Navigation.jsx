@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Home, Bot, BarChart3, Settings, Menu, X, Shield } from 'lucide-react';
+import { Home, Bot, BarChart3, Trophy, Settings, Menu, X, Shield } from 'lucide-react';
 import { Button } from './ui/button';
 import { cn } from '@/lib/utils';
 
@@ -8,6 +8,7 @@ const getNavItems = (isAdmin) => {
     { id: 'overview', label: 'Overview', icon: Home },
     { id: 'bots', label: 'Bots', icon: Bot },
     { id: 'analytics', label: 'Analytics', icon: BarChart3 },
+    { id: 'leaderboard', label: 'Leaderboard', icon: Trophy },
     { id: 'settings', label: 'Settings', icon: Settings },
   ];
 

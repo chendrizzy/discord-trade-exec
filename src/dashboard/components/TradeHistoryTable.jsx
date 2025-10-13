@@ -12,6 +12,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '.
 import { Button } from './ui/button';
 import { Input } from './ui/input';
 import { Badge } from './ui/badge';
+import { SignalQualityIndicator } from './SignalQualityIndicator';
 
 // Mock trade data
 const mockTrades = [
@@ -176,6 +177,14 @@ export function TradeHistoryTable() {
           </Button>
         ),
         cell: ({ row }) => <div className="font-semibold">{row.getValue('symbol')}</div>,
+      },
+      {
+        id: 'quality',
+        header: 'Quality',
+        cell: ({ row }) => {
+          const tradeId = row.original._id || row.original.id;
+          return <SignalQualityIndicator tradeId={tradeId} compact={true} />;
+        },
       },
       {
         accessorKey: 'side',

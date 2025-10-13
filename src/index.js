@@ -16,6 +16,7 @@ const portfolioRoutes = require('./routes/api/portfolio');
 const tradesRoutes = require('./routes/api/trades');
 const adminRoutes = require('./routes/api/admin');
 const brokerRoutes = require('./routes/api/brokers');
+const signalsRoutes = require('./routes/api/signals');
 const DiscordTradeBot = require('./discord-bot');
 const SubscriptionManager = require('./subscription-manager');
 const MarketingAutomation = require('./marketing-automation');
@@ -187,6 +188,7 @@ app.use('/api/portfolio', portfolioRoutes);
 app.use('/api/trades', tradesRoutes);
 app.use('/api/admin', adminRoutes);
 app.use('/api/brokers', brokerRoutes);
+app.use('/api/signals', signalsRoutes);
 
 // Routes
 app.post('/webhook/stripe', (req, res) => {
@@ -302,7 +304,7 @@ app.get('/api', (req, res) => {
                 url: 'ws://' + (process.env.FRONTEND_URL || 'localhost:5000'),
                 events: {
                     client: ['subscribe:portfolio', 'subscribe:trades', 'subscribe:watchlist', 'unsubscribe:watchlist'],
-                    server: ['portfolio:update', 'trade:executed', 'trade:failed', 'quote:update', 'market:status', 'server:shutdown']
+                    server: ['portfolio:update', 'trade:executed', 'trade:failed', 'signal:quality', 'quote:update', 'market:status', 'server:shutdown']
                 },
                 authentication: 'sessionID via handshake.auth',
                 rateLimit: 'Per event type (portfolio: 1/min, trades: 1/min, watchlist: 10/min)'
@@ -362,9 +364,28 @@ try {
     // Connect TradeExecutor events to WebSocket emissions
     if (tradeExecutor) {
         // Listen for successful trade executions
-        tradeExecutor.on('trade:executed', (data) => {
+        tradeExecutor.on('trade:executed', async (data) => {
             console.log(`📡 Broadcasting trade:executed for user ${data.userId}`);
             webSocketServer.emitTradeNotification(data.userId, data.trade);
+
+            // Analyze and emit signal quality for the trade
+            try {
+                const { analyzeSignalQuality } = require('./services/signal-quality-tracker');
+                const quality = await analyzeSignalQuality({
+                    tradeId: data.trade.id || data.trade._id,
+                    symbol: data.trade.symbol,
+                    side: data.trade.side,
+                    entryPrice: data.trade.price || data.trade.entryPrice,
+                    quantity: data.trade.quantity,
+                    providerId: data.trade.providerId || data.signal?.provider || 'UNKNOWN'
+                });
+
+                if (quality) {
+                    webSocketServer.emitSignalQuality(data.userId, data.trade.id || data.trade._id, quality);
+                }
+            } catch (error) {
+                console.error('Failed to analyze signal quality for WebSocket emission:', error);
+            }
         });
 
         // Listen for trade failures

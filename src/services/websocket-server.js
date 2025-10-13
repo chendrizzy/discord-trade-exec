@@ -447,6 +447,35 @@ class WebSocketServer {
     }
 
     /**
+     * Broadcast signal quality update to specific user
+     * @param {string} userId - User ID
+     * @param {string} tradeId - Trade ID
+     * @param {Object} quality - Signal quality data
+     */
+    emitSignalQuality(userId, tradeId, quality) {
+        if (!userId || !tradeId || !quality) {
+            console.warn('Invalid signal quality: missing userId, tradeId, or quality data');
+            return;
+        }
+
+        const startTime = Date.now();
+
+        this.io.to(`user:${userId}`).emit('signal:quality', {
+            tradeId,
+            quality: quality.quality,
+            smartMoney: quality.smartMoney,
+            rareInformation: quality.rareInformation,
+            timestamp: new Date().toISOString()
+        });
+
+        // Track performance metrics
+        this.performanceMetrics.messagesOut++;
+        this.trackLatency(startTime);
+
+        console.log(`🎯 Signal quality sent to user ${userId}: ${quality.quality?.tier || 'N/A'} (trade: ${tradeId})`);
+    }
+
+    /**
      * Broadcast quote update for a symbol (to all subscribers)
      * @param {string} symbol - Trading symbol
      * @param {Object} quote - Quote data

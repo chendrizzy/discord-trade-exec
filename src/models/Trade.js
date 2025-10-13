@@ -104,6 +104,33 @@ const tradeSchema = new mongoose.Schema({
     timestamp: Date
   },
 
+  // Signal Quality Tracking
+  qualityTier: {
+    type: String,
+    enum: ['ELITE', 'VERIFIED', 'STANDARD'],
+    index: true
+  },
+  confidenceScore: {
+    type: Number,
+    min: 0,
+    max: 100
+  },
+  smartMoneyScore: {
+    type: Number,
+    min: 0,
+    max: 100
+  },
+  rareInformationScore: {
+    type: Number,
+    min: 0,
+    max: 100
+  },
+  qualityAnalyzedAt: Date,
+  predictedDirection: {
+    type: String,
+    enum: ['up', 'down', 'neutral']
+  },
+
   // Metadata
   metadata: {
     type: Map,
