@@ -254,6 +254,53 @@ class WebSocketServer {
                 }
             });
 
+            // Test trigger: Portfolio update (for testing cross-replica broadcasts)
+            socket.on('test:trigger-portfolio-update', (data) => {
+                const targetUserId = data.userId || socket.userId;
+                const portfolio = data.portfolio || {
+                    totalValue: 50000,
+                    cash: 10000,
+                    equity: 40000,
+                    positions: [],
+                    dayChange: 500,
+                    dayChangePercent: 1.0
+                };
+
+                console.log(`🧪 TEST: Triggering portfolio update for user ${targetUserId}`);
+                this.emitPortfolioUpdate(targetUserId, portfolio);
+            });
+
+            // Test trigger: Trade notification (for testing cross-replica broadcasts)
+            socket.on('test:trigger-trade-notification', (data) => {
+                const targetUserId = data.userId || socket.userId;
+                const trade = data.trade || {
+                    symbol: 'TEST',
+                    side: 'buy',
+                    quantity: 1,
+                    price: 100.00,
+                    status: 'filled',
+                    timestamp: Date.now()
+                };
+
+                console.log(`🧪 TEST: Triggering trade notification for user ${targetUserId}`);
+                this.emitTradeNotification(targetUserId, trade);
+            });
+
+            // Test trigger: Quote update (for testing broadcasts)
+            socket.on('test:trigger-quote-update', (data) => {
+                const symbol = data.symbol || 'TEST';
+                const quote = {
+                    price: data.price || 100.00,
+                    change: data.change || 1.50,
+                    changePercent: data.changePercent || 1.5,
+                    volume: data.volume || 1000000,
+                    timestamp: Date.now()
+                };
+
+                console.log(`🧪 TEST: Triggering quote update for ${symbol}`);
+                this.emitQuoteUpdate(symbol, quote);
+            });
+
             // Disconnect handler
             socket.on('disconnect', (reason) => {
                 console.log(`❌ WebSocket disconnected: ${socket.id} (${reason})`);
