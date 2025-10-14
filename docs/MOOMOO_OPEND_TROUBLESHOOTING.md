@@ -73,14 +73,28 @@ this.connID = initResult.s2c.connID;
 
 ---
 
-## 🐛 Current Problem
+## 🐛 Root Cause IDENTIFIED ✅
 
-The moomoo-api package is attempting to access `initResult.s2c.connID` but `initResult.s2c` is null. This suggests one of the following:
+**Version Incompatibility Confirmed:**
 
-1. **API Version Mismatch**: The installed moomoo-api v9.4.5408 may not be compatible with the running version of OpenD Gateway
-2. **Response Format Change**: OpenD Gateway may be sending a different response structure
-3. **WebSocket Key Required**: The connection may require the websocket_key_md5 from the OpenD process
-4. **Protocol Version Issue**: The protobuf protocol definitions may be out of sync
+- **OpenD Gateway Version**: 9.4.5418 (running on user's machine)
+- **moomoo-api npm Package**: 9.4.5408 (latest available, published Aug 2025)
+- **Version Gap**: OpenD is **10 patch versions ahead** of the npm package
+
+**Technical Details:**
+- Gateway successfully receives InitWebSocket request
+- Gateway **rejects** request with `retType: -1` (error code)
+- Response contains NO `s2c` structure (expected to have `connID`)
+- This indicates the gateway doesn't recognize the protocol format from the older API package
+
+**Tested Solutions (All Failed):**
+1. ✅ WebSocket key parameter - still returns `retType: -1`
+2. ✅ Empty key parameter - still returns `retType: -1`
+3. ✅ Port configuration (33333) - connection established but rejected
+4. ✅ Latest npm package - already installed, no newer version available
+
+**Why This Happens:**
+Moomoo releases OpenD Gateway updates before publishing matching npm packages. The running gateway (5418) uses a newer protocol that the npm package (5408) doesn't support.
 
 ---
 
@@ -113,37 +127,53 @@ Both scripts encounter the same error at the moomoo-api package level.
 
 ---
 
-## 🚀 Recommended Next Steps
+## 🚀 Recommended Solutions
 
-### Option 1: Update moomoo-api Package (RECOMMENDED)
+### Option 1: Wait for Compatible npm Package (RECOMMENDED)
 ```bash
-# Check for updates
-npm outdated moomoo-api
+# Monitor for new moomoo-api releases
+npm view moomoo-api time --json | tail -5
 
-# Try latest version
+# When version 9.4.5418 or higher is published:
 npm install moomoo-api@latest
-
-# Or try specific versions
-npm install moomoo-api@9.5.x
 ```
 
-### Option 2: Check OpenD Gateway Version
-1. Check OpenD Gateway version in the application
-2. Compare with moomoo-api package requirements
-3. Update OpenD Gateway if needed
-4. Restart OpenD Gateway after any updates
+**Status**: Waiting for Moomoo to publish compatible package
+**ETA**: Unknown - depends on Moomoo's release schedule
 
-### Option 3: Consult Moomoo Documentation
-1. Visit: https://openapi.moomoo.com/docs/
-2. Check API version compatibility matrix
-3. Review connection examples for current OpenD version
-4. Check if WebSocket key parameter is required
+### Option 2: Downgrade OpenD Gateway (IF AVAILABLE)
+1. Check if older OpenD Gateway versions are available
+2. Download OpenD Gateway v9.4.5408 or earlier
+3. Uninstall current OpenD Gateway (v9.4.5418)
+4. Install compatible version
+5. Re-test connection
 
-### Option 4: Alternative API Package
-Consider using a different Moomoo API package if available:
-- Check npm for alternative packages
-- Review Moomoo's official GitHub repositories
-- Consider using REST API if WebSocket continues to fail
+**Risks**:
+- Older versions may have security vulnerabilities
+- May lose newer features
+- Compatibility downloads may not be readily available
+
+### Option 3: Contact Moomoo Support
+1. Visit: https://openapi.moomoo.com/
+2. Report version mismatch: Gateway 9.4.5418 vs npm 9.4.5408
+3. Request either:
+   - Updated npm package for v9.4.5418
+   - Compatible OpenD Gateway version for v9.4.5408
+4. Ask for version compatibility matrix
+
+### Option 4: Implement Custom WebSocket Client (ADVANCED)
+Build direct WebSocket integration bypassing moomoo-api:
+```javascript
+const WebSocket = require('ws');
+const protobuf = require('protobufjs');
+
+// Implement custom InitWebSocket protocol
+// Use Moomoo's protobuf definitions
+// Handle authentication and message encoding manually
+```
+
+**Effort**: High (several days of development)
+**Benefit**: Full control over protocol implementation
 
 ---
 

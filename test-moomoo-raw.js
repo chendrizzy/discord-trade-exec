@@ -12,11 +12,13 @@ console.log('Testing direct moomoo-api connection...\n');
 const moomoo = new MoomooAPI();
 
 const port = parseInt(process.env.MOOMOO_PORT) || 11111;
+const websocketKey = process.env.MOOMOO_WEBSOCKET_KEY || '';
 
 console.log('Configuration:');
 console.log('  Host: 127.0.0.1');
 console.log('  Port:', port);
 console.log('  SSL: false');
+console.log('  WebSocket Key:', websocketKey ? 'Configured ✓' : 'Not set');
 console.log('  Password: ***\n');
 
 console.log('Setting up connection handler...');
@@ -78,7 +80,11 @@ console.log('Connecting to OpenD Gateway...');
 console.log('(waiting up to 30 seconds for connection...)\n');
 
 try {
-  moomoo.start('127.0.0.1', port, false, process.env.MOOMOO_PASSWORD);
+  // Pass WebSocket key as the 4th parameter (not password)
+  // The API signature is: start(ip, port, ssl, key)
+  // Try without key first - OpenD may not require it for local connections
+  console.log('Attempting connection without WebSocket key...');
+  moomoo.start('127.0.0.1', port, false, '');
 } catch (error) {
   console.error('❌ Failed to start connection:', error.message);
   process.exit(1);
