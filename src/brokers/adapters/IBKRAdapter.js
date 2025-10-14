@@ -1,5 +1,5 @@
 const BrokerAdapter = require('../BrokerAdapter');
-const { IB, Contract, Order } = require('@stoqey/ib');
+const { IBApi, Contract, Order } = require('@stoqey/ib');
 
 /**
  * Interactive Brokers (IBKR) API Adapter
@@ -58,7 +58,7 @@ class IBKRAdapter extends BrokerAdapter {
       console.log(`[IBKRAdapter] Connecting to TWS/IB Gateway at ${this.host}:${this.port}...`);
 
       // Create IB client instance
-      this.ib = new IB({
+      this.ib = new IBApi({
         clientId: this.clientId,
         host: this.host,
         port: this.port
@@ -393,6 +393,232 @@ class IBKRAdapter extends BrokerAdapter {
       'Inactive': 'CANCELLED'
     };
     return statusMap[status] || 'UNKNOWN';
+  }
+
+  /**
+   * Set stop-loss order for a position
+   * @param {Object} params - Stop-loss parameters
+   * @returns {Promise<Object>} Created stop-loss order
+   */
+  async setStopLoss(params) {
+    const { symbol, quantity, stopPrice, type, trailPercent } = params;
+
+    if (type === 'TRAILING_STOP') {
+      // For trailing stops, use trailPercent
+      return await this.createOrder({
+        symbol,
+        side: quantity > 0 ? 'SELL' : 'BUY',
+        type: 'TRAILING_STOP',
+        quantity: Math.abs(quantity),
+        trailPercent: trailPercent || 5, // Default 5%
+        timeInForce: 'GTC'
+      });
+    } else {
+      // Regular stop order
+      return await this.createOrder({
+        symbol,
+        side: quantity > 0 ? 'SELL' : 'BUY',
+        type: 'STOP',
+        quantity: Math.abs(quantity),
+        stopPrice: stopPrice,
+        timeInForce: 'GTC'
+      });
+    }
+  }
+
+  /**
+   * Set take-profit order for a position
+   * @param {Object} params - Take-profit parameters
+   * @returns {Promise<Object>} Created take-profit order
+   */
+  async setTakeProfit(params) {
+    const { symbol, quantity, limitPrice } = params;
+
+    return await this.createOrder({
+      symbol,
+      side: quantity > 0 ? 'SELL' : 'BUY',
+      type: 'LIMIT',
+      quantity: Math.abs(quantity),
+      price: limitPrice,
+      timeInForce: 'GTC'
+    });
+  }
+
+  /**
+   * Get order history
+   * @param {Object} filters - Optional filters
+   * @returns {Promise<Array>} Array of historical orders
+   */
+  async getOrderHistory(filters = {}) {
+    if (!this.isConnected()) {
+      await this.authenticate();
+    }
+
+    try {
+      return new Promise((resolve, reject) => {
+        const timeout = setTimeout(() => {
+          reject(new Error('Order history request timeout'));
+        }, 15000);
+
+        const executions = [];
+
+        // Request executions (filled orders)
+        this.ib.reqExecutions(1, {
+          symbol: filters.symbol || '',
+          time: filters.startDate ? filters.startDate.toISOString() : '',
+          clientId: this.clientId
+        });
+
+        this.ib.on('execDetails', (reqId, contract, execution) => {
+          if (!filters.symbol || contract.symbol === filters.symbol) {
+            executions.push({
+              orderId: execution.orderId.toString(),
+              symbol: this.denormalizeSymbol(contract.symbol),
+              side: execution.side,
+              quantity: execution.shares,
+              price: execution.price,
+              timestamp: execution.time,
+              status: 'FILLED'
+            });
+          }
+        });
+
+        this.ib.on('execDetailsEnd', (reqId) => {
+          clearTimeout(timeout);
+          resolve(executions);
+        });
+      });
+
+    } catch (error) {
+      console.error('[IBKRAdapter] getOrderHistory error:', error.message);
+      throw new Error(`Failed to get IBKR order history: ${error.message}`);
+    }
+  }
+
+  /**
+   * Get current market price for a symbol
+   * @param {string} symbol - Trading symbol
+   * @returns {Promise<Object>} Price information
+   */
+  async getMarketPrice(symbol) {
+    if (!this.isConnected()) {
+      await this.authenticate();
+    }
+
+    try {
+      return new Promise((resolve, reject) => {
+        const timeout = setTimeout(() => {
+          reject(new Error('Market price request timeout'));
+        }, 10000);
+
+        const priceData = { bid: 0, ask: 0, last: 0 };
+        const reqId = Math.floor(Math.random() * 10000);
+
+        // Create contract
+        const contract = new Contract();
+        contract.symbol = this.normalizeSymbol(symbol);
+        contract.secType = 'STK';
+        contract.exchange = 'SMART';
+        contract.currency = 'USD';
+
+        this.ib.reqMktData(reqId, contract, '', false, false);
+
+        this.ib.on('tickPrice', (tickerId, tickType, price) => {
+          if (tickerId === reqId) {
+            if (tickType === 1) priceData.bid = price; // Bid price
+            if (tickType === 2) priceData.ask = price; // Ask price
+            if (tickType === 4) priceData.last = price; // Last price
+
+            // If we have at least last price, resolve
+            if (priceData.last > 0 || (priceData.bid > 0 && priceData.ask > 0)) {
+              clearTimeout(timeout);
+              this.ib.cancelMktData(reqId);
+              resolve(priceData);
+            }
+          }
+        });
+      });
+
+    } catch (error) {
+      console.error('[IBKRAdapter] getMarketPrice error:', error.message);
+      throw new Error(`Failed to get IBKR market price: ${error.message}`);
+    }
+  }
+
+  /**
+   * Validate if a symbol is supported by this broker
+   * @param {string} symbol - Trading symbol
+   * @returns {Promise<boolean>} True if symbol is supported
+   */
+  async isSymbolSupported(symbol) {
+    if (!this.isConnected()) {
+      await this.authenticate();
+    }
+
+    try {
+      return new Promise((resolve, reject) => {
+        const timeout = setTimeout(() => {
+          resolve(false); // Timeout means not supported
+        }, 5000);
+
+        const reqId = Math.floor(Math.random() * 10000);
+
+        // Create contract
+        const contract = new Contract();
+        contract.symbol = this.normalizeSymbol(symbol);
+        contract.secType = 'STK';
+        contract.exchange = 'SMART';
+        contract.currency = 'USD';
+
+        this.ib.reqContractDetails(reqId, contract);
+
+        this.ib.on('contractDetails', (requestId, contractDetails) => {
+          if (requestId === reqId) {
+            clearTimeout(timeout);
+            resolve(true);
+          }
+        });
+
+        this.ib.on('contractDetailsEnd', (requestId) => {
+          if (requestId === reqId) {
+            clearTimeout(timeout);
+            resolve(true);
+          }
+        });
+
+        this.ib.on('error', (err, data) => {
+          if (data && data.id === reqId) {
+            clearTimeout(timeout);
+            resolve(false);
+          }
+        });
+      });
+
+    } catch (error) {
+      console.error('[IBKRAdapter] isSymbolSupported error:', error.message);
+      return false;
+    }
+  }
+
+  /**
+   * Get broker-specific fees structure
+   * @param {string} symbol - Trading symbol
+   * @returns {Promise<Object>} Fee structure
+   */
+  async getFees(symbol) {
+    // IBKR fees vary by account type and volume
+    // These are typical IBKR Pro fees for US stocks
+    // In production, you'd query this from IBKR API or maintain a fee schedule
+    return {
+      maker: 0.0005, // 0.05% or $0.005 per share (min $1, max 0.5% of trade value)
+      taker: 0.0005, // Same as maker for stocks
+      withdrawal: 0, // No withdrawal fees for cash
+      commission: 0.0005, // Per share commission
+      minimum: 1.00, // Minimum commission per order
+      maximum: 0.005, // Maximum 0.5% of trade value
+      currency: 'USD',
+      notes: 'IBKR Pro tiered pricing. Actual fees may vary based on account type, volume, and market.'
+    };
   }
 
   /**
