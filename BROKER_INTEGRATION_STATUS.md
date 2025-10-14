@@ -91,18 +91,23 @@ IBKR_PAPER_TRADING=true
 - **Test Coverage:** 30 comprehensive unit tests
 - **Test Pass Rate:** 100% (30/30)
 
-### Live Connection Test Results ⏳
+### Live Connection Test Results ⚠️ BLOCKED
 
 ```
-❌ Connection Failed!
-Error: Connection timeout after 10 seconds
+❌ API Package Error
+Error: TypeError: Cannot read properties of null (reading 'connID')
+Location: node_modules/moomoo-api/base.js:408
 
-🔍 Reason: OpenD Gateway not running (expected)
+🔍 Root Cause: moomoo-api package compatibility issue
+🔍 OpenD Gateway: Running on port 33333 (not default 11111)
+🔍 onlogin callback: Triggered successfully
+🔍 Issue: InitWebSocket response s2c structure is null
 ```
 
 **Test Date:** 2025-10-14
-**Test Environment:** OpenD Gateway not installed/running
-**Result:** Connection test created and ready, awaiting OpenD Gateway setup
+**Test Environment:** OpenD Gateway running on localhost:33333
+**Result:** Connection initiates but fails during InitWebSocket response parsing
+**Detailed Analysis:** See `docs/MOOMOO_OPEND_TROUBLESHOOTING.md`
 
 ### Implemented Methods
 1. ✅ `authenticate()` - WebSocket + UnlockTrade
