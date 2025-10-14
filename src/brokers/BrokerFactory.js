@@ -1,5 +1,6 @@
 const AlpacaAdapter = require('./adapters/AlpacaAdapter');
 const IBKRAdapter = require('./adapters/IBKRAdapter');
+const MoomooAdapter = require('./adapters/MoomooAdapter');
 
 /**
  * BrokerFactory - Central factory for creating and managing broker adapters
@@ -60,7 +61,7 @@ class BrokerFactory {
     this.registerBroker('moomoo', {
       name: 'Moomoo',
       type: 'stock',
-      class: null, // To be implemented
+      class: MoomooAdapter,
       features: ['stocks', 'options', 'etfs', 'futures', 'commission-free', 'paper-trading', 'mobile-first'],
       description: 'Modern mobile-first trading platform with comprehensive OpenAPI',
       authMethods: ['api-key'],
@@ -69,8 +70,7 @@ class BrokerFactory {
       minDeposit: 0,
       accountTypes: ['individual', 'margin'],
       markets: ['US', 'HK', 'China'],
-      apiFeatures: ['gateway-required', 'multi-language-sdk', 'real-time-quotes', 'paper-trading'],
-      status: 'planned'
+      apiFeatures: ['gateway-required', 'multi-language-sdk', 'real-time-quotes', 'paper-trading']
     });
 
     // Crypto exchange placeholders (to be implemented in Phase 4)
@@ -375,9 +375,9 @@ class BrokerFactory {
         break;
 
       case 'moomoo':
-        if (!credentials.moomooId && !process.env.MOOMOO_ID) {
+        if (!credentials.accountId && !process.env.MOOMOO_ID) {
           result.valid = false;
-          result.errors.push('moomooId required for Moomoo connection');
+          result.errors.push('accountId required for Moomoo connection');
         }
         if (!credentials.password && !process.env.MOOMOO_PASSWORD) {
           result.valid = false;
@@ -386,6 +386,10 @@ class BrokerFactory {
         if (!credentials.host && !process.env.MOOMOO_HOST) {
           result.valid = false;
           result.errors.push('host required for Moomoo OpenD gateway connection (default: 127.0.0.1)');
+        }
+        if (!credentials.port && !process.env.MOOMOO_PORT) {
+          result.valid = false;
+          result.errors.push('port required for Moomoo OpenD gateway connection (default: 11111)');
         }
         break;
 
