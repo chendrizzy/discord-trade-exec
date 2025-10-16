@@ -1,7 +1,8 @@
 // Internal utilities and services
 const AlpacaAdapter = require('./adapters/AlpacaAdapter');
 const IBKRAdapter = require('./adapters/IBKRAdapter');
-const MoomooAdapter = require('./adapters/MoomooAdapter');
+// MoomooAdapter uses ES Module (moomoo-api), loaded dynamically when needed
+// const MoomooAdapter = require('./adapters/MoomooAdapter');
 const SchwabAdapter = require('./adapters/SchwabAdapter');
 const CoinbaseProAdapter = require('./adapters/CoinbaseProAdapter');
 const KrakenAdapter = require('./adapters/KrakenAdapter');
@@ -62,10 +63,11 @@ class BrokerFactory {
     });
 
     // Moomoo - Modern mobile-first trading platform
+    // Note: MoomooAdapter is lazy-loaded due to ES Module dependency
     this.registerBroker('moomoo', {
       name: 'Moomoo',
       type: 'stock',
-      class: MoomooAdapter,
+      class: null, // Loaded dynamically when needed
       features: ['stocks', 'options', 'etfs', 'futures', 'commission-free', 'paper-trading', 'mobile-first'],
       description: 'Modern mobile-first trading platform with comprehensive OpenAPI',
       authMethods: ['api-key'],
@@ -139,6 +141,11 @@ class BrokerFactory {
 
     if (!brokerInfo) {
       throw new Error(`Unknown broker: ${brokerKey}. Available brokers: ${this.getAvailableBrokerKeys().join(', ')}`);
+    }
+
+    // Lazy-load MoomooAdapter if needed (ES Module compatibility)
+    if (brokerKey === 'moomoo' && !brokerInfo.class) {
+      brokerInfo.class = require('./adapters/MoomooAdapter');
     }
 
     if (!brokerInfo.class) {
