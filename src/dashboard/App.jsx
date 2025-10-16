@@ -15,7 +15,6 @@ const PerformanceMetricsChart = lazy(() => import('./components/PortfolioChart')
 const PortfolioSparkline = lazy(() => import('./components/PortfolioChart').then(mod => ({ default: mod.PortfolioSparkline })));
 const BotConfigWizard = lazy(() => import('./components/BotConfigWizard').then(mod => ({ default: mod.BotConfigWizard })));
 const BrokerConfigWizard = lazy(() => import('./components/BrokerConfigWizard').then(mod => ({ default: mod.BrokerConfigWizard })));
-const APIKeyManagement = lazy(() => import('./components/APIKeyManagement').then(mod => ({ default: mod.APIKeyManagement })));
 const CommandPalette = lazy(() => import('./components/CommandPalette').then(mod => ({ default: mod.CommandPalette })));
 const AdminDashboard = lazy(() => import('./components/AdminDashboard').then(mod => ({ default: mod.AdminDashboard })));
 const TradeNotifications = lazy(() => import('./components/TradeNotifications').then(mod => ({ default: mod.TradeNotifications })));
@@ -417,21 +416,7 @@ function App() {
               </Suspense>
             </div>
 
-            <Card className="animate-fade-in" style={{ animationDelay: '0.3s' }}>
-              <CardHeader>
-                <CardTitle>API Key Management</CardTitle>
-                <CardDescription>
-                  Manage your exchange API keys for automated trading
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <Suspense fallback={<div className="h-96 flex items-center justify-center text-sm text-muted-foreground">Loading API key management...</div>}>
-                  <APIKeyManagement />
-                </Suspense>
-              </CardContent>
-            </Card>
-
-            <Card className="animate-fade-in" style={{ animationDelay: '0.4s' }}>
+            <Card className="animate-fade-in" style={{ animationDelay: '0.2s' }}>
               <CardHeader>
                 <CardTitle>Account Settings</CardTitle>
                 <CardDescription>
