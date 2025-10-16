@@ -3,6 +3,7 @@
  * Tests all 16 BrokerAdapter interface methods with mocked IB API
  */
 
+// Internal utilities and services
 const IBKRAdapter = require('../IBKRAdapter');
 
 // Mock the @stoqey/ib module
@@ -61,7 +62,7 @@ jest.mock('@stoqey/ib', () => {
           exchange: 'SMART',
           currency: 'USD'
         };
-        this.emit('position', 'U1234567', mockContract, 100, 145.50);
+        this.emit('position', 'U1234567', mockContract, 100, 145.5);
         this.emit('positionEnd');
       }, 10);
     }
@@ -88,9 +89,9 @@ jest.mock('@stoqey/ib', () => {
 
     reqMktData(reqId, contract, genericTickList, snapshot, regulatorySnapshot) {
       setTimeout(() => {
-        this.emit('tickPrice', reqId, 1, 149.50); // Bid
-        this.emit('tickPrice', reqId, 2, 150.50); // Ask
-        this.emit('tickPrice', reqId, 4, 150.00); // Last
+        this.emit('tickPrice', reqId, 1, 149.5); // Bid
+        this.emit('tickPrice', reqId, 2, 150.5); // Ask
+        this.emit('tickPrice', reqId, 4, 150.0); // Last
       }, 10);
     }
 
@@ -140,10 +141,7 @@ describe('IBKRAdapter', () => {
   let adapter;
 
   beforeEach(() => {
-    adapter = new IBKRAdapter(
-      { clientId: 1, host: '127.0.0.1', port: 4001 },
-      { isTestnet: true }
-    );
+    adapter = new IBKRAdapter({ clientId: 1, host: '127.0.0.1', port: 4001 }, { isTestnet: true });
   });
 
   afterEach(async () => {
@@ -163,10 +161,7 @@ describe('IBKRAdapter', () => {
     });
 
     test('should accept custom credentials', () => {
-      const customAdapter = new IBKRAdapter(
-        { clientId: 5, host: '192.168.1.100', port: 7496 },
-        { isTestnet: false }
-      );
+      const customAdapter = new IBKRAdapter({ clientId: 5, host: '192.168.1.100', port: 7496 }, { isTestnet: false });
       expect(customAdapter.clientId).toBe(5);
       expect(customAdapter.host).toBe('192.168.1.100');
       expect(customAdapter.port).toBe(7496);
@@ -195,16 +190,13 @@ describe('IBKRAdapter', () => {
       const originalConnect = IBApi.prototype.connect;
 
       // Mock connect to emit error
-      IBApi.prototype.connect = jest.fn(function() {
+      IBApi.prototype.connect = jest.fn(function () {
         setTimeout(() => {
           this.emit('error', { code: -1, message: 'Connection refused' }, {});
         }, 10);
       });
 
-      const failAdapter = new IBKRAdapter(
-        { clientId: 99, host: '127.0.0.1', port: 9999 },
-        { isTestnet: true }
-      );
+      const failAdapter = new IBKRAdapter({ clientId: 99, host: '127.0.0.1', port: 9999 }, { isTestnet: true });
 
       await expect(failAdapter.authenticate()).rejects.toThrow('Connection refused');
 
@@ -275,7 +267,7 @@ describe('IBKRAdapter', () => {
         side: 'SELL',
         type: 'LIMIT',
         quantity: 50,
-        price: 200.00,
+        price: 200.0,
         timeInForce: 'GTC'
       };
 
@@ -293,7 +285,7 @@ describe('IBKRAdapter', () => {
         side: 'SELL',
         type: 'STOP',
         quantity: 25,
-        stopPrice: 290.00,
+        stopPrice: 290.0,
         timeInForce: 'DAY'
       };
 
@@ -335,9 +327,11 @@ describe('IBKRAdapter', () => {
       await adapter.authenticate();
 
       // Mock empty positions
-      adapter.ib.reqPositions = jest.fn(function() {
-        setTimeout(() => this.emit('positionEnd'), 10);
-      }.bind(adapter.ib));
+      adapter.ib.reqPositions = jest.fn(
+        function () {
+          setTimeout(() => this.emit('positionEnd'), 10);
+        }.bind(adapter.ib)
+      );
 
       const positions = await adapter.getPositions();
       expect(Array.isArray(positions)).toBe(true);
@@ -352,7 +346,7 @@ describe('IBKRAdapter', () => {
       const result = await adapter.setStopLoss({
         symbol: 'AAPL',
         quantity: 100,
-        stopPrice: 140.00,
+        stopPrice: 140.0,
         type: 'STOP'
       });
 
@@ -382,7 +376,7 @@ describe('IBKRAdapter', () => {
       const result = await adapter.setTakeProfit({
         symbol: 'AAPL',
         quantity: 100,
-        limitPrice: 160.00
+        limitPrice: 160.0
       });
 
       expect(result).toHaveProperty('orderId');
@@ -425,9 +419,9 @@ describe('IBKRAdapter', () => {
       expect(price).toHaveProperty('bid');
       expect(price).toHaveProperty('ask');
       expect(price).toHaveProperty('last');
-      expect(price.bid).toBe(149.50);
-      expect(price.ask).toBe(150.50);
-      expect(price.last).toBe(150.00);
+      expect(price.bid).toBe(149.5);
+      expect(price.ask).toBe(150.5);
+      expect(price.last).toBe(150.0);
     });
 
     test('should handle invalid symbol', async () => {
@@ -451,9 +445,11 @@ describe('IBKRAdapter', () => {
       await adapter.authenticate();
 
       // Mock error response
-      adapter.ib.reqContractDetails = jest.fn(function(reqId) {
-        setTimeout(() => this.emit('error', { message: 'Invalid symbol' }, { id: reqId }), 10);
-      }.bind(adapter.ib));
+      adapter.ib.reqContractDetails = jest.fn(
+        function (reqId) {
+          setTimeout(() => this.emit('error', { message: 'Invalid symbol' }, { id: reqId }), 10);
+        }.bind(adapter.ib)
+      );
 
       const isSupported = await adapter.isSymbolSupported('INVALID123');
       expect(isSupported).toBe(false);
@@ -471,7 +467,7 @@ describe('IBKRAdapter', () => {
       expect(fees).toHaveProperty('maximum');
       expect(fees).toHaveProperty('currency', 'USD');
       expect(fees.maker).toBe(0.0005);
-      expect(fees.minimum).toBe(1.00);
+      expect(fees.minimum).toBe(1.0);
     });
   });
 

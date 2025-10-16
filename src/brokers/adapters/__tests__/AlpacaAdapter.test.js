@@ -1,3 +1,4 @@
+// Internal utilities and services
 const AlpacaAdapter = require('../AlpacaAdapter');
 
 /**
@@ -28,12 +29,15 @@ describe('AlpacaAdapter', () => {
     }
 
     // Initialize adapter with paper trading credentials
-    adapter = new AlpacaAdapter({
-      apiKey: process.env.ALPACA_PAPER_KEY,
-      apiSecret: process.env.ALPACA_PAPER_SECRET
-    }, {
-      isTestnet: true // Use paper trading API
-    });
+    adapter = new AlpacaAdapter(
+      {
+        apiKey: process.env.ALPACA_PAPER_KEY,
+        apiSecret: process.env.ALPACA_PAPER_SECRET
+      },
+      {
+        isTestnet: true // Use paper trading API
+      }
+    );
   });
 
   afterAll(async () => {
@@ -87,12 +91,15 @@ describe('AlpacaAdapter', () => {
     });
 
     it('should fail authentication with invalid credentials', async () => {
-      const badAdapter = new AlpacaAdapter({
-        apiKey: 'invalid_key',
-        apiSecret: 'invalid_secret'
-      }, {
-        isTestnet: true
-      });
+      const badAdapter = new AlpacaAdapter(
+        {
+          apiKey: 'invalid_key',
+          apiSecret: 'invalid_secret'
+        },
+        {
+          isTestnet: true
+        }
+      );
 
       await expect(badAdapter.authenticate()).rejects.toThrow();
       expect(badAdapter.isAuthenticated).toBe(false);
@@ -133,12 +140,15 @@ describe('AlpacaAdapter', () => {
     it('should auto-authenticate if not authenticated', async () => {
       if (!process.env.ALPACA_PAPER_KEY) return;
 
-      const newAdapter = new AlpacaAdapter({
-        apiKey: process.env.ALPACA_PAPER_KEY,
-        apiSecret: process.env.ALPACA_PAPER_SECRET
-      }, {
-        isTestnet: true
-      });
+      const newAdapter = new AlpacaAdapter(
+        {
+          apiKey: process.env.ALPACA_PAPER_KEY,
+          apiSecret: process.env.ALPACA_PAPER_SECRET
+        },
+        {
+          isTestnet: true
+        }
+      );
 
       expect(newAdapter.isAuthenticated).toBe(false);
 
@@ -510,20 +520,21 @@ describe('AlpacaAdapter', () => {
     it('should handle invalid symbol in market price', async () => {
       if (!adapter.isAuthenticated) return;
 
-      await expect(adapter.getMarketPrice('INVALID_SYMBOL_XYZ123'))
-        .rejects.toThrow();
+      await expect(adapter.getMarketPrice('INVALID_SYMBOL_XYZ123')).rejects.toThrow();
     });
 
     it('should handle invalid order parameters', async () => {
       if (!adapter.isAuthenticated) return;
 
-      await expect(adapter.createOrder({
-        symbol: testSymbol,
-        side: 'BUY',
-        type: 'LIMIT',
-        quantity: 1
-        // Missing required 'price' for LIMIT order
-      })).rejects.toThrow();
+      await expect(
+        adapter.createOrder({
+          symbol: testSymbol,
+          side: 'BUY',
+          type: 'LIMIT',
+          quantity: 1
+          // Missing required 'price' for LIMIT order
+        })
+      ).rejects.toThrow();
     });
   });
 });

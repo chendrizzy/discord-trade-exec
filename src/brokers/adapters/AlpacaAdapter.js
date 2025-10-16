@@ -1,5 +1,8 @@
+// External dependencies
 const Alpaca = require('@alpacahq/alpaca-trade-api');
 const axios = require('axios');
+
+// Internal utilities and services
 const BrokerAdapter = require('../BrokerAdapter');
 
 /**
@@ -13,9 +16,7 @@ class AlpacaAdapter extends BrokerAdapter {
 
     this.brokerName = 'alpaca';
     this.brokerType = 'stock';
-    this.baseURL = this.isTestnet
-      ? 'https://paper-api.alpaca.markets'
-      : 'https://api.alpaca.markets';
+    this.baseURL = this.isTestnet ? 'https://paper-api.alpaca.markets' : 'https://api.alpaca.markets';
 
     this.alpacaClient = null;
     this.accessToken = credentials.accessToken || null;
@@ -78,7 +79,8 @@ class AlpacaAdapter extends BrokerAdapter {
         currency: 'USD',
         portfolioValue: parseFloat(account.portfolio_value),
         profitLoss: parseFloat(account.equity) - parseFloat(account.last_equity),
-        profitLossPercent: ((parseFloat(account.equity) - parseFloat(account.last_equity)) / parseFloat(account.last_equity)) * 100
+        profitLossPercent:
+          ((parseFloat(account.equity) - parseFloat(account.last_equity)) / parseFloat(account.last_equity)) * 100
       };
     } catch (error) {
       console.error('[AlpacaAdapter] getBalance error:', error.message);
@@ -369,8 +371,8 @@ class AlpacaAdapter extends BrokerAdapter {
   async getFees(symbol) {
     // Alpaca has zero commission trading for stocks
     return {
-      maker: 0,      // 0% maker fee
-      taker: 0,      // 0% taker fee
+      maker: 0, // 0% maker fee
+      taker: 0, // 0% taker fee
       withdrawal: 0, // No withdrawal fee
       notes: 'Alpaca offers commission-free trading for stocks and ETFs'
     };
@@ -389,11 +391,11 @@ class AlpacaAdapter extends BrokerAdapter {
    */
   mapOrderType(type) {
     const typeMap = {
-      'MARKET': 'market',
-      'LIMIT': 'limit',
-      'STOP': 'stop',
-      'STOP_LIMIT': 'stop_limit',
-      'TRAILING_STOP': 'trailing_stop'
+      MARKET: 'market',
+      LIMIT: 'limit',
+      STOP: 'stop',
+      STOP_LIMIT: 'stop_limit',
+      TRAILING_STOP: 'trailing_stop'
     };
 
     return typeMap[type] || 'market';
@@ -404,22 +406,22 @@ class AlpacaAdapter extends BrokerAdapter {
    */
   mapOrderStatus(status) {
     const statusMap = {
-      'new': 'PENDING',
-      'partially_filled': 'PARTIAL',
-      'filled': 'FILLED',
-      'done_for_day': 'DONE',
-      'canceled': 'CANCELLED',
-      'expired': 'EXPIRED',
-      'replaced': 'REPLACED',
-      'pending_cancel': 'PENDING_CANCEL',
-      'pending_replace': 'PENDING_REPLACE',
-      'accepted': 'ACCEPTED',
-      'pending_new': 'PENDING',
-      'accepted_for_bidding': 'ACCEPTED',
-      'stopped': 'STOPPED',
-      'rejected': 'REJECTED',
-      'suspended': 'SUSPENDED',
-      'calculated': 'CALCULATED'
+      new: 'PENDING',
+      partially_filled: 'PARTIAL',
+      filled: 'FILLED',
+      done_for_day: 'DONE',
+      canceled: 'CANCELLED',
+      expired: 'EXPIRED',
+      replaced: 'REPLACED',
+      pending_cancel: 'PENDING_CANCEL',
+      pending_replace: 'PENDING_REPLACE',
+      accepted: 'ACCEPTED',
+      pending_new: 'PENDING',
+      accepted_for_bidding: 'ACCEPTED',
+      stopped: 'STOPPED',
+      rejected: 'REJECTED',
+      suspended: 'SUSPENDED',
+      calculated: 'CALCULATED'
     };
 
     return statusMap[status] || 'UNKNOWN';
@@ -447,17 +449,21 @@ class AlpacaAdapter extends BrokerAdapter {
    */
   static async exchangeCodeForToken(code, clientId, clientSecret, redirectUri) {
     try {
-      const response = await axios.post('https://api.alpaca.markets/oauth/token', {
-        grant_type: 'authorization_code',
-        code: code,
-        client_id: clientId,
-        client_secret: clientSecret,
-        redirect_uri: redirectUri
-      }, {
-        headers: {
-          'Content-Type': 'application/json'
+      const response = await axios.post(
+        'https://api.alpaca.markets/oauth/token',
+        {
+          grant_type: 'authorization_code',
+          code: code,
+          client_id: clientId,
+          client_secret: clientSecret,
+          redirect_uri: redirectUri
+        },
+        {
+          headers: {
+            'Content-Type': 'application/json'
+          }
         }
-      });
+      );
 
       return {
         accessToken: response.data.access_token,

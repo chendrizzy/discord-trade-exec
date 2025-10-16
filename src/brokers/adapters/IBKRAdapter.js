@@ -1,5 +1,8 @@
-const BrokerAdapter = require('../BrokerAdapter');
+// External dependencies
 const { IBApi, Contract, Order } = require('@stoqey/ib');
+
+// Internal utilities and services
+const BrokerAdapter = require('../BrokerAdapter');
 
 /**
  * Interactive Brokers (IBKR) API Adapter
@@ -24,8 +27,7 @@ class IBKRAdapter extends BrokerAdapter {
     // IBKR connection configuration
     this.clientId = credentials.clientId || parseInt(process.env.IBKR_CLIENT_ID) || 1;
     this.host = credentials.host || process.env.IBKR_HOST || '127.0.0.1';
-    this.port = credentials.port ||
-      (this.isTestnet ? 4001 : parseInt(process.env.IBKR_PORT) || 7496);
+    this.port = credentials.port || (this.isTestnet ? 4001 : parseInt(process.env.IBKR_PORT) || 7496);
 
     // IB API client
     this.ib = null;
@@ -75,7 +77,7 @@ class IBKRAdapter extends BrokerAdapter {
           console.log('[IBKRAdapter] Connected to TWS/IB Gateway');
         });
 
-        this.ib.on('nextValidId', (orderId) => {
+        this.ib.on('nextValidId', orderId => {
           clearTimeout(timeout);
           this.nextValidOrderId = orderId;
           this.connectionReady = true;
@@ -105,12 +107,13 @@ class IBKRAdapter extends BrokerAdapter {
 
       this.isAuthenticated = true;
       return true;
-
     } catch (error) {
       console.error('[IBKRAdapter] Authentication failed:', error.message);
       this.isAuthenticated = false;
       this.connectionReady = false;
-      throw new Error(`IBKR authentication failed: ${error.message}. Ensure TWS/IB Gateway is running with API access enabled.`);
+      throw new Error(
+        `IBKR authentication failed: ${error.message}. Ensure TWS/IB Gateway is running with API access enabled.`
+      );
     }
   }
 
@@ -140,18 +143,17 @@ class IBKRAdapter extends BrokerAdapter {
 
         const accountValues = {};
 
-        this.ib.reqAccountSummary(1, 'All', [
-          'TotalCashValue',
-          'NetLiquidation',
-          'BuyingPower',
-          'GrossPositionValue'
-        ].join(','));
+        this.ib.reqAccountSummary(
+          1,
+          'All',
+          ['TotalCashValue', 'NetLiquidation', 'BuyingPower', 'GrossPositionValue'].join(',')
+        );
 
         this.ib.on('accountSummary', (reqId, account, tag, value, currency) => {
           accountValues[tag] = parseFloat(value);
         });
 
-        this.ib.on('accountSummaryEnd', (reqId) => {
+        this.ib.on('accountSummaryEnd', reqId => {
           clearTimeout(timeout);
 
           this.ib.cancelAccountSummary(reqId);
@@ -168,7 +170,6 @@ class IBKRAdapter extends BrokerAdapter {
           });
         });
       });
-
     } catch (error) {
       console.error('[IBKRAdapter] getBalance error:', error.message);
       throw new Error(`Failed to get IBKR balance: ${error.message}`);
@@ -259,7 +260,6 @@ class IBKRAdapter extends BrokerAdapter {
         // Place the order
         this.ib.placeOrder(ibOrder.orderId, contract, ibOrder);
       });
-
     } catch (error) {
       console.error('[IBKRAdapter] createOrder error:', error.message);
       throw new Error(`Failed to create IBKR order: ${error.message}`);
@@ -294,7 +294,6 @@ class IBKRAdapter extends BrokerAdapter {
 
         this.ib.cancelOrder(id);
       });
-
     } catch (error) {
       console.error('[IBKRAdapter] cancelOrder error:', error.message);
       throw new Error(`Failed to cancel IBKR order: ${error.message}`);
@@ -339,7 +338,6 @@ class IBKRAdapter extends BrokerAdapter {
           resolve(positions);
         });
       });
-
     } catch (error) {
       console.error('[IBKRAdapter] getPositions error:', error.message);
       throw new Error(`Failed to get IBKR positions: ${error.message}`);
@@ -353,11 +351,11 @@ class IBKRAdapter extends BrokerAdapter {
    */
   mapOrderType(type) {
     const typeMap = {
-      'MARKET': 'MKT',
-      'LIMIT': 'LMT',
-      'STOP': 'STP',
-      'STOP_LIMIT': 'STP LMT',
-      'TRAILING_STOP': 'TRAIL'
+      MARKET: 'MKT',
+      LIMIT: 'LMT',
+      STOP: 'STP',
+      STOP_LIMIT: 'STP LMT',
+      TRAILING_STOP: 'TRAIL'
     };
     return typeMap[type] || 'MKT';
   }
@@ -369,10 +367,10 @@ class IBKRAdapter extends BrokerAdapter {
    */
   mapTimeInForce(tif) {
     const tifMap = {
-      'DAY': 'DAY',
-      'GTC': 'GTC',
-      'IOC': 'IOC',
-      'FOK': 'FOK'
+      DAY: 'DAY',
+      GTC: 'GTC',
+      IOC: 'IOC',
+      FOK: 'FOK'
     };
     return tifMap[tif] || 'DAY';
   }
@@ -384,13 +382,13 @@ class IBKRAdapter extends BrokerAdapter {
    */
   mapOrderStatus(status) {
     const statusMap = {
-      'PendingSubmit': 'PENDING',
-      'PendingCancel': 'PENDING',
-      'PreSubmitted': 'PENDING',
-      'Submitted': 'PENDING',
-      'Filled': 'FILLED',
-      'Cancelled': 'CANCELLED',
-      'Inactive': 'CANCELLED'
+      PendingSubmit: 'PENDING',
+      PendingCancel: 'PENDING',
+      PreSubmitted: 'PENDING',
+      Submitted: 'PENDING',
+      Filled: 'FILLED',
+      Cancelled: 'CANCELLED',
+      Inactive: 'CANCELLED'
     };
     return statusMap[status] || 'UNKNOWN';
   }
@@ -483,12 +481,11 @@ class IBKRAdapter extends BrokerAdapter {
           }
         });
 
-        this.ib.on('execDetailsEnd', (reqId) => {
+        this.ib.on('execDetailsEnd', reqId => {
           clearTimeout(timeout);
           resolve(executions);
         });
       });
-
     } catch (error) {
       console.error('[IBKRAdapter] getOrderHistory error:', error.message);
       throw new Error(`Failed to get IBKR order history: ${error.message}`);
@@ -538,7 +535,6 @@ class IBKRAdapter extends BrokerAdapter {
           }
         });
       });
-
     } catch (error) {
       console.error('[IBKRAdapter] getMarketPrice error:', error.message);
       throw new Error(`Failed to get IBKR market price: ${error.message}`);
@@ -579,7 +575,7 @@ class IBKRAdapter extends BrokerAdapter {
           }
         });
 
-        this.ib.on('contractDetailsEnd', (requestId) => {
+        this.ib.on('contractDetailsEnd', requestId => {
           if (requestId === reqId) {
             clearTimeout(timeout);
             resolve(true);
@@ -593,7 +589,6 @@ class IBKRAdapter extends BrokerAdapter {
           }
         });
       });
-
     } catch (error) {
       console.error('[IBKRAdapter] isSymbolSupported error:', error.message);
       return false;
@@ -614,7 +609,7 @@ class IBKRAdapter extends BrokerAdapter {
       taker: 0.0005, // Same as maker for stocks
       withdrawal: 0, // No withdrawal fees for cash
       commission: 0.0005, // Per share commission
-      minimum: 1.00, // Minimum commission per order
+      minimum: 1.0, // Minimum commission per order
       maximum: 0.005, // Maximum 0.5% of trade value
       currency: 'USD',
       notes: 'IBKR Pro tiered pricing. Actual fees may vary based on account type, volume, and market.'

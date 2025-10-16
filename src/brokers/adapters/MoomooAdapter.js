@@ -1,5 +1,8 @@
-const BrokerAdapter = require('../BrokerAdapter');
+// External dependencies
 const MoomooAPI = require('moomoo-api').default;
+
+// Internal utilities and services
+const BrokerAdapter = require('../BrokerAdapter');
 
 /**
  * Moomoo (Futu) API Adapter
@@ -96,9 +99,9 @@ class MoomooAdapter extends BrokerAdapter {
 
       if (accountList.s2c && accountList.s2c.accList && accountList.s2c.accList.length > 0) {
         // Find account matching our account ID or use first available
-        this.accountInfo = accountList.s2c.accList.find(
-          acc => acc.accID.toString() === this.accountId.toString()
-        ) || accountList.s2c.accList[0];
+        this.accountInfo =
+          accountList.s2c.accList.find(acc => acc.accID.toString() === this.accountId.toString()) ||
+          accountList.s2c.accList[0];
 
         console.log(`[MoomooAdapter] Using account: ${this.accountInfo.accID}`);
         this.connectionReady = true;
@@ -107,7 +110,6 @@ class MoomooAdapter extends BrokerAdapter {
       } else {
         throw new Error('No trading accounts found');
       }
-
     } catch (error) {
       console.error('[MoomooAdapter] Authentication failed:', error.message);
       this.isAuthenticated = false;
@@ -156,12 +158,11 @@ class MoomooAdapter extends BrokerAdapter {
           currency: currency,
           portfolioValue: funds.marketVal || 0,
           profitLoss: funds.unrealizedPL || 0,
-          profitLossPercent: funds.unrealizedPL / funds.totalAssets * 100 || 0
+          profitLossPercent: (funds.unrealizedPL / funds.totalAssets) * 100 || 0
         };
       } else {
         throw new Error('Invalid funds response');
       }
-
     } catch (error) {
       console.error('[MoomooAdapter] getBalance error:', error.message);
       throw new Error(`Failed to get Moomoo balance: ${error.message}`);
@@ -237,7 +238,6 @@ class MoomooAdapter extends BrokerAdapter {
       } else {
         throw new Error('Invalid order response');
       }
-
     } catch (error) {
       console.error('[MoomooAdapter] createOrder error:', error.message);
       throw new Error(`Failed to create Moomoo order: ${error.message}`);
@@ -279,7 +279,6 @@ class MoomooAdapter extends BrokerAdapter {
       } else {
         throw new Error('Invalid cancel response');
       }
-
     } catch (error) {
       console.error('[MoomooAdapter] cancelOrder error:', error.message);
       throw new Error(`Failed to cancel Moomoo order: ${error.message}`);
@@ -322,7 +321,6 @@ class MoomooAdapter extends BrokerAdapter {
       } else {
         return [];
       }
-
     } catch (error) {
       console.error('[MoomooAdapter] getPositions error:', error.message);
       throw new Error(`Failed to get Moomoo positions: ${error.message}`);
@@ -428,7 +426,6 @@ class MoomooAdapter extends BrokerAdapter {
       } else {
         return [];
       }
-
     } catch (error) {
       console.error('[MoomooAdapter] getOrderHistory error:', error.message);
       throw new Error(`Failed to get Moomoo order history: ${error.message}`);
@@ -468,7 +465,6 @@ class MoomooAdapter extends BrokerAdapter {
       } else {
         throw new Error('Invalid quote response');
       }
-
     } catch (error) {
       console.error('[MoomooAdapter] getMarketPrice error:', error.message);
       throw new Error(`Failed to get Moomoo market price: ${error.message}`);
@@ -502,7 +498,6 @@ class MoomooAdapter extends BrokerAdapter {
       } else {
         return false;
       }
-
     } catch (error) {
       console.error('[MoomooAdapter] isSymbolSupported error:', error.message);
       return false;
@@ -525,7 +520,8 @@ class MoomooAdapter extends BrokerAdapter {
       minimum: 0.0,
       maximum: 0.0,
       currency: 'USD',
-      notes: 'Moomoo offers commission-free stock trading. Regulatory fees may apply. Options and futures have separate fee structures.'
+      notes:
+        'Moomoo offers commission-free stock trading. Regulatory fees may apply. Options and futures have separate fee structures.'
     };
   }
 
@@ -536,11 +532,11 @@ class MoomooAdapter extends BrokerAdapter {
    */
   mapOrderType(type) {
     const typeMap = {
-      'MARKET': 1,      // Market order
-      'LIMIT': 2,       // Limit order
-      'STOP': 3,        // Stop order
-      'STOP_LIMIT': 4,  // Stop-limit order
-      'TRAILING_STOP': 7 // Trailing stop
+      MARKET: 1, // Market order
+      LIMIT: 2, // Limit order
+      STOP: 3, // Stop order
+      STOP_LIMIT: 4, // Stop-limit order
+      TRAILING_STOP: 7 // Trailing stop
     };
     return typeMap[type] || 1;
   }
@@ -552,9 +548,9 @@ class MoomooAdapter extends BrokerAdapter {
    */
   mapTimeInForce(tif) {
     const tifMap = {
-      'DAY': 0,  // Day order
-      'GTC': 1,  // Good till cancelled
-      'GTD': 2   // Good till date
+      DAY: 0, // Day order
+      GTC: 1, // Good till cancelled
+      GTD: 2 // Good till date
     };
     return tifMap[tif] || 0;
   }

@@ -3,6 +3,7 @@
  * Tests all 16 BrokerAdapter interface methods with mocked Moomoo API
  */
 
+// Internal utilities and services
 const MoomooAdapter = require('../MoomooAdapter');
 
 // Mock the moomoo-api module
@@ -91,7 +92,7 @@ jest.mock('moomoo-api', () => {
             {
               code: 'AAPL',
               qty: 100,
-              costPrice: 145.50,
+              costPrice: 145.5,
               marketVal: 15000,
               pl: 450,
               plRatio: 3.09
@@ -125,9 +126,9 @@ jest.mock('moomoo-api', () => {
         s2c: {
           basicQotList: [
             {
-              bidPrice: 149.50,
-              askPrice: 150.50,
-              curPrice: 150.00
+              bidPrice: 149.5,
+              askPrice: 150.5,
+              curPrice: 150.0
             }
           ]
         }
@@ -307,7 +308,7 @@ describe('MoomooAdapter', () => {
         side: 'SELL',
         type: 'LIMIT',
         quantity: 50,
-        price: 200.00,
+        price: 200.0,
         timeInForce: 'GTC'
       };
 
@@ -325,7 +326,7 @@ describe('MoomooAdapter', () => {
         side: 'SELL',
         type: 'STOP',
         quantity: 25,
-        stopPrice: 290.00,
+        stopPrice: 290.0,
         timeInForce: 'DAY'
       };
 
@@ -380,7 +381,7 @@ describe('MoomooAdapter', () => {
       const result = await adapter.setStopLoss({
         symbol: 'AAPL',
         quantity: 100,
-        stopPrice: 140.00,
+        stopPrice: 140.0,
         type: 'STOP'
       });
 
@@ -395,7 +396,7 @@ describe('MoomooAdapter', () => {
         symbol: 'TSLA',
         quantity: 50,
         type: 'TRAILING_STOP',
-        stopPrice: 195.00,
+        stopPrice: 195.0,
         trailPercent: 5
       });
 
@@ -411,7 +412,7 @@ describe('MoomooAdapter', () => {
       const result = await adapter.setTakeProfit({
         symbol: 'AAPL',
         quantity: 100,
-        limitPrice: 160.00
+        limitPrice: 160.0
       });
 
       expect(result).toHaveProperty('orderId');
@@ -454,9 +455,9 @@ describe('MoomooAdapter', () => {
       expect(price).toHaveProperty('bid');
       expect(price).toHaveProperty('ask');
       expect(price).toHaveProperty('last');
-      expect(price.bid).toBe(149.50);
-      expect(price.ask).toBe(150.50);
-      expect(price.last).toBe(150.00);
+      expect(price.bid).toBe(149.5);
+      expect(price.ask).toBe(150.5);
+      expect(price.last).toBe(150.0);
     });
   });
 
