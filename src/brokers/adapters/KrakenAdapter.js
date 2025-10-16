@@ -44,6 +44,21 @@ class KrakenAdapter extends BrokerAdapter {
   }
 
   /**
+   * Test connection to Kraken API
+   */
+  async testConnection() {
+    try {
+      await this.authenticate();
+      // Verify by fetching balance
+      const balance = await this.getBalance();
+      return !!balance;
+    } catch (error) {
+      console.error('[KrakenAdapter] Connection test failed:', error.message);
+      return false;
+    }
+  }
+
+  /**
    * Authenticate with Kraken
    */
   async authenticate() {

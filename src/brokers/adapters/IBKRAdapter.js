@@ -48,6 +48,22 @@ class IBKRAdapter extends BrokerAdapter {
   }
 
   /**
+   * Test connection to TWS/IB Gateway
+   * @returns {Promise<boolean>} Connection status
+   */
+  async testConnection() {
+    try {
+      await this.authenticate();
+      // Verify by fetching account balance
+      const balance = await this.getBalance();
+      return !!balance;
+    } catch (error) {
+      console.error('[IBKRAdapter] Connection test failed:', error.message);
+      return false;
+    }
+  }
+
+  /**
    * Connect to TWS/IB Gateway and authenticate
    * @returns {Promise<boolean>} Connection status
    */

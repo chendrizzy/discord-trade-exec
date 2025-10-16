@@ -53,6 +53,11 @@ const brokerCredentialsSchema = Joi.object({
     apiKey: Joi.string().required().min(10),
     secret: Joi.string().required().min(10),
     sandbox: Joi.boolean().default(true)
+  }).optional(),
+  kraken: Joi.object({
+    apiKey: Joi.string().required().min(10),
+    privateKey: Joi.string().required().min(10),
+    environment: Joi.string().valid('live', 'testnet').default('live')
   }).optional()
 }).min(1); // At least one broker must be configured
 
@@ -197,7 +202,7 @@ function buildConfigFromEnv() {
       ...(process.env.ALPACA_API_KEY && {
         alpaca: {
           apiKey: process.env.ALPACA_API_KEY,
-          apiSecret: process.env.ALPACA_SECRET,
+          apiSecret: process.env.ALPACA_API_SECRET || process.env.ALPACA_SECRET,
           isTestnet: process.env.NODE_ENV !== 'production'
         }
       }),
@@ -219,6 +224,13 @@ function buildConfigFromEnv() {
           apiKey: process.env.BINANCE_API_KEY,
           secret: process.env.BINANCE_SECRET,
           sandbox: process.env.NODE_ENV !== 'production'
+        }
+      }),
+      ...(process.env.KRAKEN_API_KEY && {
+        kraken: {
+          apiKey: process.env.KRAKEN_API_KEY,
+          privateKey: process.env.KRAKEN_PRIVATE_KEY,
+          environment: process.env.KRAKEN_ENVIRONMENT || 'live'
         }
       })
     },

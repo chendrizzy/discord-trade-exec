@@ -25,6 +25,21 @@ class AlpacaAdapter extends BrokerAdapter {
   }
 
   /**
+   * Test connection to Alpaca API
+   */
+  async testConnection() {
+    try {
+      await this.authenticate();
+      // Verify by fetching account info
+      const balance = await this.getBalance();
+      return !!balance;
+    } catch (error) {
+      console.error('[AlpacaAdapter] Connection test failed:', error.message);
+      return false;
+    }
+  }
+
+  /**
    * Authenticate with Alpaca using OAuth token or API key
    */
   async authenticate() {
