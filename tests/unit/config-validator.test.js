@@ -207,7 +207,7 @@ describe('Configuration Validator', () => {
   describe('Discord Configuration Schema Validation', () => {
     test('should validate complete Discord configuration', () => {
       const config = {
-        token: 'MTIzNDU2Nzg5MDEyMzQ1Njc4OQ.GaBcDe.FgHiJkLmNoPqRsTuVwXyZ123456789012345',
+        token: 'DISCORD_BOT_TOKEN_FOR_TESTING_ONLY_NOT_REAL',
         clientId: '123456789012345678',
         clientSecret: 'a1b2c3d4e5f6g7h8i9j0'
       };
@@ -218,7 +218,7 @@ describe('Configuration Validator', () => {
 
     test('should validate Discord client ID format', () => {
       const config = {
-        token: 'MTIzNDU2Nzg5MDEyMzQ1Njc4OQ.GaBcDe.FgHiJkLmNoPqRsTuVwXyZ123456789012345',
+        token: 'DISCORD_BOT_TOKEN_FOR_TESTING_ONLY_NOT_REAL',
         clientId: 'invalid-id',
         clientSecret: 'a1b2c3d4e5f6g7h8i9j0'
       };
@@ -284,7 +284,7 @@ describe('Configuration Validator', () => {
           }
         },
         discord: {
-          token: 'MTIzNDU2Nzg5MDEyMzQ1Njc4OQ.GaBcDe.FgHiJkLmNoPqRsTuVwXyZ123456789012345',
+          token: 'DISCORD_BOT_TOKEN_FOR_TESTING_ONLY_NOT_REAL',
           clientId: '123456789012345678',
           clientSecret: 'a1b2c3d4e5f6g7h8i9j0'
         },
@@ -319,7 +319,7 @@ describe('Configuration Validator', () => {
           }
         },
         discord: {
-          token: 'MTIzNDU2Nzg5MDEyMzQ1Njc4OQ.GaBcDe.FgHiJkLmNoPqRsTuVwXyZ123456789012345',
+          token: 'DISCORD_BOT_TOKEN_FOR_TESTING_ONLY_NOT_REAL',
           clientId: '123456789012345678',
           clientSecret: 'a1b2c3d4e5f6g7h8i9j0'
         },
@@ -354,7 +354,7 @@ describe('Configuration Validator', () => {
           }
         },
         discord: {
-          token: 'MTIzNDU2Nzg5MDEyMzQ1Njc4OQ.GaBcDe.FgHiJkLmNoPqRsTuVwXyZ123456789012345',
+          token: 'DISCORD_BOT_TOKEN_FOR_TESTING_ONLY_NOT_REAL',
           clientId: '123456789012345678',
           clientSecret: 'a1b2c3d4e5f6g7h8i9j0'
         },
@@ -390,7 +390,7 @@ describe('Configuration Validator', () => {
       process.env.PORT = '3000';
       process.env.CORS_ORIGINS = 'http://localhost:3000,http://localhost:5000';
       process.env.SESSION_SECRET = 'a-very-long-secret-key-with-at-least-32-characters';
-      process.env.DISCORD_BOT_TOKEN = 'MTIzNDU2Nzg5MDEyMzQ1Njc4OQ.GaBcDe.FgHiJkLmNoPqRsTuVwXyZ123456789012345';
+      process.env.DISCORD_BOT_TOKEN = 'DISCORD_BOT_TOKEN_FOR_TESTING_ONLY_NOT_REAL';
       process.env.DISCORD_CLIENT_ID = '123456789012345678';
       process.env.DISCORD_CLIENT_SECRET = 'a1b2c3d4e5f6g7h8i9j0';
       process.env.DASHBOARD_URL = 'http://localhost:3000';
@@ -404,7 +404,7 @@ describe('Configuration Validator', () => {
       expect(config.brokers.alpaca.apiKey).toBe('PK1234567890');
       expect(config.api.port).toBe(3000);
       expect(config.api.corsOrigins).toHaveLength(2);
-      expect(config.discord.token).toBe('MTIzNDU2Nzg5MDEyMzQ1Njc4OQ.GaBcDe.FgHiJkLmNoPqRsTuVwXyZ123456789012345');
+      expect(config.discord.token).toBe('DISCORD_BOT_TOKEN_FOR_TESTING_ONLY_NOT_REAL');
     });
 
     test('should use default values when environment variables are missing', () => {
