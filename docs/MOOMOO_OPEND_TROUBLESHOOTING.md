@@ -96,6 +96,64 @@ this.connID = initResult.s2c.connID;
 **Why This Happens:**
 Moomoo releases OpenD Gateway updates before publishing matching npm packages. The running gateway (5418) uses a newer protocol that the npm package (5408) doesn't support.
 
+**UPDATE - ACTUAL ROOT CAUSE IDENTIFIED:**
+
+After further investigation with aligned versions (both Gateway and npm at 9.4.5408), the `retType: -1` error was traced to an **API access whitelist** in the OpenD Gateway configuration.
+
+**Critical File**: `/Users/[username]/.com.moomoo.OpenD/F3CNN/FreqLimitMooMoo.json`
+
+```json
+{
+   "opend_freq_limit" : {
+      "trd_modify_order" : {
+         "num" : 100,
+         "second" : 30
+      },
+      "trd_place_order" : {
+         "num" : 100,
+         "second" : 30
+      }
+   },
+   "user_id" : [ 9060041, 70011609, 70823533, 101132133 ]
+}
+```
+
+**The Problem**: The logged-in account ID (72635647) was **not in the user_id whitelist**, causing the gateway to reject API connections with `retType: -1`.
+
+**The Solution**:
+1. Add your account ID to the `user_id` array in `FreqLimitMooMoo.json`
+2. Restart the OpenD Gateway application
+3. Test connection again
+
+**Important Notes:**
+- The gateway must be restarted after modifying this file
+- Account ID can be found in gateway logs: `Login Account: [ID]`
+- Multiple accounts can be added to the whitelist array
+
+**CRITICAL UPDATE - API QUESTIONNAIRE REQUIREMENT (2025-10-14):**
+
+The `FreqLimitMooMoo.json` file is **automatically regenerated** by OpenD Gateway on startup. Manual edits are reverted. Investigation revealed the whitelist represents accounts that have **completed the required API Questionnaire and Agreements**.
+
+**Root Cause:** According to Moomoo OpenAPI official documentation:
+> "After the first login, you need to complete API Questionnaire and Agreements before you can continue to use OpenAPI."
+
+**Evidence:**
+- FreqLimitMooMoo.json regenerated at exact gateway restart time (3:06 PM), reverting manual edits
+- OpenD Gateway UI has no settings for API permissions
+- Whitelist stored in gateway's internal database
+- File timestamp shows automatic regeneration on each startup
+
+**Required Action:**
+1. Open the **moomoo mobile app** with account 72635647
+2. Look for pending "API Questionnaire" or "OpenAPI Agreements"
+3. Complete the questionnaire/agreements
+4. The account will then be added to the whitelist automatically
+5. Restart OpenD Gateway and test connection
+
+**References:**
+- [Moomoo OpenAPI Authority Documentation](https://openapi.moomoo.com/moomoo-api-doc/en/intro/authority.html)
+- Account Requirements: Must complete API questionnaire before first API usage
+
 ---
 
 ## 🔧 What We Tried
