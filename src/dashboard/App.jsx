@@ -24,6 +24,7 @@ const ProviderLeaderboard = lazy(() => import('./components/ProviderLeaderboard'
 const AnalyticsDashboard = lazy(() => import('./components/AnalyticsDashboard').then(mod => ({ default: mod.AnalyticsDashboard })));
 const ChurnRiskList = lazy(() => import('./components/ChurnRiskList').then(mod => ({ default: mod.ChurnRiskList })));
 const CohortRetentionTable = lazy(() => import('./components/CohortRetentionTable').then(mod => ({ default: mod.CohortRetentionTable })));
+const BrokerManagement = lazy(() => import('./components/BrokerManagement').then(mod => ({ default: mod.BrokerManagement })));
 
 function App() {
   const [user, setUser] = useState(null);
@@ -424,7 +425,13 @@ function App() {
               </CardContent>
             </Card>
 
-            <Card className="animate-fade-in" style={{ animationDelay: '0.2s' }}>
+            <div className="animate-fade-in" style={{ animationDelay: '0.2s' }}>
+              <Suspense fallback={<div className="h-96 flex items-center justify-center text-sm text-muted-foreground">Loading broker management...</div>}>
+                <BrokerManagement />
+              </Suspense>
+            </div>
+
+            <Card className="animate-fade-in" style={{ animationDelay: '0.3s' }}>
               <CardHeader>
                 <CardTitle>API Key Management</CardTitle>
                 <CardDescription>
@@ -438,7 +445,7 @@ function App() {
               </CardContent>
             </Card>
 
-            <Card className="animate-fade-in" style={{ animationDelay: '0.3s' }}>
+            <Card className="animate-fade-in" style={{ animationDelay: '0.4s' }}>
               <CardHeader>
                 <CardTitle>Account Settings</CardTitle>
                 <CardDescription>
