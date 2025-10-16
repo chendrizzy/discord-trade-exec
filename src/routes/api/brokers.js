@@ -141,6 +141,73 @@ router.post('/test', ensureAuthenticated, async (req, res) => {
 });
 
 /**
+ * POST /api/brokers/test/:brokerKey
+ * Test connection for an already-configured broker
+ * Retrieves stored credentials from database and tests the connection
+ */
+router.post('/test/:brokerKey', ensureAuthenticated, async (req, res) => {
+  try {
+    const { brokerKey } = req.params;
+    const userId = req.user.id;
+
+    // Find user
+    const user = await User.findById(userId);
+    if (!user) {
+      return sendNotFound(res, 'User');
+    }
+
+    // Check if broker is configured
+    if (!user.brokerConfigs || !user.brokerConfigs[brokerKey]) {
+      return sendNotFound(res, `Broker '${brokerKey}' configuration`);
+    }
+
+    const brokerConfig = user.brokerConfigs[brokerKey];
+
+    // Decrypt credentials
+    const encryptionService = getEncryptionService();
+    let decryptedCredentials;
+
+    try {
+      decryptedCredentials = await encryptionService.decryptCredential(
+        user.communityId.toString(),
+        brokerConfig.credentials
+      );
+    } catch (error) {
+      console.error('[BrokerAPI] Failed to decrypt credentials:', error);
+      return sendError(res, 'Failed to decrypt credentials', 500, {
+        message: 'Decryption service error. Please check AWS KMS configuration.'
+      });
+    }
+
+    // Prepare options
+    const options = {
+      isTestnet: brokerConfig.environment === 'testnet'
+    };
+
+    // Test connection
+    const result = await BrokerFactory.testConnection(brokerKey, decryptedCredentials, options);
+
+    // Update lastVerified timestamp if successful
+    if (result.success) {
+      user.brokerConfigs[brokerKey].lastVerified = new Date();
+      await user.save();
+    }
+
+    res.json({
+      success: result.success,
+      message: result.message,
+      broker: result.broker,
+      balance: result.balance
+    });
+  } catch (error) {
+    console.error('[BrokerAPI] Error testing configured broker:', error);
+    return sendError(res, 'Connection test failed. Please try again.', 500, {
+      details: error.message
+    });
+  }
+});
+
+/**
  * POST /api/brokers/configure
  * Save broker configuration for the authenticated user
  */
