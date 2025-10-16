@@ -1,6 +1,9 @@
-// External dependencies
-const { MongoMemoryServer } = require('mongodb-memory-server');
-const mongoose = require('mongoose');
+// Conditionally import MongoDB only for Node.js environment (not jsdom/React tests)
+let MongoMemoryServer, mongoose;
+if (typeof window === 'undefined') {
+  ({ MongoMemoryServer } = require('mongodb-memory-server'));
+  mongoose = require('mongoose');
+}
 
 // Global test configuration
 global.console = {
@@ -22,35 +25,37 @@ process.env.STRIPE_SECRET_KEY = 'sk_test_123456789';
 process.env.STRIPE_WEBHOOK_SECRET = 'whsec_test_123456789';
 process.env.MONGODB_URI = 'mongodb://localhost:27017/trade-executor-test';
 
-// Global test database setup
+// Global test database setup (only for Node.js environment)
 let mongoServer;
 
-beforeAll(async () => {
-  // Start in-memory MongoDB instance
-  mongoServer = await MongoMemoryServer.create();
-  const mongoUri = mongoServer.getUri();
-  process.env.MONGODB_URI = mongoUri;
+if (typeof window === 'undefined' && mongoose) {
+  beforeAll(async () => {
+    // Start in-memory MongoDB instance
+    mongoServer = await MongoMemoryServer.create();
+    const mongoUri = mongoServer.getUri();
+    process.env.MONGODB_URI = mongoUri;
 
-  // Connect to the in-memory database
-  await mongoose.connect(mongoUri);
-});
+    // Connect to the in-memory database
+    await mongoose.connect(mongoUri);
+  });
 
-afterAll(async () => {
-  // Clean up database connections and server
-  await mongoose.disconnect();
-  if (mongoServer) {
-    await mongoServer.stop();
-  }
-});
+  afterAll(async () => {
+    // Clean up database connections and server
+    await mongoose.disconnect();
+    if (mongoServer) {
+      await mongoServer.stop();
+    }
+  });
 
-afterEach(async () => {
-  // Clear all collections after each test
-  const collections = mongoose.connection.collections;
-  for (const key in collections) {
-    const collection = collections[key];
-    await collection.deleteMany({});
-  }
-});
+  afterEach(async () => {
+    // Clear all collections after each test
+    const collections = mongoose.connection.collections;
+    for (const key in collections) {
+      const collection = collections[key];
+      await collection.deleteMany({});
+    }
+  });
+}
 
 // Global test utilities
 global.testUtils = {

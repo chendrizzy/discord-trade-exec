@@ -35,6 +35,7 @@ module.exports = {
   ],
   // Use manual mocks for ESM modules
   moduleNameMapper: {
-    '^moomoo-api$': '<rootDir>/__mocks__/moomoo-api.js'
+    '^moomoo-api$': '<rootDir>/__mocks__/moomoo-api.js',
+    '^@/(.*)$': '<rootDir>/src/dashboard/$1'
   }
 };
