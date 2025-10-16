@@ -1,0 +1,333 @@
+// External dependencies
+const Trade = require('../models/Trade');
+const User = require('../models/User');
+const analyticsEventService = require('./analytics/AnalyticsEventService');
+const { BrokerFactory } = require('../brokers');
+
+/**
+ * TradeExecutionService
+ * Centralized service for executing trades, managing positions, and tracking analytics
+ */
+class TradeExecutionService {
+  constructor() {
+    this.activeTrades = new Map(); // userId -> array of open trades
+  }
+
+  /**
+   * Execute a trade based on signal data
+   * @param {Object} signalData - Trading signal data
+   * @param {String} userId - User ID
+   * @param {String} broker - Broker key (alpaca, coinbase, etc.)
+   * @param {Object} req - Express request object (optional, for metadata)
+   */
+  async executeTrade(signalData, userId, broker, req = null) {
+    try {
+      // Validate user and check subscription
+      const user = await User.findById(userId);
+      if (!user) {
+        return { success: false, error: 'User not found' };
+      }
+
+      // Check subscription and daily limits
+      const canTrade = user.canExecuteTrade();
+      if (!canTrade.allowed) {
+        return { success: false, error: canTrade.reason };
+      }
+
+      // Check trading hours
+      const tradingHours = user.checkTradingHours();
+      if (!tradingHours.allowed) {
+        return { success: false, error: tradingHours.reason };
+      }
+
+      // Check daily loss limit
+      const lossLimit = user.checkDailyLossLimit();
+      if (!lossLimit.allowed) {
+        return { success: false, error: lossLimit.reason };
+      }
+
+      // Get broker configuration
+      const brokerConfig = user.brokerConfigs?.get(broker);
+      if (!brokerConfig || !brokerConfig.isActive) {
+        return { success: false, error: `Broker '${broker}' not configured or inactive` };
+      }
+
+      // Create trade object
+      const tradeId = `${broker}_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+
+      const trade = new Trade({
+        userId: user._id,
+        communityId: user.communityId,
+        tradeId,
+        exchange: broker,
+        symbol: signalData.symbol,
+        side: signalData.side || 'BUY',
+        entryPrice: signalData.entryPrice,
+        quantity: signalData.quantity,
+        stopLoss: signalData.stopLoss,
+        takeProfit: signalData.takeProfit,
+        status: 'OPEN',
+        signalSource: {
+          providerId: signalData.providerId,
+          providerName: signalData.providerName,
+          signalId: signalData.signalId
+        },
+        qualityTier: signalData.qualityTier,
+        confidenceScore: signalData.confidenceScore,
+        smartMoneyScore: signalData.smartMoneyScore,
+        rareInformationScore: signalData.rareInformationScore,
+        predictedDirection: signalData.predictedDirection
+      });
+
+      await trade.save();
+
+      // Update user statistics
+      await user.incrementSignalUsage();
+
+      // Track in active trades
+      if (!this.activeTrades.has(userId)) {
+        this.activeTrades.set(userId, []);
+      }
+      this.activeTrades.get(userId).push(trade);
+
+      // Track trade_executed event
+      await analyticsEventService.trackTradeExecuted(
+        user._id,
+        {
+          symbol: trade.symbol,
+          side: trade.side,
+          quantity: trade.quantity,
+          price: trade.entryPrice,
+          broker,
+          profit: 0, // Trade just opened, no profit yet
+          signalId: trade.signalSource.signalId
+        },
+        req
+      );
+
+      console.log(`[TradeExecutionService] Trade executed: ${user.discordUsername} -> ${trade.side} ${trade.quantity} ${trade.symbol} @ $${trade.entryPrice}`);
+
+      return {
+        success: true,
+        trade: {
+          id: trade._id,
+          tradeId: trade.tradeId,
+          symbol: trade.symbol,
+          side: trade.side,
+          quantity: trade.quantity,
+          entryPrice: trade.entryPrice,
+          status: trade.status
+        }
+      };
+    } catch (error) {
+      console.error('[TradeExecutionService] Error executing trade:', error);
+      return { success: false, error: error.message };
+    }
+  }
+
+  /**
+   * Close a trade and calculate P&L
+   * @param {String} tradeId - Trade ID
+   * @param {Number} exitPrice - Exit price
+   * @param {Object} req - Express request object (optional, for metadata)
+   */
+  async closeTrade(tradeId, exitPrice, req = null) {
+    try {
+      const trade = await Trade.findOne({ tradeId });
+
+      if (!trade) {
+        return { success: false, error: 'Trade not found' };
+      }
+
+      if (trade.status !== 'OPEN') {
+        return { success: false, error: `Trade already ${trade.status.toLowerCase()}` };
+      }
+
+      // Update trade with exit information
+      trade.exitPrice = exitPrice;
+      trade.exitTime = new Date();
+      trade.status = 'FILLED';
+
+      // Calculate P&L
+      const pnl = trade.calculatePnL();
+
+      await trade.save();
+
+      // Update user statistics
+      const user = await User.findById(trade.userId);
+      if (user) {
+        await user.recordTrade(pnl.net > 0, pnl.net);
+      }
+
+      // Remove from active trades
+      const userTrades = this.activeTrades.get(trade.userId.toString());
+      if (userTrades) {
+        const index = userTrades.findIndex(t => t.tradeId === tradeId);
+        if (index !== -1) {
+          userTrades.splice(index, 1);
+        }
+      }
+
+      // Track updated trade_executed event with final P&L
+      await analyticsEventService.trackTradeExecuted(
+        trade.userId,
+        {
+          symbol: trade.symbol,
+          side: trade.side,
+          quantity: trade.quantity,
+          price: trade.exitPrice,
+          broker: trade.exchange,
+          profit: pnl.net,
+          signalId: trade.signalSource.signalId
+        },
+        req
+      );
+
+      console.log(`[TradeExecutionService] Trade closed: ${trade.symbol} -> P&L: $${pnl.net.toFixed(2)} (${pnl.percentage.toFixed(2)}%)`);
+
+      return {
+        success: true,
+        trade: {
+          id: trade._id,
+          tradeId: trade.tradeId,
+          symbol: trade.symbol,
+          entryPrice: trade.entryPrice,
+          exitPrice: trade.exitPrice,
+          profitLoss: pnl.net,
+          profitLossPercentage: pnl.percentage,
+          status: trade.status
+        }
+      };
+    } catch (error) {
+      console.error('[TradeExecutionService] Error closing trade:', error);
+      return { success: false, error: error.message };
+    }
+  }
+
+  /**
+   * Get active trades for user
+   * @param {String} userId - User ID
+   */
+  async getActiveTrades(userId) {
+    try {
+      const trades = await Trade.find({
+        userId,
+        status: 'OPEN'
+      }).sort({ entryTime: -1 });
+
+      return {
+        success: true,
+        trades: trades.map(t => ({
+          id: t._id,
+          tradeId: t.tradeId,
+          symbol: t.symbol,
+          side: t.side,
+          quantity: t.quantity,
+          entryPrice: t.entryPrice,
+          stopLoss: t.stopLoss,
+          takeProfit: t.takeProfit,
+          entryTime: t.entryTime,
+          unrealizedPnL: 0 // Would need real-time price data
+        }))
+      };
+    } catch (error) {
+      console.error('[TradeExecutionService] Error getting active trades:', error);
+      return { success: false, error: error.message };
+    }
+  }
+
+  /**
+   * Get trade history for user
+   * @param {String} userId - User ID
+   * @param {String} timeframe - Time period ('24h', '7d', '30d', 'all')
+   */
+  async getTradeHistory(userId, timeframe = '30d') {
+    try {
+      const query = { userId };
+
+      // Apply timeframe filter
+      if (timeframe === '24h') {
+        query.entryTime = { $gte: new Date(Date.now() - 24 * 60 * 60 * 1000) };
+      } else if (timeframe === '7d') {
+        query.entryTime = { $gte: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000) };
+      } else if (timeframe === '30d') {
+        query.entryTime = { $gte: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000) };
+      }
+
+      const trades = await Trade.find(query).sort({ entryTime: -1 });
+
+      const summary = await Trade.getUserSummary(userId, timeframe);
+
+      return {
+        success: true,
+        trades: trades.map(t => ({
+          id: t._id,
+          tradeId: t.tradeId,
+          symbol: t.symbol,
+          side: t.side,
+          quantity: t.quantity,
+          entryPrice: t.entryPrice,
+          exitPrice: t.exitPrice,
+          profitLoss: t.profitLoss,
+          profitLossPercentage: t.profitLossPercentage,
+          status: t.status,
+          entryTime: t.entryTime,
+          exitTime: t.exitTime
+        })),
+        summary
+      };
+    } catch (error) {
+      console.error('[TradeExecutionService] Error getting trade history:', error);
+      return { success: false, error: error.message };
+    }
+  }
+
+  /**
+   * Cancel a pending trade
+   * @param {String} tradeId - Trade ID
+   */
+  async cancelTrade(tradeId) {
+    try {
+      const trade = await Trade.findOne({ tradeId });
+
+      if (!trade) {
+        return { success: false, error: 'Trade not found' };
+      }
+
+      if (trade.status !== 'OPEN') {
+        return { success: false, error: `Cannot cancel trade with status: ${trade.status}` };
+      }
+
+      trade.status = 'CANCELLED';
+      trade.exitTime = new Date();
+      await trade.save();
+
+      // Remove from active trades
+      const userTrades = this.activeTrades.get(trade.userId.toString());
+      if (userTrades) {
+        const index = userTrades.findIndex(t => t.tradeId === tradeId);
+        if (index !== -1) {
+          userTrades.splice(index, 1);
+        }
+      }
+
+      console.log(`[TradeExecutionService] Trade cancelled: ${trade.symbol}`);
+
+      return {
+        success: true,
+        trade: {
+          id: trade._id,
+          tradeId: trade.tradeId,
+          symbol: trade.symbol,
+          status: trade.status
+        }
+      };
+    } catch (error) {
+      console.error('[TradeExecutionService] Error cancelling trade:', error);
+      return { success: false, error: error.message };
+    }
+  }
+}
+
+// Export singleton instance
+module.exports = new TradeExecutionService();
