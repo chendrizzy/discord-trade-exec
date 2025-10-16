@@ -1,3 +1,4 @@
+// External dependencies
 const { MongoMemoryServer } = require('mongodb-memory-server');
 const mongoose = require('mongoose');
 
@@ -9,12 +10,12 @@ global.console = {
   error: console.error,
   warn: console.warn,
   info: process.env.DEBUG ? console.info : jest.fn(),
-  debug: process.env.DEBUG ? console.debug : jest.fn(),
+  debug: process.env.DEBUG ? console.debug : jest.fn()
 };
 
 // Mock environment variables for tests
-process.env.NODE_ENV = 'test';
-process.env.DISCORD_BOT_TOKEN = 'test_discord_token';
+process.env.NODE_ENV = 'development'; // Use 'development' to bypass strict validation in config/validator.js
+process.env.DISCORD_BOT_TOKEN = 'test_discord_token_1234567890123456789012345678901234567890'; // Min 50 chars
 process.env.BINANCE_API_KEY = 'test_binance_key';
 process.env.BINANCE_SECRET = 'test_binance_secret';
 process.env.STRIPE_SECRET_KEY = 'sk_test_123456789';
@@ -29,7 +30,7 @@ beforeAll(async () => {
   mongoServer = await MongoMemoryServer.create();
   const mongoUri = mongoServer.getUri();
   process.env.MONGODB_URI = mongoUri;
-  
+
   // Connect to the in-memory database
   await mongoose.connect(mongoUri);
 });
@@ -66,7 +67,7 @@ global.testUtils = {
     userId: 'test-user-123',
     ...overrides
   }),
-  
+
   // Generate mock trade result
   mockTradeResult: (overrides = {}) => ({
     success: true,
@@ -77,10 +78,10 @@ global.testUtils = {
     timestamp: Date.now(),
     ...overrides
   }),
-  
+
   // Wait for async operations
-  wait: (ms) => new Promise(resolve => setTimeout(resolve, ms)),
-  
+  wait: ms => new Promise(resolve => setTimeout(resolve, ms)),
+
   // Mock Discord message
   mockDiscordMessage: (content, overrides = {}) => ({
     content,

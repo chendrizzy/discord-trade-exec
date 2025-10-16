@@ -10,6 +10,7 @@
  * Based on prediction market insider trading detection concepts
  */
 
+// Models and types
 const Trade = require('../models/Trade');
 
 /**
@@ -50,19 +51,19 @@ const SMART_MONEY_INDICATORS = {
     name: 'Unusual Timing',
     weight: 0.25,
     thresholds: {
-      afterHours: 30,      // Points for after-hours signals
-      preMarket: 25,       // Points for pre-market signals
-      newsRelease: 40,     // Points for signals near news releases
-      earningsWindow: 35   // Points for signals near earnings
+      afterHours: 30, // Points for after-hours signals
+      preMarket: 25, // Points for pre-market signals
+      newsRelease: 40, // Points for signals near news releases
+      earningsWindow: 35 // Points for signals near earnings
     }
   },
   HIGH_CONVICTION: {
     name: 'High Conviction',
-    weight: 0.30,
+    weight: 0.3,
     thresholds: {
-      largePosition: 35,   // Points for position size > 10% of typical
-      leverage: 30,        // Points for leveraged positions
-      concentration: 25    // Points for concentrated bets
+      largePosition: 35, // Points for position size > 10% of typical
+      leverage: 30, // Points for leveraged positions
+      concentration: 25 // Points for concentrated bets
     }
   },
   PATTERN_MATCHING: {
@@ -70,18 +71,18 @@ const SMART_MONEY_INDICATORS = {
     weight: 0.25,
     thresholds: {
       historicalSuccess: 30, // Points for matching successful patterns
-      consistency: 25,       // Points for consistent signal patterns
-      uniquePattern: 20      // Points for rare/unique patterns
+      consistency: 25, // Points for consistent signal patterns
+      uniquePattern: 20 // Points for rare/unique patterns
     }
   },
   INSIDER_LIKELIHOOD: {
     name: 'Insider Likelihood',
-    weight: 0.20,
+    weight: 0.2,
     thresholds: {
-      corporateAction: 40,  // Points for signals before corporate actions
+      corporateAction: 40, // Points for signals before corporate actions
       regulatoryFiling: 35, // Points for signals before filings
-      marketMoving: 30,     // Points for signals before major moves
-      industryEvent: 25     // Points for signals before industry events
+      marketMoving: 30, // Points for signals before major moves
+      industryEvent: 25 // Points for signals before industry events
     }
   }
 };
@@ -158,10 +159,10 @@ function calculateSmartMoneyScore(signal, context = {}) {
 
   // Calculate weighted total
   const weightedTotal =
-    (scores.unusualTiming * SMART_MONEY_INDICATORS.UNUSUAL_TIMING.weight) +
-    (scores.highConviction * SMART_MONEY_INDICATORS.HIGH_CONVICTION.weight) +
-    (scores.patternMatching * SMART_MONEY_INDICATORS.PATTERN_MATCHING.weight) +
-    (scores.insiderLikelihood * SMART_MONEY_INDICATORS.INSIDER_LIKELIHOOD.weight);
+    scores.unusualTiming * SMART_MONEY_INDICATORS.UNUSUAL_TIMING.weight +
+    scores.highConviction * SMART_MONEY_INDICATORS.HIGH_CONVICTION.weight +
+    scores.patternMatching * SMART_MONEY_INDICATORS.PATTERN_MATCHING.weight +
+    scores.insiderLikelihood * SMART_MONEY_INDICATORS.INSIDER_LIKELIHOOD.weight;
 
   return {
     total: Math.min(100, Math.round(weightedTotal)),
@@ -258,8 +259,9 @@ async function getProviderStats(providerId) {
     // Calculate accuracy (predicted direction vs actual)
     const accurateTrades = completedTrades.filter(t => {
       if (!t.predictedDirection || !t.profitLoss) return false;
-      return (t.predictedDirection === 'up' && t.profitLoss > 0) ||
-             (t.predictedDirection === 'down' && t.profitLoss < 0);
+      return (
+        (t.predictedDirection === 'up' && t.profitLoss > 0) || (t.predictedDirection === 'down' && t.profitLoss < 0)
+      );
     });
     const accuracy = completedTrades.length > 0 ? (accurateTrades.length / completedTrades.length) * 100 : 0;
 
@@ -296,10 +298,14 @@ async function getProviderStats(providerId) {
     }
 
     // Find best and worst trades
-    const bestTrade = completedTrades.reduce((best, t) =>
-      (!best || (t.profitLoss || 0) > (best.profitLoss || 0)) ? t : best, null);
-    const worstTrade = completedTrades.reduce((worst, t) =>
-      (!worst || (t.profitLoss || 0) < (worst.profitLoss || 0)) ? t : worst, null);
+    const bestTrade = completedTrades.reduce(
+      (best, t) => (!best || (t.profitLoss || 0) > (best.profitLoss || 0) ? t : best),
+      null
+    );
+    const worstTrade = completedTrades.reduce(
+      (worst, t) => (!worst || (t.profitLoss || 0) < (worst.profitLoss || 0) ? t : worst),
+      null
+    );
 
     // Recent performance (last 10 trades)
     const recentPerformance = completedTrades.slice(0, 10).map(t => ({
@@ -319,16 +325,20 @@ async function getProviderStats(providerId) {
       totalReturn: Math.round(totalReturn * 100) / 100,
       consecutiveWins: maxWinStreak,
       consecutiveLosses: maxLossStreak,
-      bestTrade: bestTrade ? {
-        symbol: bestTrade.symbol,
-        profitLoss: bestTrade.profitLoss,
-        returnPercent: bestTrade.profitLossPercentage
-      } : null,
-      worstTrade: worstTrade ? {
-        symbol: worstTrade.symbol,
-        profitLoss: worstTrade.profitLoss,
-        returnPercent: worstTrade.profitLossPercentage
-      } : null,
+      bestTrade: bestTrade
+        ? {
+            symbol: bestTrade.symbol,
+            profitLoss: bestTrade.profitLoss,
+            returnPercent: bestTrade.profitLossPercentage
+          }
+        : null,
+      worstTrade: worstTrade
+        ? {
+            symbol: worstTrade.symbol,
+            profitLoss: worstTrade.profitLoss,
+            returnPercent: worstTrade.profitLossPercentage
+          }
+        : null,
       recentPerformance
     };
   } catch (error) {
@@ -360,10 +370,7 @@ function calculateConfidenceScore(providerStats, smartMoneyScore, context = {}) 
   if (context.lowLiquidity) timingScore -= 15;
   timingScore = Math.max(0, Math.min(100, timingScore));
 
-  const confidenceScore =
-    (providerScore * 0.50) +
-    (smartMoneyScoreValue * 0.30) +
-    (timingScore * 0.20);
+  const confidenceScore = providerScore * 0.5 + smartMoneyScoreValue * 0.3 + timingScore * 0.2;
 
   return Math.round(Math.min(100, Math.max(0, confidenceScore)));
 }
@@ -377,16 +384,20 @@ function determineQualityTier(metrics) {
   const { confidence, providerAccuracy, providerWinRate } = metrics;
 
   // Check ELITE tier
-  if (confidence >= QUALITY_TIERS.ELITE.minConfidence &&
-      providerAccuracy >= QUALITY_TIERS.ELITE.minAccuracy &&
-      providerWinRate >= QUALITY_TIERS.ELITE.minWinRate) {
+  if (
+    confidence >= QUALITY_TIERS.ELITE.minConfidence &&
+    providerAccuracy >= QUALITY_TIERS.ELITE.minAccuracy &&
+    providerWinRate >= QUALITY_TIERS.ELITE.minWinRate
+  ) {
     return QUALITY_TIERS.ELITE;
   }
 
   // Check VERIFIED tier
-  if (confidence >= QUALITY_TIERS.VERIFIED.minConfidence &&
-      providerAccuracy >= QUALITY_TIERS.VERIFIED.minAccuracy &&
-      providerWinRate >= QUALITY_TIERS.VERIFIED.minWinRate) {
+  if (
+    confidence >= QUALITY_TIERS.VERIFIED.minConfidence &&
+    providerAccuracy >= QUALITY_TIERS.VERIFIED.minAccuracy &&
+    providerWinRate >= QUALITY_TIERS.VERIFIED.minWinRate
+  ) {
     return QUALITY_TIERS.VERIFIED;
   }
 
@@ -405,7 +416,7 @@ function calculatePositionSizeRecommendation(confidenceScore, providerStats, ris
   const {
     accountBalance = 100000,
     maxRiskPerTrade = 0.02, // 2% default
-    basePositionSize = 0.10  // 10% default
+    basePositionSize = 0.1 // 10% default
   } = riskParameters;
 
   // Adjust position size based on confidence
@@ -449,17 +460,12 @@ function calculatePositionSizeRecommendation(confidenceScore, providerStats, ris
  */
 async function analyzeSignalQuality(signal, options = {}) {
   try {
-    const {
-      context = {},
-      includeProviderStats = true,
-      includePositionSizing = true,
-      riskParameters = {}
-    } = options;
+    const { context = {}, includeProviderStats = true, includePositionSizing = true, riskParameters = {} } = options;
 
     // Get provider statistics
-    const providerStats = includeProviderStats ?
-      await getProviderStats(signal.userId || signal.providerId) :
-      { accuracy: 0, winRate: 0 };
+    const providerStats = includeProviderStats
+      ? await getProviderStats(signal.userId || signal.providerId)
+      : { accuracy: 0, winRate: 0 };
 
     // Calculate smart money score
     const smartMoneyScore = calculateSmartMoneyScore(signal, context);
@@ -478,9 +484,9 @@ async function analyzeSignalQuality(signal, options = {}) {
     });
 
     // Calculate position sizing (if requested)
-    const positionSizing = includePositionSizing ?
-      calculatePositionSizeRecommendation(confidence, providerStats, riskParameters) :
-      null;
+    const positionSizing = includePositionSizing
+      ? calculatePositionSizeRecommendation(confidence, providerStats, riskParameters)
+      : null;
 
     return {
       signalId: signal._id || signal.id,
@@ -519,11 +525,7 @@ async function analyzeSignalQuality(signal, options = {}) {
  */
 async function getProviderLeaderboard(options = {}) {
   try {
-    const {
-      minSignals = 10,
-      timeRange = '30d',
-      limit = 50
-    } = options;
+    const { minSignals = 10, timeRange = '30d', limit = 50 } = options;
 
     // Calculate time range
     const startDate = new Date();

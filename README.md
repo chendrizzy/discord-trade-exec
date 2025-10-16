@@ -48,6 +48,39 @@ No manual configuration needed! See `AUTOMATED-SETUP.md` for details.
 ✅ Community outreach automation
 ✅ Referral program management
 
+## 💱 Crypto Exchange Support
+
+### Supported Exchanges
+- **Coinbase Pro** (Advanced Trade API) - 0.5% maker/taker fees
+- **Kraken** - 0.16% maker / 0.26% taker fees
+- **Additional exchanges** (Binance, Bybit, OKX) - Coming soon
+
+### Fee Comparison Tool
+Compare trading fees across your connected exchanges in real-time:
+- ✅ Automatic fee calculation for any symbol/quantity
+- ✅ Smart recommendations for cheapest exchange
+- ✅ Calculate savings vs most expensive option
+- ✅ Live price data from all exchanges
+- ✅ One-click comparison in dashboard
+
+**Example**: Trading 0.5 BTC on Kraken vs Coinbase Pro can save you **$60** per trade (48% savings)!
+
+### Supported Assets (Launch)
+| Asset | Coinbase Pro | Kraken | Status |
+|-------|--------------|--------|--------|
+| BTC   | ✅ | ✅ | Live |
+| ETH   | ✅ | ✅ | Live |
+| SOL   | ✅ | ✅ | Live |
+| ADA   | ✅ | ✅ | Live |
+| DOT   | ✅ | ✅ | Live |
+| MATIC | ✅ | ✅ | Live |
+| LINK  | ✅ | ✅ | Live |
+| UNI   | ✅ | ✅ | Live |
+| AVAX  | ✅ | ✅ | Live |
+| ATOM  | ✅ | ✅ | Live |
+
+**Total**: 10 major cryptocurrencies at launch, expanding to 50+ based on user demand.
+
 ## 📈 Projected Revenue
 With current market demand:
 
@@ -103,7 +136,10 @@ Sets up ALL API keys automatically! Takes 5-10 minutes total.
 ## 📋 Required API Keys
 
 1. **Discord Bot Token** - Create at https://discord.com/developers/applications
-2. **Trading Exchange API** - Binance, Coinbase Pro, etc.
+2. **Crypto Exchange APIs** (Choose one or more):
+   - **Coinbase Pro** - API Key + Secret + Passphrase (see `docs/EXCHANGE-SETUP.md`)
+   - **Kraken** - API Key + Secret (see `docs/EXCHANGE-SETUP.md`)
+   - **Binance** - API Key + Secret (testnet available)
 3. **Stripe Keys** - For subscription billing
 4. **MongoDB URI** - Database for user management
 

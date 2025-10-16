@@ -40,5 +40,9 @@ test-results/
 *.temp
 deploy-railway.sh
 
+# Moomoo monitoring
+monitor-moomoo.log
+.moomoo-monitor-status.json
+
 # Railway (if using local deployment)
 .railway/
