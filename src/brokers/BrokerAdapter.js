@@ -207,7 +207,7 @@ class BrokerAdapter {
       supportsStocks: this.brokerType === 'stock',
       supportsCrypto: this.brokerType === 'crypto',
       supportsOptions: false, // Can be overridden
-      supportsFutures: false  // Can be overridden
+      supportsFutures: false // Can be overridden
     };
   }
 }

@@ -5,7 +5,9 @@
  * stock and cryptocurrency brokers with consistent API patterns.
  *
  * @example
+// Internal utilities and services
  * const { BrokerFactory, BrokerAdapter, AlpacaAdapter } = require('./brokers');
+
  *
  * // Get available brokers
  * const stockBrokers = BrokerFactory.getStockBrokers();

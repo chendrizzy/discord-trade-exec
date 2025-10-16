@@ -1,5 +1,6 @@
-const BrokerFactory = require('../BrokerFactory');
+// Internal utilities and services
 const AlpacaAdapter = require('../adapters/AlpacaAdapter');
+const BrokerFactory = require('../BrokerFactory');
 
 describe('BrokerFactory', () => {
   describe('Broker Registration', () => {
@@ -44,9 +45,7 @@ describe('BrokerFactory', () => {
 
     test('should filter by features', () => {
       const oauthBrokers = BrokerFactory.getBrokersByFeatures(['oauth']);
-      expect(oauthBrokers.every(b =>
-        b.features.includes('oauth')
-      )).toBe(true);
+      expect(oauthBrokers.every(b => b.features.includes('oauth'))).toBe(true);
     });
 
     test('should filter by multiple criteria', () => {
@@ -56,11 +55,9 @@ describe('BrokerFactory', () => {
         features: ['commission-free']
       });
 
-      expect(result.every(b =>
-        b.type === 'stock' &&
-        b.status === 'available' &&
-        b.features.includes('commission-free')
-      )).toBe(true);
+      expect(
+        result.every(b => b.type === 'stock' && b.status === 'available' && b.features.includes('commission-free'))
+      ).toBe(true);
     });
   });
 
@@ -223,10 +220,14 @@ describe('BrokerFactory', () => {
 
       // We'll need to mock the actual adapter for this test
       // For now, we'll test the structure of the returned result
-      const result = await BrokerFactory.testConnection('alpaca', {
-        apiKey: 'invalid-key',
-        apiSecret: 'invalid-secret'
-      }, { isTestnet: true }).catch(error => ({
+      const result = await BrokerFactory.testConnection(
+        'alpaca',
+        {
+          apiKey: 'invalid-key',
+          apiSecret: 'invalid-secret'
+        },
+        { isTestnet: true }
+      ).catch(error => ({
         success: false,
         broker: 'alpaca',
         message: error.message
@@ -239,10 +240,14 @@ describe('BrokerFactory', () => {
     });
 
     test('should handle connection failure gracefully', async () => {
-      const result = await BrokerFactory.testConnection('alpaca', {
-        apiKey: 'invalid',
-        apiSecret: 'invalid'
-      }, { isTestnet: true });
+      const result = await BrokerFactory.testConnection(
+        'alpaca',
+        {
+          apiKey: 'invalid',
+          apiSecret: 'invalid'
+        },
+        { isTestnet: true }
+      );
 
       expect(result.success).toBe(false);
       expect(result.message).toBeDefined();

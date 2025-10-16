@@ -1,6 +1,10 @@
+// Internal utilities and services
 const AlpacaAdapter = require('./adapters/AlpacaAdapter');
 const IBKRAdapter = require('./adapters/IBKRAdapter');
 const MoomooAdapter = require('./adapters/MoomooAdapter');
+const SchwabAdapter = require('./adapters/SchwabAdapter');
+const CoinbaseProAdapter = require('./adapters/CoinbaseProAdapter');
+const KrakenAdapter = require('./adapters/KrakenAdapter');
 
 /**
  * BrokerFactory - Central factory for creating and managing broker adapters
@@ -45,8 +49,8 @@ class BrokerFactory {
     this.registerBroker('schwab', {
       name: 'Charles Schwab',
       type: 'stock',
-      class: null, // To be implemented
-      features: ['stocks', 'options', 'etfs', 'commission-free'],
+      class: SchwabAdapter,
+      features: ['stocks', 'options', 'etfs', 'futures', 'commission-free', 'oauth', 'paper-trading'],
       description: 'Full-service broker with trading API (TD Ameritrade successor)',
       authMethods: ['oauth'],
       websiteUrl: 'https://www.schwab.com',
@@ -54,7 +58,7 @@ class BrokerFactory {
       minDeposit: 0,
       accountTypes: ['individual', 'ira', 'margin', 'joint'],
       markets: ['US'],
-      status: 'planned'
+      apiFeatures: ['oauth-refresh-token', '7-day-token-expiry', 'options-trading', 'futures-trading']
     });
 
     // Moomoo - Modern mobile-first trading platform
@@ -73,33 +77,40 @@ class BrokerFactory {
       apiFeatures: ['gateway-required', 'multi-language-sdk', 'real-time-quotes', 'paper-trading']
     });
 
-    // Crypto exchange placeholders (to be implemented in Phase 4)
-    this.registerBroker('coinbase-pro', {
+    // Coinbase Pro (Advanced Trade)
+    this.registerBroker('coinbasepro', {
       name: 'Coinbase Pro',
       type: 'crypto',
-      class: null, // To be implemented
-      features: ['crypto', 'advanced-trading', 'api-trading'],
-      description: 'Advanced cryptocurrency exchange with API trading',
+      class: CoinbaseProAdapter,
+      features: ['crypto', 'advanced-trading', 'api-trading', 'sandbox', 'spot-trading'],
+      description: 'Advanced cryptocurrency exchange with API trading (formerly GDAX)',
       authMethods: ['api-key'],
       websiteUrl: 'https://pro.coinbase.com',
-      docsUrl: 'https://docs.pro.coinbase.com',
+      docsUrl: 'https://docs.cloud.coinbase.com/exchange',
       minDeposit: 0,
+      accountTypes: ['individual'],
       markets: ['Global'],
-      status: 'planned'
+      fees: { maker: 0.005, taker: 0.005 },
+      minTradeAmount: 10,
+      apiFeatures: ['sandbox-environment', 'stop-orders', 'limit-orders', 'market-orders']
     });
 
+    // Kraken
     this.registerBroker('kraken', {
       name: 'Kraken',
       type: 'crypto',
-      class: null, // To be implemented
-      features: ['crypto', 'margin-trading', 'futures', 'staking'],
-      description: 'Secure cryptocurrency exchange with advanced features',
+      class: KrakenAdapter,
+      features: ['crypto', 'margin-trading', 'futures', 'staking', 'spot-trading', 'advanced-orders'],
+      description: 'Secure cryptocurrency exchange with advanced trading features and futures',
       authMethods: ['api-key'],
       websiteUrl: 'https://www.kraken.com',
-      docsUrl: 'https://docs.kraken.com',
+      docsUrl: 'https://docs.kraken.com/rest/',
       minDeposit: 0,
+      accountTypes: ['individual'],
       markets: ['Global'],
-      status: 'planned'
+      fees: { maker: 0.0016, taker: 0.0026 },
+      minTradeAmount: 10,
+      apiFeatures: ['advanced-orders', 'stop-loss', 'take-profit', 'futures-trading', 'margin-trading']
     });
   }
 
@@ -162,9 +173,7 @@ class BrokerFactory {
 
     // Filter by features
     if (filters.features && Array.isArray(filters.features)) {
-      brokers = brokers.filter(b =>
-        filters.features.every(feature => b.features.includes(feature))
-      );
+      brokers = brokers.filter(b => filters.features.every(feature => b.features.includes(feature)));
     }
 
     return brokers;
@@ -296,16 +305,12 @@ class BrokerFactory {
 
     // Filter by required features
     if (requirements.features && requirements.features.length > 0) {
-      candidates = candidates.filter(broker =>
-        requirements.features.every(f => broker.features.includes(f))
-      );
+      candidates = candidates.filter(broker => requirements.features.every(f => broker.features.includes(f)));
     }
 
     // Filter by required markets
     if (requirements.markets && requirements.markets.length > 0) {
-      candidates = candidates.filter(broker =>
-        requirements.markets.every(m => broker.markets?.includes(m))
-      );
+      candidates = candidates.filter(broker => requirements.markets.every(m => broker.markets?.includes(m)));
     }
 
     if (candidates.length === 0) {
@@ -394,11 +399,44 @@ class BrokerFactory {
         break;
 
       case 'schwab':
-      case 'coinbase-pro':
+        if (!credentials.appKey && !credentials.clientId) {
+          result.valid = false;
+          result.errors.push('appKey (or clientId) required for Schwab OAuth');
+        }
+        if (!credentials.appSecret && !credentials.clientSecret) {
+          result.valid = false;
+          result.errors.push('appSecret (or clientSecret) required for Schwab OAuth');
+        }
+        if (!credentials.refreshToken) {
+          result.valid = false;
+          result.errors.push('refreshToken required for Schwab (complete OAuth flow first)');
+        }
+        break;
+
+      case 'coinbasepro':
+        if (!credentials.apiKey) {
+          result.valid = false;
+          result.errors.push('apiKey required for Coinbase Pro');
+        }
+        if (!credentials.apiSecret) {
+          result.valid = false;
+          result.errors.push('apiSecret required for Coinbase Pro');
+        }
+        if (!credentials.password) {
+          result.valid = false;
+          result.errors.push('password (API passphrase) required for Coinbase Pro');
+        }
+        break;
+
       case 'kraken':
-        // These will be implemented in future phases
-        result.valid = false;
-        result.errors.push(`Broker ${brokerKey} not yet implemented`);
+        if (!credentials.apiKey) {
+          result.valid = false;
+          result.errors.push('apiKey required for Kraken');
+        }
+        if (!credentials.apiSecret) {
+          result.valid = false;
+          result.errors.push('apiSecret required for Kraken');
+        }
         break;
 
       default:
