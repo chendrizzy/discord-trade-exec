@@ -1,0 +1,15 @@
+node_modules
+dist
+build
+.next
+coverage
+*.min.js
+*.bundle.js
+package-lock.json
+.env
+.env.*
+.DS_Store
+*.log
+.browser-session
+.playwright-mcp
+.claude
