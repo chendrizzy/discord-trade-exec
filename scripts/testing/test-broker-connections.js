@@ -85,11 +85,14 @@ async function testAlpaca() {
     info('Creating Alpaca adapter...');
     const credentials = {
       apiKey: process.env.ALPACA_API_KEY,
-      apiSecret: process.env.ALPACA_API_SECRET,
-      environment: 'testnet'
+      apiSecret: process.env.ALPACA_API_SECRET
     };
 
-    const adapter = BrokerFactory.createBroker('alpaca', credentials);
+    const options = {
+      isTestnet: true
+    };
+
+    const adapter = BrokerFactory.createBroker('alpaca', credentials, options);
     info('Adapter created successfully');
 
     info('Testing connection...');
@@ -149,11 +152,14 @@ async function testIBKR() {
     const credentials = {
       host: process.env.IBKR_HOST,
       port: parseInt(process.env.IBKR_PORT),
-      clientId: parseInt(process.env.IBKR_CLIENT_ID || '1'),
-      environment: 'testnet'
+      clientId: parseInt(process.env.IBKR_CLIENT_ID || '1')
     };
 
-    const adapter = BrokerFactory.createBroker('ibkr', credentials);
+    const options = {
+      isTestnet: true
+    };
+
+    const adapter = BrokerFactory.createBroker('ibkr', credentials, options);
     info('Adapter created successfully');
 
     info('Testing connection...');
@@ -216,11 +222,14 @@ async function testKraken() {
     info('Creating Kraken adapter...');
     const credentials = {
       apiKey: process.env.KRAKEN_API_KEY,
-      privateKey: process.env.KRAKEN_PRIVATE_KEY,
-      environment: process.env.KRAKEN_ENVIRONMENT || 'live'
+      apiSecret: process.env.KRAKEN_PRIVATE_KEY // KrakenAdapter expects apiSecret
     };
 
-    const adapter = BrokerFactory.createBroker('kraken', credentials);
+    const options = {
+      isTestnet: false // Kraken doesn't have a testnet
+    };
+
+    const adapter = BrokerFactory.createBroker('kraken', credentials, options);
     info('Adapter created successfully');
 
     info('Testing connection...');
