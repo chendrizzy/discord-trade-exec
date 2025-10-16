@@ -1,107 +1,110 @@
+// External dependencies
 const express = require('express');
-const performanceTracker = require('./performance-tracker');
-const rateLimiter = require('./rate-limiter');
+
+// Internal utilities and services
+const performanceTracker = require('./PerformanceTracker');
+const rateLimiter = require('./RateLimiter');
 
 class AnalyticsDashboard {
-    constructor() {
-        this.app = null;
-    }
+  constructor() {
+    this.app = null;
+  }
 
-    /**
-     * Create Express routes for the analytics dashboard
-     * @param {express.Application} app - Express app instance
-     */
-    setupRoutes(app) {
-        this.app = app;
+  /**
+   * Create Express routes for the analytics dashboard
+   * @param {express.Application} app - Express app instance
+   */
+  setupRoutes(app) {
+    this.app = app;
 
-        // Analytics dashboard HTML page
-        app.get('/dashboard', (req, res) => {
-            res.send(this.generateDashboardHTML());
+    // Analytics dashboard HTML page
+    app.get('/dashboard', (req, res) => {
+      res.send(this.generateDashboardHTML());
+    });
+
+    // API endpoints for dashboard data
+    app.get('/api/metrics', (req, res) => {
+      try {
+        const metrics = performanceTracker.getMetrics();
+        res.json({
+          success: true,
+          timestamp: new Date().toISOString(),
+          data: metrics
         });
-
-        // API endpoints for dashboard data
-        app.get('/api/metrics', (req, res) => {
-            try {
-                const metrics = performanceTracker.getMetrics();
-                res.json({
-                    success: true,
-                    timestamp: new Date().toISOString(),
-                    data: metrics
-                });
-            } catch (error) {
-                res.status(500).json({
-                    success: false,
-                    error: error.message
-                });
-            }
+      } catch (error) {
+        res.status(500).json({
+          success: false,
+          error: error.message
         });
+      }
+    });
 
-        app.get('/api/health', (req, res) => {
-            try {
-                const health = performanceTracker.getHealthStatus();
-                res.json({
-                    success: true,
-                    timestamp: new Date().toISOString(),
-                    data: health
-                });
-            } catch (error) {
-                res.status(500).json({
-                    success: false,
-                    error: error.message
-                });
-            }
+    app.get('/api/health', (req, res) => {
+      try {
+        const health = performanceTracker.getHealthStatus();
+        res.json({
+          success: true,
+          timestamp: new Date().toISOString(),
+          data: health
         });
-
-        app.get('/api/rate-limiting', (req, res) => {
-            try {
-                const rateLimitStats = rateLimiter.getStats();
-                res.json({
-                    success: true,
-                    timestamp: new Date().toISOString(),
-                    data: rateLimitStats
-                });
-            } catch (error) {
-                res.status(500).json({
-                    success: false,
-                    error: error.message
-                });
-            }
+      } catch (error) {
+        res.status(500).json({
+          success: false,
+          error: error.message
         });
+      }
+    });
 
-        // Combined dashboard data
-        app.get('/api/dashboard-data', (req, res) => {
-            try {
-                const data = {
-                    metrics: performanceTracker.getMetrics(),
-                    health: performanceTracker.getHealthStatus(),
-                    rateLimiting: rateLimiter.getStats(),
-                    timestamp: new Date().toISOString()
-                };
-                
-                res.json({
-                    success: true,
-                    data
-                });
-            } catch (error) {
-                res.status(500).json({
-                    success: false,
-                    error: error.message
-                });
-            }
+    app.get('/api/rate-limiting', (req, res) => {
+      try {
+        const rateLimitStats = rateLimiter.getStats();
+        res.json({
+          success: true,
+          timestamp: new Date().toISOString(),
+          data: rateLimitStats
         });
+      } catch (error) {
+        res.status(500).json({
+          success: false,
+          error: error.message
+        });
+      }
+    });
 
-        console.log('\u2713 Analytics dashboard routes configured');
-        console.log('  - Dashboard UI: http://localhost:3000/dashboard');
-        console.log('  - Metrics API: http://localhost:3000/api/metrics');
-        console.log('  - Health API: http://localhost:3000/api/health');
-    }
+    // Combined dashboard data
+    app.get('/api/dashboard-data', (req, res) => {
+      try {
+        const data = {
+          metrics: performanceTracker.getMetrics(),
+          health: performanceTracker.getHealthStatus(),
+          rateLimiting: rateLimiter.getStats(),
+          timestamp: new Date().toISOString()
+        };
 
-    /**
-     * Generate the HTML dashboard page
-     * @private
-     */
-    generateDashboardHTML() {
-        return `
+        res.json({
+          success: true,
+          data
+        });
+      } catch (error) {
+        res.status(500).json({
+          success: false,
+          error: error.message
+        });
+      }
+    });
+
+    console.log('\u2713 Analytics dashboard routes configured');
+    console.log('  - Dashboard UI: http://localhost:3000/dashboard');
+    console.log('  - Metrics API: http://localhost:3000/api/metrics');
+    console.log('  - Health API: http://localhost:3000/api/health');
+  }
+
+  /**
+   * Generate the HTML dashboard page
+   * @private
+   */
+  generateDashboardHTML() {
+    return `
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -528,51 +531,51 @@ class AnalyticsDashboard {
 </body>
 </html>
         `;
-    }
+  }
 
-    /**
-     * Generate summary statistics for quick overview
-     * @returns {Object} - Summary stats
-     */
-    generateSummary() {
-        const metrics = performanceTracker.getMetrics();
-        const health = performanceTracker.getHealthStatus();
-        const rateLimitStats = rateLimiter.getStats();
+  /**
+   * Generate summary statistics for quick overview
+   * @returns {Object} - Summary stats
+   */
+  generateSummary() {
+    const metrics = performanceTracker.getMetrics();
+    const health = performanceTracker.getHealthStatus();
+    const rateLimitStats = rateLimiter.getStats();
 
-        return {
-            overview: {
-                status: health.status,
-                uptime: metrics.system.uptimeFormatted,
-                totalWebhooks: metrics.webhooks.total,
-                totalTrades: metrics.trades.total,
-                successRate: metrics.webhooks.successRate
-            },
-            performance: {
-                avgResponseTime: metrics.webhooks.avgResponseTime,
-                avgParsingTime: metrics.webhooks.avgParsingTime,
-                avgExecutionTime: metrics.trades.avgExecutionTime,
-                memoryUsage: this.formatBytes(metrics.system.memoryUsage.rss)
-            },
-            security: {
-                rateLimitBlockRate: rateLimitStats.blockRate,
-                bannedIPs: rateLimitStats.bannedIPs,
-                activeIPs: rateLimitStats.activeIPs
-            },
-            timestamp: new Date().toISOString()
-        };
-    }
+    return {
+      overview: {
+        status: health.status,
+        uptime: metrics.system.uptimeFormatted,
+        totalWebhooks: metrics.webhooks.total,
+        totalTrades: metrics.trades.total,
+        successRate: metrics.webhooks.successRate
+      },
+      performance: {
+        avgResponseTime: metrics.webhooks.avgResponseTime,
+        avgParsingTime: metrics.webhooks.avgParsingTime,
+        avgExecutionTime: metrics.trades.avgExecutionTime,
+        memoryUsage: this.formatBytes(metrics.system.memoryUsage.rss)
+      },
+      security: {
+        rateLimitBlockRate: rateLimitStats.blockRate,
+        bannedIPs: rateLimitStats.bannedIPs,
+        activeIPs: rateLimitStats.activeIPs
+      },
+      timestamp: new Date().toISOString()
+    };
+  }
 
-    /**
-     * Format bytes in human readable format
-     * @private
-     */
-    formatBytes(bytes) {
-        if (bytes === 0) return '0 Bytes';
-        const k = 1024;
-        const sizes = ['Bytes', 'KB', 'MB', 'GB'];
-        const i = Math.floor(Math.log(bytes) / Math.log(k));
-        return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
-    }
+  /**
+   * Format bytes in human readable format
+   * @private
+   */
+  formatBytes(bytes) {
+    if (bytes === 0) return '0 Bytes';
+    const k = 1024;
+    const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+  }
 }
 
 module.exports = AnalyticsDashboard;

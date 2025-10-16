@@ -1,7 +1,20 @@
+// External dependencies
 const express = require('express');
+
 const router = express.Router();
 const { BrokerFactory } = require('../../brokers');
 const User = require('../../models/User');
+const { getEncryptionService } = require('../../services/encryption');
+const {
+  sendSuccess,
+  sendError,
+  sendValidationError,
+  sendNotFound,
+  sendUnauthorized
+} = require('../../utils/api-response');
+
+// Analytics
+const analyticsEventService = require('../../services/analytics/AnalyticsEventService');
 
 /**
  * Middleware to ensure user is authenticated
@@ -10,10 +23,7 @@ function ensureAuthenticated(req, res, next) {
   if (req.isAuthenticated && req.isAuthenticated()) {
     return next();
   }
-  return res.status(401).json({
-    success: false,
-    error: 'Authentication required'
-  });
+  return sendUnauthorized(res);
 }
 
 /**
@@ -38,20 +48,19 @@ router.get('/', ensureAuthenticated, (req, res) => {
         name: broker.name,
         type: broker.type,
         status: broker.status,
-        description: broker.description || `Trade ${broker.type === 'stock' ? 'stocks and ETFs' : 'cryptocurrencies'} with ${broker.name}`,
+        description:
+          broker.description ||
+          `Trade ${broker.type === 'stock' ? 'stocks and ETFs' : 'cryptocurrencies'} with ${broker.name}`,
         features: broker.features,
         authMethods: broker.authMethods,
         markets: broker.markets,
-        accountTypes: broker.accountTypes,
+        accountTypes: broker.accountTypes
       })),
       stats: BrokerFactory.getStats()
     });
   } catch (error) {
     console.error('[BrokerAPI] Error listing brokers:', error);
-    res.status(500).json({
-      success: false,
-      error: error.message
-    });
+    return sendError(res, error.message);
   }
 });
 
@@ -66,10 +75,7 @@ router.get('/:brokerKey', ensureAuthenticated, (req, res) => {
     const broker = BrokerFactory.getBrokerInfo(brokerKey);
 
     if (!broker) {
-      return res.status(404).json({
-        success: false,
-        error: `Broker '${brokerKey}' not found`
-      });
+      return sendNotFound(res, `Broker '${brokerKey}'`);
     }
 
     res.json({
@@ -79,20 +85,19 @@ router.get('/:brokerKey', ensureAuthenticated, (req, res) => {
         name: broker.name,
         type: broker.type,
         status: broker.status,
-        description: broker.description || `Trade ${broker.type === 'stock' ? 'stocks and ETFs' : 'cryptocurrencies'} with ${broker.name}`,
+        description:
+          broker.description ||
+          `Trade ${broker.type === 'stock' ? 'stocks and ETFs' : 'cryptocurrencies'} with ${broker.name}`,
         features: broker.features,
         authMethods: broker.authMethods,
         markets: broker.markets,
         accountTypes: broker.accountTypes,
-        docs: broker.docs,
+        docs: broker.docs
       }
     });
   } catch (error) {
     console.error('[BrokerAPI] Error fetching broker info:', error);
-    res.status(500).json({
-      success: false,
-      error: error.message
-    });
+    return sendError(res, error.message);
   }
 });
 
@@ -105,27 +110,17 @@ router.post('/test', ensureAuthenticated, async (req, res) => {
     const { brokerKey, credentials, options = {} } = req.body;
 
     if (!brokerKey) {
-      return res.status(400).json({
-        success: false,
-        error: 'Broker key is required'
-      });
+      return sendValidationError(res, 'Broker key is required');
     }
 
     if (!credentials || Object.keys(credentials).length === 0) {
-      return res.status(400).json({
-        success: false,
-        error: 'Credentials are required'
-      });
+      return sendValidationError(res, 'Credentials are required');
     }
 
     // Validate credentials format
     const validation = BrokerFactory.validateCredentials(brokerKey, credentials);
     if (!validation.valid) {
-      return res.status(400).json({
-        success: false,
-        error: 'Invalid credentials',
-        validationErrors: validation.errors
-      });
+      return sendValidationError(res, 'Invalid credentials', validation.errors);
     }
 
     // Test connection
@@ -139,10 +134,8 @@ router.post('/test', ensureAuthenticated, async (req, res) => {
     });
   } catch (error) {
     console.error('[BrokerAPI] Error testing connection:', error);
-    res.status(500).json({
-      success: false,
-      error: error.message,
-      message: 'Connection test failed. Please check your credentials and try again.'
+    return sendError(res, 'Connection test failed. Please check your credentials and try again.', 500, {
+      details: error.message
     });
   }
 });
@@ -157,29 +150,24 @@ router.post('/configure', ensureAuthenticated, async (req, res) => {
     const userId = req.user.id;
 
     if (!brokerKey || !brokerType || !authMethod || !credentials) {
-      return res.status(400).json({
-        success: false,
-        error: 'Missing required fields: brokerKey, brokerType, authMethod, credentials'
-      });
+      return sendValidationError(res, 'Missing required fields: brokerKey, brokerType, authMethod, credentials');
     }
 
     // Validate credentials
     const validation = BrokerFactory.validateCredentials(brokerKey, credentials);
     if (!validation.valid) {
-      return res.status(400).json({
-        success: false,
-        error: 'Invalid credentials',
-        validationErrors: validation.errors
-      });
+      return sendValidationError(res, 'Invalid credentials', validation.errors);
     }
 
     // Find user
     const user = await User.findById(userId);
     if (!user) {
-      return res.status(404).json({
-        success: false,
-        error: 'User not found'
-      });
+      return sendNotFound(res, 'User');
+    }
+
+    // Ensure user has a communityId for encryption
+    if (!user.communityId) {
+      return sendValidationError(res, 'User must be associated with a community to store broker credentials');
     }
 
     // Initialize brokerConfigs if not exists
@@ -187,18 +175,42 @@ router.post('/configure', ensureAuthenticated, async (req, res) => {
       user.brokerConfigs = {};
     }
 
-    // Store broker configuration (encrypt credentials in production)
+    // Encrypt credentials before storing
+    const encryptionService = getEncryptionService();
+    let encryptedCredentials;
+
+    try {
+      encryptedCredentials = await encryptionService.encryptCredential(user.communityId.toString(), credentials);
+    } catch (error) {
+      console.error('[BrokerAPI] Failed to encrypt credentials:', error);
+      return sendError(res, 'Failed to encrypt credentials', 500, {
+        message: 'Encryption service error. Please check AWS KMS configuration.'
+      });
+    }
+
+    // Store broker configuration with encrypted credentials
     user.brokerConfigs[brokerKey] = {
       brokerKey,
       brokerType,
       authMethod,
       environment: environment || 'testnet',
-      credentials, // TODO: Encrypt credentials before storing
+      credentials: encryptedCredentials, // Encrypted with AWS KMS
       configuredAt: new Date(),
-      lastVerified: new Date(),
+      lastVerified: new Date()
     };
 
     await user.save();
+
+    // Track broker connection event
+    await analyticsEventService.trackBrokerConnected(
+      user._id,
+      {
+        broker: brokerKey,
+        accountType: brokerType,
+        isReconnection: !!user.brokerConfigs[brokerKey]?.lastVerified
+      },
+      req
+    );
 
     res.json({
       success: true,
@@ -206,21 +218,27 @@ router.post('/configure', ensureAuthenticated, async (req, res) => {
       broker: {
         key: brokerKey,
         type: brokerType,
-        environment: environment || 'testnet',
+        environment: environment || 'testnet'
       }
     });
   } catch (error) {
     console.error('[BrokerAPI] Error saving configuration:', error);
-    res.status(500).json({
-      success: false,
-      error: error.message
-    });
+    return sendError(res, error.message);
   }
 });
 
 /**
  * GET /api/brokers/user/configured
  * Get all configured brokers for the authenticated user
+ *
+ * NOTE: Credentials are encrypted in database and NOT returned to client.
+ * TODO: When implementing user-specific broker execution, decrypt credentials here:
+ *   const encryptionService = getEncryptionService();
+ *   const decryptedCreds = await encryptionService.decryptCredential(
+ *     user.communityId.toString(),
+ *     config.credentials
+ *   );
+ *   Then pass to TradeExecutor.addBroker() or BrokerFactory.createBroker()
  */
 router.get('/user/configured', ensureAuthenticated, async (req, res) => {
   try {
@@ -228,10 +246,7 @@ router.get('/user/configured', ensureAuthenticated, async (req, res) => {
 
     const user = await User.findById(userId);
     if (!user) {
-      return res.status(404).json({
-        success: false,
-        error: 'User not found'
-      });
+      return sendNotFound(res, 'User');
     }
 
     const configuredBrokers = user.brokerConfigs || {};
@@ -248,7 +263,7 @@ router.get('/user/configured', ensureAuthenticated, async (req, res) => {
         environment: config.environment,
         authMethod: config.authMethod,
         configuredAt: config.configuredAt,
-        lastVerified: config.lastVerified,
+        lastVerified: config.lastVerified
       };
     });
 
@@ -258,10 +273,7 @@ router.get('/user/configured', ensureAuthenticated, async (req, res) => {
     });
   } catch (error) {
     console.error('[BrokerAPI] Error fetching configured brokers:', error);
-    res.status(500).json({
-      success: false,
-      error: error.message
-    });
+    return sendError(res, error.message);
   }
 });
 
@@ -276,17 +288,11 @@ router.delete('/user/:brokerKey', ensureAuthenticated, async (req, res) => {
 
     const user = await User.findById(userId);
     if (!user) {
-      return res.status(404).json({
-        success: false,
-        error: 'User not found'
-      });
+      return sendNotFound(res, 'User');
     }
 
     if (!user.brokerConfigs || !user.brokerConfigs[brokerKey]) {
-      return res.status(404).json({
-        success: false,
-        error: `Broker '${brokerKey}' is not configured`
-      });
+      return sendNotFound(res, `Broker '${brokerKey}' configuration`);
     }
 
     // Remove broker configuration
@@ -299,10 +305,7 @@ router.delete('/user/:brokerKey', ensureAuthenticated, async (req, res) => {
     });
   } catch (error) {
     console.error('[BrokerAPI] Error removing broker config:', error);
-    res.status(500).json({
-      success: false,
-      error: error.message
-    });
+    return sendError(res, error.message);
   }
 });
 
@@ -315,10 +318,7 @@ router.post('/compare', ensureAuthenticated, (req, res) => {
     const { brokerKeys } = req.body;
 
     if (!brokerKeys || !Array.isArray(brokerKeys) || brokerKeys.length < 2) {
-      return res.status(400).json({
-        success: false,
-        error: 'At least 2 broker keys required for comparison'
-      });
+      return sendValidationError(res, 'At least 2 broker keys required for comparison');
     }
 
     const comparison = BrokerFactory.compareBrokers(brokerKeys);
@@ -329,10 +329,7 @@ router.post('/compare', ensureAuthenticated, (req, res) => {
     });
   } catch (error) {
     console.error('[BrokerAPI] Error comparing brokers:', error);
-    res.status(500).json({
-      success: false,
-      error: error.message
-    });
+    return sendError(res, error.message);
   }
 });
 
@@ -345,10 +342,7 @@ router.post('/recommend', ensureAuthenticated, (req, res) => {
     const { requirements } = req.body;
 
     if (!requirements || typeof requirements !== 'object') {
-      return res.status(400).json({
-        success: false,
-        error: 'Requirements object is required'
-      });
+      return sendValidationError(res, 'Requirements object is required');
     }
 
     const recommended = BrokerFactory.getRecommendedBroker(requirements);
@@ -370,15 +364,12 @@ router.post('/recommend', ensureAuthenticated, (req, res) => {
         status: recommended.status,
         score: recommended.score,
         reason: recommended.reason,
-        features: recommended.features,
+        features: recommended.features
       }
     });
   } catch (error) {
     console.error('[BrokerAPI] Error getting recommendation:', error);
-    res.status(500).json({
-      success: false,
-      error: error.message
-    });
+    return sendError(res, error.message);
   }
 });
 

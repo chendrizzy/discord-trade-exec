@@ -1,3 +1,4 @@
+// External dependencies
 const { test, expect } = require('@playwright/test');
 
 /**
@@ -8,15 +9,17 @@ const { test, expect } = require('@playwright/test');
 test.describe('Exchange API Key Management', () => {
   test.beforeEach(async ({ page, context }) => {
     // Mock authenticated session
-    await context.addCookies([{
-      name: 'connect.sid',
-      value: 'test-session-id',
-      domain: 'localhost',
-      path: '/',
-      httpOnly: true,
-      secure: false,
-      sameSite: 'Lax'
-    }]);
+    await context.addCookies([
+      {
+        name: 'connect.sid',
+        value: 'test-session-id',
+        domain: 'localhost',
+        path: '/',
+        httpOnly: true,
+        secure: false,
+        sameSite: 'Lax'
+      }
+    ]);
 
     await page.goto('/dashboard/exchanges');
   });
@@ -75,26 +78,28 @@ test.describe('Exchange API Key Management', () => {
 
   test('should display API key preview (last 4 characters)', async ({ page }) => {
     // Mock an existing exchange
-    await page.route('/api/exchanges', async (route) => {
+    await page.route('/api/exchanges', async route => {
       if (route.request().method() === 'GET') {
         await route.fulfill({
           status: 200,
           contentType: 'application/json',
           body: JSON.stringify({
             success: true,
-            exchanges: [{
-              id: '507f1f77bcf86cd799439011',
-              name: 'binance',
-              label: 'Binance Main',
-              apiKeyPreview: '****1234',
-              active: true,
-              testnet: false,
-              permissions: {
-                read: true,
-                trade: true,
-                withdraw: false
+            exchanges: [
+              {
+                id: '507f1f77bcf86cd799439011',
+                name: 'binance',
+                label: 'Binance Main',
+                apiKeyPreview: '****1234',
+                active: true,
+                testnet: false,
+                permissions: {
+                  read: true,
+                  trade: true,
+                  withdraw: false
+                }
               }
-            }]
+            ]
           })
         });
       } else {
@@ -113,26 +118,28 @@ test.describe('Exchange API Key Management', () => {
 
   test('should show permission warnings', async ({ page }) => {
     // Mock exchange with withdrawal permission (dangerous!)
-    await page.route('/api/exchanges', async (route) => {
+    await page.route('/api/exchanges', async route => {
       if (route.request().method() === 'GET') {
         await route.fulfill({
           status: 200,
           contentType: 'application/json',
           body: JSON.stringify({
             success: true,
-            exchanges: [{
-              id: '507f1f77bcf86cd799439011',
-              name: 'binance',
-              label: 'Binance Main',
-              apiKeyPreview: '****5678',
-              active: false,
-              testnet: false,
-              permissions: {
-                read: true,
-                trade: true,
-                withdraw: true  // DANGEROUS!
+            exchanges: [
+              {
+                id: '507f1f77bcf86cd799439011',
+                name: 'binance',
+                label: 'Binance Main',
+                apiKeyPreview: '****5678',
+                active: false,
+                testnet: false,
+                permissions: {
+                  read: true,
+                  trade: true,
+                  withdraw: true // DANGEROUS!
+                }
               }
-            }]
+            ]
           })
         });
       } else {
@@ -151,19 +158,21 @@ test.describe('Exchange API Key Management', () => {
 
   test('should allow enabling/disabling exchanges', async ({ page }) => {
     // Mock an existing exchange
-    await page.route('/api/exchanges', async (route) => {
+    await page.route('/api/exchanges', async route => {
       if (route.request().method() === 'GET') {
         await route.fulfill({
           status: 200,
           contentType: 'application/json',
           body: JSON.stringify({
             success: true,
-            exchanges: [{
-              id: '507f1f77bcf86cd799439011',
-              name: 'binance',
-              apiKeyPreview: '****1234',
-              active: true
-            }]
+            exchanges: [
+              {
+                id: '507f1f77bcf86cd799439011',
+                name: 'binance',
+                apiKeyPreview: '****1234',
+                active: true
+              }
+            ]
           })
         });
       } else {
@@ -176,26 +185,28 @@ test.describe('Exchange API Key Management', () => {
     // Look for toggle/switch control
     const toggleButton = page.locator('[role="switch"], input[type="checkbox"]').first();
 
-    if (await toggleButton.count() > 0) {
+    if ((await toggleButton.count()) > 0) {
       await expect(toggleButton).toBeVisible();
     }
   });
 
   test('should allow deleting exchanges', async ({ page }) => {
     // Mock an existing exchange
-    await page.route('/api/exchanges', async (route) => {
+    await page.route('/api/exchanges', async route => {
       if (route.request().method() === 'GET') {
         await route.fulfill({
           status: 200,
           contentType: 'application/json',
           body: JSON.stringify({
             success: true,
-            exchanges: [{
-              id: '507f1f77bcf86cd799439011',
-              name: 'binance',
-              apiKeyPreview: '****1234',
-              active: true
-            }]
+            exchanges: [
+              {
+                id: '507f1f77bcf86cd799439011',
+                name: 'binance',
+                apiKeyPreview: '****1234',
+                active: true
+              }
+            ]
           })
         });
       } else {
@@ -208,7 +219,7 @@ test.describe('Exchange API Key Management', () => {
     // Look for delete button
     const deleteButton = page.getByRole('button', { name: /delete|remove/i }).first();
 
-    if (await deleteButton.count() > 0) {
+    if ((await deleteButton.count()) > 0) {
       await deleteButton.click();
 
       // Should show confirmation dialog
@@ -218,7 +229,7 @@ test.describe('Exchange API Key Management', () => {
 
   test('should handle API rate limiting', async ({ page }) => {
     // Mock rate limit response
-    await page.route('/api/exchanges', async (route) => {
+    await page.route('/api/exchanges', async route => {
       await route.fulfill({
         status: 429,
         contentType: 'application/json',
@@ -261,12 +272,14 @@ test.describe('Exchange API Security', () => {
   });
 
   test('should not expose API keys in page source', async ({ page, context }) => {
-    await context.addCookies([{
-      name: 'connect.sid',
-      value: 'test-session-id',
-      domain: 'localhost',
-      path: '/'
-    }]);
+    await context.addCookies([
+      {
+        name: 'connect.sid',
+        value: 'test-session-id',
+        domain: 'localhost',
+        path: '/'
+      }
+    ]);
 
     await page.goto('/dashboard/exchanges');
 

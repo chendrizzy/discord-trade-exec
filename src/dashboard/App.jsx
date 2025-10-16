@@ -21,6 +21,9 @@ const AdminDashboard = lazy(() => import('./components/AdminDashboard').then(mod
 const TradeNotifications = lazy(() => import('./components/TradeNotifications').then(mod => ({ default: mod.TradeNotifications })));
 const LiveWatchlist = lazy(() => import('./components/LiveWatchlist').then(mod => ({ default: mod.LiveWatchlist })));
 const ProviderLeaderboard = lazy(() => import('./components/ProviderLeaderboard').then(mod => ({ default: mod.ProviderLeaderboard })));
+const AnalyticsDashboard = lazy(() => import('./components/AnalyticsDashboard').then(mod => ({ default: mod.AnalyticsDashboard })));
+const ChurnRiskList = lazy(() => import('./components/ChurnRiskList').then(mod => ({ default: mod.ChurnRiskList })));
+const CohortRetentionTable = lazy(() => import('./components/CohortRetentionTable').then(mod => ({ default: mod.CohortRetentionTable })));
 
 function App() {
   const [user, setUser] = useState(null);
@@ -455,6 +458,25 @@ function App() {
             <div className="space-y-4">
               <Suspense fallback={<div className="h-96 flex items-center justify-center text-sm text-muted-foreground">Loading admin dashboard...</div>}>
                 <AdminDashboard />
+              </Suspense>
+            </div>
+          )}
+
+          {activeTab === 'business-analytics' && user?.isAdmin && (
+            <div className="space-y-6">
+              {/* Main Analytics Dashboard */}
+              <Suspense fallback={<div className="h-96 flex items-center justify-center text-sm text-muted-foreground">Loading business analytics...</div>}>
+                <AnalyticsDashboard />
+              </Suspense>
+
+              {/* Churn Risk Users */}
+              <Suspense fallback={<div className="h-64 flex items-center justify-center text-sm text-muted-foreground">Loading churn risks...</div>}>
+                <ChurnRiskList />
+              </Suspense>
+
+              {/* Cohort Retention Table */}
+              <Suspense fallback={<div className="h-64 flex items-center justify-center text-sm text-muted-foreground">Loading retention table...</div>}>
+                <CohortRetentionTable />
               </Suspense>
             </div>
           )}

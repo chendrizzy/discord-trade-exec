@@ -1,4 +1,5 @@
-const TradeExecutor = require('../../src/trade-executor');
+// Internal utilities and services
+const TradeExecutor = require('../../src/services/TradeExecutor');
 
 // Mock CCXT
 jest.mock('ccxt', () => ({
@@ -19,10 +20,10 @@ describe('TradeExecutor', () => {
     process.env.BINANCE_API_KEY = 'test_key';
     process.env.BINANCE_SECRET = 'test_secret';
     process.env.NODE_ENV = 'test';
-    
+
     executor = new TradeExecutor();
     mockExchange = executor.exchanges.binance;
-    
+
     // Reset all mocks
     jest.clearAllMocks();
   });
@@ -398,7 +399,7 @@ describe('TradeExecutor', () => {
             dailyLossAmount: 0,
             maxOpenPositions: 3,
             maxPositionsPerSymbol: 1,
-            maxPortfolioRisk: 0.10,
+            maxPortfolioRisk: 0.1,
             tradingHoursEnabled: false,
             tradingHoursStart: '09:00',
             tradingHoursEnd: '17:00'
@@ -566,11 +567,9 @@ describe('TradeExecutor', () => {
       const signal = testUtils.mockTradingSignal();
 
       // Mock getOpenPositions to return max positions
-      jest.spyOn(executor, 'getOpenPositions').mockResolvedValue([
-        { symbol: 'BTC/USDT' },
-        { symbol: 'ETH/USDT' },
-        { symbol: 'SOL/USDT' }
-      ]);
+      jest
+        .spyOn(executor, 'getOpenPositions')
+        .mockResolvedValue([{ symbol: 'BTC/USDT' }, { symbol: 'ETH/USDT' }, { symbol: 'SOL/USDT' }]);
 
       const result = await executor.executeTrade(signal, mockUser);
 
@@ -584,9 +583,7 @@ describe('TradeExecutor', () => {
       const signal = testUtils.mockTradingSignal();
 
       // Mock getOpenPositions to return existing position for same symbol
-      jest.spyOn(executor, 'getOpenPositions').mockResolvedValue([
-        { symbol: signal.symbol }
-      ]);
+      jest.spyOn(executor, 'getOpenPositions').mockResolvedValue([{ symbol: signal.symbol }]);
 
       const result = await executor.executeTrade(signal, mockUser);
 

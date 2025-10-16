@@ -2,11 +2,11 @@
 const { Client, GatewayIntentBits, EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle } = require('discord.js');
 
 // Internal utilities and services
-const SignalParser = require('./SignalParser');
-const TradeExecutor = require('./trade-executor');
+const SignalParser = require('../SignalParser');
+const TradeExecutor = require('./TradeExecutor');
 
 // Models and types
-const User = require('./models/User');
+const User = require('../models/User');
 
 class DiscordTradeBot {
   constructor() {

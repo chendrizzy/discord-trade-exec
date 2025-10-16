@@ -1,4 +1,5 @@
-const SignalParser = require('../../src/signal-parser');
+// Internal utilities and services
+const SignalParser = require('../../src/SignalParser');
 
 describe('SignalParser', () => {
   let parser;
@@ -50,7 +51,7 @@ describe('SignalParser', () => {
 
     test('should handle various buy keywords', () => {
       const buyKeywords = ['buy', 'long', 'bull', 'bullish'];
-      
+
       buyKeywords.forEach(keyword => {
         const message = `BTCUSDT ${keyword} at 45000`;
         const signal = parser.parseMessage(message);
@@ -60,7 +61,7 @@ describe('SignalParser', () => {
 
     test('should handle various sell keywords', () => {
       const sellKeywords = ['sell', 'short', 'bear', 'bearish'];
-      
+
       sellKeywords.forEach(keyword => {
         const message = `BTCUSDT ${keyword} at 45000`;
         const signal = parser.parseMessage(message);
@@ -91,7 +92,7 @@ describe('SignalParser', () => {
     test('should handle messages with only partial information', () => {
       const message = 'BTCUSDT buy';
       const signal = parser.parseMessage(message);
-      
+
       expect(signal).toBeTruthy();
       expect(signal.action).toBe('buy');
       expect(signal.symbol).toBe('BTCUSDT');
@@ -115,7 +116,7 @@ describe('SignalParser', () => {
     test('should parse decimal prices', () => {
       const message = 'ETHUSDT buy at 2800.50';
       const signal = parser.parseMessage(message);
-      expect(signal.price).toBe(2800.50);
+      expect(signal.price).toBe(2800.5);
     });
 
     test('should parse prices without currency symbols', () => {
@@ -221,7 +222,7 @@ describe('SignalParser', () => {
 
       realWorldExamples.forEach(({ message, expected }) => {
         const signal = parser.parseMessage(message);
-        
+
         expect(signal).toBeTruthy();
         Object.keys(expected).forEach(key => {
           expect(signal[key]).toBe(expected[key]);
@@ -234,13 +235,13 @@ describe('SignalParser', () => {
     test('should parse signals quickly', () => {
       const message = 'BTCUSDT buy at $45000 with stop loss at $43000 and target at $48000';
       const iterations = 1000;
-      
+
       const startTime = Date.now();
       for (let i = 0; i < iterations; i++) {
         parser.parseMessage(message);
       }
       const endTime = Date.now();
-      
+
       const averageTime = (endTime - startTime) / iterations;
       expect(averageTime).toBeLessThan(1); // Should parse in less than 1ms on average
     });

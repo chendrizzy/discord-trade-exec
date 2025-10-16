@@ -5,7 +5,7 @@ const EventEmitter = require('events');
 const ccxt = require('ccxt');
 
 // Internal utilities and services
-const { BrokerFactory } = require('./brokers');
+const { BrokerFactory } = require('../brokers');
 
 /**
  * Unified Trade Executor supporting both stock brokers (via BrokerFactory) and crypto exchanges (via CCXT)

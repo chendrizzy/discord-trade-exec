@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Home, Bot, BarChart3, Trophy, Settings, Menu, X, Shield } from 'lucide-react';
+import { Home, Bot, BarChart3, Trophy, Settings, Menu, X, Shield, TrendingUp } from 'lucide-react';
 import { Button } from './ui/button';
 import { cn } from '@/lib/utils';
 
@@ -14,6 +14,7 @@ const getNavItems = (isAdmin) => {
 
   if (isAdmin) {
     items.push({ id: 'admin', label: 'Admin', icon: Shield });
+    items.push({ id: 'business-analytics', label: 'Business Analytics', icon: TrendingUp });
   }
 
   return items;

@@ -1,3 +1,4 @@
+// External dependencies
 const { test, expect } = require('@playwright/test');
 
 /**
@@ -43,22 +44,24 @@ test.describe('Authentication', () => {
 
   test('should have logout functionality', async ({ page, context }) => {
     // Set a mock session cookie to simulate logged-in state
-    await context.addCookies([{
-      name: 'connect.sid',
-      value: 'test-session-id',
-      domain: 'localhost',
-      path: '/',
-      httpOnly: true,
-      secure: false,
-      sameSite: 'Lax'
-    }]);
+    await context.addCookies([
+      {
+        name: 'connect.sid',
+        value: 'test-session-id',
+        domain: 'localhost',
+        path: '/',
+        httpOnly: true,
+        secure: false,
+        sameSite: 'Lax'
+      }
+    ]);
 
     await page.goto('/dashboard');
 
     // Look for logout button/link
     const logoutButton = page.getByRole('link', { name: /logout|sign out/i });
 
-    if (await logoutButton.count() > 0) {
+    if ((await logoutButton.count()) > 0) {
       await expect(logoutButton).toBeVisible();
     }
   });
@@ -74,15 +77,17 @@ test.describe('Authentication', () => {
 
   test('should maintain session across page refreshes', async ({ page, context }) => {
     // Set a mock session cookie
-    await context.addCookies([{
-      name: 'connect.sid',
-      value: 'test-session-id',
-      domain: 'localhost',
-      path: '/',
-      httpOnly: true,
-      secure: false,
-      sameSite: 'Lax'
-    }]);
+    await context.addCookies([
+      {
+        name: 'connect.sid',
+        value: 'test-session-id',
+        domain: 'localhost',
+        path: '/',
+        httpOnly: true,
+        secure: false,
+        sameSite: 'Lax'
+      }
+    ]);
 
     await page.goto('/dashboard');
 

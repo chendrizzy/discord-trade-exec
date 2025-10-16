@@ -1,6 +1,7 @@
 // External dependencies
 const express = require('express');
 const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
+const subscriptionManager = require('./subscription-manager');
 
 class PaymentProcessor {
   constructor() {
@@ -528,28 +529,51 @@ class PaymentProcessor {
   async handleSuccessfulPayment(session) {
     console.log('💰 New subscription:', session);
 
-    // Add user to database
-    // Send welcome email
-    // Add to Discord server
-    // Start their trial/subscription
+    // Handle subscription creation via SubscriptionManager
+    const result = await subscriptionManager.handleSubscriptionCreated(session);
 
-    // TODO: Implement your customer onboarding logic here
+    if (result.success) {
+      // TODO: Send welcome email
+      // TODO: Add user to Discord server with proper role
+      console.log(`[PaymentProcessor] Successfully created subscription for user: ${result.user.id}`);
+    } else {
+      console.error(`[PaymentProcessor] Failed to create subscription:`, result.error);
+    }
+
+    return result;
   }
 
   async handleSubscriptionRenewal(invoice) {
     console.log('🔄 Subscription renewed:', invoice);
 
-    // Update user's subscription status
-    // Send renewal confirmation email
-    // Ensure continued access to bot
+    // Handle subscription renewal via SubscriptionManager
+    const result = await subscriptionManager.handleSubscriptionRenewed(invoice);
+
+    if (result.success) {
+      // TODO: Send renewal confirmation email
+      console.log(`[PaymentProcessor] Successfully renewed subscription for user: ${result.user.id} (renewal #${result.user.renewalCount})`);
+    } else {
+      console.error(`[PaymentProcessor] Failed to renew subscription:`, result.error);
+    }
+
+    return result;
   }
 
   async handleSubscriptionCancellation(subscription) {
     console.log('❌ Subscription cancelled:', subscription);
 
-    // Remove user access
-    // Send cancellation confirmation
-    // Optionally ask for feedback
+    // Handle subscription cancellation via SubscriptionManager
+    const result = await subscriptionManager.handleSubscriptionCanceled(subscription, 'stripe_webhook');
+
+    if (result.success) {
+      // TODO: Send cancellation confirmation email
+      // TODO: Ask for feedback to understand churn reasons
+      console.log(`[PaymentProcessor] Successfully canceled subscription for user: ${result.user.id} (${result.user.previousTier} -> ${result.user.newTier})`);
+    } else {
+      console.error(`[PaymentProcessor] Failed to cancel subscription:`, result.error);
+    }
+
+    return result;
   }
 
   async createPortalSession(req, res) {

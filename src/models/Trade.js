@@ -1,152 +1,173 @@
+// External dependencies
 const mongoose = require('mongoose');
 
-const tradeSchema = new mongoose.Schema({
-  userId: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: 'User',
-    required: true,
-    index: true
-  },
+// Internal utilities and services
+const { tenantScopingPlugin } = require('../plugins/tenantScoping');
 
-  // Trade identification
-  tradeId: {
-    type: String,
-    unique: true,
-    required: true
-  },
+const tradeSchema = new mongoose.Schema(
+  {
+    // Multi-tenant: Community reference (TENANT ISOLATION)
+    communityId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'Community',
+      required: false, // Optional for migration - will be required later
+      index: true
+    },
 
-  // Exchange information
-  exchange: {
-    type: String,
-    required: true,
-    enum: ['binance', 'coinbase', 'kraken', 'ftx', 'bybit']
-  },
+    userId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'User',
+      required: true,
+      index: true
+    },
 
-  // Symbol and side
-  symbol: {
-    type: String,
-    required: true,
-    index: true
-  },
-  side: {
-    type: String,
-    required: true,
-    enum: ['BUY', 'SELL', 'LONG', 'SHORT']
-  },
+    // Trade identification
+    tradeId: {
+      type: String,
+      unique: true,
+      required: true
+    },
 
-  // Prices and quantities
-  entryPrice: {
-    type: Number,
-    required: true
-  },
-  exitPrice: {
-    type: Number
-  },
-  quantity: {
-    type: Number,
-    required: true
-  },
+    // Exchange information
+    exchange: {
+      type: String,
+      required: true,
+      enum: ['binance', 'coinbase', 'kraken', 'ftx', 'bybit']
+    },
 
-  // P&L calculation
-  profitLoss: {
-    type: Number,
-    default: 0
-  },
-  profitLossPercentage: {
-    type: Number,
-    default: 0
-  },
+    // Symbol and side
+    symbol: {
+      type: String,
+      required: true,
+      index: true
+    },
+    side: {
+      type: String,
+      required: true,
+      enum: ['BUY', 'SELL', 'LONG', 'SHORT']
+    },
 
-  // Fees
-  fees: {
-    entry: { type: Number, default: 0 },
-    exit: { type: Number, default: 0 },
-    total: { type: Number, default: 0 }
-  },
+    // Prices and quantities
+    entryPrice: {
+      type: Number,
+      required: true
+    },
+    exitPrice: {
+      type: Number
+    },
+    quantity: {
+      type: Number,
+      required: true
+    },
 
-  // Risk management
-  stopLoss: Number,
-  takeProfit: Number,
+    // P&L calculation
+    profitLoss: {
+      type: Number,
+      default: 0
+    },
+    profitLossPercentage: {
+      type: Number,
+      default: 0
+    },
 
-  // Trade status
-  status: {
-    type: String,
-    required: true,
-    enum: ['FILLED', 'PARTIAL', 'CANCELLED', 'FAILED', 'OPEN'],
-    default: 'OPEN'
-  },
+    // Fees
+    fees: {
+      entry: { type: Number, default: 0 },
+      exit: { type: Number, default: 0 },
+      total: { type: Number, default: 0 }
+    },
 
-  // Signal source
-  signalSource: {
-    providerId: mongoose.Schema.Types.ObjectId,
-    providerName: String,
-    signalId: String
-  },
+    // Risk management
+    stopLoss: Number,
+    takeProfit: Number,
 
-  // Order IDs from exchange
-  orderIds: {
-    entry: String,
-    exit: String
-  },
+    // Trade status
+    status: {
+      type: String,
+      required: true,
+      enum: ['FILLED', 'PARTIAL', 'CANCELLED', 'FAILED', 'OPEN'],
+      default: 'OPEN'
+    },
 
-  // Timestamps
-  entryTime: {
-    type: Date,
-    default: Date.now,
-    index: true
-  },
-  exitTime: Date,
+    // Signal source
+    signalSource: {
+      providerId: mongoose.Schema.Types.ObjectId,
+      providerName: String,
+      signalId: String
+    },
 
-  // Error handling
-  error: {
-    occurred: { type: Boolean, default: false },
-    message: String,
-    timestamp: Date
-  },
+    // Order IDs from exchange
+    orderIds: {
+      entry: String,
+      exit: String
+    },
 
-  // Signal Quality Tracking
-  qualityTier: {
-    type: String,
-    enum: ['ELITE', 'VERIFIED', 'STANDARD'],
-    index: true
-  },
-  confidenceScore: {
-    type: Number,
-    min: 0,
-    max: 100
-  },
-  smartMoneyScore: {
-    type: Number,
-    min: 0,
-    max: 100
-  },
-  rareInformationScore: {
-    type: Number,
-    min: 0,
-    max: 100
-  },
-  qualityAnalyzedAt: Date,
-  predictedDirection: {
-    type: String,
-    enum: ['up', 'down', 'neutral']
-  },
+    // Timestamps
+    entryTime: {
+      type: Date,
+      default: Date.now,
+      index: true
+    },
+    exitTime: Date,
 
-  // Metadata
-  metadata: {
-    type: Map,
-    of: mongoose.Schema.Types.Mixed
+    // Error handling
+    error: {
+      occurred: { type: Boolean, default: false },
+      message: String,
+      timestamp: Date
+    },
+
+    // Signal Quality Tracking
+    qualityTier: {
+      type: String,
+      enum: ['ELITE', 'VERIFIED', 'STANDARD'],
+      index: true
+    },
+    confidenceScore: {
+      type: Number,
+      min: 0,
+      max: 100
+    },
+    smartMoneyScore: {
+      type: Number,
+      min: 0,
+      max: 100
+    },
+    rareInformationScore: {
+      type: Number,
+      min: 0,
+      max: 100
+    },
+    qualityAnalyzedAt: Date,
+    predictedDirection: {
+      type: String,
+      enum: ['up', 'down', 'neutral']
+    },
+
+    // Metadata
+    metadata: {
+      type: Map,
+      of: mongoose.Schema.Types.Mixed
+    }
+  },
+  {
+    timestamps: true
   }
-}, {
-  timestamps: true
-});
+);
 
 // Indexes for efficient queries
 tradeSchema.index({ userId: 1, entryTime: -1 });
 tradeSchema.index({ userId: 1, status: 1 });
 tradeSchema.index({ userId: 1, symbol: 1 });
 
+// **TENANT ISOLATION INDEXES** (Critical for multi-tenant security)
+tradeSchema.index({ communityId: 1, userId: 1, entryTime: -1 }); // Tenant-scoped user trades
+tradeSchema.index({ communityId: 1, status: 1, entryTime: -1 }); // Tenant-scoped status queries
+tradeSchema.index({ communityId: 1, symbol: 1 }); // Tenant-scoped symbol queries
+tradeSchema.index({ communityId: 1, 'signalSource.providerId': 1 }); // Tenant-scoped provider trades
+
 // Calculate P&L when exit price is set
-tradeSchema.methods.calculatePnL = function() {
+tradeSchema.methods.calculatePnL = function () {
   if (!this.exitPrice) return null;
 
   const multiplier = this.side === 'BUY' || this.side === 'LONG' ? 1 : -1;
@@ -166,7 +187,7 @@ tradeSchema.methods.calculatePnL = function() {
 };
 
 // Static method to get user's trade summary
-tradeSchema.statics.getUserSummary = async function(userId, timeframe = 'all') {
+tradeSchema.statics.getUserSummary = async function (userId, timeframe = 'all') {
   const query = { userId };
 
   // Apply timeframe filter
@@ -192,6 +213,9 @@ tradeSchema.statics.getUserSummary = async function(userId, timeframe = 'all') {
 
   return summary;
 };
+
+// Apply tenant scoping plugin for automatic communityId filtering
+tradeSchema.plugin(tenantScopingPlugin);
 
 const Trade = mongoose.model('Trade', tradeSchema);
 

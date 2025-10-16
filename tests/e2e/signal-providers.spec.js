@@ -1,3 +1,4 @@
+// External dependencies
 const { test, expect } = require('@playwright/test');
 
 /**
@@ -8,15 +9,17 @@ const { test, expect } = require('@playwright/test');
 test.describe('Signal Provider Marketplace', () => {
   test.beforeEach(async ({ page, context }) => {
     // Mock authenticated session
-    await context.addCookies([{
-      name: 'connect.sid',
-      value: 'test-session-id',
-      domain: 'localhost',
-      path: '/',
-      httpOnly: true,
-      secure: false,
-      sameSite: 'Lax'
-    }]);
+    await context.addCookies([
+      {
+        name: 'connect.sid',
+        value: 'test-session-id',
+        domain: 'localhost',
+        path: '/',
+        httpOnly: true,
+        secure: false,
+        sameSite: 'Lax'
+      }
+    ]);
 
     await page.goto('/dashboard/signal-providers');
   });
@@ -27,7 +30,7 @@ test.describe('Signal Provider Marketplace', () => {
 
   test('should show list of signal providers', async ({ page }) => {
     // Mock signal providers
-    await page.route('/api/signal-providers', async (route) => {
+    await page.route('/api/signal-providers', async route => {
       await route.fulfill({
         status: 200,
         contentType: 'application/json',
@@ -67,20 +70,22 @@ test.describe('Signal Provider Marketplace', () => {
 
   test('should show provider performance metrics', async ({ page }) => {
     // Mock signal providers with metrics
-    await page.route('/api/signal-providers', async (route) => {
+    await page.route('/api/signal-providers', async route => {
       await route.fulfill({
         status: 200,
         contentType: 'application/json',
         body: JSON.stringify({
-          providers: [{
-            id: 'provider1',
-            name: 'Test Provider',
-            winRate: 75.5,
-            profitFactor: 2.3,
-            sharpeRatio: 1.8,
-            maxDrawdown: -15.2,
-            subscribers: 200
-          }]
+          providers: [
+            {
+              id: 'provider1',
+              name: 'Test Provider',
+              winRate: 75.5,
+              profitFactor: 2.3,
+              sharpeRatio: 1.8,
+              maxDrawdown: -15.2,
+              subscribers: 200
+            }
+          ]
         })
       });
     });
@@ -95,7 +100,7 @@ test.describe('Signal Provider Marketplace', () => {
     // Look for filter controls
     const filterButton = page.getByRole('button', { name: /filter|sort/i });
 
-    if (await filterButton.count() > 0) {
+    if ((await filterButton.count()) > 0) {
       await filterButton.click();
 
       // Should show filter options
@@ -107,7 +112,7 @@ test.describe('Signal Provider Marketplace', () => {
     // Look for search input
     const searchInput = page.getByPlaceholder(/search/i);
 
-    if (await searchInput.count() > 0) {
+    if ((await searchInput.count()) > 0) {
       await searchInput.fill('crypto');
       await page.keyboard.press('Enter');
 
@@ -118,17 +123,19 @@ test.describe('Signal Provider Marketplace', () => {
 
   test('should show verification badge for verified providers', async ({ page }) => {
     // Mock verified provider
-    await page.route('/api/signal-providers', async (route) => {
+    await page.route('/api/signal-providers', async route => {
       await route.fulfill({
         status: 200,
         contentType: 'application/json',
         body: JSON.stringify({
-          providers: [{
-            id: 'provider1',
-            name: 'Verified Provider',
-            verified: true,
-            verificationStatus: 'verified'
-          }]
+          providers: [
+            {
+              id: 'provider1',
+              name: 'Verified Provider',
+              verified: true,
+              verificationStatus: 'verified'
+            }
+          ]
         })
       });
     });
@@ -138,23 +145,25 @@ test.describe('Signal Provider Marketplace', () => {
     // Should show verification badge/icon
     const verifiedBadge = page.locator('[data-testid="verified-badge"], .verified, [aria-label*="verified"]');
 
-    if (await verifiedBadge.count() > 0) {
+    if ((await verifiedBadge.count()) > 0) {
       await expect(verifiedBadge.first()).toBeVisible();
     }
   });
 
   test('should allow subscribing to providers', async ({ page }) => {
     // Mock signal providers
-    await page.route('/api/signal-providers', async (route) => {
+    await page.route('/api/signal-providers', async route => {
       await route.fulfill({
         status: 200,
         contentType: 'application/json',
         body: JSON.stringify({
-          providers: [{
-            id: 'provider1',
-            name: 'Test Provider',
-            price: 49.99
-          }]
+          providers: [
+            {
+              id: 'provider1',
+              name: 'Test Provider',
+              price: 49.99
+            }
+          ]
         })
       });
     });
@@ -164,7 +173,7 @@ test.describe('Signal Provider Marketplace', () => {
     // Click subscribe button
     const subscribeButton = page.getByRole('button', { name: /subscribe|join/i }).first();
 
-    if (await subscribeButton.count() > 0) {
+    if ((await subscribeButton.count()) > 0) {
       await subscribeButton.click();
 
       // Should show subscription confirmation or payment form
@@ -174,15 +183,17 @@ test.describe('Signal Provider Marketplace', () => {
 
   test('should show provider details', async ({ page }) => {
     // Mock signal providers
-    await page.route('/api/signal-providers', async (route) => {
+    await page.route('/api/signal-providers', async route => {
       await route.fulfill({
         status: 200,
         contentType: 'application/json',
         body: JSON.stringify({
-          providers: [{
-            id: 'provider1',
-            name: 'Test Provider'
-          }]
+          providers: [
+            {
+              id: 'provider1',
+              name: 'Test Provider'
+            }
+          ]
         })
       });
     });
@@ -195,14 +206,14 @@ test.describe('Signal Provider Marketplace', () => {
     // Should navigate to provider detail page or open modal
     const detailsView = page.getByText(/detail|about|performance|history/i);
 
-    if (await detailsView.count() > 0) {
+    if ((await detailsView.count()) > 0) {
       await expect(detailsView.first()).toBeVisible();
     }
   });
 
   test('should display provider reviews and ratings', async ({ page }) => {
     // Mock provider with reviews
-    await page.route('/api/signal-providers/provider1', async (route) => {
+    await page.route('/api/signal-providers/provider1', async route => {
       await route.fulfill({
         status: 200,
         contentType: 'application/json',
@@ -230,14 +241,14 @@ test.describe('Signal Provider Marketplace', () => {
 
     // Should show reviews
     const reviews = page.getByText(/great.*signal|review/i);
-    if (await reviews.count() > 0) {
+    if ((await reviews.count()) > 0) {
       await expect(reviews.first()).toBeVisible();
     }
   });
 
   test('should handle signal provider conflicts', async ({ page }) => {
     // Mock conflicting signals
-    await page.route('/api/signals/active', async (route) => {
+    await page.route('/api/signals/active', async route => {
       await route.fulfill({
         status: 200,
         contentType: 'application/json',
@@ -274,7 +285,7 @@ test.describe('Signal Provider Marketplace', () => {
     // Should show conflict warning
     const conflictWarning = page.getByText(/conflict|opposing|different/i);
 
-    if (await conflictWarning.count() > 0) {
+    if ((await conflictWarning.count()) > 0) {
       await expect(conflictWarning.first()).toBeVisible();
     }
   });
@@ -282,12 +293,14 @@ test.describe('Signal Provider Marketplace', () => {
 
 test.describe('Signal Provider Security', () => {
   test('should validate subscription payments', async ({ page, context }) => {
-    await context.addCookies([{
-      name: 'connect.sid',
-      value: 'test-session-id',
-      domain: 'localhost',
-      path: '/'
-    }]);
+    await context.addCookies([
+      {
+        name: 'connect.sid',
+        value: 'test-session-id',
+        domain: 'localhost',
+        path: '/'
+      }
+    ]);
 
     // Attempt to subscribe without payment
     const response = await page.request.post('/api/subscriptions', {
@@ -301,15 +314,17 @@ test.describe('Signal Provider Security', () => {
   });
 
   test('should prevent duplicate subscriptions', async ({ page, context }) => {
-    await context.addCookies([{
-      name: 'connect.sid',
-      value: 'test-session-id',
-      domain: 'localhost',
-      path: '/'
-    }]);
+    await context.addCookies([
+      {
+        name: 'connect.sid',
+        value: 'test-session-id',
+        domain: 'localhost',
+        path: '/'
+      }
+    ]);
 
     // Mock already subscribed
-    await page.route('/api/subscriptions', async (route) => {
+    await page.route('/api/subscriptions', async route => {
       if (route.request().method() === 'POST') {
         await route.fulfill({
           status: 409,
@@ -327,7 +342,7 @@ test.describe('Signal Provider Security', () => {
 
     const subscribeButton = page.getByRole('button', { name: /subscribed|active/i }).first();
 
-    if (await subscribeButton.count() > 0) {
+    if ((await subscribeButton.count()) > 0) {
       // Should show "already subscribed" state
       await expect(subscribeButton).toBeDisabled();
     }

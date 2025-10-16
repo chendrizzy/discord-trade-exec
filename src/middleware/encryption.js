@@ -1,3 +1,4 @@
+// Node.js built-in modules
 const crypto = require('crypto');
 
 // Encryption configuration
@@ -10,28 +11,28 @@ const KEY = Buffer.from(process.env.ENCRYPTION_KEY || crypto.randomBytes(32).toS
  * @returns {object} - Encrypted data with IV and auth tag
  */
 function encrypt(text) {
-    if (!text) {
-        throw new Error('Cannot encrypt empty text');
-    }
+  if (!text) {
+    throw new Error('Cannot encrypt empty text');
+  }
 
-    // Generate random initialization vector
-    const iv = crypto.randomBytes(16);
+  // Generate random initialization vector
+  const iv = crypto.randomBytes(16);
 
-    // Create cipher
-    const cipher = crypto.createCipheriv(ALGORITHM, KEY, iv);
+  // Create cipher
+  const cipher = crypto.createCipheriv(ALGORITHM, KEY, iv);
 
-    // Encrypt the text
-    let encrypted = cipher.update(text, 'utf8', 'hex');
-    encrypted += cipher.final('hex');
+  // Encrypt the text
+  let encrypted = cipher.update(text, 'utf8', 'hex');
+  encrypted += cipher.final('hex');
 
-    // Get authentication tag
-    const authTag = cipher.getAuthTag();
+  // Get authentication tag
+  const authTag = cipher.getAuthTag();
 
-    return {
-        encrypted: encrypted,
-        iv: iv.toString('hex'),
-        authTag: authTag.toString('hex')
-    };
+  return {
+    encrypted: encrypted,
+    iv: iv.toString('hex'),
+    authTag: authTag.toString('hex')
+  };
 }
 
 /**
@@ -42,29 +43,25 @@ function encrypt(text) {
  * @returns {string} - Decrypted plain text
  */
 function decrypt(encrypted, iv, authTag) {
-    if (!encrypted || !iv || !authTag) {
-        throw new Error('Missing required decryption parameters');
-    }
+  if (!encrypted || !iv || !authTag) {
+    throw new Error('Missing required decryption parameters');
+  }
 
-    try {
-        // Create decipher
-        const decipher = crypto.createDecipheriv(
-            ALGORITHM,
-            KEY,
-            Buffer.from(iv, 'hex')
-        );
+  try {
+    // Create decipher
+    const decipher = crypto.createDecipheriv(ALGORITHM, KEY, Buffer.from(iv, 'hex'));
 
-        // Set authentication tag
-        decipher.setAuthTag(Buffer.from(authTag, 'hex'));
+    // Set authentication tag
+    decipher.setAuthTag(Buffer.from(authTag, 'hex'));
 
-        // Decrypt the text
-        let decrypted = decipher.update(encrypted, 'hex', 'utf8');
-        decrypted += decipher.final('utf8');
+    // Decrypt the text
+    let decrypted = decipher.update(encrypted, 'hex', 'utf8');
+    decrypted += decipher.final('utf8');
 
-        return decrypted;
-    } catch (error) {
-        throw new Error('Decryption failed: Invalid encrypted data or key');
-    }
+    return decrypted;
+  } catch (error) {
+    throw new Error('Decryption failed: Invalid encrypted data or key');
+  }
 }
 
 /**
@@ -73,7 +70,7 @@ function decrypt(encrypted, iv, authTag) {
  * @returns {string} - SHA-256 hash
  */
 function hash(text) {
-    return crypto.createHash('sha256').update(text).digest('hex');
+  return crypto.createHash('sha256').update(text).digest('hex');
 }
 
 /**
@@ -81,7 +78,7 @@ function hash(text) {
  * @returns {string} - 32-byte hex key
  */
 function generateKey() {
-    return crypto.randomBytes(32).toString('hex');
+  return crypto.randomBytes(32).toString('hex');
 }
 
 /**
@@ -92,27 +89,21 @@ function generateKey() {
  * @returns {boolean} - True if signature is valid
  */
 function verifySignature(payload, signature, secret) {
-    const expectedSignature = crypto
-        .createHmac('sha256', secret)
-        .update(payload)
-        .digest('hex');
+  const expectedSignature = crypto.createHmac('sha256', secret).update(payload).digest('hex');
 
-    // Check length first to prevent timingSafeEqual error
-    if (signature.length !== expectedSignature.length) {
-        return false;
-    }
+  // Check length first to prevent timingSafeEqual error
+  if (signature.length !== expectedSignature.length) {
+    return false;
+  }
 
-    // Use timing-safe comparison to prevent timing attacks
-    return crypto.timingSafeEqual(
-        Buffer.from(signature),
-        Buffer.from(expectedSignature)
-    );
+  // Use timing-safe comparison to prevent timing attacks
+  return crypto.timingSafeEqual(Buffer.from(signature), Buffer.from(expectedSignature));
 }
 
 module.exports = {
-    encrypt,
-    decrypt,
-    hash,
-    generateKey,
-    verifySignature
+  encrypt,
+  decrypt,
+  hash,
+  generateKey,
+  verifySignature
 };

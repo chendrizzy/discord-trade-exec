@@ -7,11 +7,11 @@
  * @returns {Object} Cookie key-value pairs
  */
 function parseCookies() {
-    return document.cookie.split(';').reduce((cookies, cookie) => {
-        const [name, value] = cookie.split('=').map(c => c.trim());
-        cookies[name] = value;
-        return cookies;
-    }, {});
+  return document.cookie.split(';').reduce((cookies, cookie) => {
+    const [name, value] = cookie.split('=').map(c => c.trim());
+    cookies[name] = value;
+    return cookies;
+  }, {});
 }
 
 /**
@@ -20,35 +20,35 @@ function parseCookies() {
  * @returns {string|null} Session ID or null if not found
  */
 export function getSessionID() {
-    const cookies = parseCookies();
+  const cookies = parseCookies();
 
-    // Express-session cookie format: connect.sid=s%3A<sessionID>.<signature>
-    const sessionCookie = cookies['connect.sid'];
+  // Express-session cookie format: connect.sid=s%3A<sessionID>.<signature>
+  const sessionCookie = cookies['connect.sid'];
 
-    if (!sessionCookie) {
-        console.warn('No session cookie found');
-        return null;
+  if (!sessionCookie) {
+    console.warn('No session cookie found');
+    return null;
+  }
+
+  try {
+    // Decode URI component
+    const decoded = decodeURIComponent(sessionCookie);
+
+    // Extract session ID from 's:<sessionID>.<signature>' format
+    // Format is: s%3A<sessionID>.<signature> or s:<sessionID>.<signature>
+    const match = decoded.match(/^s[%:]([\w-]+)\./);
+
+    if (match && match[1]) {
+      return match[1];
     }
 
-    try {
-        // Decode URI component
-        const decoded = decodeURIComponent(sessionCookie);
-
-        // Extract session ID from 's:<sessionID>.<signature>' format
-        // Format is: s%3A<sessionID>.<signature> or s:<sessionID>.<signature>
-        const match = decoded.match(/^s[%:]([\w-]+)\./);
-
-        if (match && match[1]) {
-            return match[1];
-        }
-
-        // Fallback: use the entire cookie value if format doesn't match
-        console.warn('Session cookie format unexpected, using full value');
-        return decoded;
-    } catch (error) {
-        console.error('Failed to parse session cookie:', error);
-        return null;
-    }
+    // Fallback: use the entire cookie value if format doesn't match
+    console.warn('Session cookie format unexpected, using full value');
+    return decoded;
+  } catch (error) {
+    console.error('Failed to parse session cookie:', error);
+    return null;
+  }
 }
 
 /**
@@ -57,10 +57,10 @@ export function getSessionID() {
  * @returns {string|null} User ID or null if not available
  */
 export function getUserID(user) {
-    if (!user) {
-        return null;
-    }
+  if (!user) {
+    return null;
+  }
 
-    // Try different possible user ID fields
-    return user.id || user._id || user.userId || null;
+  // Try different possible user ID fields
+  return user.id || user._id || user.userId || null;
 }

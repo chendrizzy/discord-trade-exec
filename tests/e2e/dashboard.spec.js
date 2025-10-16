@@ -1,3 +1,4 @@
+// External dependencies
 const { test, expect } = require('@playwright/test');
 
 /**
@@ -8,15 +9,17 @@ const { test, expect } = require('@playwright/test');
 test.describe('Dashboard Navigation', () => {
   test.beforeEach(async ({ page, context }) => {
     // Mock authenticated session
-    await context.addCookies([{
-      name: 'connect.sid',
-      value: 'test-session-id',
-      domain: 'localhost',
-      path: '/',
-      httpOnly: true,
-      secure: false,
-      sameSite: 'Lax'
-    }]);
+    await context.addCookies([
+      {
+        name: 'connect.sid',
+        value: 'test-session-id',
+        domain: 'localhost',
+        path: '/',
+        httpOnly: true,
+        secure: false,
+        sameSite: 'Lax'
+      }
+    ]);
 
     await page.goto('/dashboard');
   });
@@ -30,18 +33,12 @@ test.describe('Dashboard Navigation', () => {
 
   test('should have navigation menu items', async ({ page }) => {
     // Check for key navigation links
-    const expectedLinks = [
-      /overview|home|dashboard/i,
-      /exchange/i,
-      /signal/i,
-      /risk/i,
-      /settings/i
-    ];
+    const expectedLinks = [/overview|home|dashboard/i, /exchange/i, /signal/i, /risk/i, /settings/i];
 
     for (const linkPattern of expectedLinks) {
       const link = page.getByRole('link', { name: linkPattern });
       // At least one should be visible
-      if (await link.count() > 0) {
+      if ((await link.count()) > 0) {
         await expect(link.first()).toBeVisible();
       }
     }
@@ -65,7 +62,7 @@ test.describe('Dashboard Navigation', () => {
     // Should show user avatar or username
     const userInfo = page.locator('[data-testid="user-info"], .user-menu, .avatar');
 
-    if (await userInfo.count() > 0) {
+    if ((await userInfo.count()) > 0) {
       await expect(userInfo.first()).toBeVisible();
     }
   });
@@ -77,7 +74,7 @@ test.describe('Dashboard Navigation', () => {
     // Should have mobile menu (hamburger)
     const mobileMenu = page.locator('[aria-label*="menu"], .hamburger, [data-testid="mobile-menu"]');
 
-    if (await mobileMenu.count() > 0) {
+    if ((await mobileMenu.count()) > 0) {
       await expect(mobileMenu.first()).toBeVisible();
     }
   });
@@ -85,26 +82,28 @@ test.describe('Dashboard Navigation', () => {
 
 test.describe('Dashboard Overview', () => {
   test.beforeEach(async ({ page, context }) => {
-    await context.addCookies([{
-      name: 'connect.sid',
-      value: 'test-session-id',
-      domain: 'localhost',
-      path: '/'
-    }]);
+    await context.addCookies([
+      {
+        name: 'connect.sid',
+        value: 'test-session-id',
+        domain: 'localhost',
+        path: '/'
+      }
+    ]);
 
     await page.goto('/dashboard');
   });
 
   test('should display key metrics', async ({ page }) => {
     // Mock dashboard data
-    await page.route('/api/dashboard/stats', async (route) => {
+    await page.route('/api/dashboard/stats', async route => {
       await route.fulfill({
         status: 200,
         contentType: 'application/json',
         body: JSON.stringify({
           totalTrades: 150,
           winRate: 65.5,
-          totalProfit: 2500.50,
+          totalProfit: 2500.5,
           activeSignals: 5,
           connectedExchanges: 2
         })
@@ -116,14 +115,14 @@ test.describe('Dashboard Overview', () => {
     // Should show statistics cards
     const statsCards = page.locator('[data-testid="stat-card"], .stat, .metric-card');
 
-    if (await statsCards.count() > 0) {
+    if ((await statsCards.count()) > 0) {
       expect(await statsCards.count()).toBeGreaterThan(0);
     }
   });
 
   test('should display recent trades', async ({ page }) => {
     // Mock recent trades data
-    await page.route('/api/trades/recent', async (route) => {
+    await page.route('/api/trades/recent', async route => {
       await route.fulfill({
         status: 200,
         contentType: 'application/json',
@@ -147,14 +146,14 @@ test.describe('Dashboard Overview', () => {
     // Look for trades table or list
     const tradesSection = page.getByText(/recent.*trade|trade.*history/i);
 
-    if (await tradesSection.count() > 0) {
+    if ((await tradesSection.count()) > 0) {
       await expect(tradesSection.first()).toBeVisible();
     }
   });
 
   test('should show active signal providers', async ({ page }) => {
     // Mock signal providers
-    await page.route('/api/signal-providers/active', async (route) => {
+    await page.route('/api/signal-providers/active', async route => {
       await route.fulfill({
         status: 200,
         contentType: 'application/json',
@@ -176,7 +175,7 @@ test.describe('Dashboard Overview', () => {
     // Look for signal providers section
     const providersSection = page.getByText(/signal.*provider|active.*signal/i);
 
-    if (await providersSection.count() > 0) {
+    if ((await providersSection.count()) > 0) {
       await expect(providersSection.first()).toBeVisible();
     }
   });
@@ -184,12 +183,14 @@ test.describe('Dashboard Overview', () => {
 
 test.describe('Dashboard Performance', () => {
   test('should load dashboard quickly', async ({ page, context }) => {
-    await context.addCookies([{
-      name: 'connect.sid',
-      value: 'test-session-id',
-      domain: 'localhost',
-      path: '/'
-    }]);
+    await context.addCookies([
+      {
+        name: 'connect.sid',
+        value: 'test-session-id',
+        domain: 'localhost',
+        path: '/'
+      }
+    ]);
 
     const startTime = Date.now();
     await page.goto('/dashboard');
@@ -201,12 +202,14 @@ test.describe('Dashboard Performance', () => {
   });
 
   test('should handle offline mode gracefully', async ({ page, context }) => {
-    await context.addCookies([{
-      name: 'connect.sid',
-      value: 'test-session-id',
-      domain: 'localhost',
-      path: '/'
-    }]);
+    await context.addCookies([
+      {
+        name: 'connect.sid',
+        value: 'test-session-id',
+        domain: 'localhost',
+        path: '/'
+      }
+    ]);
 
     await page.goto('/dashboard');
 
@@ -219,7 +222,7 @@ test.describe('Dashboard Performance', () => {
     // Should show offline message or cached content
     const offlineMessage = page.getByText(/offline|no.*connection|network.*error/i);
 
-    if (await offlineMessage.count() > 0) {
+    if ((await offlineMessage.count()) > 0) {
       await expect(offlineMessage.first()).toBeVisible();
     }
 
@@ -230,35 +233,39 @@ test.describe('Dashboard Performance', () => {
 
 test.describe('Dashboard Accessibility', () => {
   test('should have proper ARIA labels', async ({ page, context }) => {
-    await context.addCookies([{
-      name: 'connect.sid',
-      value: 'test-session-id',
-      domain: 'localhost',
-      path: '/'
-    }]);
+    await context.addCookies([
+      {
+        name: 'connect.sid',
+        value: 'test-session-id',
+        domain: 'localhost',
+        path: '/'
+      }
+    ]);
 
     await page.goto('/dashboard');
 
     // Check for navigation landmark
     const nav = page.getByRole('navigation');
-    if (await nav.count() > 0) {
+    if ((await nav.count()) > 0) {
       await expect(nav.first()).toBeVisible();
     }
 
     // Check for main content landmark
     const main = page.getByRole('main');
-    if (await main.count() > 0) {
+    if ((await main.count()) > 0) {
       await expect(main.first()).toBeVisible();
     }
   });
 
   test('should be keyboard navigable', async ({ page, context }) => {
-    await context.addCookies([{
-      name: 'connect.sid',
-      value: 'test-session-id',
-      domain: 'localhost',
-      path: '/'
-    }]);
+    await context.addCookies([
+      {
+        name: 'connect.sid',
+        value: 'test-session-id',
+        domain: 'localhost',
+        path: '/'
+      }
+    ]);
 
     await page.goto('/dashboard');
 
@@ -267,7 +274,7 @@ test.describe('Dashboard Accessibility', () => {
 
     // Should have visible focus indicator
     const focusedElement = page.locator(':focus');
-    if (await focusedElement.count() > 0) {
+    if ((await focusedElement.count()) > 0) {
       await expect(focusedElement).toBeVisible();
     }
   });
