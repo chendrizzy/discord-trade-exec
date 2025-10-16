@@ -411,21 +411,7 @@ function App() {
 
           {activeTab === 'settings' && (
             <div className="space-y-4">
-            <Card className="animate-fade-in" style={{ animationDelay: '0.1s' }}>
-              <CardHeader>
-                <CardTitle>Broker Configuration</CardTitle>
-                <CardDescription>
-                  Configure stock and crypto brokers for automated trading
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <Suspense fallback={<div className="h-96 flex items-center justify-center text-sm text-muted-foreground">Loading broker configuration...</div>}>
-                  <BrokerConfigWizard />
-                </Suspense>
-              </CardContent>
-            </Card>
-
-            <div className="animate-fade-in" style={{ animationDelay: '0.2s' }}>
+            <div className="animate-fade-in" style={{ animationDelay: '0.1s' }}>
               <Suspense fallback={<div className="h-96 flex items-center justify-center text-sm text-muted-foreground">Loading broker management...</div>}>
                 <BrokerManagement />
               </Suspense>

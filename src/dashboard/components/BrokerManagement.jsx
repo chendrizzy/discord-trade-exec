@@ -144,11 +144,10 @@ export function BrokerManagement() {
               <Building2 className="h-12 w-12 mx-auto text-muted-foreground" />
               <div>
                 <h3 className="text-lg font-semibold mb-2">No Brokers Connected</h3>
-                <p className="text-muted-foreground text-sm mb-4">
-                  Connect your first broker to start automated trading
+                <p className="text-muted-foreground text-sm">
+                  Connect your first broker to start automated trading. Click "Add Broker Connection" button above to get started.
                 </p>
               </div>
-              <BrokerConfigWizard />
             </div>
           </CardContent>
         </Card>
