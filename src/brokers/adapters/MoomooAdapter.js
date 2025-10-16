@@ -1,8 +1,8 @@
-// External dependencies
-const MoomooAPI = require('moomoo-api').default;
-
 // Internal utilities and services
 const BrokerAdapter = require('../BrokerAdapter');
+
+// Moomoo API loaded dynamically (ES Module)
+let MoomooAPI = null;
 
 /**
  * Moomoo (Futu) API Adapter
@@ -56,6 +56,12 @@ class MoomooAdapter extends BrokerAdapter {
     }
 
     try {
+      // Dynamically load moomoo-api (ES Module)
+      if (!MoomooAPI) {
+        const moomooModule = await import('moomoo-api');
+        MoomooAPI = moomooModule.default;
+      }
+
       console.log(`[MoomooAdapter] Connecting to OpenD Gateway at ${this.host}:${this.port}...`);
 
       // Create Moomoo client instance
