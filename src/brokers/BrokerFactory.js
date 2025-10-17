@@ -134,9 +134,9 @@ class BrokerFactory {
    * @param {string} brokerKey - Broker identifier (e.g., 'alpaca', 'ibkr')
    * @param {Object} credentials - Authentication credentials
    * @param {Object} options - Additional options (e.g., { isTestnet: true })
-   * @returns {BrokerAdapter} - Initialized broker adapter instance
+   * @returns {Promise<BrokerAdapter>} - Initialized broker adapter instance
    */
-  createBroker(brokerKey, credentials, options = {}) {
+  async createBroker(brokerKey, credentials, options = {}) {
     const brokerInfo = this.brokers.get(brokerKey);
 
     if (!brokerInfo) {
@@ -145,7 +145,8 @@ class BrokerFactory {
 
     // Lazy-load MoomooAdapter if needed (ES Module compatibility)
     if (brokerKey === 'moomoo' && !brokerInfo.class) {
-      brokerInfo.class = require('./adapters/MoomooAdapter');
+      const module = await import('./adapters/MoomooAdapter.js');
+      brokerInfo.class = module.default;
     }
 
     if (!brokerInfo.class) {
@@ -471,7 +472,7 @@ class BrokerFactory {
 
     try {
       // Create broker instance
-      const broker = this.createBroker(brokerKey, credentials, options);
+      const broker = await this.createBroker(brokerKey, credentials, options);
 
       // Attempt authentication
       const authenticated = await broker.authenticate();
