@@ -285,6 +285,26 @@ const checkBrokerLimit = (req, res, next) => {
   // Get max brokers from user limits or tier defaults
   const maxBrokers = req.user.limits?.maxBrokers || BROKER_LIMITS[userTier] || 1;
 
+  // Check if this is a reconnection (broker already configured)
+  const brokerKey = req.body?.brokerKey || req.params?.brokerKey || req.query?.brokerKey;
+  const brokerConfigs = req.user.brokerConfigs || req.user.tradingConfig?.brokerConfigs;
+
+  let isReconnection = false;
+  if (brokerKey && brokerConfigs) {
+    // Handle Mongoose Map
+    if (brokerConfigs.has && typeof brokerConfigs.has === 'function') {
+      isReconnection = brokerConfigs.has(brokerKey);
+    } else {
+      // Handle plain object
+      isReconnection = brokerKey in brokerConfigs && brokerConfigs[brokerKey] !== undefined;
+    }
+  }
+
+  // If reconnecting to existing broker, skip limit check
+  if (isReconnection) {
+    return next();
+  }
+
   // Check if user has reached broker limit
   if (currentBrokerCount >= maxBrokers) {
     // Determine next tier for upgrade

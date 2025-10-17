@@ -31,6 +31,77 @@ function ensureAuthenticated(req, res, next) {
 }
 
 /**
+ * Helper: Get broker config from brokerConfigs (handles both Map and Object)
+ */
+function getBrokerConfig(brokerConfigs, brokerKey) {
+  if (!brokerConfigs) return null;
+
+  // Handle Mongoose Map
+  if (brokerConfigs.get && typeof brokerConfigs.get === 'function') {
+    return brokerConfigs.get(brokerKey);
+  }
+
+  // Handle plain object
+  return brokerConfigs[brokerKey];
+}
+
+/**
+ * Helper: Set broker config in brokerConfigs (handles both Map and Object)
+ */
+function setBrokerConfig(brokerConfigs, brokerKey, config) {
+  // Handle Mongoose Map
+  if (brokerConfigs.set && typeof brokerConfigs.set === 'function') {
+    brokerConfigs.set(brokerKey, config);
+  } else {
+    // Handle plain object
+    brokerConfigs[brokerKey] = config;
+  }
+}
+
+/**
+ * Helper: Check if broker exists in brokerConfigs (handles both Map and Object)
+ */
+function hasBrokerConfig(brokerConfigs, brokerKey) {
+  if (!brokerConfigs) return false;
+
+  // Handle Mongoose Map
+  if (brokerConfigs.has && typeof brokerConfigs.has === 'function') {
+    return brokerConfigs.has(brokerKey);
+  }
+
+  // Handle plain object
+  return brokerKey in brokerConfigs && brokerConfigs[brokerKey] !== undefined;
+}
+
+/**
+ * Helper: Delete broker config from brokerConfigs (handles both Map and Object)
+ */
+function deleteBrokerConfig(brokerConfigs, brokerKey) {
+  // Handle Mongoose Map
+  if (brokerConfigs.delete && typeof brokerConfigs.delete === 'function') {
+    brokerConfigs.delete(brokerKey);
+  } else {
+    // Handle plain object
+    delete brokerConfigs[brokerKey];
+  }
+}
+
+/**
+ * Helper: Get all broker keys from brokerConfigs (handles both Map and Object)
+ */
+function getBrokerKeys(brokerConfigs) {
+  if (!brokerConfigs) return [];
+
+  // Handle Mongoose Map
+  if (brokerConfigs.keys && typeof brokerConfigs.keys === 'function') {
+    return Array.from(brokerConfigs.keys());
+  }
+
+  // Handle plain object
+  return Object.keys(brokerConfigs);
+}
+
+/**
  * GET /api/brokers
  * List all available brokers with filtering
  */
@@ -175,11 +246,11 @@ router.post('/test/:brokerKey', ensureAuthenticated, checkBrokerRateLimit(), asy
     }
 
     // Check if broker is configured
-    if (!user.brokerConfigs || !user.brokerConfigs[brokerKey]) {
+    if (!hasBrokerConfig(user.brokerConfigs, brokerKey)) {
       return sendNotFound(res, `Broker '${brokerKey}' configuration`);
     }
 
-    const brokerConfig = user.brokerConfigs[brokerKey];
+    const brokerConfig = getBrokerConfig(user.brokerConfigs, brokerKey);
 
     // Decrypt credentials
     const encryptionService = getEncryptionService();
@@ -217,8 +288,12 @@ router.post('/test/:brokerKey', ensureAuthenticated, checkBrokerRateLimit(), asy
 
     // Update lastVerified timestamp if successful
     if (result.success) {
-      user.brokerConfigs[brokerKey].lastVerified = new Date();
-      await user.save();
+      const config = getBrokerConfig(user.brokerConfigs, brokerKey);
+      if (config) {
+        config.lastVerified = new Date();
+        setBrokerConfig(user.brokerConfigs, brokerKey, config);
+        await user.save();
+      }
     }
 
     res.json({
@@ -281,7 +356,7 @@ router.post('/configure', ensureAuthenticated, requirePremiumBroker, checkBroker
     }
 
     // Check if this is a reconnection (before saving)
-    const isReconnection = !!user.brokerConfigs[brokerKey];
+    const isReconnection = hasBrokerConfig(user.brokerConfigs, brokerKey);
 
     // Encrypt credentials before storing
     const encryptionService = getEncryptionService();
@@ -297,7 +372,7 @@ router.post('/configure', ensureAuthenticated, requirePremiumBroker, checkBroker
     }
 
     // Store broker configuration with encrypted credentials
-    user.brokerConfigs[brokerKey] = {
+    setBrokerConfig(user.brokerConfigs, brokerKey, {
       brokerKey,
       brokerType,
       authMethod,
@@ -305,7 +380,7 @@ router.post('/configure', ensureAuthenticated, requirePremiumBroker, checkBroker
       credentials: encryptedCredentials, // Encrypted with AWS KMS
       configuredAt: new Date(),
       lastVerified: new Date()
-    };
+    });
 
     await user.save();
 
@@ -363,8 +438,9 @@ router.get('/user/configured', ensureAuthenticated, async (req, res) => {
     const configuredBrokers = user.brokerConfigs || {};
 
     // Map to include broker info
-    const brokersWithInfo = Object.keys(configuredBrokers).map(brokerKey => {
-      const config = configuredBrokers[brokerKey];
+    const brokerKeys = getBrokerKeys(configuredBrokers);
+    const brokersWithInfo = brokerKeys.map(brokerKey => {
+      const config = getBrokerConfig(configuredBrokers, brokerKey);
       const brokerInfo = BrokerFactory.getBrokerInfo(brokerKey);
 
       return {
@@ -402,15 +478,19 @@ router.delete('/user/:brokerKey', ensureAuthenticated, async (req, res) => {
       return sendNotFound(res, 'User');
     }
 
-    if (!user.brokerConfigs || !user.brokerConfigs[brokerKey]) {
-      return sendNotFound(res, `Broker '${brokerKey}' configuration`);
+    if (!hasBrokerConfig(user.brokerConfigs, brokerKey)) {
+      return res.status(404).json({
+        success: false,
+        error: 'BROKER_NOT_CONFIGURED',
+        message: `Broker '${brokerKey}' is not configured`
+      });
     }
 
     // Get broker info before removing
     const brokerInfo = BrokerFactory.getBrokerInfo(brokerKey);
 
     // Remove broker configuration
-    delete user.brokerConfigs[brokerKey];
+    deleteBrokerConfig(user.brokerConfigs, brokerKey);
     await user.save();
 
     res.json({
@@ -444,7 +524,7 @@ router.post('/compare', ensureAuthenticated, async (req, res) => {
     }
 
     // Get user's configured broker keys
-    const configuredBrokerKeys = Object.keys(user.brokerConfigs || {});
+    const configuredBrokerKeys = getBrokerKeys(user.brokerConfigs);
 
     if (configuredBrokerKeys.length === 0) {
       return res.json({

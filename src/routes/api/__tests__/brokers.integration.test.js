@@ -78,6 +78,9 @@ describe('Broker API Integration Tests', () => {
       return brokerNames[brokerKey] || null;
     });
 
+    // Mock BrokerFactory.compareFeesForSymbol
+    BrokerFactory.compareFeesForSymbol = jest.fn();
+
     // Clear rate limiter state
     if (brokerCallTracker && brokerCallTracker.tracker) {
       brokerCallTracker.tracker.clear();
