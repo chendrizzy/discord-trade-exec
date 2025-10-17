@@ -7,11 +7,10 @@
     "start": "node src/index.js",
     "dev": "nodemon src/index.js",
     "dev:dashboard": "vite",
-    "build": "webpack --mode production",
     "build:dashboard": "vite build",
     "preview:dashboard": "vite preview",
     "test": "jest",
-    "deploy": "npm run build && npm run deploy:vercel"
+    "deploy": "railway up"
   },
   "dependencies": {
     "@alpacahq/alpaca-trade-api": "^3.1.3",

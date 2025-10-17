@@ -300,4 +300,19 @@ class CohortAnalyzer {
   }
 }
 
+// Singleton instance
+let instance = null;
+
+/**
+ * Get singleton CohortAnalyzer instance
+ * @returns {CohortAnalyzer} Singleton instance
+ */
+function getCohortAnalyzerInstance() {
+  if (!instance) {
+    instance = new CohortAnalyzer();
+  }
+  return instance;
+}
+
 module.exports = CohortAnalyzer;
+module.exports.getCohortAnalyzerInstance = getCohortAnalyzerInstance;

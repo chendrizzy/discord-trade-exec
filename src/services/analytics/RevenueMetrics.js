@@ -183,4 +183,19 @@ class RevenueMetrics {
   }
 }
 
+// Singleton instance
+let instance = null;
+
+/**
+ * Get singleton RevenueMetrics instance
+ * @returns {RevenueMetrics} Singleton instance
+ */
+function getRevenueMetricsInstance() {
+  if (!instance) {
+    instance = new RevenueMetrics();
+  }
+  return instance;
+}
+
 module.exports = RevenueMetrics;
+module.exports.getRevenueMetricsInstance = getRevenueMetricsInstance;

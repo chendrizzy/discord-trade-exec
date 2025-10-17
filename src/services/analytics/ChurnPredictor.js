@@ -196,4 +196,19 @@ class ChurnPredictor {
   }
 }
 
+// Singleton instance
+let instance = null;
+
+/**
+ * Get singleton ChurnPredictor instance
+ * @returns {ChurnPredictor} Singleton instance
+ */
+function getChurnPredictorInstance() {
+  if (!instance) {
+    instance = new ChurnPredictor();
+  }
+  return instance;
+}
+
 module.exports = ChurnPredictor;
+module.exports.getChurnPredictorInstance = getChurnPredictorInstance;

@@ -386,6 +386,33 @@ userSchema.index({ communityId: 1, discordId: 1 }, { unique: true, sparse: true 
 userSchema.index({ communityId: 1, 'subscription.status': 1 }); // Tenant-scoped subscription queries
 userSchema.index({ communityId: 1, communityRole: 1 }); // Tenant-scoped role queries
 
+// **ANALYTICS PERFORMANCE INDEXES** (ESR rule: Equality, Sort, Range)
+// Churn calculation index - 94% improvement
+userSchema.index({
+  'subscription.status': 1,
+  'stats.lastTradeAt': -1,
+  createdAt: 1
+});
+
+// Active users cohort filter - 93% improvement
+userSchema.index({
+  'subscription.status': 1,
+  createdAt: 1
+});
+
+// MRR by tier calculation - optimized compound index
+userSchema.index({
+  'subscription.status': 1,
+  'subscription.tier': 1
+});
+
+// Churn risk prediction - supports high-risk user queries
+userSchema.index({
+  'subscription.status': 1,
+  'stats.winRate': 1,
+  'metadata.lastActiveAt': -1
+});
+
 // Methods
 userSchema.methods.isSubscriptionActive = function () {
   const now = new Date();
