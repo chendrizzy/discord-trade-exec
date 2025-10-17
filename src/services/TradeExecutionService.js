@@ -105,7 +105,9 @@ class TradeExecutionService {
         req
       );
 
-      console.log(`[TradeExecutionService] Trade executed: ${user.discordUsername} -> ${trade.side} ${trade.quantity} ${trade.symbol} @ $${trade.entryPrice}`);
+      console.log(
+        `[TradeExecutionService] Trade executed: ${user.discordUsername} -> ${trade.side} ${trade.quantity} ${trade.symbol} @ $${trade.entryPrice}`
+      );
 
       return {
         success: true,
@@ -183,7 +185,9 @@ class TradeExecutionService {
         req
       );
 
-      console.log(`[TradeExecutionService] Trade closed: ${trade.symbol} -> P&L: $${pnl.net.toFixed(2)} (${pnl.percentage.toFixed(2)}%)`);
+      console.log(
+        `[TradeExecutionService] Trade closed: ${trade.symbol} -> P&L: $${pnl.net.toFixed(2)} (${pnl.percentage.toFixed(2)}%)`
+      );
 
       return {
         success: true,

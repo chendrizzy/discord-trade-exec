@@ -24,11 +24,7 @@ class CohortAnalyzer {
     const retentionData = [];
 
     for (const cohort of cohorts) {
-      const retention = await this.calculateCohortRetention(
-        cohort,
-        retentionMetric,
-        cohortPeriod
-      );
+      const retention = await this.calculateCohortRetention(cohort, retentionMetric, cohortPeriod);
 
       retentionData.push({
         cohortDate: cohort.date,
@@ -89,16 +85,9 @@ class CohortAnalyzer {
 
       if (periodEnd > new Date()) break; // Don't analyze future periods
 
-      const activeUsers = await this.getActiveUsers(
-        cohort.userIds,
-        periodStart,
-        periodEnd,
-        metric
-      );
+      const activeUsers = await this.getActiveUsers(cohort.userIds, periodStart, periodEnd, metric);
 
-      const retentionRate = cohort.userIds.length > 0
-        ? (activeUsers / cohort.userIds.length) * 100
-        : 0;
+      const retentionRate = cohort.userIds.length > 0 ? (activeUsers / cohort.userIds.length) * 100 : 0;
 
       retention.push({
         period: periodIndex,
@@ -165,7 +154,7 @@ class CohortAnalyzer {
     const result = new Date(date);
 
     if (period === 'week') {
-      result.setDate(result.getDate() + (count * 7));
+      result.setDate(result.getDate() + count * 7);
     } else {
       result.setMonth(result.getMonth() + count);
     }
@@ -314,5 +303,7 @@ function getCohortAnalyzerInstance() {
   return instance;
 }
 
-module.exports = CohortAnalyzer;
-module.exports.getCohortAnalyzerInstance = getCohortAnalyzerInstance;
+module.exports = {
+  CohortAnalyzer,
+  getCohortAnalyzerInstance
+};

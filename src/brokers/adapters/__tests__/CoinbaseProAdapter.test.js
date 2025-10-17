@@ -31,7 +31,7 @@ jest.mock('ccxt', () => {
           amount: amount,
           price: price,
           filled: type === 'market' ? amount : 0,
-          average: type === 'market' ? (price || 50000) : null,
+          average: type === 'market' ? price || 50000 : null,
           status: type === 'market' ? 'closed' : 'open',
           timestamp: Date.now()
         };
@@ -126,7 +126,7 @@ jest.mock('ccxt', () => {
 
 // Mock promise-timeout utility
 jest.mock('../../../utils/promise-timeout', () => ({
-  withTimeout: jest.fn((promise) => promise)
+  withTimeout: jest.fn(promise => promise)
 }));
 
 describe('CoinbaseProAdapter', () => {
@@ -169,10 +169,7 @@ describe('CoinbaseProAdapter', () => {
 
     test('should warn about testnet not supported', () => {
       const consoleSpy = jest.spyOn(console, 'warn').mockImplementation();
-      new CoinbaseProAdapter(
-        { apiKey: 'test', apiSecret: 'test', password: 'test' },
-        { isTestnet: true }
-      );
+      new CoinbaseProAdapter({ apiKey: 'test', apiSecret: 'test', password: 'test' }, { isTestnet: true });
       expect(consoleSpy).toHaveBeenCalledWith(
         expect.stringContaining('Coinbase does not support testnet/sandbox mode')
       );
@@ -190,9 +187,7 @@ describe('CoinbaseProAdapter', () => {
     test('should log success message with profile ID', async () => {
       const consoleSpy = jest.spyOn(console, 'log').mockImplementation();
       await adapter.authenticate();
-      expect(consoleSpy).toHaveBeenCalledWith(
-        expect.stringContaining('Coinbase Pro authenticated')
-      );
+      expect(consoleSpy).toHaveBeenCalledWith(expect.stringContaining('Coinbase Pro authenticated'));
       consoleSpy.mockRestore();
     });
 
@@ -205,10 +200,7 @@ describe('CoinbaseProAdapter', () => {
 
       expect(result).toBe(false);
       expect(adapter.isAuthenticated).toBe(false);
-      expect(consoleSpy).toHaveBeenCalledWith(
-        expect.stringContaining('authentication failed'),
-        'Invalid API key'
-      );
+      expect(consoleSpy).toHaveBeenCalledWith(expect.stringContaining('authentication failed'), 'Invalid API key');
       consoleSpy.mockRestore();
     });
   });
@@ -292,14 +284,7 @@ describe('CoinbaseProAdapter', () => {
         quantity: 0.1
       });
 
-      expect(spy).toHaveBeenCalledWith(
-        'BTC/USD',
-        'market',
-        'buy',
-        0.1,
-        undefined,
-        { stopPrice: undefined }
-      );
+      expect(spy).toHaveBeenCalledWith('BTC/USD', 'market', 'buy', 0.1, undefined, { stopPrice: undefined });
     });
 
     test('should handle stop orders with stop price', async () => {
@@ -343,9 +328,7 @@ describe('CoinbaseProAdapter', () => {
       const consoleSpy = jest.spyOn(console, 'log').mockImplementation();
       await adapter.cancelOrder('order-456');
 
-      expect(consoleSpy).toHaveBeenCalledWith(
-        expect.stringContaining('order order-456 cancelled')
-      );
+      expect(consoleSpy).toHaveBeenCalledWith(expect.stringContaining('order order-456 cancelled'));
       consoleSpy.mockRestore();
     });
 
@@ -429,9 +412,7 @@ describe('CoinbaseProAdapter', () => {
         stopPrice: 2800
       });
 
-      expect(consoleSpy).toHaveBeenCalledWith(
-        expect.stringContaining('stop-loss set for ETH/USD at 2800')
-      );
+      expect(consoleSpy).toHaveBeenCalledWith(expect.stringContaining('stop-loss set for ETH/USD at 2800'));
       consoleSpy.mockRestore();
     });
 
@@ -476,9 +457,7 @@ describe('CoinbaseProAdapter', () => {
         limitPrice: 3500
       });
 
-      expect(consoleSpy).toHaveBeenCalledWith(
-        expect.stringContaining('take-profit set for ETH/USD at 3500')
-      );
+      expect(consoleSpy).toHaveBeenCalledWith(expect.stringContaining('take-profit set for ETH/USD at 3500'));
       consoleSpy.mockRestore();
     });
 

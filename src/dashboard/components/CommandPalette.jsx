@@ -2,16 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { Dialog, DialogContent } from './ui/dialog';
 import { Input } from './ui/input';
 import { Badge } from './ui/badge';
-import {
-  Home,
-  Bot,
-  BarChart3,
-  Settings,
-  Plus,
-  Key,
-  Search,
-  ArrowRight,
-} from 'lucide-react';
+import { Home, Bot, BarChart3, Settings, Plus, Key, Search, ArrowRight } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 const commands = [
@@ -22,7 +13,7 @@ const commands = [
     category: 'Navigation',
     action: 'navigate',
     target: 'overview',
-    keywords: ['home', 'dashboard'],
+    keywords: ['home', 'dashboard']
   },
   {
     id: 'nav-bots',
@@ -31,7 +22,7 @@ const commands = [
     category: 'Navigation',
     action: 'navigate',
     target: 'bots',
-    keywords: ['trading', 'automation'],
+    keywords: ['trading', 'automation']
   },
   {
     id: 'nav-analytics',
@@ -40,7 +31,7 @@ const commands = [
     category: 'Navigation',
     action: 'navigate',
     target: 'analytics',
-    keywords: ['charts', 'performance', 'metrics'],
+    keywords: ['charts', 'performance', 'metrics']
   },
   {
     id: 'nav-settings',
@@ -49,7 +40,7 @@ const commands = [
     category: 'Navigation',
     action: 'navigate',
     target: 'settings',
-    keywords: ['preferences', 'config'],
+    keywords: ['preferences', 'config']
   },
   {
     id: 'action-create-bot',
@@ -57,7 +48,7 @@ const commands = [
     icon: Plus,
     category: 'Actions',
     action: 'create-bot',
-    keywords: ['add', 'new', 'trading'],
+    keywords: ['add', 'new', 'trading']
   },
   {
     id: 'action-api-keys',
@@ -65,8 +56,8 @@ const commands = [
     icon: Key,
     category: 'Actions',
     action: 'api-keys',
-    keywords: ['exchange', 'connect'],
-  },
+    keywords: ['exchange', 'connect']
+  }
 ];
 
 export function CommandPalette({ open, onOpenChange, onNavigate, onAction }) {
@@ -75,12 +66,12 @@ export function CommandPalette({ open, onOpenChange, onNavigate, onAction }) {
   const inputRef = useRef(null);
 
   // Filter commands based on search
-  const filteredCommands = commands.filter((command) => {
+  const filteredCommands = commands.filter(command => {
     const searchLower = search.toLowerCase();
     return (
       command.label.toLowerCase().includes(searchLower) ||
       command.category.toLowerCase().includes(searchLower) ||
-      command.keywords.some((keyword) => keyword.toLowerCase().includes(searchLower))
+      command.keywords.some(keyword => keyword.toLowerCase().includes(searchLower))
     );
   });
 
@@ -105,15 +96,15 @@ export function CommandPalette({ open, onOpenChange, onNavigate, onAction }) {
 
   // Keyboard navigation
   useEffect(() => {
-    const handleKeyDown = (e) => {
+    const handleKeyDown = e => {
       if (!open) return;
 
       if (e.key === 'ArrowDown') {
         e.preventDefault();
-        setSelectedIndex((prev) => (prev + 1) % filteredCommands.length);
+        setSelectedIndex(prev => (prev + 1) % filteredCommands.length);
       } else if (e.key === 'ArrowUp') {
         e.preventDefault();
-        setSelectedIndex((prev) => (prev - 1 + filteredCommands.length) % filteredCommands.length);
+        setSelectedIndex(prev => (prev - 1 + filteredCommands.length) % filteredCommands.length);
       } else if (e.key === 'Enter') {
         e.preventDefault();
         if (filteredCommands[selectedIndex]) {
@@ -126,7 +117,7 @@ export function CommandPalette({ open, onOpenChange, onNavigate, onAction }) {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [open, selectedIndex, filteredCommands]);
 
-  const handleSelectCommand = (command) => {
+  const handleSelectCommand = command => {
     if (command.action === 'navigate') {
       onNavigate(command.target);
     } else {
@@ -146,7 +137,7 @@ export function CommandPalette({ open, onOpenChange, onNavigate, onAction }) {
               type="text"
               placeholder="Search commands..."
               value={search}
-              onChange={(e) => {
+              onChange={e => {
                 setSearch(e.target.value);
                 setSelectedIndex(0);
               }}
@@ -160,16 +151,12 @@ export function CommandPalette({ open, onOpenChange, onNavigate, onAction }) {
 
         <div className="max-h-[400px] overflow-y-auto p-2">
           {Object.keys(groupedCommands).length === 0 ? (
-            <div className="px-4 py-8 text-center text-sm text-muted-foreground">
-              No commands found for "{search}"
-            </div>
+            <div className="px-4 py-8 text-center text-sm text-muted-foreground">No commands found for "{search}"</div>
           ) : (
             Object.entries(groupedCommands).map(([category, categoryCommands]) => (
               <div key={category} className="mb-4">
                 <div className="px-2 py-1.5">
-                  <h4 className="text-xs font-semibold text-muted-foreground uppercase">
-                    {category}
-                  </h4>
+                  <h4 className="text-xs font-semibold text-muted-foreground uppercase">{category}</h4>
                 </div>
                 <div className="space-y-1">
                   {categoryCommands.map((command, index) => {
@@ -191,9 +178,7 @@ export function CommandPalette({ open, onOpenChange, onNavigate, onAction }) {
                       >
                         <Icon className="h-4 w-4" />
                         <span className="flex-1 text-left">{command.label}</span>
-                        {isSelected && (
-                          <ArrowRight className="h-4 w-4 text-gold-500" />
-                        )}
+                        {isSelected && <ArrowRight className="h-4 w-4 text-gold-500" />}
                       </button>
                     );
                   })}

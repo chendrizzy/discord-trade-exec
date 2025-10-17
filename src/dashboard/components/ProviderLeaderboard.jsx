@@ -60,7 +60,7 @@ export function ProviderLeaderboard() {
   useEffect(() => {
     if (!websocket) return;
 
-    const handleQualityUpdate = (data) => {
+    const handleQualityUpdate = data => {
       console.log('📡 Signal quality updated, refreshing leaderboard');
       fetchLeaderboard();
     };
@@ -78,14 +78,14 @@ export function ProviderLeaderboard() {
     fetchLeaderboard();
   };
 
-  const getTierIcon = (rank) => {
+  const getTierIcon = rank => {
     if (rank === 1) return <Trophy className="h-5 w-5 text-gold-400" />;
     if (rank === 2) return <Medal className="h-5 w-5 text-gray-400" />;
     if (rank === 3) return <Award className="h-5 w-5 text-amber-600" />;
     return <Target className="h-5 w-5 text-muted-foreground" />;
   };
 
-  const getTierVariant = (tierName) => {
+  const getTierVariant = tierName => {
     switch (tierName) {
       case 'ELITE':
         return 'default';
@@ -150,7 +150,7 @@ export function ProviderLeaderboard() {
             {/* Min Signals Filter */}
             <div className="flex items-center gap-2">
               <label className="text-sm font-medium">Min Signals:</label>
-              <Select value={minSignals.toString()} onValueChange={(val) => setMinSignals(parseInt(val))}>
+              <Select value={minSignals.toString()} onValueChange={val => setMinSignals(parseInt(val))}>
                 <SelectTrigger className="w-24">
                   <SelectValue />
                 </SelectTrigger>
@@ -212,7 +212,7 @@ export function ProviderLeaderboard() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {leaderboard.map((provider) => (
+                  {leaderboard.map(provider => (
                     <TableRow
                       key={provider.providerId}
                       className={`${provider.rank <= 3 ? 'bg-accent/30' : ''} hover:bg-accent transition-colors`}
@@ -227,9 +227,7 @@ export function ProviderLeaderboard() {
 
                       {/* Provider ID */}
                       <TableCell>
-                        <div className="font-mono text-sm truncate max-w-[150px]">
-                          {provider.providerId}
-                        </div>
+                        <div className="font-mono text-sm truncate max-w-[150px]">{provider.providerId}</div>
                       </TableCell>
 
                       {/* Quality Tier */}
@@ -237,10 +235,7 @@ export function ProviderLeaderboard() {
                         <TooltipProvider>
                           <Tooltip>
                             <TooltipTrigger asChild>
-                              <Badge
-                                variant={getTierVariant(provider.tier)}
-                                className="font-bold cursor-help"
-                              >
+                              <Badge variant={getTierVariant(provider.tier)} className="font-bold cursor-help">
                                 {provider.tierSymbol} {provider.tier}
                               </Badge>
                             </TooltipTrigger>
@@ -340,9 +335,7 @@ export function ProviderLeaderboard() {
                 <Trophy className="h-8 w-8 text-gold-400" />
                 <div>
                   <p className="text-sm text-muted-foreground">Elite Providers</p>
-                  <p className="text-2xl font-bold">
-                    {leaderboard.filter(p => p.tier === 'ELITE').length}
-                  </p>
+                  <p className="text-2xl font-bold">{leaderboard.filter(p => p.tier === 'ELITE').length}</p>
                 </div>
               </div>
             </CardContent>
@@ -355,9 +348,7 @@ export function ProviderLeaderboard() {
                 <div>
                   <p className="text-sm text-muted-foreground">Avg Win Rate</p>
                   <p className="text-2xl font-bold">
-                    {formatNumber(
-                      leaderboard.reduce((sum, p) => sum + p.winRate, 0) / leaderboard.length
-                    )}%
+                    {formatNumber(leaderboard.reduce((sum, p) => sum + p.winRate, 0) / leaderboard.length)}%
                   </p>
                 </div>
               </div>

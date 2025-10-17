@@ -78,32 +78,14 @@ Visit `http://localhost:5000` to verify everything works.
 
 ## Deployment Options
 
-### Option 1: Vercel (Recommended)
+### Option 1: Railway (Recommended)
 
-1. **Install Vercel CLI**:
-```bash
-npm install -g vercel
-```
-
-2. **Login to Vercel**:
-```bash
-vercel login
-```
-
-3. **Deploy**:
-```bash
-vercel --prod
-```
-
-4. **Configure Environment Variables**:
-   - Go to Vercel Dashboard → Your Project → Settings → Environment Variables
-   - Add all variables from `.env`
-   - Make sure to update `DISCORD_CALLBACK_URL` with your Vercel domain
-
-5. **Update Discord OAuth2**:
-   - Update redirect URL in Discord Developer Portal to match your Vercel domain
-
-### Option 2: Railway
+Railway is the recommended platform for this application because it provides:
+- ✅ Always-on processes (Discord bot stays online)
+- ✅ Persistent WebSocket connections
+- ✅ Stateful sessions (OAuth works correctly)
+- ✅ Better cost efficiency for long-running applications
+- ✅ Simple configuration with `railway.toml`
 
 1. **Install Railway CLI**:
 ```bash
@@ -126,6 +108,34 @@ railway variables set DISCORD_BOT_TOKEN=your_token
 ```bash
 railway up
 ```
+
+### Option 2: Vercel (Legacy - Not Recommended)
+
+> **⚠️ DEPRECATION NOTICE**
+>
+> Vercel is **no longer recommended** for this application due to:
+> - Serverless function timeouts (bot disconnects frequently)
+> - Stateless architecture (OAuth sessions unreliable)
+> - Limited WebSocket support (Discord bot goes offline)
+> - Cold starts (delayed webhook responses)
+>
+> **Recommended:** Use Railway instead (Option 1 above)
+>
+> **Migration Guide:** See [`openspec/archive/vercel/migration-guide.md`](../openspec/archive/vercel/migration-guide.md) for step-by-step migration instructions.
+
+For historical reference only:
+
+1. **Install Vercel CLI**:
+```bash
+npm install -g vercel
+```
+
+2. **Deploy**:
+```bash
+vercel --prod
+```
+
+3. **Configure Environment Variables** in Vercel Dashboard
 
 ### Option 3: Heroku
 
@@ -233,19 +243,27 @@ curl https://yourdomain.com/health
 
 ### Logs
 ```bash
-# Vercel
+# Railway (Recommended)
+railway logs
+
+# Vercel (Legacy)
 vercel logs
 
 # Heroku
 heroku logs --tail
 
-# PM2
+# PM2 (Self-hosted)
 pm2 logs trade-executor
 ```
 
 ## Scaling
 
-### Vercel
+### Railway (Recommended)
+- Automatic scaling based on traffic
+- Configure in Dashboard → Settings → Auto-scaling
+- Horizontal scaling with replicas
+
+### Vercel (Legacy)
 - Automatic scaling included
 - Upgrade plan for higher limits
 
@@ -293,12 +311,21 @@ pm2 start src/index.js -i max --name trade-executor
 
 ## Rollback Procedure
 
-### Vercel
+### Railway (Recommended)
+```bash
+# View recent deployments
+railway status
+
+# Rollback to previous deployment via dashboard
+# Railway Dashboard → Deployments → Select previous → Redeploy
+```
+
+### Vercel (Legacy)
 ```bash
 vercel rollback
 ```
 
-### PM2
+### PM2 (Self-hosted)
 ```bash
 pm2 reload trade-executor --update-env
 ```

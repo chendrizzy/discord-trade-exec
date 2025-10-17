@@ -39,7 +39,7 @@ node test-secure-setup.js
 # Build for production
 npm run build
 
-# Deploy to Vercel
+# Deploy to Railway
 npm run deploy
 ```
 
@@ -227,7 +227,7 @@ Built-in safety features:
 
 ## Deployment
 
-- Configured for Vercel deployment via `vercel.json`
+- Configured for Railway deployment via `railway.toml`
 - Environment variables must be configured in deployment environment
 - MongoDB Atlas recommended for production database
 - Webhook endpoints must be publicly accessible for Stripe integration

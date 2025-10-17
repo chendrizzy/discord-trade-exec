@@ -60,7 +60,7 @@ cat > package.json << 'PACKAGE'
     "dev": "nodemon src/index.js",
     "build": "webpack --mode production",
     "test": "jest",
-    "deploy": "npm run build && npm run deploy:vercel"
+    "deploy": "npm run build && railway up"
   },
   "dependencies": {
     "discord.js": "^14.14.1",
@@ -691,28 +691,28 @@ PORT=3000
 ENV_EXAMPLE
 
 # Step 8: Create Deployment Configuration
-echo -e "${YELLOW}🚀 Step 8: Setting up deployment...${NC}"
+echo -e "${YELLOW}🚀 Step 8: Setting up Railway deployment...${NC}"
 
-cat > vercel.json << 'VERCEL'
-{
-  "version": 2,
-  "builds": [
-    {
-      "src": "src/index.js",
-      "use": "@vercel/node"
-    }
-  ],
-  "routes": [
-    {
-      "src": "/(.*)",
-      "dest": "src/index.js"
-    }
-  ],
-  "env": {
-    "NODE_VERSION": "22.18.0"
-  }
-}
-VERCEL
+cat > railway.toml << 'RAILWAY'
+[build]
+builder = "NIXPACKS"
+
+[deploy]
+startCommand = "npm start"
+restartPolicyType = "on_failure"
+restartPolicyMaxRetries = 10
+
+[build.nixpacksPlan.phases.setup]
+cmds = ["npm install"]
+
+[build.nixpacksPlan.phases.build]
+cmds = ["npm run build:dashboard"]
+
+[deploy.healthcheck]
+path = "/health"
+interval = 30
+timeout = 10
+RAILWAY
 
 # Step 9: Create Setup Instructions
 echo -e "${YELLOW}📋 Step 9: Finalizing setup...${NC}"

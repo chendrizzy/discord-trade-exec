@@ -132,8 +132,7 @@ class AnalyticsMetrics {
 
     // Running average calculation
     perf.avgExecutionTime =
-      (perf.avgExecutionTime * (perf.totalQueries - 1) + queryMetrics.executionTime) /
-      perf.totalQueries;
+      (perf.avgExecutionTime * (perf.totalQueries - 1) + queryMetrics.executionTime) / perf.totalQueries;
   }
 
   /**
@@ -148,8 +147,7 @@ class AnalyticsMetrics {
 
     // Keep only last N slow queries
     if (this.metrics.performance.slowQueries.length > this.MAX_SLOW_QUERIES) {
-      this.metrics.performance.slowQueries =
-        this.metrics.performance.slowQueries.slice(0, this.MAX_SLOW_QUERIES);
+      this.metrics.performance.slowQueries = this.metrics.performance.slowQueries.slice(0, this.MAX_SLOW_QUERIES);
     }
   }
 
@@ -159,9 +157,9 @@ class AnalyticsMetrics {
    */
   getSlowQuerySeverity(executionTime) {
     if (executionTime > 5000) return 'critical'; // >5s
-    if (executionTime > 3000) return 'high';     // >3s
-    if (executionTime > 2000) return 'medium';   // >2s
-    return 'low';                                 // >1s
+    if (executionTime > 3000) return 'high'; // >3s
+    if (executionTime > 2000) return 'medium'; // >2s
+    return 'low'; // >1s
   }
 
   /**
@@ -274,23 +272,19 @@ class AnalyticsMetrics {
     report.queryTypes.sort((a, b) => b.count - a.count);
 
     // Top 5 slowest queries
-    report.slowestQueries = this.metrics.performance.slowQueries
-      .slice(0, 5)
-      .map(q => ({
-        queryType: q.queryType,
-        executionTime: q.executionTime,
-        timestamp: q.timestamp,
-        severity: q.severity
-      }));
+    report.slowestQueries = this.metrics.performance.slowQueries.slice(0, 5).map(q => ({
+      queryType: q.queryType,
+      executionTime: q.executionTime,
+      timestamp: q.timestamp,
+      severity: q.severity
+    }));
 
     // Recent errors
-    report.recentErrors = this.metrics.errors
-      .slice(0, 5)
-      .map(e => ({
-        queryType: e.queryType,
-        error: e.error.message,
-        timestamp: e.timestamp
-      }));
+    report.recentErrors = this.metrics.errors.slice(0, 5).map(e => ({
+      queryType: e.queryType,
+      error: e.error.message,
+      timestamp: e.timestamp
+    }));
 
     // Generate recommendations
     report.recommendations = this.generateRecommendations();
@@ -327,7 +321,8 @@ class AnalyticsMetrics {
 
     // Check for high error rate
     const errorRate = this.metrics.errors.length / Math.max(this.metrics.performance.totalQueries, 1);
-    if (errorRate > 0.05) { // >5% error rate
+    if (errorRate > 0.05) {
+      // >5% error rate
       recommendations.push({
         priority: 'high',
         issue: `High error rate: ${(errorRate * 100).toFixed(2)}%`,
@@ -336,13 +331,13 @@ class AnalyticsMetrics {
     }
 
     // Check most frequent query types
-    const sortedTypes = Object.entries(this.metrics.queries)
-      .sort((a, b) => b[1].count - a[1].count);
+    const sortedTypes = Object.entries(this.metrics.queries).sort((a, b) => b[1].count - a[1].count);
 
     if (sortedTypes.length > 0) {
       const [mostFrequent, stats] = sortedTypes[0];
 
-      if (stats.avgTime > 1000) { // >1s average
+      if (stats.avgTime > 1000) {
+        // >1s average
         recommendations.push({
           priority: 'medium',
           issue: `${mostFrequent} queries average ${Math.round(stats.avgTime)}ms`,

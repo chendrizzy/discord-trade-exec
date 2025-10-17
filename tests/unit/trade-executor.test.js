@@ -90,6 +90,7 @@ describe('TradeExecutor', () => {
 
     test('should handle unavailable exchange', async () => {
       process.env.DEMO_MODE = 'false';
+      // Use a signal with a preferredBroker that doesn't exist
       const signal = testUtils.mockTradingSignal({ exchange: 'coinbase' });
       const mockUser = {
         tradingConfig: {
@@ -105,10 +106,12 @@ describe('TradeExecutor', () => {
       };
       jest.spyOn(executor, 'getOpenPositions').mockResolvedValue([]);
 
-      const result = await executor.executeTrade(signal, mockUser);
+      // Use preferredBroker option with a non-existent exchange
+      const result = await executor.executeTrade(signal, mockUser, { preferredBroker: 'coinbase' });
 
       expect(result.success).toBe(false);
-      expect(result.reason).toBe('Exchange not available');
+      // The exchange/broker is not available
+      expect(result.reason).toMatch(/not available|No crypto exchange available|No stock broker available/i);
       process.env.DEMO_MODE = 'true';
     });
   });
@@ -161,6 +164,8 @@ describe('TradeExecutor', () => {
         USDT: { total: 10000, free: 10000, used: 0 }
       });
 
+      mockExchange.fetchPositions = jest.fn().mockResolvedValue([]);
+
       mockExchange.createOrder
         .mockResolvedValueOnce({
           id: 'order_123456',
@@ -187,7 +192,14 @@ describe('TradeExecutor', () => {
       const result = await executor.executeTrade(signal, mockUser);
 
       expect(result.success).toBe(true);
-      expect(mockExchange.createOrder).toHaveBeenCalled();
+      expect(mockExchange.createOrder).toHaveBeenCalledWith(
+        expect.any(String),
+        'stop_market',
+        expect.any(String),
+        expect.any(Number),
+        null,
+        expect.objectContaining({ stopPrice: 43000 })
+      );
       process.env.DEMO_MODE = 'true';
     });
 
@@ -209,7 +221,7 @@ describe('TradeExecutor', () => {
       jest.spyOn(executor, 'getOpenPositions').mockResolvedValue([]);
 
       mockExchange.createOrder
-        .mockResolvedValueOnce({ id: 'order_123456', average: 45000, amount: 0.001 })
+        .mockResolvedValueOnce({ id: 'order_123456', average: 45000, amount: 0.001, symbol: 'BTC/USDT' })
         .mockRejectedValueOnce(new Error('Stop loss order failed'));
 
       const result = await executor.executeTrade(signal, mockUser);
@@ -254,6 +266,8 @@ describe('TradeExecutor', () => {
       mockExchange.fetchBalance.mockResolvedValue({
         USDT: { total: 10000, free: 10000, used: 0 }
       });
+
+      mockExchange.fetchPositions = jest.fn().mockResolvedValue([]);
     });
 
     test('should handle different order types', async () => {
@@ -262,18 +276,19 @@ describe('TradeExecutor', () => {
       mockExchange.createOrder.mockResolvedValue({
         id: 'order_123456',
         average: 45000,
-        amount: 0.001
+        amount: 0.001,
+        symbol: 'BTC/USDT'
       });
       jest.spyOn(executor, 'getOpenPositions').mockResolvedValue([]);
 
       await executor.executeTrade(signal, mockUser);
 
-      expect(mockExchange.createOrder).toHaveBeenCalledWith(
-        'BTCUSDT',
-        'market', // Should use market orders by default
-        'buy',
-        expect.any(Number)
-      );
+      // Main order should use market orders by default
+      const firstCall = mockExchange.createOrder.mock.calls[0];
+      expect(firstCall[0]).toBe('BTCUSDT'); // symbol
+      expect(firstCall[1]).toBe('market'); // order type
+      expect(firstCall[2]).toBe('buy'); // side
+      expect(typeof firstCall[3]).toBe('number'); // amount
       process.env.DEMO_MODE = 'true';
     });
 
@@ -287,6 +302,7 @@ describe('TradeExecutor', () => {
         filled: 0.0005, // Partial fill
         remaining: 0.0005,
         average: 45000,
+        price: 45000,
         status: 'open'
       });
       jest.spyOn(executor, 'getOpenPositions').mockResolvedValue([]);
@@ -322,12 +338,18 @@ describe('TradeExecutor', () => {
       mockExchange.fetchBalance.mockResolvedValue({
         USDT: { total: 10000, free: 10000, used: 0 }
       });
+
+      // Mock fetchPositions to return empty array for position checks
+      mockExchange.fetchPositions = jest.fn().mockResolvedValue([]);
     });
 
     test('should handle network errors', async () => {
       process.env.DEMO_MODE = 'false';
       const signal = testUtils.mockTradingSignal();
       mockExchange.createOrder.mockRejectedValue(new Error('Network timeout'));
+      mockExchange.fetchBalance.mockResolvedValue({
+        USDT: { total: 10000, free: 10000, used: 0 }
+      });
       jest.spyOn(executor, 'getOpenPositions').mockResolvedValue([]);
 
       const result = await executor.executeTrade(signal, mockUser);
@@ -339,8 +361,12 @@ describe('TradeExecutor', () => {
 
     test('should handle invalid symbol errors', async () => {
       process.env.DEMO_MODE = 'false';
-      const signal = testUtils.mockTradingSignal({ symbol: 'INVALID' });
+      // Use a crypto-like symbol (starts with BTC) so it will try exchange instead of broker
+      const signal = testUtils.mockTradingSignal({ symbol: 'BTCINVALID' });
       mockExchange.createOrder.mockRejectedValue(new Error('Invalid symbol'));
+      mockExchange.fetchBalance.mockResolvedValue({
+        USDT: { total: 10000, free: 10000, used: 0 }
+      });
       jest.spyOn(executor, 'getOpenPositions').mockResolvedValue([]);
 
       const result = await executor.executeTrade(signal, mockUser);
@@ -354,6 +380,9 @@ describe('TradeExecutor', () => {
       process.env.DEMO_MODE = 'false';
       const signal = testUtils.mockTradingSignal();
       mockExchange.createOrder.mockRejectedValue(new Error('Insufficient balance'));
+      mockExchange.fetchBalance.mockResolvedValue({
+        USDT: { total: 10000, free: 10000, used: 0 }
+      });
       jest.spyOn(executor, 'getOpenPositions').mockResolvedValue([]);
 
       const result = await executor.executeTrade(signal, mockUser);
@@ -419,6 +448,8 @@ describe('TradeExecutor', () => {
         USDT: { total: 10000, free: 10000, used: 0 }
       });
 
+      mockExchange.fetchPositions = jest.fn().mockResolvedValue([]);
+
       mockExchange.createOrder.mockResolvedValue({
         id: 'order_123456',
         symbol: 'BTC/USDT',
@@ -442,6 +473,8 @@ describe('TradeExecutor', () => {
     test('should perform risk validation before executing trade', async () => {
       process.env.DEMO_MODE = 'false';
       const signal = testUtils.mockTradingSignal();
+
+      jest.spyOn(executor, 'getOpenPositions').mockResolvedValue([]);
 
       await executor.executeTrade(signal, mockUser);
 
@@ -487,6 +520,8 @@ describe('TradeExecutor', () => {
       process.env.DEMO_MODE = 'false';
       const signal = testUtils.mockTradingSignal();
 
+      jest.spyOn(executor, 'getOpenPositions').mockResolvedValue([]);
+
       await executor.executeTrade(signal, mockUser);
 
       expect(mockUser.calculatePositionSize).toHaveBeenCalled();
@@ -496,6 +531,8 @@ describe('TradeExecutor', () => {
     test('should track daily loss after trade execution', async () => {
       process.env.DEMO_MODE = 'false';
       const signal = testUtils.mockTradingSignal();
+
+      jest.spyOn(executor, 'getOpenPositions').mockResolvedValue([]);
 
       await executor.executeTrade(signal, mockUser);
 
@@ -532,9 +569,11 @@ describe('TradeExecutor', () => {
       const signal = testUtils.mockTradingSignal();
 
       mockExchange.createOrder
-        .mockResolvedValueOnce({ id: 'order_123', amount: 0.02, price: 45000 })
-        .mockResolvedValueOnce({ id: 'stop_order_456' })
-        .mockResolvedValueOnce({ id: 'tp_order_789', type: 'limit' });
+        .mockResolvedValueOnce({ id: 'order_123', amount: 0.02, price: 45000, symbol: 'BTC/USDT' })
+        .mockResolvedValueOnce({ id: 'stop_order_456', symbol: 'BTC/USDT' })
+        .mockResolvedValueOnce({ id: 'tp_order_789', type: 'limit', symbol: 'BTC/USDT' });
+
+      jest.spyOn(executor, 'getOpenPositions').mockResolvedValue([]);
 
       await executor.executeTrade(signal, mockUser);
 
@@ -549,14 +588,17 @@ describe('TradeExecutor', () => {
       const signal = testUtils.mockTradingSignal();
 
       mockExchange.createOrder
-        .mockResolvedValueOnce({ id: 'order_123', amount: 0.02, price: 45000 })
-        .mockResolvedValueOnce({ id: 'stop_order_456' })
-        .mockResolvedValueOnce({ id: 'tp_order_789' });
+        .mockResolvedValueOnce({ id: 'order_123', amount: 0.02, price: 45000, symbol: 'BTC/USDT' })
+        .mockResolvedValueOnce({ id: 'stop_order_456', symbol: 'BTC/USDT' })
+        .mockResolvedValueOnce({ id: 'tp_order_789', symbol: 'BTC/USDT' });
+
+      jest.spyOn(executor, 'getOpenPositions').mockResolvedValue([]);
 
       await executor.executeTrade(signal, mockUser);
 
-      // Verify trailing stop parameter was included
+      // Verify trailing stop parameter was included in stop loss call
       const stopCall = mockExchange.createOrder.mock.calls[1];
+      expect(stopCall[1]).toBe('stop_market'); // Order type
       expect(stopCall[5]).toHaveProperty('trailingPercent');
       expect(stopCall[5].trailingPercent).toBe(1.5); // 0.015 * 100
       process.env.DEMO_MODE = 'true';

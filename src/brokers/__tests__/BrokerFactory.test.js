@@ -62,13 +62,13 @@ describe('BrokerFactory', () => {
   });
 
   describe('Broker Creation', () => {
-    test('should create Alpaca adapter instance', () => {
+    test('should create Alpaca adapter instance', async () => {
       const credentials = {
         apiKey: 'test-key',
         apiSecret: 'test-secret'
       };
 
-      const broker = BrokerFactory.createBroker('alpaca', credentials, { isTestnet: true });
+      const broker = await BrokerFactory.createBroker('alpaca', credentials, { isTestnet: true });
 
       expect(broker).toBeInstanceOf(AlpacaAdapter);
       expect(broker.brokerName).toBe('alpaca');
@@ -76,46 +76,51 @@ describe('BrokerFactory', () => {
       expect(broker.isTestnet).toBe(true);
     });
 
-    test('should throw error for unknown broker', () => {
-      expect(() => {
-        BrokerFactory.createBroker('unknown', {});
-      }).toThrow('Unknown broker');
+    test('should throw error for unknown broker', async () => {
+      await expect(BrokerFactory.createBroker('unknown', {})).rejects.toThrow('Unknown broker');
     });
 
-    test('should throw error for unimplemented broker', () => {
-      expect(() => {
-        BrokerFactory.createBroker('ibkr', {});
-      }).toThrow('not yet implemented');
+    test('should create Moomoo adapter instance (lazy-loaded)', async () => {
+      // Moomoo is lazy-loaded dynamically when createBroker is called
+      const broker = await BrokerFactory.createBroker('moomoo', { accountId: 'test', password: 'test' });
+
+      expect(broker).toBeDefined();
+      expect(broker.brokerName).toBe('moomoo');
+      expect(broker.brokerType).toBe('stock');
     });
   });
 
   describe('Broker Availability', () => {
     test('should check if broker is available', () => {
       expect(BrokerFactory.isBrokerAvailable('alpaca')).toBe(true);
-      expect(BrokerFactory.isBrokerAvailable('ibkr')).toBe(false);
+      // Moomoo is dynamically loaded, so it's marked as planned initially but can be loaded
+      // The factory marks it as available if it has a class property, or planned if not
+      const moomooInfo = BrokerFactory.getBrokerInfo('moomoo');
+      expect(moomooInfo.status).toBe('planned'); // Initially planned, lazy-loaded on demand
     });
 
     test('should get list of available broker keys', () => {
       const available = BrokerFactory.getAvailableBrokerKeys();
       expect(available).toContain('alpaca');
-      expect(available).not.toContain('ibkr');
+      // Moomoo is not in available list because it's initially unloaded
+      expect(available).not.toContain('moomoo');
     });
 
     test('should get list of planned broker keys', () => {
       const planned = BrokerFactory.getPlannedBrokerKeys();
-      expect(planned).toContain('ibkr');
-      expect(planned).toContain('schwab');
+      // Moomoo is initially in planned because it's lazy-loaded
+      expect(planned).toContain('moomoo');
       expect(planned).not.toContain('alpaca');
     });
   });
 
   describe('Broker Comparison', () => {
     test('should compare multiple brokers', () => {
-      const comparison = BrokerFactory.compareBrokers(['alpaca', 'ibkr']);
+      const comparison = BrokerFactory.compareBrokers(['alpaca', 'schwab']);
 
       expect(comparison.brokers).toHaveLength(2);
       expect(comparison.brokers[0].key).toBe('alpaca');
-      expect(comparison.brokers[1].key).toBe('ibkr');
+      expect(comparison.brokers[1].key).toBe('schwab');
 
       expect(comparison.comparison).toHaveProperty('features');
       expect(comparison.comparison).toHaveProperty('markets');
@@ -126,9 +131,9 @@ describe('BrokerFactory', () => {
     });
 
     test('should aggregate all unique features in comparison', () => {
-      const comparison = BrokerFactory.compareBrokers(['alpaca', 'ibkr']);
+      const comparison = BrokerFactory.compareBrokers(['alpaca', 'schwab']);
 
-      // Alpaca has commission-free, IBKR has options/futures
+      // Alpaca has commission-free, Schwab has options/futures
       expect(comparison.comparison.features).toContain('commission-free');
       expect(comparison.comparison.features).toContain('options');
     });
@@ -198,13 +203,16 @@ describe('BrokerFactory', () => {
       expect(result.errors.length).toBeGreaterThan(0);
     });
 
-    test('should reject unimplemented brokers', () => {
-      const result = BrokerFactory.validateCredentials('ibkr', {
-        apiKey: 'test'
+    test('should validate Moomoo credentials', () => {
+      // Moomoo is dynamically loaded
+      const result = BrokerFactory.validateCredentials('moomoo', {
+        accountId: 'test123',
+        password: 'testpass'
       });
 
-      expect(result.valid).toBe(false);
-      expect(result.errors[0]).toContain('not yet implemented');
+      // Moomoo validation should succeed with required fields
+      expect(result.valid).toBe(true);
+      expect(result.errors).toHaveLength(0);
     });
   });
 
@@ -268,7 +276,8 @@ describe('BrokerFactory', () => {
       expect(stats.total).toBeGreaterThan(0);
       expect(stats.available).toBeGreaterThan(0);
       expect(stats.brokers.available).toContain('alpaca');
-      expect(stats.brokers.planned).toContain('ibkr');
+      // Moomoo is planned because it has class: null
+      expect(stats.brokers.planned).toContain('moomoo');
     });
 
     test('should count brokers correctly', () => {

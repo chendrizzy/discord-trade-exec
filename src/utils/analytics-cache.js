@@ -13,6 +13,28 @@ class AnalyticsCache {
     this.enabled = process.env.REDIS_URL || process.env.REDIS_ENABLED === 'true';
     this.defaultTTL = options.defaultTTL || 300; // 5 minutes default
 
+    // Cache key prefixes (must be initialized even when Redis is disabled)
+    this.prefixes = {
+      MRR: 'analytics:mrr',
+      ARR: 'analytics:arr',
+      LTV: 'analytics:ltv',
+      CHURN: 'analytics:churn',
+      COHORT: 'analytics:cohort',
+      DASHBOARD: 'analytics:dashboard',
+      CHURN_RISKS: 'analytics:churn_risks'
+    };
+
+    // TTL configurations (in seconds)
+    this.ttls = {
+      MRR: 600, // 10 minutes
+      ARR: 600, // 10 minutes
+      LTV: 1800, // 30 minutes
+      CHURN: 1800, // 30 minutes (historical data)
+      COHORT: 3600, // 1 hour (very expensive query)
+      DASHBOARD: 300, // 5 minutes (frequently accessed)
+      CHURN_RISKS: 600 // 10 minutes
+    };
+
     if (!this.enabled) {
       console.warn('Redis caching disabled - no REDIS_URL configured');
       return;
@@ -22,7 +44,7 @@ class AnalyticsCache {
       this.client = redis.createClient({
         url: process.env.REDIS_URL,
         socket: {
-          reconnectStrategy: (retries) => {
+          reconnectStrategy: retries => {
             if (retries > 10) {
               return new Error('Redis max retries exceeded');
             }
@@ -31,7 +53,7 @@ class AnalyticsCache {
         }
       });
 
-      this.client.on('error', (err) => {
+      this.client.on('error', err => {
         console.error('Redis client error:', err);
         this.enabled = false; // Disable on persistent errors
       });
@@ -45,33 +67,10 @@ class AnalyticsCache {
         console.error('Failed to connect to Redis:', err);
         this.enabled = false;
       });
-
     } catch (error) {
       console.error('Failed to initialize Redis client:', error);
       this.enabled = false;
     }
-
-    // Cache key prefixes
-    this.prefixes = {
-      MRR: 'analytics:mrr',
-      ARR: 'analytics:arr',
-      LTV: 'analytics:ltv',
-      CHURN: 'analytics:churn',
-      COHORT: 'analytics:cohort',
-      DASHBOARD: 'analytics:dashboard',
-      CHURN_RISKS: 'analytics:churn_risks'
-    };
-
-    // TTL configurations (in seconds)
-    this.ttls = {
-      MRR: 600,          // 10 minutes
-      ARR: 600,          // 10 minutes
-      LTV: 1800,         // 30 minutes
-      CHURN: 1800,       // 30 minutes (historical data)
-      COHORT: 3600,      // 1 hour (very expensive query)
-      DASHBOARD: 300,    // 5 minutes (frequently accessed)
-      CHURN_RISKS: 600   // 10 minutes
-    };
   }
 
   /**

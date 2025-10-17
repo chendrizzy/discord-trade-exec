@@ -3,19 +3,110 @@ const express = require('express');
 const request = require('supertest');
 
 // Internal utilities and services
-const RevenueMetrics = require('../../src/services/analytics/RevenueMetrics');
-const ChurnPredictor = require('../../src/services/analytics/ChurnPredictor');
-const CohortAnalyzer = require('../../src/services/analytics/CohortAnalyzer');
 const User = require('../../src/models/User');
 
-// Mock services
-jest.mock('../../src/services/analytics/RevenueMetrics');
-jest.mock('../../src/services/analytics/ChurnPredictor');
-jest.mock('../../src/services/analytics/CohortAnalyzer');
+// Mock models
 jest.mock('../../src/models/User');
+
+// Mock analytics services - must be done BEFORE importing the routes
+// Use jest.fn().mockReturnValue() so mockReturnValue() can override later
+const mockRevenueMetricsInstance = {
+  calculateMRR: jest.fn().mockResolvedValue({ current: 0, subscriberCount: 0, byTier: {} }),
+  calculateARR: jest.fn().mockResolvedValue({ current: 0, mrr: 0 }),
+  calculateLTV: jest.fn().mockResolvedValue({ perUser: 0, avgLifetimeMonths: 0, avgMonthlyRevenue: 0 }),
+  calculateChurnRate: jest.fn().mockResolvedValue({ churnRate: 0, churned: 0, startSubscribers: 0 }),
+  getAllMetrics: jest.fn().mockResolvedValue({ mrr: {}, arr: {}, ltv: {}, churn: null, timestamp: new Date() })
+};
+
+const mockChurnPredictorInstance = {
+  calculateChurnRisk: jest.fn().mockReturnValue({ riskScore: 0, riskLevel: 'low', factors: [], recommendations: [] }),
+  getHighRiskUsers: jest.fn().mockReturnValue([]),
+  batchCalculateRisk: jest.fn().mockReturnValue([])
+};
+
+const mockCohortAnalyzerInstance = {
+  generateRetentionTable: jest.fn().mockResolvedValue({ cohorts: [], metric: 'login', period: 'month', startDate: new Date(), endDate: new Date() }),
+  analyzeCohortBehavior: jest.fn().mockResolvedValue(null),
+  compareCohorts: jest.fn().mockResolvedValue({ cohorts: [], averages: {}, trend: 'stable' })
+};
+
+jest.mock('../../src/services/analytics/RevenueMetrics', () => {
+  return {
+    getRevenueMetricsInstance: jest.fn().mockReturnValue(mockRevenueMetricsInstance)
+  };
+});
+jest.mock('../../src/services/analytics/ChurnPredictor', () => {
+  return {
+    getChurnPredictorInstance: jest.fn().mockReturnValue(mockChurnPredictorInstance)
+  };
+});
+jest.mock('../../src/services/analytics/CohortAnalyzer', () => {
+  return {
+    getCohortAnalyzerInstance: jest.fn().mockReturnValue(mockCohortAnalyzerInstance)
+  };
+});
+jest.mock('../../src/utils/analytics-metrics', () => {
+  return {
+    getMetricsInstance: jest.fn(() => ({
+      startQuery: jest.fn(() => ({ id: 'test-tracker' })),
+      endQuery: jest.fn(),
+      recordError: jest.fn(),
+      getMetrics: jest.fn(() => ({ performance: { totalQueries: 0 } })),
+      generateReport: jest.fn(() => ({})),
+      getSlowQueries: jest.fn(() => [])
+    }))
+  };
+});
+jest.mock('../../src/utils/analytics-alerts', () => {
+  return {
+    getAlertsInstance: jest.fn(() => ({
+      checkChurnRate: jest.fn(() => ({ alerted: false })),
+      checkMRRGrowth: jest.fn(() => ({ alerted: false })),
+      checkAtRiskUsers: jest.fn(() => ({ alerted: false })),
+      getActiveAlerts: jest.fn(() => []),
+      getAlertHistory: jest.fn(() => [])
+    }))
+  };
+});
+jest.mock('../../src/utils/analytics-query-logger', () => {
+  return {
+    getQueryLoggerInstance: jest.fn(() => ({
+      logQuery: jest.fn(),
+      getFrequentPatterns: jest.fn(() => []),
+      getSlowestPatterns: jest.fn(() => []),
+      generateOptimizationReport: jest.fn(() => ({}))
+    }))
+  };
+});
+jest.mock('../../src/utils/analytics-cache', () => {
+  return {
+    getCacheInstance: jest.fn(() => ({
+      prefixes: {
+        MRR: 'analytics:mrr',
+        LTV: 'analytics:ltv'
+      },
+      ttls: {
+        MRR: 600,
+        LTV: 1800
+      },
+      wrap: jest.fn(async (prefix, fn) => {
+        const data = await fn();
+        return { data, fromCache: false };
+      })
+    }))
+  };
+});
+
+// Get mocked factory functions
+const { getRevenueMetricsInstance } = require('../../src/services/analytics/RevenueMetrics');
+const { getChurnPredictorInstance } = require('../../src/services/analytics/ChurnPredictor');
+const { getCohortAnalyzerInstance } = require('../../src/services/analytics/CohortAnalyzer');
 
 // Create test app
 function createApp(userRole = 'admin') {
+  // Clear module cache to get fresh instance with mocks
+  delete require.cache[require.resolve('../../src/routes/api/analytics')];
+
   const app = express();
   app.use(express.json());
 
@@ -37,6 +128,48 @@ describe('Analytics API Integration Tests', () => {
   beforeEach(() => {
     jest.clearAllMocks();
   });
+
+  // Helper function to set up mocks and create app
+  function setupTest(userRole = 'admin', mocks = {}) {
+    // Reset mock functions on EXISTING instances (don't create new objects)
+    // RevenueMetrics defaults
+    mockRevenueMetricsInstance.calculateMRR.mockResolvedValue({ current: 0, subscriberCount: 0, byTier: {} });
+    mockRevenueMetricsInstance.calculateARR.mockResolvedValue({ current: 0, mrr: 0 });
+    mockRevenueMetricsInstance.calculateLTV.mockResolvedValue({ perUser: 0, avgLifetimeMonths: 0, avgMonthlyRevenue: 0 });
+    mockRevenueMetricsInstance.calculateChurnRate.mockResolvedValue({ churnRate: 0, churned: 0, startSubscribers: 0 });
+    mockRevenueMetricsInstance.getAllMetrics.mockResolvedValue({ mrr: {}, arr: {}, ltv: {}, churn: null, timestamp: new Date() });
+
+    // ChurnPredictor defaults
+    mockChurnPredictorInstance.calculateChurnRisk.mockReturnValue({ riskScore: 0, riskLevel: 'low', factors: [], recommendations: [] });
+    mockChurnPredictorInstance.getHighRiskUsers.mockReturnValue([]);
+    mockChurnPredictorInstance.batchCalculateRisk.mockReturnValue([]);
+
+    // CohortAnalyzer defaults
+    mockCohortAnalyzerInstance.generateRetentionTable.mockResolvedValue({ cohorts: [], metric: 'login', period: 'month', startDate: new Date(), endDate: new Date() });
+    mockCohortAnalyzerInstance.analyzeCohortBehavior.mockResolvedValue(null);
+    mockCohortAnalyzerInstance.compareCohorts.mockResolvedValue({ cohorts: [], averages: {}, trend: 'stable' });
+
+    // Apply test-specific overrides by replacing methods on the existing instances
+    if (mocks.revenueMetrics) {
+      Object.keys(mocks.revenueMetrics).forEach(key => {
+        mockRevenueMetricsInstance[key] = mocks.revenueMetrics[key];
+      });
+    }
+
+    if (mocks.churnPredictor) {
+      Object.keys(mocks.churnPredictor).forEach(key => {
+        mockChurnPredictorInstance[key] = mocks.churnPredictor[key];
+      });
+    }
+
+    if (mocks.cohortAnalyzer) {
+      Object.keys(mocks.cohortAnalyzer).forEach(key => {
+        mockCohortAnalyzerInstance[key] = mocks.cohortAnalyzer[key];
+      });
+    }
+
+    return createApp(userRole);
+  }
 
   describe('Authentication & Authorization', () => {
     test('should reject requests without authentication', async () => {
@@ -64,13 +197,13 @@ describe('Analytics API Integration Tests', () => {
     test('should allow admin users to access endpoints', async () => {
       const app = createApp('admin');
 
-      RevenueMetrics.mockImplementation(() => ({
+      getRevenueMetricsInstance.mockReturnValue({
         calculateMRR: jest.fn().mockResolvedValue({
           current: 1000,
           subscriberCount: 10,
           byTier: { basic: { count: 10, revenue: 1000 } }
         })
-      }));
+      });
 
       await request(app)
         .get('/api/analytics/mrr')
@@ -83,11 +216,7 @@ describe('Analytics API Integration Tests', () => {
   });
 
   describe('GET /api/analytics/revenue', () => {
-    let app;
 
-    beforeEach(() => {
-      app = createApp('admin');
-    });
 
     test('should return all revenue metrics', async () => {
       const mockMetrics = {
@@ -98,9 +227,11 @@ describe('Analytics API Integration Tests', () => {
         timestamp: new Date()
       };
 
-      RevenueMetrics.mockImplementation(() => ({
-        getAllMetrics: jest.fn().mockResolvedValue(mockMetrics)
-      }));
+      const app = setupTest('admin', {
+        revenueMetrics: {
+          getAllMetrics: jest.fn().mockResolvedValue(mockMetrics)
+        }
+      });
 
       await request(app)
         .get('/api/analytics/revenue')
@@ -118,9 +249,11 @@ describe('Analytics API Integration Tests', () => {
     test('should accept optional startDate and endDate query parameters', async () => {
       const mockGetAllMetrics = jest.fn().mockResolvedValue({});
 
-      RevenueMetrics.mockImplementation(() => ({
-        getAllMetrics: mockGetAllMetrics
-      }));
+      const app = setupTest('admin', {
+        revenueMetrics: {
+          getAllMetrics: mockGetAllMetrics
+        }
+      });
 
       await request(app)
         .get('/api/analytics/revenue?startDate=2024-01-01&endDate=2024-01-31')
@@ -133,9 +266,11 @@ describe('Analytics API Integration Tests', () => {
     });
 
     test('should handle service errors gracefully', async () => {
-      RevenueMetrics.mockImplementation(() => ({
-        getAllMetrics: jest.fn().mockRejectedValue(new Error('Database connection failed'))
-      }));
+      const app = setupTest('admin', {
+        revenueMetrics: {
+          getAllMetrics: jest.fn().mockRejectedValue(new Error('Database connection failed'))
+        }
+      });
 
       await request(app)
         .get('/api/analytics/revenue')
@@ -149,11 +284,7 @@ describe('Analytics API Integration Tests', () => {
   });
 
   describe('GET /api/analytics/mrr', () => {
-    let app;
 
-    beforeEach(() => {
-      app = createApp('admin');
-    });
 
     test('should return MRR breakdown', async () => {
       const mockMRR = {
@@ -166,9 +297,11 @@ describe('Analytics API Integration Tests', () => {
         }
       };
 
-      RevenueMetrics.mockImplementation(() => ({
-        calculateMRR: jest.fn().mockResolvedValue(mockMRR)
-      }));
+      const app = setupTest('admin', {
+        revenueMetrics: {
+          calculateMRR: jest.fn().mockResolvedValue(mockMRR)
+        }
+      });
 
       await request(app)
         .get('/api/analytics/mrr')
@@ -182,11 +315,7 @@ describe('Analytics API Integration Tests', () => {
   });
 
   describe('GET /api/analytics/arr', () => {
-    let app;
 
-    beforeEach(() => {
-      app = createApp('admin');
-    });
 
     test('should return ARR calculation', async () => {
       const mockARR = {
@@ -194,9 +323,11 @@ describe('Analytics API Integration Tests', () => {
         mrr: 299
       };
 
-      RevenueMetrics.mockImplementation(() => ({
-        calculateARR: jest.fn().mockResolvedValue(mockARR)
-      }));
+      const app = setupTest('admin', {
+        revenueMetrics: {
+          calculateARR: jest.fn().mockResolvedValue(mockARR)
+        }
+      });
 
       await request(app)
         .get('/api/analytics/arr')
@@ -210,11 +341,7 @@ describe('Analytics API Integration Tests', () => {
   });
 
   describe('GET /api/analytics/ltv', () => {
-    let app;
 
-    beforeEach(() => {
-      app = createApp('admin');
-    });
 
     test('should return LTV metrics', async () => {
       const mockLTV = {
@@ -223,9 +350,11 @@ describe('Analytics API Integration Tests', () => {
         avgMonthlyRevenue: 74
       };
 
-      RevenueMetrics.mockImplementation(() => ({
-        calculateLTV: jest.fn().mockResolvedValue(mockLTV)
-      }));
+      const app = setupTest('admin', {
+        revenueMetrics: {
+          calculateLTV: jest.fn().mockResolvedValue(mockLTV)
+        }
+      });
 
       await request(app)
         .get('/api/analytics/ltv')
@@ -239,13 +368,11 @@ describe('Analytics API Integration Tests', () => {
   });
 
   describe('GET /api/analytics/churn', () => {
-    let app;
 
-    beforeEach(() => {
-      app = createApp('admin');
-    });
 
     test('should require startDate and endDate parameters', async () => {
+      const app = setupTest('admin');
+
       await request(app)
         .get('/api/analytics/churn')
         .expect(400)
@@ -266,9 +393,11 @@ describe('Analytics API Integration Tests', () => {
         }
       };
 
-      RevenueMetrics.mockImplementation(() => ({
-        calculateChurnRate: jest.fn().mockResolvedValue(mockChurn)
-      }));
+      const app = setupTest('admin', {
+        revenueMetrics: {
+          calculateChurnRate: jest.fn().mockResolvedValue(mockChurn)
+        }
+      });
 
       await request(app)
         .get('/api/analytics/churn?startDate=2024-01-01&endDate=2024-01-31')
@@ -282,11 +411,7 @@ describe('Analytics API Integration Tests', () => {
   });
 
   describe('GET /api/analytics/churn-risks', () => {
-    let app;
 
-    beforeEach(() => {
-      app = createApp('admin');
-    });
 
     test('should return at-risk users with default parameters', async () => {
       const mockUsers = [
@@ -305,9 +430,11 @@ describe('Analytics API Integration Tests', () => {
         })
       });
 
-      ChurnPredictor.mockImplementation(() => ({
-        getHighRiskUsers: jest.fn().mockReturnValue(mockAtRiskUsers)
-      }));
+      const app = setupTest('admin', {
+        churnPredictor: {
+          getHighRiskUsers: jest.fn().mockReturnValue(mockAtRiskUsers)
+        }
+      });
 
       await request(app)
         .get('/api/analytics/churn-risks')
@@ -327,9 +454,11 @@ describe('Analytics API Integration Tests', () => {
         })
       });
 
-      ChurnPredictor.mockImplementation(() => ({
-        getHighRiskUsers: jest.fn().mockReturnValue([])
-      }));
+      const app = setupTest('admin', {
+        churnPredictor: {
+          getHighRiskUsers: jest.fn().mockReturnValue([])
+        }
+      });
 
       await request(app)
         .get('/api/analytics/churn-risks?minRiskLevel=critical&limit=100')
@@ -340,13 +469,11 @@ describe('Analytics API Integration Tests', () => {
   });
 
   describe('POST /api/analytics/churn-risk/calculate', () => {
-    let app;
 
-    beforeEach(() => {
-      app = createApp('admin');
-    });
 
     test('should require userId in request body', async () => {
+      const app = setupTest('admin');
+
       await request(app)
         .post('/api/analytics/churn-risk/calculate')
         .send({})
@@ -361,6 +488,8 @@ describe('Analytics API Integration Tests', () => {
       User.findById.mockReturnValue({
         select: jest.fn().mockResolvedValue(null)
       });
+
+      const app = setupTest('admin');
 
       await request(app)
         .post('/api/analytics/churn-risk/calculate')
@@ -391,9 +520,11 @@ describe('Analytics API Integration Tests', () => {
         select: jest.fn().mockResolvedValue(mockUser)
       });
 
-      ChurnPredictor.mockImplementation(() => ({
-        calculateChurnRisk: jest.fn().mockReturnValue(mockRiskAnalysis)
-      }));
+      const app = setupTest('admin', {
+        churnPredictor: {
+          calculateChurnRisk: jest.fn().mockReturnValue(mockRiskAnalysis)
+        }
+      });
 
       await request(app)
         .post('/api/analytics/churn-risk/calculate')
@@ -408,11 +539,7 @@ describe('Analytics API Integration Tests', () => {
   });
 
   describe('GET /api/analytics/dashboard', () => {
-    let app;
 
-    beforeEach(() => {
-      app = createApp('admin');
-    });
 
     test('should return comprehensive dashboard metrics', async () => {
       const mockUsers = [{ _id: 'user1', subscription: { status: 'active' } }];
@@ -445,15 +572,16 @@ describe('Analytics API Integration Tests', () => {
         { userId: 'user3', riskLevel: 'medium', riskScore: 35 }
       ];
 
-      RevenueMetrics.mockImplementation(() => ({
-        calculateMRR: jest.fn().mockResolvedValue(mockMRR),
-        calculateLTV: jest.fn().mockResolvedValue(mockLTV),
-        calculateChurnRate: jest.fn().mockResolvedValue(mockChurn)
-      }));
-
-      ChurnPredictor.mockImplementation(() => ({
-        getHighRiskUsers: jest.fn().mockReturnValue(mockAtRiskUsers)
-      }));
+      const app = setupTest('admin', {
+        revenueMetrics: {
+          calculateMRR: jest.fn().mockResolvedValue(mockMRR),
+          calculateLTV: jest.fn().mockResolvedValue(mockLTV),
+          calculateChurnRate: jest.fn().mockResolvedValue(mockChurn)
+        },
+        churnPredictor: {
+          getHighRiskUsers: jest.fn().mockReturnValue(mockAtRiskUsers)
+        }
+      });
 
       await request(app)
         .get('/api/analytics/dashboard')
@@ -475,11 +603,7 @@ describe('Analytics API Integration Tests', () => {
   });
 
   describe('GET /api/analytics/cohorts/retention', () => {
-    let app;
 
-    beforeEach(() => {
-      app = createApp('admin');
-    });
 
     test('should generate retention table with default parameters', async () => {
       const mockRetentionTable = {
@@ -492,9 +616,11 @@ describe('Analytics API Integration Tests', () => {
         endDate: new Date()
       };
 
-      CohortAnalyzer.mockImplementation(() => ({
-        generateRetentionTable: jest.fn().mockResolvedValue(mockRetentionTable)
-      }));
+      const app = setupTest('admin', {
+        cohortAnalyzer: {
+          generateRetentionTable: jest.fn().mockResolvedValue(mockRetentionTable)
+        }
+      });
 
       await request(app)
         .get('/api/analytics/cohorts/retention')
@@ -516,9 +642,11 @@ describe('Analytics API Integration Tests', () => {
         period: 'week'
       });
 
-      CohortAnalyzer.mockImplementation(() => ({
-        generateRetentionTable: mockGenerateRetentionTable
-      }));
+      const app = setupTest('admin', {
+        cohortAnalyzer: {
+          generateRetentionTable: mockGenerateRetentionTable
+        }
+      });
 
       await request(app)
         .get('/api/analytics/cohorts/retention?period=week&metric=trade')
@@ -534,11 +662,7 @@ describe('Analytics API Integration Tests', () => {
   });
 
   describe('GET /api/analytics/cohorts/:cohortId', () => {
-    let app;
 
-    beforeEach(() => {
-      app = createApp('admin');
-    });
 
     test('should return cohort analysis', async () => {
       const mockAnalysis = {
@@ -549,9 +673,11 @@ describe('Analytics API Integration Tests', () => {
         tierDistribution: { basic: 15, pro: 8, premium: 2 }
       };
 
-      CohortAnalyzer.mockImplementation(() => ({
-        analyzeCohortBehavior: jest.fn().mockResolvedValue(mockAnalysis)
-      }));
+      const app = setupTest('admin', {
+        cohortAnalyzer: {
+          analyzeCohortBehavior: jest.fn().mockResolvedValue(mockAnalysis)
+        }
+      });
 
       await request(app)
         .get('/api/analytics/cohorts/2024-01')
@@ -563,9 +689,11 @@ describe('Analytics API Integration Tests', () => {
     });
 
     test('should return 404 for non-existent cohort', async () => {
-      CohortAnalyzer.mockImplementation(() => ({
-        analyzeCohortBehavior: jest.fn().mockResolvedValue(null)
-      }));
+      const app = setupTest('admin', {
+        cohortAnalyzer: {
+          analyzeCohortBehavior: jest.fn().mockResolvedValue(null)
+        }
+      });
 
       await request(app)
         .get('/api/analytics/cohorts/2099-12')
@@ -578,13 +706,11 @@ describe('Analytics API Integration Tests', () => {
   });
 
   describe('POST /api/analytics/cohorts/compare', () => {
-    let app;
 
-    beforeEach(() => {
-      app = createApp('admin');
-    });
 
     test('should require cohortIds array in request body', async () => {
+      const app = setupTest('admin');
+
       await request(app)
         .post('/api/analytics/cohorts/compare')
         .send({})
@@ -596,6 +722,8 @@ describe('Analytics API Integration Tests', () => {
     });
 
     test('should reject empty cohortIds array', async () => {
+      const app = setupTest('admin');
+
       await request(app)
         .post('/api/analytics/cohorts/compare')
         .send({ cohortIds: [] })
@@ -615,9 +743,11 @@ describe('Analytics API Integration Tests', () => {
         trend: 'improving'
       };
 
-      CohortAnalyzer.mockImplementation(() => ({
-        compareCohorts: jest.fn().mockResolvedValue(mockComparison)
-      }));
+      const app = setupTest('admin', {
+        cohortAnalyzer: {
+          compareCohorts: jest.fn().mockResolvedValue(mockComparison)
+        }
+      });
 
       await request(app)
         .post('/api/analytics/cohorts/compare')
@@ -632,16 +762,14 @@ describe('Analytics API Integration Tests', () => {
   });
 
   describe('Response Format Consistency', () => {
-    let app;
 
-    beforeEach(() => {
-      app = createApp('admin');
-    });
 
     test('successful responses should have consistent format', async () => {
-      RevenueMetrics.mockImplementation(() => ({
-        calculateMRR: jest.fn().mockResolvedValue({ current: 1000 })
-      }));
+      const app = setupTest('admin', {
+        revenueMetrics: {
+          calculateMRR: jest.fn().mockResolvedValue({ current: 1000 })
+        }
+      });
 
       await request(app)
         .get('/api/analytics/mrr')
@@ -654,9 +782,11 @@ describe('Analytics API Integration Tests', () => {
     });
 
     test('error responses should have consistent format', async () => {
-      RevenueMetrics.mockImplementation(() => ({
-        calculateMRR: jest.fn().mockRejectedValue(new Error('Test error'))
-      }));
+      const app = setupTest('admin', {
+        revenueMetrics: {
+          calculateMRR: jest.fn().mockRejectedValue(new Error('Test error'))
+        }
+      });
 
       await request(app)
         .get('/api/analytics/mrr')
@@ -671,16 +801,14 @@ describe('Analytics API Integration Tests', () => {
   });
 
   describe('Performance', () => {
-    let app;
 
-    beforeEach(() => {
-      app = createApp('admin');
-    });
 
     test('should respond to requests quickly', async () => {
-      RevenueMetrics.mockImplementation(() => ({
-        calculateMRR: jest.fn().mockResolvedValue({ current: 1000 })
-      }));
+      const app = setupTest('admin', {
+        revenueMetrics: {
+          calculateMRR: jest.fn().mockResolvedValue({ current: 1000 })
+        }
+      });
 
       const startTime = Date.now();
 

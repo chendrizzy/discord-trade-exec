@@ -53,22 +53,13 @@ router.post(
       const userId = req.tenant.userId;
       const { providerId, subscriptionType } = req.body;
 
-      const result = await signalSubscriptionService.subscribeToProvider(
-        userId,
-        providerId,
-        subscriptionType,
-        req
-      );
+      const result = await signalSubscriptionService.subscribeToProvider(userId, providerId, subscriptionType, req);
 
       if (!result.success) {
         return sendError(res, result.error, 400);
       }
 
-      return sendSuccess(
-        res,
-        result.subscription,
-        `Successfully subscribed to ${result.subscription.providerName}`
-      );
+      return sendSuccess(res, result.subscription, `Successfully subscribed to ${result.subscription.providerName}`);
     } catch (error) {
       console.error('[Signal Subscription API] Error subscribing to provider:', error);
       return sendError(res, 'Failed to subscribe to signal provider', 500, { message: error.message });
@@ -153,11 +144,7 @@ router.get('/', extractTenantMiddleware, auditLog('signal_subscription.view', 'U
       return sendError(res, result.error, 400);
     }
 
-    return sendSuccess(
-      res,
-      result.subscriptions,
-      `${result.subscriptions.length} active subscription(s) found`
-    );
+    return sendSuccess(res, result.subscriptions, `${result.subscriptions.length} active subscription(s) found`);
   } catch (error) {
     console.error('[Signal Subscription API] Error fetching subscriptions:', error);
     return sendError(res, 'Failed to fetch signal subscriptions', 500, { message: error.message });

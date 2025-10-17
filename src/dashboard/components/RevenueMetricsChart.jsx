@@ -1,4 +1,15 @@
-import { LineChart, Line, AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from 'recharts';
+import {
+  LineChart,
+  Line,
+  AreaChart,
+  Area,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  ResponsiveContainer,
+  Legend
+} from 'recharts';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from './ui/card';
 
 // Custom tooltip component
@@ -28,11 +39,7 @@ export function RevenueMetricsChart({ data, height = 400, showLegend = true }) {
   const chartData = data || [];
 
   if (chartData.length === 0) {
-    return (
-      <div className="flex items-center justify-center h-64 text-muted-foreground">
-        No revenue data available
-      </div>
-    );
+    return <div className="flex items-center justify-center h-64 text-muted-foreground">No revenue data available</div>;
   }
 
   return (
@@ -49,26 +56,20 @@ export function RevenueMetricsChart({ data, height = 400, showLegend = true }) {
           </linearGradient>
         </defs>
         <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" opacity={0.2} />
-        <XAxis
-          dataKey="period"
-          stroke="hsl(var(--muted-foreground))"
-          fontSize={12}
-          tickLine={false}
-          axisLine={false}
-        />
+        <XAxis dataKey="period" stroke="hsl(var(--muted-foreground))" fontSize={12} tickLine={false} axisLine={false} />
         <YAxis
           stroke="hsl(var(--muted-foreground))"
           fontSize={12}
           tickLine={false}
           axisLine={false}
-          tickFormatter={(value) => `$${(value / 1000).toFixed(0)}k`}
+          tickFormatter={value => `$${(value / 1000).toFixed(0)}k`}
         />
         <Tooltip content={<CustomTooltip />} />
         {showLegend && (
           <Legend
             wrapperStyle={{ paddingTop: '20px' }}
             iconType="line"
-            formatter={(value) => <span style={{ color: 'hsl(var(--foreground))' }}>{value}</span>}
+            formatter={value => <span style={{ color: 'hsl(var(--foreground))' }}>{value}</span>}
           />
         )}
         <Area
@@ -101,11 +102,7 @@ export function MRRTrendChart({ data, height = 300 }) {
   const chartData = data || [];
 
   if (chartData.length === 0) {
-    return (
-      <div className="flex items-center justify-center h-64 text-muted-foreground">
-        No MRR data available
-      </div>
-    );
+    return <div className="flex items-center justify-center h-64 text-muted-foreground">No MRR data available</div>;
   }
 
   const latestValue = chartData[chartData.length - 1]?.mrr || 0;
@@ -122,19 +119,13 @@ export function MRRTrendChart({ data, height = 300 }) {
           </linearGradient>
         </defs>
         <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" opacity={0.2} />
-        <XAxis
-          dataKey="period"
-          stroke="hsl(var(--muted-foreground))"
-          fontSize={11}
-          tickLine={false}
-          axisLine={false}
-        />
+        <XAxis dataKey="period" stroke="hsl(var(--muted-foreground))" fontSize={11} tickLine={false} axisLine={false} />
         <YAxis
           stroke="hsl(var(--muted-foreground))"
           fontSize={11}
           tickLine={false}
           axisLine={false}
-          tickFormatter={(value) => `$${(value / 1000).toFixed(0)}k`}
+          tickFormatter={value => `$${(value / 1000).toFixed(0)}k`}
         />
         <Tooltip
           content={({ active, payload, label }) => {
@@ -171,9 +162,7 @@ export function TierRevenueChart({ data, height = 350 }) {
 
   if (chartData.length === 0) {
     return (
-      <div className="flex items-center justify-center h-64 text-muted-foreground">
-        No tier revenue data available
-      </div>
+      <div className="flex items-center justify-center h-64 text-muted-foreground">No tier revenue data available</div>
     );
   }
 
@@ -195,25 +184,19 @@ export function TierRevenueChart({ data, height = 350 }) {
           </linearGradient>
         </defs>
         <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" opacity={0.2} />
-        <XAxis
-          dataKey="period"
-          stroke="hsl(var(--muted-foreground))"
-          fontSize={12}
-          tickLine={false}
-          axisLine={false}
-        />
+        <XAxis dataKey="period" stroke="hsl(var(--muted-foreground))" fontSize={12} tickLine={false} axisLine={false} />
         <YAxis
           stroke="hsl(var(--muted-foreground))"
           fontSize={12}
           tickLine={false}
           axisLine={false}
-          tickFormatter={(value) => `$${(value / 1000).toFixed(0)}k`}
+          tickFormatter={value => `$${(value / 1000).toFixed(0)}k`}
         />
         <Tooltip content={<CustomTooltip />} />
         <Legend
           wrapperStyle={{ paddingTop: '20px' }}
           iconType="square"
-          formatter={(value) => <span style={{ color: 'hsl(var(--foreground))' }}>{value}</span>}
+          formatter={value => <span style={{ color: 'hsl(var(--foreground))' }}>{value}</span>}
         />
         <Area
           type="monotone"
@@ -254,7 +237,7 @@ export function TierRevenueChart({ data, height = 350 }) {
 }
 
 // Compact chart for cards/dashboards
-export function RevenueSpark line({ data, metric = 'mrr', height = 60 }) {
+export function RevenueSparkline({ data, metric = 'mrr', height = 60 }) {
   const chartData = data || [];
 
   if (chartData.length === 0) {

@@ -13,12 +13,14 @@ class AnalyticsEventService {
     this.flushInterval = 30000; // Flush every 30 seconds
     this.isShuttingDown = false;
 
-    // Start periodic flush timer
-    this.flushTimer = setInterval(() => {
-      this.flush().catch(err => {
-        console.error('Analytics event flush error:', err);
-      });
-    }, this.flushInterval);
+    // Start periodic flush timer (skip in test environment to prevent test timeouts)
+    if (process.env.NODE_ENV !== 'test') {
+      this.flushTimer = setInterval(() => {
+        this.flush().catch(err => {
+          console.error('Analytics event flush error:', err);
+        });
+      }, this.flushInterval);
+    }
   }
 
   /**
@@ -149,92 +151,138 @@ class AnalyticsEventService {
    * Track user signup event
    */
   async trackSignup(userId, signupData = {}, req = null) {
-    return this.trackEvent('signup', userId, {
-      method: signupData.method || 'email',
-      referralCode: signupData.referralCode,
-      ...signupData
-    }, req, true); // Immediate for critical events
+    return this.trackEvent(
+      'signup',
+      userId,
+      {
+        method: signupData.method || 'email',
+        referralCode: signupData.referralCode,
+        ...signupData
+      },
+      req,
+      true
+    ); // Immediate for critical events
   }
 
   /**
    * Track subscription creation
    */
   async trackSubscriptionCreated(userId, subscriptionData, req = null) {
-    return this.trackEvent('subscription_created', userId, {
-      tier: subscriptionData.tier,
-      amount: subscriptionData.amount,
-      billingPeriod: subscriptionData.billingPeriod,
-      trialDays: subscriptionData.trialDays
-    }, req, true); // Immediate for revenue events
+    return this.trackEvent(
+      'subscription_created',
+      userId,
+      {
+        tier: subscriptionData.tier,
+        amount: subscriptionData.amount,
+        billingPeriod: subscriptionData.billingPeriod,
+        trialDays: subscriptionData.trialDays
+      },
+      req,
+      true
+    ); // Immediate for revenue events
   }
 
   /**
    * Track subscription cancellation
    */
   async trackSubscriptionCanceled(userId, cancellationData, req = null) {
-    return this.trackEvent('subscription_canceled', userId, {
-      tier: cancellationData.tier,
-      reason: cancellationData.reason,
-      feedback: cancellationData.feedback
-    }, req, true); // Immediate for churn tracking
+    return this.trackEvent(
+      'subscription_canceled',
+      userId,
+      {
+        tier: cancellationData.tier,
+        reason: cancellationData.reason,
+        feedback: cancellationData.feedback
+      },
+      req,
+      true
+    ); // Immediate for churn tracking
   }
 
   /**
    * Track subscription renewal
    */
   async trackSubscriptionRenewed(userId, renewalData, req = null) {
-    return this.trackEvent('subscription_renewed', userId, {
-      tier: renewalData.tier,
-      amount: renewalData.amount,
-      renewalCount: renewalData.renewalCount
-    }, req, true); // Immediate for revenue events
+    return this.trackEvent(
+      'subscription_renewed',
+      userId,
+      {
+        tier: renewalData.tier,
+        amount: renewalData.amount,
+        renewalCount: renewalData.renewalCount
+      },
+      req,
+      true
+    ); // Immediate for revenue events
   }
 
   /**
    * Track trade execution
    */
   async trackTradeExecuted(userId, tradeData, req = null) {
-    return this.trackEvent('trade_executed', userId, {
-      symbol: tradeData.symbol,
-      side: tradeData.side,
-      quantity: tradeData.quantity,
-      price: tradeData.price,
-      broker: tradeData.broker,
-      profit: tradeData.profit,
-      signalId: tradeData.signalId
-    }, req); // Batched for high-frequency events
+    return this.trackEvent(
+      'trade_executed',
+      userId,
+      {
+        symbol: tradeData.symbol,
+        side: tradeData.side,
+        quantity: tradeData.quantity,
+        price: tradeData.price,
+        broker: tradeData.broker,
+        profit: tradeData.profit,
+        signalId: tradeData.signalId
+      },
+      req
+    ); // Batched for high-frequency events
   }
 
   /**
    * Track user login
    */
   async trackLogin(userId, loginData = {}, req = null) {
-    return this.trackEvent('login', userId, {
-      method: loginData.method || 'password',
-      twoFactorUsed: loginData.twoFactorUsed || false
-    }, req); // Batched
+    return this.trackEvent(
+      'login',
+      userId,
+      {
+        method: loginData.method || 'password',
+        twoFactorUsed: loginData.twoFactorUsed || false
+      },
+      req
+    ); // Batched
   }
 
   /**
    * Track broker connection
    */
   async trackBrokerConnected(userId, brokerData, req = null) {
-    return this.trackEvent('broker_connected', userId, {
-      broker: brokerData.broker,
-      accountType: brokerData.accountType,
-      isReconnection: brokerData.isReconnection || false
-    }, req, true); // Immediate for important integration events
+    return this.trackEvent(
+      'broker_connected',
+      userId,
+      {
+        broker: brokerData.broker,
+        accountType: brokerData.accountType,
+        isReconnection: brokerData.isReconnection || false
+      },
+      req,
+      true
+    ); // Immediate for important integration events
   }
 
   /**
    * Track signal subscription
    */
   async trackSignalSubscribed(userId, signalData, req = null) {
-    return this.trackEvent('signal_subscribed', userId, {
-      providerId: signalData.providerId,
-      providerName: signalData.providerName,
-      subscriptionType: signalData.subscriptionType
-    }, req, true); // Immediate for important user actions
+    return this.trackEvent(
+      'signal_subscribed',
+      userId,
+      {
+        providerId: signalData.providerId,
+        providerName: signalData.providerName,
+        subscriptionType: signalData.subscriptionType
+      },
+      req,
+      true
+    ); // Immediate for important user actions
   }
 
   /**

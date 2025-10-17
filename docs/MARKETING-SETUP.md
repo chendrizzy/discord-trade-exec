@@ -106,7 +106,7 @@ Start your 7-day free trial: https://yourdomain.com
 
 ### Essential (Free):
 1. **Discord Invite Link** - Create in your Discord server settings
-2. **Landing Page URL** - Your website or Vercel deployment
+2. **Landing Page URL** - Your website or Railway deployment
 
 ### Recommended (Free trials available):
 3. **Twitter API** - Apply at developer.twitter.com

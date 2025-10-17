@@ -67,7 +67,16 @@ const brokerCredentialsSchema = Joi.object({
 const awsConfigSchema = Joi.object({
   region: Joi.string()
     .required()
-    .valid('us-east-1', 'us-east-2', 'us-west-1', 'us-west-2', 'eu-west-1', 'eu-central-1', 'ap-southeast-1', 'ap-northeast-1')
+    .valid(
+      'us-east-1',
+      'us-east-2',
+      'us-west-1',
+      'us-west-2',
+      'eu-west-1',
+      'eu-central-1',
+      'ap-southeast-1',
+      'ap-northeast-1'
+    )
     .description('AWS Region'),
   credentials: Joi.object({
     accessKeyId: Joi.string().required().min(16).max(128),
@@ -87,11 +96,7 @@ const awsConfigSchema = Joi.object({
 const apiConfigSchema = Joi.object({
   port: Joi.number().integer().min(1024).max(65535).default(3000),
   host: Joi.string().hostname().default('localhost'),
-  corsOrigins: Joi.array()
-    .items(Joi.string().uri())
-    .min(1)
-    .required()
-    .description('Allowed CORS origins'),
+  corsOrigins: Joi.array().items(Joi.string().uri()).min(1).required().description('Allowed CORS origins'),
   rateLimit: Joi.object({
     windowMs: Joi.number().integer().min(1000).default(900000),
     max: Joi.number().integer().min(1).default(100)

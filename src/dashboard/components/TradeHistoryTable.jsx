@@ -5,7 +5,7 @@ import {
   getSortedRowModel,
   getFilteredRowModel,
   getPaginationRowModel,
-  useReactTable,
+  useReactTable
 } from '@tanstack/react-table';
 import { ArrowUpDown, ChevronDown, ChevronUp } from 'lucide-react';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from './ui/table';
@@ -21,11 +21,11 @@ const mockTrades = [
     timestamp: new Date('2025-01-10T14:23:45Z'),
     symbol: 'BTC/USDT',
     side: 'BUY',
-    price: 43250.50,
+    price: 43250.5,
     quantity: 0.5,
     total: 21625.25,
     pnl: 1234.56,
-    status: 'FILLED',
+    status: 'FILLED'
   },
   {
     id: '2',
@@ -35,8 +35,8 @@ const mockTrades = [
     price: 2345.75,
     quantity: 5.0,
     total: 11728.75,
-    pnl: -432.10,
-    status: 'FILLED',
+    pnl: -432.1,
+    status: 'FILLED'
   },
   {
     id: '3',
@@ -45,20 +45,20 @@ const mockTrades = [
     side: 'BUY',
     price: 102.45,
     quantity: 50.0,
-    total: 5122.50,
-    pnl: 876.30,
-    status: 'FILLED',
+    total: 5122.5,
+    pnl: 876.3,
+    status: 'FILLED'
   },
   {
     id: '4',
     timestamp: new Date('2025-01-10T11:42:18Z'),
     symbol: 'BTC/USDT',
     side: 'SELL',
-    price: 43100.00,
+    price: 43100.0,
     quantity: 0.25,
-    total: 10775.00,
+    total: 10775.0,
     pnl: 543.21,
-    status: 'FILLED',
+    status: 'FILLED'
   },
   {
     id: '5',
@@ -67,10 +67,10 @@ const mockTrades = [
     side: 'BUY',
     price: 38.92,
     quantity: 100.0,
-    total: 3892.00,
+    total: 3892.0,
     pnl: -156.78,
-    status: 'FILLED',
-  },
+    status: 'FILLED'
+  }
 ];
 
 export function TradeHistoryTable() {
@@ -97,7 +97,7 @@ export function TradeHistoryTable() {
           page: page.toString(),
           limit: limit.toString(),
           sortBy: sortField,
-          sortOrder,
+          sortOrder
         });
 
         if (symbolFilter) {
@@ -151,11 +151,11 @@ export function TradeHistoryTable() {
                 month: 'short',
                 day: 'numeric',
                 hour: '2-digit',
-                minute: '2-digit',
+                minute: '2-digit'
               })}
             </div>
           );
-        },
+        }
       },
       {
         accessorKey: 'symbol',
@@ -176,7 +176,7 @@ export function TradeHistoryTable() {
             )}
           </Button>
         ),
-        cell: ({ row }) => <div className="font-semibold">{row.getValue('symbol')}</div>,
+        cell: ({ row }) => <div className="font-semibold">{row.getValue('symbol')}</div>
       },
       {
         id: 'quality',
@@ -184,7 +184,7 @@ export function TradeHistoryTable() {
         cell: ({ row }) => {
           const tradeId = row.original._id || row.original.id;
           return <SignalQualityIndicator tradeId={tradeId} compact={true} />;
-        },
+        }
       },
       {
         accessorKey: 'side',
@@ -196,7 +196,7 @@ export function TradeHistoryTable() {
               {side}
             </Badge>
           );
-        },
+        }
       },
       {
         accessorKey: 'entryPrice',
@@ -217,12 +217,14 @@ export function TradeHistoryTable() {
             )}
           </Button>
         ),
-        cell: ({ row }) => <div>${row.getValue('entryPrice').toLocaleString('en-US', { minimumFractionDigits: 2 })}</div>,
+        cell: ({ row }) => (
+          <div>${row.getValue('entryPrice').toLocaleString('en-US', { minimumFractionDigits: 2 })}</div>
+        )
       },
       {
         accessorKey: 'quantity',
         header: 'Quantity',
-        cell: ({ row }) => <div>{row.getValue('quantity').toLocaleString('en-US', { minimumFractionDigits: 2 })}</div>,
+        cell: ({ row }) => <div>{row.getValue('quantity').toLocaleString('en-US', { minimumFractionDigits: 2 })}</div>
       },
       {
         accessorKey: 'profitLoss',
@@ -251,7 +253,7 @@ export function TradeHistoryTable() {
               {isProfit ? '+' : ''}${profitLoss.toLocaleString('en-US', { minimumFractionDigits: 2 })}
             </div>
           );
-        },
+        }
       },
       {
         accessorKey: 'status',
@@ -260,8 +262,8 @@ export function TradeHistoryTable() {
           <Badge variant="info" className="text-xs">
             {row.getValue('status')}
           </Badge>
-        ),
-      },
+        )
+      }
     ],
     []
   );
@@ -272,7 +274,7 @@ export function TradeHistoryTable() {
     state: {
       sorting,
       columnFilters,
-      pagination,
+      pagination
     },
     manualPagination: true,
     manualSorting: true,
@@ -283,7 +285,7 @@ export function TradeHistoryTable() {
     getCoreRowModel: getCoreRowModel(),
     getSortedRowModel: getSortedRowModel(),
     getFilteredRowModel: getFilteredRowModel(),
-    getPaginationRowModel: getPaginationRowModel(),
+    getPaginationRowModel: getPaginationRowModel()
   });
 
   return (
@@ -293,7 +295,7 @@ export function TradeHistoryTable() {
         <Input
           placeholder="Search by symbol..."
           value={symbolFilter}
-          onChange={(event) => setSymbolFilter(event.target.value)}
+          onChange={event => setSymbolFilter(event.target.value)}
           className="max-w-sm"
           disabled={loading}
         />
@@ -304,13 +306,11 @@ export function TradeHistoryTable() {
       <div className="rounded-md border">
         <Table>
           <TableHeader>
-            {table.getHeaderGroups().map((headerGroup) => (
+            {table.getHeaderGroups().map(headerGroup => (
               <TableRow key={headerGroup.id}>
-                {headerGroup.headers.map((header) => (
+                {headerGroup.headers.map(header => (
                   <TableHead key={header.id}>
-                    {header.isPlaceholder
-                      ? null
-                      : flexRender(header.column.columnDef.header, header.getContext())}
+                    {header.isPlaceholder ? null : flexRender(header.column.columnDef.header, header.getContext())}
                   </TableHead>
                 ))}
               </TableRow>
@@ -318,12 +318,10 @@ export function TradeHistoryTable() {
           </TableHeader>
           <TableBody>
             {table.getRowModel().rows?.length ? (
-              table.getRowModel().rows.map((row) => (
+              table.getRowModel().rows.map(row => (
                 <TableRow key={row.id} data-state={row.getIsSelected() && 'selected'}>
-                  {row.getVisibleCells().map((cell) => (
-                    <TableCell key={cell.id}>
-                      {flexRender(cell.column.columnDef.cell, cell.getContext())}
-                    </TableCell>
+                  {row.getVisibleCells().map(cell => (
+                    <TableCell key={cell.id}>{flexRender(cell.column.columnDef.cell, cell.getContext())}</TableCell>
                   ))}
                 </TableRow>
               ))
@@ -363,12 +361,7 @@ export function TradeHistoryTable() {
           >
             Previous
           </Button>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => table.nextPage()}
-            disabled={!table.getCanNextPage()}
-          >
+          <Button variant="outline" size="sm" onClick={() => table.nextPage()} disabled={!table.getCanNextPage()}>
             Next
           </Button>
         </div>

@@ -3,13 +3,13 @@ import { Home, Bot, BarChart3, Trophy, Settings, Menu, X, Shield, TrendingUp } f
 import { Button } from './ui/button';
 import { cn } from '@/lib/utils';
 
-const getNavItems = (isAdmin) => {
+const getNavItems = isAdmin => {
   const items = [
     { id: 'overview', label: 'Overview', icon: Home },
     { id: 'bots', label: 'Bots', icon: Bot },
     { id: 'analytics', label: 'Analytics', icon: BarChart3 },
     { id: 'leaderboard', label: 'Leaderboard', icon: Trophy },
-    { id: 'settings', label: 'Settings', icon: Settings },
+    { id: 'settings', label: 'Settings', icon: Settings }
   ];
 
   if (isAdmin) {
@@ -36,7 +36,7 @@ export function Navigation({ activeTab, onTabChange, userName, onLogout, user })
 
           {/* Navigation Items */}
           <nav className="flex-1 px-3 py-4 space-y-1">
-            {navItems.map((item) => {
+            {navItems.map(item => {
               const Icon = item.icon;
               const isActive = activeTab === item.id;
               return (
@@ -76,16 +76,8 @@ export function Navigation({ activeTab, onTabChange, userName, onLogout, user })
       <div className="md:hidden fixed top-0 left-0 right-0 z-40 bg-card border-b border-border">
         <div className="flex items-center justify-between h-14 px-4">
           <h1 className="text-lg font-bold text-foreground">Trading Bot</h1>
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => setSidebarOpen(!sidebarOpen)}
-          >
-            {sidebarOpen ? (
-              <X className="h-5 w-5" />
-            ) : (
-              <Menu className="h-5 w-5" />
-            )}
+          <Button variant="ghost" size="sm" onClick={() => setSidebarOpen(!sidebarOpen)}>
+            {sidebarOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
           </Button>
         </div>
       </div>
@@ -93,27 +85,20 @@ export function Navigation({ activeTab, onTabChange, userName, onLogout, user })
       {/* Mobile Sidebar Overlay */}
       {sidebarOpen && (
         <>
-          <div
-            className="md:hidden fixed inset-0 z-40 bg-black/80"
-            onClick={() => setSidebarOpen(false)}
-          />
+          <div className="md:hidden fixed inset-0 z-40 bg-black/80" onClick={() => setSidebarOpen(false)} />
           <aside className="md:hidden fixed inset-y-0 left-0 z-50 w-64 bg-card border-r border-border">
             <div className="flex flex-col h-full">
               {/* Mobile Header */}
               <div className="flex items-center justify-between h-14 px-4 border-b border-border">
                 <h1 className="text-lg font-bold text-foreground">Trading Bot</h1>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => setSidebarOpen(false)}
-                >
+                <Button variant="ghost" size="sm" onClick={() => setSidebarOpen(false)}>
                   <X className="h-5 w-5" />
                 </Button>
               </div>
 
               {/* Navigation Items */}
               <nav className="flex-1 px-3 py-4 space-y-1">
-                {navItems.map((item) => {
+                {navItems.map(item => {
                   const Icon = item.icon;
                   const isActive = activeTab === item.id;
                   return (
@@ -157,7 +142,7 @@ export function Navigation({ activeTab, onTabChange, userName, onLogout, user })
       {/* Mobile Bottom Navigation */}
       <div className="md:hidden fixed bottom-0 left-0 right-0 z-30 bg-card border-t border-border">
         <nav className="flex items-center justify-around h-16 px-2">
-          {navItems.map((item) => {
+          {navItems.map(item => {
             const Icon = item.icon;
             const isActive = activeTab === item.id;
             return (
@@ -166,9 +151,7 @@ export function Navigation({ activeTab, onTabChange, userName, onLogout, user })
                 onClick={() => onTabChange(item.id)}
                 className={cn(
                   'flex flex-col items-center justify-center flex-1 h-full gap-1 transition-colors',
-                  isActive
-                    ? 'text-gold-500'
-                    : 'text-muted-foreground hover:text-foreground'
+                  isActive ? 'text-gold-500' : 'text-muted-foreground hover:text-foreground'
                 )}
               >
                 <Icon className="h-5 w-5" />

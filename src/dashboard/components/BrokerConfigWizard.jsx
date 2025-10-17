@@ -55,6 +55,8 @@ export function BrokerConfigWizard() {
     environment: 'testnet', // 'testnet' or 'live'
     showApiKey: false,
     showApiSecret: false,
+    credentials: {}, // Dynamic credential fields
+    showCredentialFields: {}, // Password visibility toggles for dynamic fields
   });
 
   // Fetch available brokers when dialog opens
@@ -94,6 +96,21 @@ export function BrokerConfigWizard() {
 
       if (data.success) {
         setSelectedBrokerInfo(data.broker);
+
+        // Initialize credentials with default values if credentialFields exist
+        if (data.broker.credentialFields) {
+          const defaultCredentials = {};
+          data.broker.credentialFields.forEach(field => {
+            if (field.defaultValue !== undefined) {
+              defaultCredentials[field.name] = field.defaultValue;
+            }
+          });
+
+          setConfig(prev => ({
+            ...prev,
+            credentials: defaultCredentials
+          }));
+        }
       }
     } catch (error) {
       console.error('Failed to fetch broker info:', error);
@@ -146,6 +163,8 @@ export function BrokerConfigWizard() {
       environment: 'testnet',
       showApiKey: false,
       showApiSecret: false,
+      credentials: {},
+      showCredentialFields: {},
     });
     setSelectedBrokerInfo(null);
     setTestResult(null);
@@ -156,9 +175,17 @@ export function BrokerConfigWizard() {
     setTestResult(null);
 
     try {
-      const credentials = config.authMethod === 'oauth'
-        ? { accessToken: config.accessToken }
-        : { apiKey: config.apiKey, apiSecret: config.apiSecret };
+      let credentials;
+
+      if (config.authMethod === 'oauth') {
+        credentials = { accessToken: config.accessToken };
+      } else if (selectedBrokerInfo?.credentialFields) {
+        // Use dynamic credentials
+        credentials = { ...config.credentials };
+      } else {
+        // Legacy API Key/Secret
+        credentials = { apiKey: config.apiKey, apiSecret: config.apiSecret };
+      }
 
       const response = await fetch('/api/brokers/test', {
         method: 'POST',
@@ -191,9 +218,17 @@ export function BrokerConfigWizard() {
     setLoading(true);
 
     try {
-      const credentials = config.authMethod === 'oauth'
-        ? { accessToken: config.accessToken }
-        : { apiKey: config.apiKey, apiSecret: config.apiSecret };
+      let credentials;
+
+      if (config.authMethod === 'oauth') {
+        credentials = { accessToken: config.accessToken };
+      } else if (selectedBrokerInfo?.credentialFields) {
+        // Use dynamic credentials
+        credentials = { ...config.credentials };
+      } else {
+        // Legacy API Key/Secret
+        credentials = { apiKey: config.apiKey, apiSecret: config.apiSecret };
+      }
 
       const response = await fetch('/api/brokers/configure', {
         method: 'POST',
@@ -235,6 +270,16 @@ export function BrokerConfigWizard() {
         if (config.authMethod === 'oauth') {
           return config.accessToken !== '';
         }
+        // Check for dynamic credential fields
+        if (selectedBrokerInfo?.credentialFields) {
+          return selectedBrokerInfo.credentialFields
+            .filter(field => field.required)
+            .every(field => {
+              const value = config.credentials[field.name];
+              return value !== undefined && value !== null && value !== '';
+            });
+        }
+        // Legacy API Key/Secret validation
         return config.apiKey !== '' && config.apiSecret !== '';
       case 5:
         return testResult?.success === true;
@@ -248,6 +293,62 @@ export function BrokerConfigWizard() {
   const getFilteredBrokers = () => {
     return availableBrokers.filter(b =>
       b.type === config.brokerType && b.status === 'available'
+    );
+  };
+
+  const renderCredentialField = (field) => {
+    const fieldName = field.name;
+    const fieldValue = config.credentials[fieldName] ?? field.defaultValue ?? '';
+    const showPassword = config.showCredentialFields[fieldName] ?? false;
+
+    const handleFieldChange = (value) => {
+      setConfig(prev => ({
+        ...prev,
+        credentials: {
+          ...prev.credentials,
+          [fieldName]: value
+        }
+      }));
+    };
+
+    const togglePasswordVisibility = () => {
+      setConfig(prev => ({
+        ...prev,
+        showCredentialFields: {
+          ...prev.showCredentialFields,
+          [fieldName]: !showPassword
+        }
+      }));
+    };
+
+    return (
+      <div key={fieldName} className="space-y-2">
+        <label className="text-sm font-medium">
+          {field.label}
+          {field.required && <span className="text-red-500 ml-1">*</span>}
+        </label>
+        <div className="relative">
+          <Input
+            type={field.type === 'password' && !showPassword ? 'password' : field.type === 'number' ? 'number' : 'text'}
+            placeholder={field.placeholder || ''}
+            value={fieldValue}
+            onChange={(e) => handleFieldChange(e.target.value)}
+            className={field.type === 'password' ? 'pr-10' : ''}
+          />
+          {field.type === 'password' && (
+            <button
+              type="button"
+              onClick={togglePasswordVisibility}
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+            >
+              {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+            </button>
+          )}
+        </div>
+        {field.helpText && (
+          <p className="text-xs text-muted-foreground">{field.helpText}</p>
+        )}
+      </div>
     );
   };
 
@@ -338,7 +439,7 @@ export function BrokerConfigWizard() {
                           {broker.description}
                         </p>
                         <div className="flex flex-wrap gap-1">
-                          {broker.features.slice(0, 4).map((feature) => (
+                          {broker.features?.slice(0, 4).map((feature) => (
                             <Badge key={feature} variant="outline" className="text-xs">
                               {feature}
                             </Badge>
@@ -466,8 +567,49 @@ export function BrokerConfigWizard() {
                   Complete OAuth flow in {selectedBrokerInfo?.name} to get your access token
                 </p>
               </div>
+            ) : selectedBrokerInfo?.credentialFields ? (
+              <>
+                {/* Show prerequisites warning if exists */}
+                {selectedBrokerInfo.prerequisites?.warningMessage && (
+                  <Alert variant="warning">
+                    <AlertCircle className="h-4 w-4" />
+                    <AlertDescription>
+                      {selectedBrokerInfo.prerequisites.warningMessage}
+                      {selectedBrokerInfo.prerequisites.setupGuideUrl && (
+                        <div className="mt-2">
+                          <a
+                            href={selectedBrokerInfo.prerequisites.setupGuideUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-xs underline hover:text-primary"
+                          >
+                            View Setup Guide
+                          </a>
+                        </div>
+                      )}
+                      {/* Installation steps expandable section */}
+                      {selectedBrokerInfo.prerequisites.installationSteps && (
+                        <details className="mt-3">
+                          <summary className="cursor-pointer text-sm font-medium hover:text-primary">
+                            View Installation Steps
+                          </summary>
+                          <ol className="mt-2 ml-4 list-decimal space-y-1 text-sm">
+                            {selectedBrokerInfo.prerequisites.installationSteps.map((step, index) => (
+                              <li key={index}>{step}</li>
+                            ))}
+                          </ol>
+                        </details>
+                      )}
+                    </AlertDescription>
+                  </Alert>
+                )}
+
+                {/* Render dynamic credential fields */}
+                {selectedBrokerInfo.credentialFields.map(field => renderCredentialField(field))}
+              </>
             ) : (
               <>
+                {/* Legacy API Key/Secret fields */}
                 <div className="space-y-2">
                   <label className="text-sm font-medium">API Key</label>
                   <div className="relative">
@@ -516,6 +658,7 @@ export function BrokerConfigWizard() {
         // Connection Testing
         return (
           <div className="space-y-4">
+            <h3 className="text-lg font-semibold">Test Connection</h3>
             <Alert variant="info">
               <TestTube className="h-4 w-4" />
               <AlertDescription>
@@ -569,6 +712,7 @@ export function BrokerConfigWizard() {
         // Review & Save
         return (
           <div className="space-y-4">
+            <h3 className="text-lg font-semibold">Save Configuration</h3>
             <Alert variant="profit">
               <CheckCircle2 className="h-4 w-4" />
               <AlertDescription>
@@ -609,7 +753,7 @@ export function BrokerConfigWizard() {
                 <div className="mt-4 p-3 bg-muted rounded-lg">
                   <div className="text-xs font-semibold mb-2">Supported Features:</div>
                   <div className="flex flex-wrap gap-1">
-                    {selectedBrokerInfo.features.map((feature) => (
+                    {selectedBrokerInfo.features?.map((feature) => (
                       <Badge key={feature} variant="outline" className="text-xs">
                         {feature}
                       </Badge>

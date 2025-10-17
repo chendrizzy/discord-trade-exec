@@ -197,5 +197,7 @@ function getRevenueMetricsInstance() {
   return instance;
 }
 
-module.exports = RevenueMetrics;
-module.exports.getRevenueMetricsInstance = getRevenueMetricsInstance;
+module.exports = {
+  RevenueMetrics,
+  getRevenueMetricsInstance
+};

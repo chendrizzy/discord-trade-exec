@@ -6,7 +6,7 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
+  DialogTrigger
 } from './ui/dialog';
 import { Button } from './ui/button';
 import { Input } from './ui/input';
@@ -18,7 +18,7 @@ const exchanges = [
   { id: 'binance', name: 'Binance', logo: '🔶', connected: true },
   { id: 'coinbase', name: 'Coinbase', logo: '🔵', connected: false },
   { id: 'kraken', name: 'Kraken', logo: '🟣', connected: false },
-  { id: 'kucoin', name: 'KuCoin', logo: '🟢', connected: false },
+  { id: 'kucoin', name: 'KuCoin', logo: '🟢', connected: false }
 ];
 
 export function APIKeyManagement() {
@@ -28,7 +28,7 @@ export function APIKeyManagement() {
   const [formData, setFormData] = useState({
     apiKey: '',
     apiSecret: '',
-    passphrase: '',
+    passphrase: ''
   });
   const [testing, setTesting] = useState(false);
   const [testResult, setTestResult] = useState(null);
@@ -40,14 +40,14 @@ export function APIKeyManagement() {
     setTestResult(null);
   };
 
-  const handleOpenDialog = (exchange) => {
+  const handleOpenDialog = exchange => {
     setSelectedExchange(exchange);
     if (exchange.connected) {
       // Load existing keys (masked)
       setFormData({
         apiKey: '••••••••••••••••••••••••••••••••',
         apiSecret: '••••••••••••••••••••••••••••••••',
-        passphrase: '',
+        passphrase: ''
       });
     } else {
       resetForm();
@@ -59,7 +59,7 @@ export function APIKeyManagement() {
     setTestResult(null);
 
     // Simulate API test
-    await new Promise((resolve) => setTimeout(resolve, 2000));
+    await new Promise(resolve => setTimeout(resolve, 2000));
 
     // Mock result
     const success = Math.random() > 0.3;
@@ -67,7 +67,7 @@ export function APIKeyManagement() {
       success,
       message: success
         ? 'Connection successful! Your API keys are valid.'
-        : 'Connection failed. Please check your API keys and try again.',
+        : 'Connection failed. Please check your API keys and try again.'
     });
     setTesting(false);
   };
@@ -95,10 +95,10 @@ export function APIKeyManagement() {
   return (
     <div className="space-y-4">
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        {exchanges.map((exchange) => (
+        {exchanges.map(exchange => (
           <Dialog
             key={exchange.id}
-            onOpenChange={(open) => {
+            onOpenChange={open => {
               if (!open) {
                 setSelectedExchange(null);
                 resetForm();
@@ -162,7 +162,7 @@ export function APIKeyManagement() {
                         type={showApiKey ? 'text' : 'password'}
                         placeholder="Enter API key"
                         value={formData.apiKey}
-                        onChange={(e) => setFormData({ ...formData, apiKey: e.target.value })}
+                        onChange={e => setFormData({ ...formData, apiKey: e.target.value })}
                         className="pr-10"
                       />
                       <button
@@ -182,7 +182,7 @@ export function APIKeyManagement() {
                         type={showApiSecret ? 'text' : 'password'}
                         placeholder="Enter API secret"
                         value={formData.apiSecret}
-                        onChange={(e) => setFormData({ ...formData, apiSecret: e.target.value })}
+                        onChange={e => setFormData({ ...formData, apiSecret: e.target.value })}
                         className="pr-10"
                       />
                       <button
@@ -202,7 +202,7 @@ export function APIKeyManagement() {
                         type="password"
                         placeholder="Enter passphrase"
                         value={formData.passphrase}
-                        onChange={(e) => setFormData({ ...formData, passphrase: e.target.value })}
+                        onChange={e => setFormData({ ...formData, passphrase: e.target.value })}
                       />
                       <p className="text-xs text-muted-foreground">
                         KuCoin requires a passphrase for API authentication
@@ -222,11 +222,7 @@ export function APIKeyManagement() {
 
                   {testResult && (
                     <Alert variant={testResult.success ? 'profit' : 'loss'}>
-                      {testResult.success ? (
-                        <CheckCircle2 className="h-4 w-4" />
-                      ) : (
-                        <AlertCircle className="h-4 w-4" />
-                      )}
+                      {testResult.success ? <CheckCircle2 className="h-4 w-4" /> : <AlertCircle className="h-4 w-4" />}
                       <AlertDescription>{testResult.message}</AlertDescription>
                     </Alert>
                   )}
@@ -246,11 +242,7 @@ export function APIKeyManagement() {
                       <Button variant="outline" onClick={() => setSelectedExchange(null)}>
                         Cancel
                       </Button>
-                      <Button
-                        variant="gold"
-                        onClick={handleSave}
-                        disabled={!formData.apiKey || !formData.apiSecret}
-                      >
+                      <Button variant="gold" onClick={handleSave} disabled={!formData.apiKey || !formData.apiSecret}>
                         {selectedExchange.connected ? 'Update' : 'Save'}
                       </Button>
                     </div>

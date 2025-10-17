@@ -132,9 +132,19 @@ class TradeExecutor extends EventEmitter {
       return 'crypto';
     }
 
+    const upperSymbol = symbol.toUpperCase();
     const baseSymbol = symbol.split('/')[0].toUpperCase();
+
+    // Check if symbol starts with or is a known crypto symbol
     if (knownCryptoSymbols.includes(baseSymbol)) {
       return 'crypto';
+    }
+
+    // Also check if the symbol STARTS WITH any known crypto symbol (e.g., BTCUSDT starts with BTC)
+    for (const cryptoSymbol of knownCryptoSymbols) {
+      if (upperSymbol.startsWith(cryptoSymbol)) {
+        return 'crypto';
+      }
     }
 
     // Default to stock for single symbols like AAPL, TSLA, etc.
@@ -158,6 +168,8 @@ class TradeExecutor extends EventEmitter {
       if (this.exchanges[preferredAdapter]) {
         return { adapter: this.exchanges[preferredAdapter], type: 'exchange', key: preferredAdapter };
       }
+      // If preferred adapter was specified but not found, throw error
+      throw new Error(`Preferred adapter '${preferredAdapter}' is not available. Please configure it first.`);
     }
 
     // Auto-select based on asset type

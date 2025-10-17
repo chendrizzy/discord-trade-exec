@@ -73,7 +73,9 @@ class SignalSubscriptionService {
         req
       );
 
-      console.log(`[SignalSubscriptionService] User subscribed: ${user.discordUsername} -> ${provider.name} (${subscriptionType})`);
+      console.log(
+        `[SignalSubscriptionService] User subscribed: ${user.discordUsername} -> ${provider.name} (${subscriptionType})`
+      );
 
       return {
         success: true,
@@ -168,7 +170,9 @@ class SignalSubscriptionService {
 
       await user.save();
 
-      console.log(`[SignalSubscriptionService] Subscription settings updated: ${user.discordUsername} -> ${subscription.channelName}`);
+      console.log(
+        `[SignalSubscriptionService] Subscription settings updated: ${user.discordUsername} -> ${subscription.channelName}`
+      );
 
       return {
         success: true,

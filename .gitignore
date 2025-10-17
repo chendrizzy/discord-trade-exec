@@ -44,5 +44,6 @@ deploy-railway.sh
 monitor-moomoo.log
 .moomoo-monitor-status.json
 
-# Railway (if using local deployment)
+# Deployment Platform Directories
+.vercel/
 .railway/

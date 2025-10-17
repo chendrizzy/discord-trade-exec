@@ -355,16 +355,68 @@ MOOMOO_PAPER_TRADING=true
    - Connect to paper trading account
    - Verify port 11111
 
-2. **Test in Dashboard:**
+2. **Configure in Dashboard:**
    - Click **Settings** → **Configure Broker**
    - Select **Stock Brokers**
    - Click **Moomoo**
-   - Enter connection details (host/port)
-   - **Test Connection**
-   - ✅ Should connect if Gateway running
-   - **Save Configuration**
 
-**✅ Moomoo Complete!** (If OpenD Gateway works)
+3. **You'll See a 6-Step Configuration Wizard:**
+
+   **Step 1: Select Broker Type**
+   - Choose "Stock Brokers"
+
+   **Step 2: Select Broker**
+   - Click on Moomoo card
+
+   **Step 3: Choose Auth Method**
+   - Select "API Key" (only option for Moomoo)
+
+   **Step 4: Enter Credentials** (NEW Dynamic Fields!)
+
+   📢 **Prerequisite Warning** (appears automatically):
+   > ⚠️ **Moomoo requires OpenD Gateway running locally on your computer.**
+   > Please download and start OpenD before testing your connection.
+   >
+   > <details>
+   > <summary>View Installation Steps</summary>
+   >
+   > 1. Download OpenD Gateway from https://openapi.moomoo.com
+   > 2. Install OpenD on your local computer
+   > 3. Start OpenD Gateway service (default port: 11111)
+   > 4. Verify OpenD is running by checking localhost:11111
+   > 5. Return here to configure your Moomoo connection
+   > </details>
+
+   **Dynamic Credential Fields:**
+
+   - **Account ID** * (required)
+     - Your Moomoo account ID
+     - Helper text: "The account identifier for your Moomoo trading account"
+
+   - **Password** * (required)
+     - Your Moomoo account password
+     - Shows/hides with 👁️ toggle button
+     - Helper text: "Trading password for your Moomoo account"
+
+   - **OpenD Gateway Host** * (required)
+     - Default: `127.0.0.1` (auto-filled)
+     - Helper text: "Local OpenD gateway host address (default: 127.0.0.1)"
+
+   - **OpenD Gateway Port** * (required)
+     - Default: `11111` (auto-filled)
+     - Helper text: "Local OpenD gateway port (default: 11111)"
+
+   💡 **Pro Tip:** Host and Port fields are pre-filled with defaults. Leave them as-is unless you changed OpenD's configuration.
+
+   **Step 5: Select Environment**
+   - Choose "Paper Trading" (recommended)
+
+   **Step 6: Test & Save**
+   - Click **Test Connection**
+   - ✅ Should see: "Connection successful" + balance (if OpenD running)
+   - Click **Save Configuration**
+
+**✅ Moomoo Complete!** You can now trade stocks on paper via Moomoo.
 
 ---
 

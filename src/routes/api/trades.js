@@ -319,67 +319,57 @@ router.delete(
  * @desc    Get all active (open) trades for the user
  * @access  Private (Multi-Tenant)
  */
-router.get(
-  '/active',
-  extractTenantMiddleware,
-  auditLog('trade.view_active', 'Trade'),
-  async (req, res) => {
-    try {
-      const userId = req.tenant.userId;
+router.get('/active', extractTenantMiddleware, auditLog('trade.view_active', 'Trade'), async (req, res) => {
+  try {
+    const userId = req.tenant.userId;
 
-      const result = await tradeExecutionService.getActiveTrades(userId);
+    const result = await tradeExecutionService.getActiveTrades(userId);
 
-      if (!result.success) {
-        return sendError(res, result.error, 400);
-      }
-
-      return sendSuccess(res, result.trades, `${result.trades.length} active trade(s) found`);
-    } catch (error) {
-      console.error('[Trade Execution API] Error fetching active trades:', error);
-      return sendError(res, 'Failed to fetch active trades', 500, { message: error.message });
+    if (!result.success) {
+      return sendError(res, result.error, 400);
     }
+
+    return sendSuccess(res, result.trades, `${result.trades.length} active trade(s) found`);
+  } catch (error) {
+    console.error('[Trade Execution API] Error fetching active trades:', error);
+    return sendError(res, 'Failed to fetch active trades', 500, { message: error.message });
   }
-);
+});
 
 /**
  * @route   GET /api/trades/history
  * @desc    Get trade history for user with timeframe filter
  * @access  Private (Multi-Tenant)
  */
-router.get(
-  '/history',
-  extractTenantMiddleware,
-  auditLog('trade.view_history', 'Trade'),
-  async (req, res) => {
-    try {
-      const userId = req.tenant.userId;
-      const { timeframe = '30d' } = req.query;
+router.get('/history', extractTenantMiddleware, auditLog('trade.view_history', 'Trade'), async (req, res) => {
+  try {
+    const userId = req.tenant.userId;
+    const { timeframe = '30d' } = req.query;
 
-      // Validate timeframe
-      if (!['24h', '7d', '30d', 'all'].includes(timeframe)) {
-        return sendValidationError(res, 'Invalid timeframe. Must be one of: 24h, 7d, 30d, all');
-      }
-
-      const result = await tradeExecutionService.getTradeHistory(userId, timeframe);
-
-      if (!result.success) {
-        return sendError(res, result.error, 400);
-      }
-
-      return sendSuccess(
-        res,
-        {
-          trades: result.trades,
-          summary: result.summary,
-          timeframe
-        },
-        `Trade history retrieved (${result.trades.length} trades)`
-      );
-    } catch (error) {
-      console.error('[Trade Execution API] Error fetching trade history:', error);
-      return sendError(res, 'Failed to fetch trade history', 500, { message: error.message });
+    // Validate timeframe
+    if (!['24h', '7d', '30d', 'all'].includes(timeframe)) {
+      return sendValidationError(res, 'Invalid timeframe. Must be one of: 24h, 7d, 30d, all');
     }
+
+    const result = await tradeExecutionService.getTradeHistory(userId, timeframe);
+
+    if (!result.success) {
+      return sendError(res, result.error, 400);
+    }
+
+    return sendSuccess(
+      res,
+      {
+        trades: result.trades,
+        summary: result.summary,
+        timeframe
+      },
+      `Trade history retrieved (${result.trades.length} trades)`
+    );
+  } catch (error) {
+    console.error('[Trade Execution API] Error fetching trade history:', error);
+    return sendError(res, 'Failed to fetch trade history', 500, { message: error.message });
   }
-);
+});
 
 module.exports = router;

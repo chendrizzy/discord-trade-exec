@@ -3,15 +3,7 @@ import { Card, CardHeader, CardTitle, CardDescription, CardContent } from './ui/
 import { Badge } from './ui/badge';
 import { Button } from './ui/button';
 import { Alert, AlertDescription } from './ui/alert';
-import {
-  TrendingDown,
-  RefreshCw,
-  AlertCircle,
-  DollarSign,
-  ExternalLink,
-  Lightbulb,
-  CheckCircle2
-} from 'lucide-react';
+import { TrendingDown, RefreshCw, AlertCircle, DollarSign, ExternalLink, Lightbulb, CheckCircle2 } from 'lucide-react';
 
 /**
  * Fee Comparison Component
@@ -100,14 +92,14 @@ export function FeeComparison({ symbol, quantity }) {
   /**
    * Format currency values
    */
-  const formatCurrency = (value) => {
+  const formatCurrency = value => {
     return `$${value.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
   };
 
   /**
    * Format timestamp
    */
-  const formatTimestamp = (date) => {
+  const formatTimestamp = date => {
     if (!date) return '';
     return date.toLocaleTimeString('en-US', {
       hour: '2-digit',
@@ -122,16 +114,9 @@ export function FeeComparison({ symbol, quantity }) {
       <div className="flex items-center justify-between">
         <div>
           <h2 className="text-2xl font-bold tracking-tight">Fee Comparison</h2>
-          <p className="text-muted-foreground mt-1">
-            Compare fees across your connected exchanges
-          </p>
+          <p className="text-muted-foreground mt-1">Compare fees across your connected exchanges</p>
         </div>
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={handleRefresh}
-          disabled={loading || !symbol || !quantity}
-        >
+        <Button variant="outline" size="sm" onClick={handleRefresh} disabled={loading || !symbol || !quantity}>
           <RefreshCw className={`mr-2 h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
           Refresh
         </Button>
@@ -167,9 +152,7 @@ export function FeeComparison({ symbol, quantity }) {
                 <Lightbulb className="h-5 w-5 text-gold-500" />
                 <CardTitle>Best Rate Recommendation</CardTitle>
               </div>
-              <CardDescription>
-                Trade on {comparison.recommendation.exchange} to save the most on fees
-              </CardDescription>
+              <CardDescription>Trade on {comparison.recommendation.exchange} to save the most on fees</CardDescription>
             </CardHeader>
             <CardContent>
               <div className="space-y-3">
@@ -190,16 +173,12 @@ export function FeeComparison({ symbol, quantity }) {
                   <span className="text-lg font-bold text-profit-text">
                     {formatCurrency(comparison.recommendation.savings)}
                     {comparison.recommendation.savingsPercent > 0 && (
-                      <span className="text-sm ml-1">
-                        ({comparison.recommendation.savingsPercent}%)
-                      </span>
+                      <span className="text-sm ml-1">({comparison.recommendation.savingsPercent}%)</span>
                     )}
                   </span>
                 </div>
                 <div className="pt-2 border-t border-border">
-                  <p className="text-xs text-muted-foreground">
-                    {comparison.recommendation.reason}
-                  </p>
+                  <p className="text-xs text-muted-foreground">{comparison.recommendation.reason}</p>
                 </div>
               </div>
             </CardContent>
@@ -211,8 +190,8 @@ export function FeeComparison({ symbol, quantity }) {
               <CardTitle>Fee Comparison</CardTitle>
               <CardDescription>
                 Comparing {comparison.summary.totalExchangesCompared} exchange
-                {comparison.summary.totalExchangesCompared !== 1 ? 's' : ''} for{' '}
-                {comparison.quantity} {comparison.symbol}
+                {comparison.summary.totalExchangesCompared !== 1 ? 's' : ''} for {comparison.quantity}{' '}
+                {comparison.symbol}
               </CardDescription>
             </CardHeader>
             <CardContent>
@@ -220,21 +199,13 @@ export function FeeComparison({ symbol, quantity }) {
                 <table className="w-full">
                   <thead>
                     <tr className="border-b border-border">
-                      <th className="text-left py-3 px-4 text-sm font-semibold text-muted-foreground">
-                        Exchange
-                      </th>
-                      <th className="text-right py-3 px-4 text-sm font-semibold text-muted-foreground">
-                        Taker Fee
-                      </th>
+                      <th className="text-left py-3 px-4 text-sm font-semibold text-muted-foreground">Exchange</th>
+                      <th className="text-right py-3 px-4 text-sm font-semibold text-muted-foreground">Taker Fee</th>
                       <th className="text-right py-3 px-4 text-sm font-semibold text-muted-foreground">
                         Estimated Cost
                       </th>
-                      <th className="text-right py-3 px-4 text-sm font-semibold text-muted-foreground">
-                        Savings
-                      </th>
-                      <th className="text-center py-3 px-4 text-sm font-semibold text-muted-foreground">
-                        Actions
-                      </th>
+                      <th className="text-right py-3 px-4 text-sm font-semibold text-muted-foreground">Savings</th>
+                      <th className="text-center py-3 px-4 text-sm font-semibold text-muted-foreground">Actions</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -242,9 +213,7 @@ export function FeeComparison({ symbol, quantity }) {
                       <tr
                         key={comp.exchange}
                         className={`border-b border-border ${
-                          comp.isCheapest
-                            ? 'bg-profit-bg/20 hover:bg-profit-bg/30'
-                            : 'hover:bg-accent'
+                          comp.isCheapest ? 'bg-profit-bg/20 hover:bg-profit-bg/30' : 'hover:bg-accent'
                         } transition-colors`}
                       >
                         <td className="py-4 px-4">
@@ -262,9 +231,7 @@ export function FeeComparison({ symbol, quantity }) {
                           <span className="font-mono text-sm">{comp.fees.takerPercent}%</span>
                         </td>
                         <td className="py-4 px-4 text-right">
-                          <span className="font-mono font-medium">
-                            {formatCurrency(comp.estimatedFee)}
-                          </span>
+                          <span className="font-mono font-medium">{formatCurrency(comp.estimatedFee)}</span>
                         </td>
                         <td className="py-4 px-4 text-right">
                           {comp.savingsVsMostExpensive > 0 ? (
@@ -332,9 +299,7 @@ export function FeeComparison({ symbol, quantity }) {
             <Alert variant="warning">
               <AlertCircle className="h-4 w-4" />
               <AlertDescription>
-                <p className="font-semibold mb-2">
-                  Some exchanges could not be compared:
-                </p>
+                <p className="font-semibold mb-2">Some exchanges could not be compared:</p>
                 <ul className="list-disc list-inside space-y-1">
                   {comparison.errors.map((err, idx) => (
                     <li key={idx}>

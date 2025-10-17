@@ -4,11 +4,7 @@ const express = require('express');
 const router = express.Router();
 const ccxt = require('ccxt');
 const { ensureAuthenticated } = require('../../middleware/auth');
-const {
-  apiLimiter,
-  exchangeApiLimiter,
-  getExchangeRateLimitStatus
-} = require('../../middleware/rateLimiter');
+const { apiLimiter, exchangeApiLimiter, getExchangeRateLimitStatus } = require('../../middleware/rateLimiter');
 const { encrypt, decrypt } = require('../../middleware/encryption');
 const User = require('../../models/User');
 const { sendSuccess, sendError, sendValidationError, sendNotFound } = require('../../utils/api-response');
@@ -446,12 +442,16 @@ router.get('/compare-fees', ensureAuthenticated, exchangeApiLimiter, async (req,
     const cryptoBrokerKeys = new Set(cryptoBrokers.map(b => b.key));
 
     // Filter user's exchanges to only crypto exchanges that are active
-    const userCryptoExchanges = user.tradingConfig.exchanges.filter(ex =>
-      ex.isActive && cryptoBrokerKeys.has(ex.name.toLowerCase())
+    const userCryptoExchanges = user.tradingConfig.exchanges.filter(
+      ex => ex.isActive && cryptoBrokerKeys.has(ex.name.toLowerCase())
     );
 
     if (userCryptoExchanges.length === 0) {
-      return sendError(res, 'No active crypto exchanges found. Please connect and enable at least one crypto exchange (Coinbase Pro or Kraken).', 400);
+      return sendError(
+        res,
+        'No active crypto exchanges found. Please connect and enable at least one crypto exchange (Coinbase Pro or Kraken).',
+        400
+      );
     }
 
     // Compare fees across exchanges
@@ -479,11 +479,7 @@ router.get('/compare-fees', ensureAuthenticated, exchangeApiLimiter, async (req,
         }
 
         // Create broker adapter instance
-        const adapter = BrokerFactory.createBroker(
-          brokerKey,
-          credentials,
-          { isTestnet: exchange.testnet || false }
-        );
+        const adapter = BrokerFactory.createBroker(brokerKey, credentials, { isTestnet: exchange.testnet || false });
 
         // Try to get fees from cache first
         const feesCacheKey = cacheService.constructor.getFeeKey(brokerKey, symbol);
@@ -558,7 +554,12 @@ router.get('/compare-fees', ensureAuthenticated, exchangeApiLimiter, async (req,
 
     // Check if we have any successful comparisons
     if (comparisons.length === 0) {
-      return sendError(res, 'Unable to compare fees. No exchanges support this symbol or all comparisons failed.', 400, { errors });
+      return sendError(
+        res,
+        'Unable to compare fees. No exchanges support this symbol or all comparisons failed.',
+        400,
+        { errors }
+      );
     }
 
     // Sort by lowest estimated fee (ascending)
@@ -582,9 +583,7 @@ router.get('/compare-fees', ensureAuthenticated, exchangeApiLimiter, async (req,
       reason: `Lowest fee at ${cheapest.estimatedFeePercent}% (${cheapest.fees.takerPercent}% taker fee)`,
       estimatedFee: cheapest.estimatedFee,
       savings: maxSavings,
-      savingsPercent: comparisons.length > 1
-        ? ((maxSavings / mostExpensive.estimatedFee) * 100).toFixed(2)
-        : 0
+      savingsPercent: comparisons.length > 1 ? ((maxSavings / mostExpensive.estimatedFee) * 100).toFixed(2) : 0
     };
 
     // Return comparison results

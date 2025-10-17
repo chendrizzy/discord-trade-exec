@@ -31,7 +31,7 @@ jest.mock('ccxt', () => {
           amount: amount,
           price: price,
           filled: type === 'market' ? amount : 0,
-          average: type === 'market' ? (price || 50000) : null,
+          average: type === 'market' ? price || 50000 : null,
           status: type === 'market' ? 'closed' : 'open',
           timestamp: Date.now()
         };
@@ -126,7 +126,7 @@ jest.mock('ccxt', () => {
 
 // Mock promise-timeout utility
 jest.mock('../../../utils/promise-timeout', () => ({
-  withTimeout: jest.fn((promise) => promise)
+  withTimeout: jest.fn(promise => promise)
 }));
 
 describe('KrakenAdapter', () => {
@@ -167,13 +167,8 @@ describe('KrakenAdapter', () => {
 
     test('should warn about testnet not supported', () => {
       const consoleSpy = jest.spyOn(console, 'warn').mockImplementation();
-      new KrakenAdapter(
-        { apiKey: 'test', apiSecret: 'test' },
-        { isTestnet: true }
-      );
-      expect(consoleSpy).toHaveBeenCalledWith(
-        expect.stringContaining('Kraken does not support testnet/sandbox mode')
-      );
+      new KrakenAdapter({ apiKey: 'test', apiSecret: 'test' }, { isTestnet: true });
+      expect(consoleSpy).toHaveBeenCalledWith(expect.stringContaining('Kraken does not support testnet/sandbox mode'));
       consoleSpy.mockRestore();
     });
   });
@@ -188,9 +183,7 @@ describe('KrakenAdapter', () => {
     test('should log success message', async () => {
       const consoleSpy = jest.spyOn(console, 'log').mockImplementation();
       await adapter.authenticate();
-      expect(consoleSpy).toHaveBeenCalledWith(
-        expect.stringContaining('Kraken authenticated successfully')
-      );
+      expect(consoleSpy).toHaveBeenCalledWith(expect.stringContaining('Kraken authenticated successfully'));
       consoleSpy.mockRestore();
     });
 
@@ -306,14 +299,7 @@ describe('KrakenAdapter', () => {
         quantity: 0.1
       });
 
-      expect(spy).toHaveBeenCalledWith(
-        'BTC/USD',
-        'market',
-        'buy',
-        0.1,
-        undefined,
-        { stopLossPrice: undefined }
-      );
+      expect(spy).toHaveBeenCalledWith('BTC/USD', 'market', 'buy', 0.1, undefined, { stopLossPrice: undefined });
     });
 
     test('should handle stop orders with stop loss price', async () => {
@@ -357,9 +343,7 @@ describe('KrakenAdapter', () => {
       const consoleSpy = jest.spyOn(console, 'log').mockImplementation();
       await adapter.cancelOrder('kraken-order-456');
 
-      expect(consoleSpy).toHaveBeenCalledWith(
-        expect.stringContaining('order kraken-order-456 cancelled')
-      );
+      expect(consoleSpy).toHaveBeenCalledWith(expect.stringContaining('order kraken-order-456 cancelled'));
       consoleSpy.mockRestore();
     });
 
@@ -443,9 +427,7 @@ describe('KrakenAdapter', () => {
         stopPrice: 2750
       });
 
-      expect(consoleSpy).toHaveBeenCalledWith(
-        expect.stringContaining('stop-loss set for ETH/USD at 2750')
-      );
+      expect(consoleSpy).toHaveBeenCalledWith(expect.stringContaining('stop-loss set for ETH/USD at 2750'));
       consoleSpy.mockRestore();
     });
 
@@ -459,14 +441,7 @@ describe('KrakenAdapter', () => {
         stopPrice: 47500
       });
 
-      expect(spy).toHaveBeenCalledWith(
-        'BTC/USD',
-        'stop-loss',
-        'sell',
-        0.1,
-        null,
-        { stopLossPrice: 47500 }
-      );
+      expect(spy).toHaveBeenCalledWith('BTC/USD', 'stop-loss', 'sell', 0.1, null, { stopLossPrice: 47500 });
     });
 
     test('should handle stop-loss creation errors', async () => {
@@ -510,9 +485,7 @@ describe('KrakenAdapter', () => {
         limitPrice: 3400
       });
 
-      expect(consoleSpy).toHaveBeenCalledWith(
-        expect.stringContaining('take-profit set for ETH/USD at 3400')
-      );
+      expect(consoleSpy).toHaveBeenCalledWith(expect.stringContaining('take-profit set for ETH/USD at 3400'));
       consoleSpy.mockRestore();
     });
 
@@ -526,14 +499,7 @@ describe('KrakenAdapter', () => {
         limitPrice: 55000
       });
 
-      expect(spy).toHaveBeenCalledWith(
-        'BTC/USD',
-        'take-profit',
-        'sell',
-        0.1,
-        null,
-        { takeProfitPrice: 55000 }
-      );
+      expect(spy).toHaveBeenCalledWith('BTC/USD', 'take-profit', 'sell', 0.1, null, { takeProfitPrice: 55000 });
     });
 
     test('should handle take-profit creation errors', async () => {

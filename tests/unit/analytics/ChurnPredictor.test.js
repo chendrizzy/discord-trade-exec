@@ -1,5 +1,5 @@
 // Internal utilities and services
-const ChurnPredictor = require('../../../src/services/analytics/ChurnPredictor');
+const { ChurnPredictor } = require('../../../src/services/analytics/ChurnPredictor');
 
 describe('ChurnPredictor', () => {
   let churnPredictor;

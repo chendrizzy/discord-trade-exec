@@ -357,7 +357,7 @@ Total:                  $4,450/month
 - MongoDB Atlas account (free tier works)
 - Stripe account with webhook endpoint
 - Discord Developer Portal bot setup
-- Node.js hosting (Vercel/Railway/Render)
+- Node.js hosting (Railway recommended, alternatives: Render, Heroku)
 
 ### Environment Variables
 ```bash

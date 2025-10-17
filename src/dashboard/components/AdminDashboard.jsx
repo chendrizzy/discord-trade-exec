@@ -69,72 +69,50 @@ export function AdminDashboard() {
         {/* Total Users */}
         <Card>
           <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">
-              Total Users
-            </CardTitle>
+            <CardTitle className="text-sm font-medium text-muted-foreground">Total Users</CardTitle>
             <Users className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold font-mono">
-              {stats.users.total.toLocaleString()}
-            </div>
-            <p className="text-xs text-muted-foreground mt-1">
-              {stats.users.activeSubscribers} active subscribers
-            </p>
+            <div className="text-2xl font-bold font-mono">{stats.users.total.toLocaleString()}</div>
+            <p className="text-xs text-muted-foreground mt-1">{stats.users.activeSubscribers} active subscribers</p>
           </CardContent>
         </Card>
 
         {/* MRR */}
         <Card>
           <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">
-              Estimated MRR
-            </CardTitle>
+            <CardTitle className="text-sm font-medium text-muted-foreground">Estimated MRR</CardTitle>
             <DollarSign className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold font-mono text-profit-text">
               ${stats.revenue.estimatedMRR.toLocaleString('en-US', { minimumFractionDigits: 2 })}
             </div>
-            <p className="text-xs text-muted-foreground mt-1">
-              ${stats.revenue.averageRevenuePerUser}/user
-            </p>
+            <p className="text-xs text-muted-foreground mt-1">${stats.revenue.averageRevenuePerUser}/user</p>
           </CardContent>
         </Card>
 
         {/* Platform Trades */}
         <Card>
           <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">
-              Total Trades
-            </CardTitle>
+            <CardTitle className="text-sm font-medium text-muted-foreground">Total Trades</CardTitle>
             <TrendingUp className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold font-mono">
-              {stats.platform.totalTrades.toLocaleString()}
-            </div>
-            <p className="text-xs text-profit-text mt-1">
-              {stats.platform.winRate} win rate
-            </p>
+            <div className="text-2xl font-bold font-mono">{stats.platform.totalTrades.toLocaleString()}</div>
+            <p className="text-xs text-profit-text mt-1">{stats.platform.winRate} win rate</p>
           </CardContent>
         </Card>
 
         {/* Active Users */}
         <Card>
           <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">
-              Active (7d)
-            </CardTitle>
+            <CardTitle className="text-sm font-medium text-muted-foreground">Active (7d)</CardTitle>
             <Activity className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold font-mono">
-              {stats.activity.activeUsers7Days}
-            </div>
-            <p className="text-xs text-muted-foreground mt-1">
-              {stats.activity.activityRate7d}% of total users
-            </p>
+            <div className="text-2xl font-bold font-mono">{stats.activity.activeUsers7Days}</div>
+            <p className="text-xs text-muted-foreground mt-1">{stats.activity.activityRate7d}% of total users</p>
           </CardContent>
         </Card>
       </div>
@@ -143,9 +121,7 @@ export function AdminDashboard() {
       <Card>
         <CardHeader>
           <CardTitle>Revenue Breakdown by Tier</CardTitle>
-          <CardDescription>
-            Monthly recurring revenue by subscription tier
-          </CardDescription>
+          <CardDescription>Monthly recurring revenue by subscription tier</CardDescription>
         </CardHeader>
         <CardContent>
           <div className="space-y-3">
@@ -174,9 +150,7 @@ export function AdminDashboard() {
         <Card>
           <CardHeader>
             <CardTitle>User Distribution</CardTitle>
-            <CardDescription>
-              Users by subscription tier
-            </CardDescription>
+            <CardDescription>Users by subscription tier</CardDescription>
           </CardHeader>
           <CardContent>
             <div className="space-y-3">
@@ -200,9 +174,7 @@ export function AdminDashboard() {
         <Card>
           <CardHeader>
             <CardTitle>Platform Trading Stats</CardTitle>
-            <CardDescription>
-              Aggregated trading performance
-            </CardDescription>
+            <CardDescription>Aggregated trading performance</CardDescription>
           </CardHeader>
           <CardContent>
             <div className="space-y-3">
@@ -212,7 +184,9 @@ export function AdminDashboard() {
               </div>
               <div className="flex justify-between">
                 <span className="text-sm text-muted-foreground">Net P&L</span>
-                <span className={`text-sm font-mono ${parseFloat(stats.platform.totalProfitLoss) >= 0 ? 'text-profit-text' : 'text-loss-text'}`}>
+                <span
+                  className={`text-sm font-mono ${parseFloat(stats.platform.totalProfitLoss) >= 0 ? 'text-profit-text' : 'text-loss-text'}`}
+                >
                   {parseFloat(stats.platform.totalProfitLoss) >= 0 ? '+' : ''}${stats.platform.totalProfitLoss}
                 </span>
               </div>
@@ -237,14 +211,15 @@ export function AdminDashboard() {
       <Card>
         <CardHeader>
           <CardTitle>Top Traders</CardTitle>
-          <CardDescription>
-            Most active users by trade volume
-          </CardDescription>
+          <CardDescription>Most active users by trade volume</CardDescription>
         </CardHeader>
         <CardContent>
           <div className="space-y-2">
             {stats.topTraders.map((trader, index) => (
-              <div key={index} className="flex items-center justify-between p-3 border border-border rounded-lg hover:border-gold-600 transition-colors">
+              <div
+                key={index}
+                className="flex items-center justify-between p-3 border border-border rounded-lg hover:border-gold-600 transition-colors"
+              >
                 <div className="flex items-center gap-3">
                   <div className="text-lg font-bold text-muted-foreground">#{index + 1}</div>
                   <div className="flex-1">
@@ -255,10 +230,15 @@ export function AdminDashboard() {
                   </div>
                 </div>
                 <div className="text-right">
-                  <Badge variant={trader.tier === 'premium' ? 'gold' : trader.tier === 'pro' ? 'profit' : 'outline'} className="capitalize mb-1">
+                  <Badge
+                    variant={trader.tier === 'premium' ? 'gold' : trader.tier === 'pro' ? 'profit' : 'outline'}
+                    className="capitalize mb-1"
+                  >
                     {trader.tier}
                   </Badge>
-                  <div className={`text-sm font-mono ${parseFloat(trader.netPL) >= 0 ? 'text-profit-text' : 'text-loss-text'}`}>
+                  <div
+                    className={`text-sm font-mono ${parseFloat(trader.netPL) >= 0 ? 'text-profit-text' : 'text-loss-text'}`}
+                  >
                     {parseFloat(trader.netPL) >= 0 ? '+' : ''}${trader.netPL}
                   </div>
                 </div>
@@ -272,20 +252,18 @@ export function AdminDashboard() {
       <Card>
         <CardHeader>
           <CardTitle>Recent Signups (Last 7 Days)</CardTitle>
-          <CardDescription>
-            {stats.users.recentSignups} new users
-          </CardDescription>
+          <CardDescription>{stats.users.recentSignups} new users</CardDescription>
         </CardHeader>
         <CardContent>
           <div className="space-y-2">
-            {stats.users.recentSignupsList.slice(0, 10).map((user) => (
+            {stats.users.recentSignupsList.slice(0, 10).map(user => (
               <div key={user._id} className="flex items-center justify-between p-2 border border-border rounded">
                 <span className="text-sm">{user.discordUsername}</span>
                 <div className="flex items-center gap-2">
-                  <Badge variant="outline" className="capitalize">{user.subscription.tier}</Badge>
-                  <span className="text-xs text-muted-foreground">
-                    {new Date(user.createdAt).toLocaleDateString()}
-                  </span>
+                  <Badge variant="outline" className="capitalize">
+                    {user.subscription.tier}
+                  </Badge>
+                  <span className="text-xs text-muted-foreground">{new Date(user.createdAt).toLocaleDateString()}</span>
                 </div>
               </div>
             ))}

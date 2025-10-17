@@ -11,12 +11,12 @@ const generatePortfolioData = () => {
     date.setDate(date.getDate() - i);
 
     const randomChange = (Math.random() - 0.45) * 2000;
-    const value = startValue + randomChange * (30 - i) / 10;
+    const value = startValue + (randomChange * (30 - i)) / 10;
 
     data.push({
       date: date.toISOString().split('T')[0],
       value: parseFloat(value.toFixed(2)),
-      displayDate: date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
+      displayDate: date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
     });
   }
 
@@ -93,7 +93,7 @@ export function PortfolioChart() {
           fontSize={12}
           tickLine={false}
           axisLine={false}
-          tickFormatter={(value) => `$${(value / 1000).toFixed(0)}k`}
+          tickFormatter={value => `$${(value / 1000).toFixed(0)}k`}
         />
         <Tooltip content={<CustomTooltip />} />
         <Area
@@ -118,7 +118,7 @@ export function PerformanceMetricsChart() {
     { month: 'Mar', profit: 3800, loss: -2500, net: 1300 },
     { month: 'Apr', profit: 6100, loss: -1500, net: 4600 },
     { month: 'May', profit: 5800, loss: -2200, net: 3600 },
-    { month: 'Jun', profit: 4900, loss: -1900, net: 3000 },
+    { month: 'Jun', profit: 4900, loss: -1900, net: 3000 }
   ];
 
   return (
@@ -135,25 +135,19 @@ export function PerformanceMetricsChart() {
           </linearGradient>
         </defs>
         <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" opacity={0.2} />
-        <XAxis
-          dataKey="month"
-          stroke="hsl(var(--muted-foreground))"
-          fontSize={12}
-          tickLine={false}
-          axisLine={false}
-        />
+        <XAxis dataKey="month" stroke="hsl(var(--muted-foreground))" fontSize={12} tickLine={false} axisLine={false} />
         <YAxis
           stroke="hsl(var(--muted-foreground))"
           fontSize={12}
           tickLine={false}
           axisLine={false}
-          tickFormatter={(value) => `$${(value / 1000).toFixed(0)}k`}
+          tickFormatter={value => `$${(value / 1000).toFixed(0)}k`}
         />
         <Tooltip
           contentStyle={{
             backgroundColor: 'hsl(var(--card))',
             border: '1px solid hsl(var(--border))',
-            borderRadius: '0.5rem',
+            borderRadius: '0.5rem'
           }}
           labelStyle={{ color: 'hsl(var(--foreground))' }}
         />

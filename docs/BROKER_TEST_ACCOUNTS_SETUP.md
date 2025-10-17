@@ -132,17 +132,40 @@ Quick reference for setting up test/paper trading accounts for all 6 supported b
    - Connect to paper trading account
 6. Get credentials from Moomoo app
 
-**Test Credentials Format:**
+**Dashboard Configuration (New Dynamic Fields!):**
+
+When configuring Moomoo in the dashboard, you'll see these credential fields:
+
+1. **Account ID** * (required)
+   - Your Moomoo account ID
+   - Found in Moomoo app settings
+
+2. **Password** * (required)
+   - Your Moomoo trading password
+   - Has show/hide toggle for security
+
+3. **OpenD Gateway Host** * (required)
+   - Default: `127.0.0.1` (auto-filled)
+   - Leave as default unless you changed OpenD configuration
+
+4. **OpenD Gateway Port** * (required)
+   - Default: `11111` (auto-filled)
+   - Leave as default unless you changed OpenD configuration
+
+**Credential Format (API):**
 ```json
 {
+  "accountId": "your-moomoo-account-id",
+  "password": "your-moomoo-password",
   "host": "127.0.0.1",
-  "port": 11111,
-  "trdEnv": 1,  // 0 = real, 1 = simulate
-  "environment": "testnet"
+  "port": 11111
 }
 ```
 
-**Important:** OpenD Gateway must be running locally for API to work.
+**Important:**
+- OpenD Gateway must be running locally for API to work
+- Host and Port fields are pre-filled with defaults in the UI
+- A prerequisite warning will display with installation steps
 
 ---
 

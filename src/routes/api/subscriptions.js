@@ -20,14 +20,9 @@ router.use(apiLimiter);
 
 // Zod schema for POST /api/subscriptions/cancel
 const cancelSubscriptionSchema = z.object({
-  reason: z.enum([
-    'too_expensive',
-    'not_enough_features',
-    'poor_results',
-    'switching_service',
-    'technical_issues',
-    'other'
-  ]).default('other'),
+  reason: z
+    .enum(['too_expensive', 'not_enough_features', 'poor_results', 'switching_service', 'technical_issues', 'other'])
+    .default('other'),
   feedback: z.string().max(500).optional()
 });
 
@@ -42,27 +37,22 @@ const upgradeSubscriptionSchema = z.object({
  * @desc    Get current subscription status and limits
  * @access  Private
  */
-router.get(
-  '/status',
-  extractTenantMiddleware,
-  auditLog('subscription.view', 'User'),
-  async (req, res) => {
-    try {
-      const userId = req.tenant.userId;
+router.get('/status', extractTenantMiddleware, auditLog('subscription.view', 'User'), async (req, res) => {
+  try {
+    const userId = req.tenant.userId;
 
-      const result = await subscriptionManager.getSubscriptionStatus(userId);
+    const result = await subscriptionManager.getSubscriptionStatus(userId);
 
-      if (!result.success) {
-        return sendError(res, result.error, 400);
-      }
-
-      return sendSuccess(res, result.subscription, 'Subscription status retrieved successfully');
-    } catch (error) {
-      console.error('[Subscription API] Error fetching subscription status:', error);
-      return sendError(res, 'Failed to fetch subscription status', 500, { message: error.message });
+    if (!result.success) {
+      return sendError(res, result.error, 400);
     }
+
+    return sendSuccess(res, result.subscription, 'Subscription status retrieved successfully');
+  } catch (error) {
+    console.error('[Subscription API] Error fetching subscription status:', error);
+    return sendError(res, 'Failed to fetch subscription status', 500, { message: error.message });
   }
-);
+});
 
 /**
  * @route   POST /api/subscriptions/cancel
@@ -99,12 +89,7 @@ router.post(
         id: subscription.stripeSubscriptionId
       };
 
-      const result = await subscriptionManager.handleSubscriptionCanceled(
-        subscriptionObj,
-        reason,
-        feedback,
-        req
-      );
+      const result = await subscriptionManager.handleSubscriptionCanceled(subscriptionObj, reason, feedback, req);
 
       if (!result.success) {
         return sendError(res, result.error, 400);
@@ -175,49 +160,44 @@ router.post(
  * @desc    Get current usage against subscription limits
  * @access  Private
  */
-router.get(
-  '/limits',
-  extractTenantMiddleware,
-  auditLog('subscription.limits', 'User'),
-  async (req, res) => {
-    try {
-      const userId = req.tenant.userId;
+router.get('/limits', extractTenantMiddleware, auditLog('subscription.limits', 'User'), async (req, res) => {
+  try {
+    const userId = req.tenant.userId;
 
-      const result = await subscriptionManager.getSubscriptionStatus(userId);
+    const result = await subscriptionManager.getSubscriptionStatus(userId);
 
-      if (!result.success) {
-        return sendError(res, result.error, 400);
-      }
-
-      const { subscription } = result;
-
-      return sendSuccess(
-        res,
-        {
-          tier: subscription.tier,
-          limits: {
-            signalsPerDay: {
-              limit: subscription.limits.signalsPerDay,
-              used: subscription.limits.signalsUsedToday,
-              remaining:
-                subscription.limits.signalsPerDay === Infinity
-                  ? 'unlimited'
-                  : subscription.limits.signalsPerDay - subscription.limits.signalsUsedToday
-            },
-            maxBrokers: {
-              limit: subscription.limits.maxBrokers,
-              message: `You can connect up to ${subscription.limits.maxBrokers} broker${subscription.limits.maxBrokers > 1 ? 's' : ''}`
-            }
-          },
-          resetDate: new Date(new Date().setHours(24, 0, 0, 0)) // Reset at midnight
-        },
-        'Subscription limits retrieved successfully'
-      );
-    } catch (error) {
-      console.error('[Subscription API] Error fetching subscription limits:', error);
-      return sendError(res, 'Failed to fetch subscription limits', 500, { message: error.message });
+    if (!result.success) {
+      return sendError(res, result.error, 400);
     }
+
+    const { subscription } = result;
+
+    return sendSuccess(
+      res,
+      {
+        tier: subscription.tier,
+        limits: {
+          signalsPerDay: {
+            limit: subscription.limits.signalsPerDay,
+            used: subscription.limits.signalsUsedToday,
+            remaining:
+              subscription.limits.signalsPerDay === Infinity
+                ? 'unlimited'
+                : subscription.limits.signalsPerDay - subscription.limits.signalsUsedToday
+          },
+          maxBrokers: {
+            limit: subscription.limits.maxBrokers,
+            message: `You can connect up to ${subscription.limits.maxBrokers} broker${subscription.limits.maxBrokers > 1 ? 's' : ''}`
+          }
+        },
+        resetDate: new Date(new Date().setHours(24, 0, 0, 0)) // Reset at midnight
+      },
+      'Subscription limits retrieved successfully'
+    );
+  } catch (error) {
+    console.error('[Subscription API] Error fetching subscription limits:', error);
+    return sendError(res, 'Failed to fetch subscription limits', 500, { message: error.message });
   }
-);
+});
 
 module.exports = router;

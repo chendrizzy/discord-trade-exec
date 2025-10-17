@@ -2,7 +2,7 @@
 const mongoose = require('mongoose');
 
 // Internal utilities and services
-const CohortAnalyzer = require('../../../src/services/analytics/CohortAnalyzer');
+const { CohortAnalyzer } = require('../../../src/services/analytics/CohortAnalyzer');
 const User = require('../../../src/models/User');
 const AnalyticsEvent = require('../../../src/models/AnalyticsEvent');
 

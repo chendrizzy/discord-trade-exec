@@ -52,7 +52,7 @@ npm run build         # Webpack bundle (API)
 npm run build:dashboard
 npm run preview:dashboard
 npm test              # Jest unit & integration
-npm run deploy         # Build + Vercel deploy
+npm run deploy         # Railway deploy
 ```
 
 For hot‑reload on both layers:

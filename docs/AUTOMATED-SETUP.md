@@ -214,7 +214,7 @@ SENDGRID_API_KEY=...
 ### Coming Soon:
 - 🔄 **Advanced Marketing** - Facebook, Instagram, TikTok APIs
 - 🔄 **Additional Exchanges** - Coinbase Pro, Kraken, Bybit
-- 🔄 **Cloud Deployment** - Vercel, AWS, DigitalOcean
+- 🔄 **Cloud Deployment** - Railway, AWS, DigitalOcean (Vercel legacy)
 - 🔄 **Domain Setup** - DNS configuration, SSL certificates
 
 ## 🏗️ Technical Implementation

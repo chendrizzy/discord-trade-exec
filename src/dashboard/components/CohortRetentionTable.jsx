@@ -5,7 +5,7 @@ import { Badge } from './ui/badge';
 import { RefreshCw, Download, Calendar, AlertTriangle } from 'lucide-react';
 
 // Get heat map color based on retention percentage
-const getRetentionColor = (percentage) => {
+const getRetentionColor = percentage => {
   if (percentage === null || percentage === undefined) return 'bg-muted/20';
   if (percentage >= 80) return 'bg-profit/30 text-profit-text';
   if (percentage >= 60) return 'bg-green-500/20 text-green-700';
@@ -34,7 +34,7 @@ export function CohortRetentionTable() {
     try {
       const params = new URLSearchParams({
         cohortPeriod: period,
-        retentionMetric: metric,
+        retentionMetric: metric
       });
 
       if (startDate) params.append('startDate', startDate);
@@ -104,9 +104,7 @@ export function CohortRetentionTable() {
               <Calendar className="h-5 w-5 text-gold-500" />
               Cohort Retention Analysis
             </CardTitle>
-            <CardDescription>
-              Track user retention over time by signup cohort
-            </CardDescription>
+            <CardDescription>Track user retention over time by signup cohort</CardDescription>
           </div>
           <div className="flex items-center gap-2">
             <Button onClick={handleExport} variant="outline" size="sm">
@@ -127,7 +125,7 @@ export function CohortRetentionTable() {
             <span className="text-sm font-medium">Metric:</span>
             <select
               value={metric}
-              onChange={(e) => setMetric(e.target.value)}
+              onChange={e => setMetric(e.target.value)}
               className="px-3 py-2 text-sm rounded-md border border-border bg-background hover:bg-accent transition-colors"
             >
               <option value="login">Login Activity</option>
@@ -139,7 +137,7 @@ export function CohortRetentionTable() {
             <span className="text-sm font-medium">Period:</span>
             <select
               value={period}
-              onChange={(e) => setPeriod(e.target.value)}
+              onChange={e => setPeriod(e.target.value)}
               className="px-3 py-2 text-sm rounded-md border border-border bg-background hover:bg-accent transition-colors"
             >
               <option value="month">Monthly</option>
@@ -188,14 +186,17 @@ export function CohortRetentionTable() {
                         Size
                       </th>
                       {Array.from({ length: maxPeriods }, (_, i) => (
-                        <th key={i} className="px-4 py-3 text-center text-xs font-medium text-muted-foreground uppercase tracking-wider min-w-[80px]">
+                        <th
+                          key={i}
+                          className="px-4 py-3 text-center text-xs font-medium text-muted-foreground uppercase tracking-wider min-w-[80px]"
+                        >
                           {period === 'month' ? `Month ${i}` : `Week ${i}`}
                         </th>
                       ))}
                     </tr>
                   </thead>
                   <tbody className="bg-card divide-y divide-border">
-                    {cohorts.map((cohort) => (
+                    {cohorts.map(cohort => (
                       <tr key={cohort.cohortId} className="hover:bg-muted/30 transition-colors">
                         <td className="sticky left-0 z-10 bg-card px-4 py-3 whitespace-nowrap text-sm font-medium border-r border-border">
                           {cohort.cohortId}
@@ -211,21 +212,14 @@ export function CohortRetentionTable() {
                           const count = retentionData?.count;
 
                           return (
-                            <td
-                              key={periodIndex}
-                              className="px-4 py-3 whitespace-nowrap text-sm text-center"
-                            >
+                            <td key={periodIndex} className="px-4 py-3 whitespace-nowrap text-sm text-center">
                               {percentage !== undefined && percentage !== null ? (
                                 <div
                                   className={`inline-flex flex-col items-center justify-center px-3 py-2 rounded-md transition-all hover:scale-105 ${getRetentionColor(percentage)}`}
                                   title={`${count} of ${cohort.cohortSize} users (${percentage.toFixed(1)}%)`}
                                 >
-                                  <div className="text-sm font-bold">
-                                    {percentage.toFixed(0)}%
-                                  </div>
-                                  <div className="text-xs opacity-70">
-                                    {count}
-                                  </div>
+                                  <div className="text-sm font-bold">{percentage.toFixed(0)}%</div>
+                                  <div className="text-xs opacity-70">{count}</div>
                                 </div>
                               ) : (
                                 <div className="inline-flex items-center justify-center px-3 py-2 text-muted-foreground">
@@ -252,9 +246,7 @@ export function CohortRetentionTable() {
         {cohorts.length > 0 && (
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pt-4 border-t border-border">
             <div className="text-center">
-              <div className="text-2xl font-bold font-mono">
-                {cohorts.length}
-              </div>
+              <div className="text-2xl font-bold font-mono">{cohorts.length}</div>
               <div className="text-xs text-muted-foreground">Total Cohorts</div>
             </div>
             <div className="text-center">
@@ -264,12 +256,8 @@ export function CohortRetentionTable() {
               <div className="text-xs text-muted-foreground">Total Users</div>
             </div>
             <div className="text-center">
-              <div className="text-2xl font-bold font-mono">
-                {maxPeriods}
-              </div>
-              <div className="text-xs text-muted-foreground">
-                Tracking {period === 'month' ? 'Months' : 'Weeks'}
-              </div>
+              <div className="text-2xl font-bold font-mono">{maxPeriods}</div>
+              <div className="text-xs text-muted-foreground">Tracking {period === 'month' ? 'Months' : 'Weeks'}</div>
             </div>
           </div>
         )}
@@ -280,7 +268,10 @@ export function CohortRetentionTable() {
             <h4 className="text-sm font-semibold mb-2">Retention Insights</h4>
             <ul className="text-xs text-muted-foreground space-y-1">
               <li>• Cohorts are grouped by {period === 'month' ? 'month' : 'week'} of user signup</li>
-              <li>• Retention is tracked based on {metric === 'login' ? 'login activity' : metric === 'trade' ? 'trading activity' : 'active user status'}</li>
+              <li>
+                • Retention is tracked based on{' '}
+                {metric === 'login' ? 'login activity' : metric === 'trade' ? 'trading activity' : 'active user status'}
+              </li>
               <li>• Hover over cells to see detailed retention numbers</li>
               <li>• Green indicates healthy retention, red indicates high churn</li>
             </ul>

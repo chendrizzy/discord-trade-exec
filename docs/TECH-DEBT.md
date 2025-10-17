@@ -22,14 +22,9 @@
   6. Deploy and monitor
 
 ### ✅ RESOLVED: Node version specification
-- **Fixed**: Changed from "22.18.0" to "22" in both package.json and vercel.json
-- **Result**: Eliminated Vercel build warnings
-
-### ℹ️ INFO: Vercel builds warning
-- **Warning**: "Due to `builds` existing in your configuration file, the Build and Development Settings defined in your Project Settings will not apply"
-- **Status**: This is expected and intentional
-- **Reason**: We use explicit `vercel.json` configuration for custom build settings
-- **Action**: No action needed - this is correct behavior
+- **Fixed**: Changed from "22.18.0" to "22" in package.json
+- **Result**: Eliminated build warnings
+- **Note**: Vercel has since been deprecated in favor of Railway (see migration guide in openspec/archive/vercel/)
 
 ---
 

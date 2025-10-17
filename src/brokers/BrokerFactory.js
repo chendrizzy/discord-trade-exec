@@ -76,7 +76,56 @@ class BrokerFactory {
       minDeposit: 0,
       accountTypes: ['individual', 'margin'],
       markets: ['US', 'HK', 'China'],
-      apiFeatures: ['gateway-required', 'multi-language-sdk', 'real-time-quotes', 'paper-trading']
+      apiFeatures: ['gateway-required', 'multi-language-sdk', 'real-time-quotes', 'paper-trading'],
+      credentialFields: [
+        {
+          name: 'accountId',
+          type: 'text',
+          label: 'Account ID',
+          placeholder: 'Your Moomoo account ID',
+          required: true,
+          helpText: 'The account identifier for your Moomoo trading account'
+        },
+        {
+          name: 'password',
+          type: 'password',
+          label: 'Password',
+          placeholder: 'Your Moomoo account password',
+          required: true,
+          helpText: 'Trading password for your Moomoo account'
+        },
+        {
+          name: 'host',
+          type: 'text',
+          label: 'OpenD Gateway Host',
+          placeholder: '127.0.0.1',
+          defaultValue: '127.0.0.1',
+          required: true,
+          helpText: 'Local OpenD gateway host address (default: 127.0.0.1)'
+        },
+        {
+          name: 'port',
+          type: 'number',
+          label: 'OpenD Gateway Port',
+          placeholder: '11111',
+          defaultValue: 11111,
+          required: true,
+          helpText: 'Local OpenD gateway port (default: 11111)'
+        }
+      ],
+      prerequisites: {
+        requiresOpenDRunning: true,
+        setupGuideUrl: 'docs/MOOMOO_OPEND_TROUBLESHOOTING.md',
+        warningMessage:
+          'Moomoo requires OpenD Gateway running locally on your computer. Please download and start OpenD before testing your connection.',
+        installationSteps: [
+          'Download OpenD Gateway from https://openapi.moomoo.com',
+          'Install OpenD on your local computer',
+          'Start OpenD Gateway service (default port: 11111)',
+          'Verify OpenD is running by checking localhost:11111',
+          'Return here to configure your Moomoo connection'
+        ]
+      }
     });
 
     // Coinbase Pro (Advanced Trade)
@@ -206,14 +255,11 @@ class BrokerFactory {
   /**
    * Get broker information
    * @param {string} brokerKey - Broker identifier
-   * @returns {Object} - Broker information
+   * @returns {Object|null} - Broker information or null if not found
    */
   getBrokerInfo(brokerKey) {
     const info = this.brokers.get(brokerKey);
-    if (!info) {
-      throw new Error(`Unknown broker: ${brokerKey}`);
-    }
-    return info;
+    return info || null;
   }
 
   /**

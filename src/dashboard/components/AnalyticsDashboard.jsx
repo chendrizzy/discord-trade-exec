@@ -101,9 +101,7 @@ export function AnalyticsDashboard() {
         </div>
         <div className="flex items-center gap-2">
           {lastUpdated && (
-            <span className="text-xs text-muted-foreground">
-              Last updated: {lastUpdated.toLocaleTimeString()}
-            </span>
+            <span className="text-xs text-muted-foreground">Last updated: {lastUpdated.toLocaleTimeString()}</span>
           )}
           <Button onClick={fetchAnalytics} variant="outline" size="sm">
             <RefreshCw className="h-4 w-4 mr-2" />
@@ -117,9 +115,7 @@ export function AnalyticsDashboard() {
         {/* MRR */}
         <Card>
           <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">
-              Monthly Recurring Revenue
-            </CardTitle>
+            <CardTitle className="text-sm font-medium text-muted-foreground">Monthly Recurring Revenue</CardTitle>
             <DollarSign className="h-4 w-4 text-profit-text" />
           </CardHeader>
           <CardContent>
@@ -135,27 +131,21 @@ export function AnalyticsDashboard() {
         {/* ARR */}
         <Card>
           <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">
-              Annual Recurring Revenue
-            </CardTitle>
+            <CardTitle className="text-sm font-medium text-muted-foreground">Annual Recurring Revenue</CardTitle>
             <TrendingUp className="h-4 w-4 text-profit-text" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold font-mono text-profit-text">
               ${metrics.revenue.arr.current.toLocaleString('en-US', { minimumFractionDigits: 2 })}
             </div>
-            <p className="text-xs text-muted-foreground mt-1">
-              MRR × 12 months
-            </p>
+            <p className="text-xs text-muted-foreground mt-1">MRR × 12 months</p>
           </CardContent>
         </Card>
 
         {/* LTV */}
         <Card>
           <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">
-              Customer Lifetime Value
-            </CardTitle>
+            <CardTitle className="text-sm font-medium text-muted-foreground">Customer Lifetime Value</CardTitle>
             <Users className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
@@ -171,9 +161,7 @@ export function AnalyticsDashboard() {
         {/* Churn Rate */}
         <Card>
           <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">
-              Churn Rate
-            </CardTitle>
+            <CardTitle className="text-sm font-medium text-muted-foreground">Churn Rate</CardTitle>
             {metrics.churn ? (
               <TrendingDown className="h-4 w-4 text-loss-text" />
             ) : (
@@ -183,7 +171,9 @@ export function AnalyticsDashboard() {
           <CardContent>
             {metrics.churn ? (
               <>
-                <div className={`text-2xl font-bold font-mono ${metrics.churn.churnRate > 5 ? 'text-loss-text' : 'text-foreground'}`}>
+                <div
+                  className={`text-2xl font-bold font-mono ${metrics.churn.churnRate > 5 ? 'text-loss-text' : 'text-foreground'}`}
+                >
                   {metrics.churn.churnRate.toFixed(2)}%
                 </div>
                 <p className="text-xs text-muted-foreground mt-1">
@@ -192,12 +182,8 @@ export function AnalyticsDashboard() {
               </>
             ) : (
               <>
-                <div className="text-xl text-muted-foreground">
-                  N/A
-                </div>
-                <p className="text-xs text-muted-foreground mt-1">
-                  No period specified
-                </p>
+                <div className="text-xl text-muted-foreground">N/A</div>
+                <p className="text-xs text-muted-foreground mt-1">No period specified</p>
               </>
             )}
           </CardContent>
@@ -208,9 +194,7 @@ export function AnalyticsDashboard() {
       <Card>
         <CardHeader>
           <CardTitle>Revenue Breakdown by Tier</CardTitle>
-          <CardDescription>
-            Monthly recurring revenue and subscriber distribution
-          </CardDescription>
+          <CardDescription>Monthly recurring revenue and subscriber distribution</CardDescription>
         </CardHeader>
         <CardContent>
           <div className="space-y-3">
@@ -250,17 +234,13 @@ export function AnalyticsDashboard() {
         <Card>
           <CardHeader>
             <CardTitle>Subscriber Metrics</CardTitle>
-            <CardDescription>
-              Current subscriber distribution and status
-            </CardDescription>
+            <CardDescription>Current subscriber distribution and status</CardDescription>
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
               <div className="flex justify-between items-center">
                 <span className="text-sm font-medium">Total Subscribers</span>
-                <span className="text-2xl font-bold font-mono">
-                  {metrics.subscribers.active}
-                </span>
+                <span className="text-2xl font-bold font-mono">{metrics.subscribers.active}</span>
               </div>
               <div className="flex justify-between items-center pt-2 border-t border-border">
                 <span className="text-sm text-muted-foreground">Basic Tier</span>
@@ -282,9 +262,7 @@ export function AnalyticsDashboard() {
         <Card>
           <CardHeader>
             <CardTitle>Churn Risk Overview</CardTitle>
-            <CardDescription>
-              Users at risk of canceling subscriptions
-            </CardDescription>
+            <CardDescription>Users at risk of canceling subscriptions</CardDescription>
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
@@ -333,16 +311,14 @@ export function AnalyticsDashboard() {
               <AlertTriangle className="h-5 w-5 text-destructive" />
               Critical Risk Users
             </CardTitle>
-            <CardDescription>
-              Users with highest probability of churning - immediate action required
-            </CardDescription>
+            <CardDescription>Users with highest probability of churning - immediate action required</CardDescription>
           </CardHeader>
           <CardContent>
             <div className="space-y-2">
               {churnRisks
                 .filter(u => u.riskLevel === 'critical')
                 .slice(0, 5)
-                .map((user) => (
+                .map(user => (
                   <div
                     key={user.userId}
                     className="flex items-center justify-between p-3 border border-destructive/20 rounded-lg bg-destructive/5 hover:border-destructive/50 transition-colors"
@@ -350,8 +326,7 @@ export function AnalyticsDashboard() {
                     <div className="flex-1">
                       <h4 className="text-sm font-semibold">{user.username || 'Unknown User'}</h4>
                       <p className="text-xs text-muted-foreground">
-                        Risk Score: {user.riskScore.toFixed(1)} •
-                        {user.recommendations.slice(0, 2).join(', ')}
+                        Risk Score: {user.riskScore.toFixed(1)} •{user.recommendations.slice(0, 2).join(', ')}
                       </p>
                     </div>
                     <div className="flex items-center gap-2">
@@ -380,9 +355,7 @@ export function AnalyticsDashboard() {
               <div className="text-3xl font-bold font-mono text-profit-text">
                 ${metrics.revenue.ltv.avgMonthlyRevenue.toFixed(2)}
               </div>
-              <p className="text-sm text-muted-foreground mt-2">
-                Average Revenue Per User (ARPU)
-              </p>
+              <p className="text-sm text-muted-foreground mt-2">Average Revenue Per User (ARPU)</p>
             </div>
           </CardContent>
         </Card>
@@ -390,12 +363,8 @@ export function AnalyticsDashboard() {
         <Card>
           <CardContent className="pt-6">
             <div className="text-center">
-              <div className="text-3xl font-bold font-mono">
-                {metrics.revenue.ltv.avgLifetimeMonths.toFixed(1)}
-              </div>
-              <p className="text-sm text-muted-foreground mt-2">
-                Average Customer Lifetime (months)
-              </p>
+              <div className="text-3xl font-bold font-mono">{metrics.revenue.ltv.avgLifetimeMonths.toFixed(1)}</div>
+              <p className="text-sm text-muted-foreground mt-2">Average Customer Lifetime (months)</p>
             </div>
           </CardContent>
         </Card>
@@ -406,9 +375,7 @@ export function AnalyticsDashboard() {
               <div className="text-3xl font-bold font-mono text-foreground">
                 {((churnRisks.length / metrics.subscribers.active) * 100).toFixed(1)}%
               </div>
-              <p className="text-sm text-muted-foreground mt-2">
-                At-Risk Subscriber Rate
-              </p>
+              <p className="text-sm text-muted-foreground mt-2">At-Risk Subscriber Rate</p>
             </div>
           </CardContent>
         </Card>

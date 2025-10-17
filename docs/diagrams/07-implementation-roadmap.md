@@ -1324,7 +1324,7 @@ describe('Stock Broker Integration', () => {
 - **Testing**: Vitest, Playwright
 
 ### Infrastructure
-- **Hosting**: Railway (production), Vercel (frontend CDN)
+- **Hosting**: Railway (production)
 - **Monitoring**: Datadog, Sentry
 - **CI/CD**: GitHub Actions
 - **Container**: Docker, Kubernetes (future)

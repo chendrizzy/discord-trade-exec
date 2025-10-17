@@ -87,7 +87,9 @@ Discord Trade Executor is an automated trading bot SaaS platform that:
 - **Adapter Pattern:** Broker abstraction layer
   - Base: `BrokerAdapter` (abstract interface)
   - Factory: `BrokerFactory` (broker instantiation)
-  - Implementations: `AlpacaAdapter`, plus future TD Ameritrade, Interactive Brokers
+  - Implementations:
+    - **Crypto**: `BinanceAdapter`, `CoinbaseProAdapter`, `KrakenAdapter` (via CCXT)
+    - **Stocks**: `AlpacaAdapter`, `IBKRAdapter` (Interactive Brokers), `SchwabAdapter` (Charles Schwab)
   - Location: `src/brokers/adapters/`
 
 - **Middleware Stack:**
@@ -164,9 +166,9 @@ Discord Trade Executor is an automated trading bot SaaS platform that:
 - **Signal Formats:** Natural language Discord messages (e.g., "BUY AAPL @ $150, SL $145, TP $160")
 - **TradingView Webhooks:** JSON alerts from TradingView strategies
 - **Supported Asset Types:**
-  - Stocks (via Alpaca API)
-  - Cryptocurrencies (via Binance, CCXT exchanges)
-  - Futures (planned via TD Ameritrade)
+  - **Stocks**: via Alpaca API
+  - **Cryptocurrencies**: via Binance, Coinbase Pro, Kraken (CCXT-based adapters)
+  - **Futures**: Planned via TD Ameritrade
 
 - **Risk Management:**
   - Position sizing based on account percentage

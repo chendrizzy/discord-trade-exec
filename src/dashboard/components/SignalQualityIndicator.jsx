@@ -50,7 +50,7 @@ export function SignalQualityIndicator({ tradeId, compact = false }) {
   useEffect(() => {
     if (!websocket || !tradeId) return;
 
-    const handleQualityUpdate = (data) => {
+    const handleQualityUpdate = data => {
       // Only update if this is for our trade
       if (data.tradeId === tradeId) {
         console.log('📡 Real-time quality update received:', data);
@@ -89,7 +89,7 @@ export function SignalQualityIndicator({ tradeId, compact = false }) {
   const { quality: tier, smartMoney, rareInformation } = quality;
 
   // Quality tier styling
-  const getTierVariant = (tierName) => {
+  const getTierVariant = tierName => {
     switch (tierName) {
       case 'ELITE':
         return 'default'; // Gold/primary styling
@@ -102,7 +102,7 @@ export function SignalQualityIndicator({ tradeId, compact = false }) {
     }
   };
 
-  const getTierColor = (tierName) => {
+  const getTierColor = tierName => {
     switch (tierName) {
       case 'ELITE':
         return 'text-gold-400';
@@ -140,7 +140,7 @@ export function SignalQualityIndicator({ tradeId, compact = false }) {
       active: smartMoney?.indicators?.insiderLikelihood,
       label: 'Insider Likelihood',
       description: 'Corporate actions or regulatory filings'
-    },
+    }
   ];
 
   const activeIndicators = smartMoneyIndicators.filter(i => i.active);
@@ -189,16 +189,12 @@ export function SignalQualityIndicator({ tradeId, compact = false }) {
                   <span className="text-xs font-bold">{smartMoney.score}/100</span>
                 </div>
                 <div className="grid grid-cols-2 gap-1 mt-2">
-                  {smartMoneyIndicators.map((indicator) => (
+                  {smartMoneyIndicators.map(indicator => (
                     <div
                       key={indicator.key}
                       className={`flex items-center gap-1 text-xs ${indicator.active ? 'text-profit-text' : 'text-muted-foreground'}`}
                     >
-                      {indicator.active ? (
-                        <CheckCircle className="h-3 w-3" />
-                      ) : (
-                        <Circle className="h-3 w-3" />
-                      )}
+                      {indicator.active ? <CheckCircle className="h-3 w-3" /> : <Circle className="h-3 w-3" />}
                       <span>{indicator.label}</span>
                     </div>
                   ))}
@@ -211,15 +207,19 @@ export function SignalQualityIndicator({ tradeId, compact = false }) {
                   <div className="flex justify-between items-center mb-1">
                     <span className="text-xs font-semibold">Rare Info</span>
                     <Badge
-                      variant={rareInformation.level === 'HIGH' ? 'default' : rareInformation.level === 'MODERATE' ? 'profit' : 'outline'}
+                      variant={
+                        rareInformation.level === 'HIGH'
+                          ? 'default'
+                          : rareInformation.level === 'MODERATE'
+                            ? 'profit'
+                            : 'outline'
+                      }
                       className="text-xs"
                     >
                       {rareInformation.level}
                     </Badge>
                   </div>
-                  <p className="text-xs text-muted-foreground">
-                    Score: {rareInformation.score}/100
-                  </p>
+                  <p className="text-xs text-muted-foreground">Score: {rareInformation.score}/100</p>
                 </div>
               )}
             </div>
@@ -265,7 +265,7 @@ export function SignalQualityIndicator({ tradeId, compact = false }) {
           <span className="text-sm font-bold">{smartMoney.score}/100</span>
         </div>
         <div className="grid grid-cols-2 gap-3">
-          {smartMoneyIndicators.map((indicator) => (
+          {smartMoneyIndicators.map(indicator => (
             <TooltipProvider key={indicator.key}>
               <Tooltip>
                 <TooltipTrigger asChild>
@@ -278,7 +278,9 @@ export function SignalQualityIndicator({ tradeId, compact = false }) {
                       <Circle className="h-4 w-4 text-muted-foreground" />
                     )}
                     <div className="flex-1 min-w-0">
-                      <div className={`text-xs font-medium truncate ${indicator.active ? 'text-profit-text' : 'text-muted-foreground'}`}>
+                      <div
+                        className={`text-xs font-medium truncate ${indicator.active ? 'text-profit-text' : 'text-muted-foreground'}`}
+                      >
                         {indicator.label}
                       </div>
                       <div className="text-xs text-muted-foreground">
@@ -302,7 +304,13 @@ export function SignalQualityIndicator({ tradeId, compact = false }) {
           <div className="flex justify-between items-center mb-2">
             <span className="text-sm font-semibold">Rare Information Detection</span>
             <Badge
-              variant={rareInformation.level === 'HIGH' ? 'default' : rareInformation.level === 'MODERATE' ? 'profit' : 'outline'}
+              variant={
+                rareInformation.level === 'HIGH'
+                  ? 'default'
+                  : rareInformation.level === 'MODERATE'
+                    ? 'profit'
+                    : 'outline'
+              }
             >
               {rareInformation.level}
             </Badge>
@@ -313,9 +321,7 @@ export function SignalQualityIndicator({ tradeId, compact = false }) {
               style={{ width: `${rareInformation.score}%` }}
             />
           </div>
-          <p className="text-xs text-muted-foreground mb-2">
-            Score: {rareInformation.score}/100
-          </p>
+          <p className="text-xs text-muted-foreground mb-2">Score: {rareInformation.score}/100</p>
           {rareInformation.factors && rareInformation.factors.length > 0 && (
             <ul className="space-y-1">
               {rareInformation.factors.map((factor, idx) => (

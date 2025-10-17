@@ -2,7 +2,7 @@
 const mongoose = require('mongoose');
 
 // Internal utilities and services
-const RevenueMetrics = require('../../../src/services/analytics/RevenueMetrics');
+const { RevenueMetrics } = require('../../../src/services/analytics/RevenueMetrics');
 const User = require('../../../src/models/User');
 
 describe('RevenueMetrics', () => {

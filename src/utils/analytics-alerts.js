@@ -10,10 +10,7 @@ const winston = require('winston');
 // Alert logger
 const alertLogger = winston.createLogger({
   level: 'info',
-  format: winston.format.combine(
-    winston.format.timestamp(),
-    winston.format.json()
-  ),
+  format: winston.format.combine(winston.format.timestamp(), winston.format.json()),
   transports: [
     new winston.transports.File({ filename: 'logs/analytics-alerts.log' }),
     new winston.transports.Console({
@@ -27,32 +24,32 @@ class AnalyticsAlerts {
     this.thresholds = {
       // Churn rate thresholds
       churnRate: {
-        warning: 0.05,   // 5% monthly churn
-        critical: 0.08   // 8% monthly churn
+        warning: 0.05, // 5% monthly churn
+        critical: 0.08 // 8% monthly churn
       },
 
       // MRR growth thresholds (negative growth)
       mrrGrowth: {
-        warning: -0.03,  // -3% MRR decline
-        critical: -0.10  // -10% MRR decline
+        warning: -0.03, // -3% MRR decline
+        critical: -0.1 // -10% MRR decline
       },
 
       // At-risk users threshold
       atRiskUsers: {
-        warning: 15,     // 15% of active users at risk
-        critical: 25     // 25% of active users at risk
+        warning: 15, // 15% of active users at risk
+        critical: 25 // 25% of active users at risk
       },
 
       // Slow query threshold (ms)
       slowQuery: {
-        warning: 2000,   // 2 seconds
-        critical: 5000   // 5 seconds
+        warning: 2000, // 2 seconds
+        critical: 5000 // 5 seconds
       },
 
       // Error rate threshold
       errorRate: {
-        warning: 0.03,   // 3% error rate
-        critical: 0.10   // 10% error rate
+        warning: 0.03, // 3% error rate
+        critical: 0.1 // 10% error rate
       }
     };
 
@@ -237,7 +234,8 @@ class AnalyticsAlerts {
   checkErrorRate(errorRate, context = {}) {
     const alertKey = 'error_rate';
 
-    if (this.isInCooldown(alertKey, 10 * 60 * 1000)) { // 10-minute cooldown
+    if (this.isInCooldown(alertKey, 10 * 60 * 1000)) {
+      // 10-minute cooldown
       return { alerted: false, reason: 'cooldown' };
     }
 
@@ -338,7 +336,7 @@ class AnalyticsAlerts {
       'Launch retention campaign targeting at-risk users'
     ];
 
-    if (churnRate > 0.10) {
+    if (churnRate > 0.1) {
       recommendations.push('URGENT: Schedule emergency team meeting to address churn');
       recommendations.push('Review recent product changes that may have impacted retention');
     }
@@ -432,7 +430,7 @@ class AnalyticsAlerts {
    * @returns {Array} Active alerts
    */
   getActiveAlerts() {
-    const twentyFourHoursAgo = Date.now() - (24 * 60 * 60 * 1000);
+    const twentyFourHoursAgo = Date.now() - 24 * 60 * 60 * 1000;
 
     return this.alertHistory.filter(alert => {
       const alertTime = new Date(alert.timestamp).getTime();

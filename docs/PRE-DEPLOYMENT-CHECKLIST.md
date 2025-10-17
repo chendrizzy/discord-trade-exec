@@ -114,29 +114,16 @@ ls -lah dist/dashboard/
 
 ## 🚀 Deployment Options
 
-### Option 1: Vercel (Recommended for Quick Deploy)
-**Pros**: Automatic deployments, free SSL, global CDN, zero config
-**Cons**: Serverless limits (10 second timeout for hobby plan)
-
-```bash
-# Install Vercel CLI
-npm install -g vercel
-
-# Login
-vercel login
-
-# Deploy
-vercel --prod
-```
-
-**Configure environment variables in Vercel Dashboard**:
-- Project → Settings → Environment Variables
-- Add all variables from `.env.example`
-- Update `DISCORD_CALLBACK_URL` with Vercel domain
-
-### Option 2: Railway (Recommended for Long-Running Processes)
-**Pros**: Long-running processes, easy database integration, auto scaling
+### Option 1: Railway (Recommended)
+**Pros**: Long-running processes (Discord bot stays online), easy database integration, auto scaling, persistent WebSocket connections, stateful sessions
 **Cons**: Paid after free tier
+
+**Why Railway?** This application requires:
+- ✅ Always-on Discord bot (WebSocket connection)
+- ✅ Stateful Express sessions (OAuth login)
+- ✅ No serverless timeouts
+
+See [`railway.toml`](../railway.toml) for build configuration.
 
 ```bash
 # Install Railway CLI
@@ -153,6 +140,19 @@ railway variables set DISCORD_BOT_TOKEN=<token>
 # Deploy
 railway up
 ```
+
+### Option 2: Vercel (Legacy - Not Recommended)
+
+> **⚠️ NOT RECOMMENDED** for this application
+>
+> **Why?** Serverless limitations cause:
+> - Bot disconnections (10s function timeout)
+> - OAuth session issues (stateless architecture)
+> - Missed webhooks (cold starts)
+>
+> **Migration Guide:** [`openspec/archive/vercel/migration-guide.md`](../openspec/archive/vercel/migration-guide.md)
+
+For historical reference only - use Railway instead.
 
 ### Option 3: Heroku
 **Pros**: Established platform, many add-ons, easy scaling
@@ -253,12 +253,21 @@ curl -X POST https://yourdomain.com/webhook/tradingview \
 
 If deployment fails or issues arise:
 
-### Vercel
+### Railway (Recommended)
+```bash
+# View recent deployments
+railway status
+
+# Rollback to previous deployment via dashboard
+# Railway Dashboard → Deployments → Select previous → Redeploy
+```
+
+### Vercel (Legacy)
 ```bash
 vercel rollback
 ```
 
-### Railway/Heroku
+### Heroku
 Deploy previous commit:
 ```bash
 git revert HEAD
@@ -305,10 +314,10 @@ https://yourdomain.com/health
 
 If all items above are checked, you're ready to deploy! Follow the deployment guide in `DEPLOYMENT.md` for your chosen platform.
 
-**Recommended First Deployment:** Vercel (fastest to get started)
+**Recommended First Deployment:** Railway (reliable long-running processes)
 
 ```bash
-vercel --prod
+railway up
 ```
 
 After successful deployment:

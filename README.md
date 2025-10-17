@@ -81,6 +81,55 @@ Compare trading fees across your connected exchanges in real-time:
 
 **Total**: 10 major cryptocurrencies at launch, expanding to 50+ based on user demand.
 
+## 📈 Multi-Broker Support
+
+Execute trades across multiple stock brokers and crypto exchanges from a single platform.
+
+### Supported Stock Brokers
+
+| Broker | Tier Required | Auth Method | Markets | Commission |
+|--------|--------------|-------------|---------|------------|
+| **Alpaca** | Free+ | API Key | US Stocks, ETFs | $0 |
+| **Interactive Brokers** | Premium | TWS/Gateway | Global (150+ countries) | $0.0035/share |
+| **Charles Schwab** | Premium | OAuth2 | US Stocks, Options | $0 |
+
+### Key Features
+
+✅ **Unified Interface** - Manage all brokers from one dashboard
+✅ **Smart Routing** - Compare fees and choose best execution venue
+✅ **Rate Limiting** - Automatic request throttling per broker
+✅ **Paper Trading** - Test strategies risk-free (Alpaca, IBKR)
+✅ **Secure Storage** - AES-256-GCM encryption + AWS KMS
+✅ **Auto-Reconnect** - Resilient connection management
+
+### Getting Started
+
+1. **Free Tier** - Start with Alpaca (no subscription required)
+2. **Premium Tier** - Unlock IBKR & Schwab ($299/month)
+3. **Setup Guide** - Complete instructions at [docs/BROKER-SETUP.md](docs/BROKER-SETUP.md)
+
+### Broker Selection Guide
+
+**Choose Alpaca for:**
+- Zero commission trades
+- Paper trading practice
+- US stocks and ETFs
+- Simple API integration
+
+**Choose IBKR for:**
+- Global market access (150+ countries)
+- Options, futures, forex
+- Professional-grade platform
+- Advanced order types
+
+**Choose Schwab for:**
+- Integrated research tools
+- Commission-free trades
+- US market focus
+- Established brand trust
+
+**See full comparison:** [docs/BROKER-SETUP.md#broker-feature-comparison](docs/BROKER-SETUP.md#broker-feature-comparison)
+
 ## 📈 Projected Revenue
 With current market demand:
 

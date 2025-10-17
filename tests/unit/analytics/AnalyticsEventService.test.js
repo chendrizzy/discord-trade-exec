@@ -29,8 +29,9 @@ describe('AnalyticsEventService', () => {
       }
     };
 
-    // Clear event buffer
+    // Clear event buffer and reset shutdown flag
     analyticsEventService.eventBuffer = [];
+    analyticsEventService.isShuttingDown = false;
   });
 
   afterEach(() => {

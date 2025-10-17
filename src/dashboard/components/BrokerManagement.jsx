@@ -42,7 +42,7 @@ export function BrokerManagement() {
     }
   };
 
-  const handleTestConnection = async (brokerKey) => {
+  const handleTestConnection = async brokerKey => {
     setTestingBroker(brokerKey);
     setTestResults({ ...testResults, [brokerKey]: null });
 
@@ -75,7 +75,7 @@ export function BrokerManagement() {
     }
   };
 
-  const handleDisconnect = async (brokerKey) => {
+  const handleDisconnect = async brokerKey => {
     if (!confirm(`Are you sure you want to disconnect ${brokerKey}?`)) {
       return;
     }
@@ -99,11 +99,11 @@ export function BrokerManagement() {
     }
   };
 
-  const getBrokerIcon = (type) => {
+  const getBrokerIcon = type => {
     return type === 'stock' ? <TrendingUp className="h-5 w-5" /> : <Bitcoin className="h-5 w-5" />;
   };
 
-  const getEnvironmentBadge = (environment) => {
+  const getEnvironmentBadge = environment => {
     return environment === 'testnet' ? (
       <Badge variant="outline">Paper Trading</Badge>
     ) : (
@@ -115,9 +115,7 @@ export function BrokerManagement() {
     return (
       <Card>
         <CardContent className="py-12">
-          <div className="text-center text-muted-foreground">
-            Loading broker configurations...
-          </div>
+          <div className="text-center text-muted-foreground">Loading broker configurations...</div>
         </CardContent>
       </Card>
     );
@@ -129,9 +127,7 @@ export function BrokerManagement() {
       <div className="flex items-center justify-between">
         <div>
           <h2 className="text-2xl font-bold">Broker Connections</h2>
-          <p className="text-muted-foreground">
-            Manage your stock and crypto broker integrations
-          </p>
+          <p className="text-muted-foreground">Manage your stock and crypto broker integrations</p>
         </div>
         {configuredBrokers.length > 0 && <BrokerConfigWizard />}
       </div>
@@ -159,7 +155,7 @@ export function BrokerManagement() {
       {/* Configured Brokers Grid */}
       {configuredBrokers.length > 0 && (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          {configuredBrokers.map((broker) => {
+          {configuredBrokers.map(broker => {
             const testResult = testResults[broker.key];
             const isTesting = testingBroker === broker.key;
 
@@ -168,9 +164,7 @@ export function BrokerManagement() {
                 <CardHeader>
                   <div className="flex items-start justify-between">
                     <div className="flex items-center gap-3">
-                      <div className="p-2 rounded-lg bg-primary/10">
-                        {getBrokerIcon(broker.type)}
-                      </div>
+                      <div className="p-2 rounded-lg bg-primary/10">{getBrokerIcon(broker.type)}</div>
                       <div>
                         <CardTitle className="text-lg">{broker.name}</CardTitle>
                         <div className="flex items-center gap-2 mt-1">
@@ -188,22 +182,16 @@ export function BrokerManagement() {
                   <div className="space-y-2 text-sm">
                     <div className="flex justify-between items-center py-2 border-b border-border">
                       <span className="text-muted-foreground">Auth Method:</span>
-                      <Badge variant="outline">
-                        {broker.authMethod === 'oauth' ? 'OAuth 2.0' : 'API Key'}
-                      </Badge>
+                      <Badge variant="outline">{broker.authMethod === 'oauth' ? 'OAuth 2.0' : 'API Key'}</Badge>
                     </div>
                     <div className="flex justify-between items-center py-2 border-b border-border">
                       <span className="text-muted-foreground">Configured:</span>
-                      <span className="font-mono text-xs">
-                        {new Date(broker.configuredAt).toLocaleDateString()}
-                      </span>
+                      <span className="font-mono text-xs">{new Date(broker.configuredAt).toLocaleDateString()}</span>
                     </div>
                     {broker.lastVerified && (
                       <div className="flex justify-between items-center py-2 border-b border-border">
                         <span className="text-muted-foreground">Last Verified:</span>
-                        <span className="font-mono text-xs">
-                          {new Date(broker.lastVerified).toLocaleDateString()}
-                        </span>
+                        <span className="font-mono text-xs">{new Date(broker.lastVerified).toLocaleDateString()}</span>
                       </div>
                     )}
                   </div>
@@ -211,11 +199,7 @@ export function BrokerManagement() {
                   {/* Test Result */}
                   {testResult && (
                     <Alert variant={testResult.success ? 'profit' : 'loss'}>
-                      {testResult.success ? (
-                        <CheckCircle2 className="h-4 w-4" />
-                      ) : (
-                        <XCircle className="h-4 w-4" />
-                      )}
+                      {testResult.success ? <CheckCircle2 className="h-4 w-4" /> : <XCircle className="h-4 w-4" />}
                       <AlertDescription>
                         <div className="text-sm">{testResult.message}</div>
                         {testResult.balance && (
@@ -239,11 +223,7 @@ export function BrokerManagement() {
                       <RefreshCw className={`mr-2 h-4 w-4 ${isTesting ? 'animate-spin' : ''}`} />
                       {isTesting ? 'Testing...' : 'Test Connection'}
                     </Button>
-                    <Button
-                      variant="destructive"
-                      size="sm"
-                      onClick={() => handleDisconnect(broker.key)}
-                    >
+                    <Button variant="destructive" size="sm" onClick={() => handleDisconnect(broker.key)}>
                       <Trash2 className="h-4 w-4" />
                     </Button>
                   </div>
@@ -259,8 +239,8 @@ export function BrokerManagement() {
         <Alert>
           <AlertCircle className="h-4 w-4" />
           <AlertDescription>
-            <strong>Security:</strong> Your credentials are encrypted at rest using AES-256-GCM encryption.
-            Always use paper trading (testnet) mode when testing new strategies.
+            <strong>Security:</strong> Your credentials are encrypted at rest using AES-256-GCM encryption. Always use
+            paper trading (testnet) mode when testing new strategies.
           </AlertDescription>
         </Alert>
       )}

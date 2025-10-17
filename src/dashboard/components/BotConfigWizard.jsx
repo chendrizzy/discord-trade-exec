@@ -6,7 +6,7 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
+  DialogTrigger
 } from './ui/dialog';
 import { Button } from './ui/button';
 import { Input } from './ui/input';
@@ -20,7 +20,7 @@ const steps = [
   { id: 2, name: 'Trading Pairs', description: 'Select trading pairs' },
   { id: 3, name: 'Risk Parameters', description: 'Configure risk management' },
   { id: 4, name: 'Strategy', description: 'Set strategy parameters' },
-  { id: 5, name: 'Review', description: 'Review and confirm' },
+  { id: 5, name: 'Review', description: 'Review and confirm' }
 ];
 
 export function BotConfigWizard() {
@@ -34,22 +34,22 @@ export function BotConfigWizard() {
     takeProfit: '',
     strategyType: '',
     indicator1: '',
-    indicator2: '',
+    indicator2: ''
   });
 
   const updateConfig = (key, value) => {
-    setConfig((prev) => ({ ...prev, [key]: value }));
+    setConfig(prev => ({ ...prev, [key]: value }));
   };
 
   const nextStep = () => {
     if (currentStep < steps.length) {
-      setCurrentStep((prev) => prev + 1);
+      setCurrentStep(prev => prev + 1);
     }
   };
 
   const prevStep = () => {
     if (currentStep > 1) {
-      setCurrentStep((prev) => prev - 1);
+      setCurrentStep(prev => prev - 1);
     }
   };
 
@@ -63,7 +63,7 @@ export function BotConfigWizard() {
       takeProfit: '',
       strategyType: '',
       indicator1: '',
-      indicator2: '',
+      indicator2: ''
     });
   };
 
@@ -73,7 +73,7 @@ export function BotConfigWizard() {
     resetWizard();
   };
 
-  const isStepValid = (step) => {
+  const isStepValid = step => {
     switch (step) {
       case 1:
         return config.botType !== '';
@@ -97,7 +97,7 @@ export function BotConfigWizard() {
           <div className="space-y-4">
             <div className="space-y-2">
               <label className="text-sm font-medium">Bot Type</label>
-              <Select value={config.botType} onValueChange={(value) => updateConfig('botType', value)}>
+              <Select value={config.botType} onValueChange={value => updateConfig('botType', value)}>
                 <SelectTrigger>
                   <SelectValue placeholder="Select bot type" />
                 </SelectTrigger>
@@ -109,9 +109,7 @@ export function BotConfigWizard() {
                   <SelectItem value="arbitrage">Arbitrage</SelectItem>
                 </SelectContent>
               </Select>
-              <p className="text-xs text-muted-foreground">
-                Choose the type of trading strategy your bot will use
-              </p>
+              <p className="text-xs text-muted-foreground">Choose the type of trading strategy your bot will use</p>
             </div>
           </div>
         );
@@ -121,10 +119,7 @@ export function BotConfigWizard() {
           <div className="space-y-4">
             <div className="space-y-2">
               <label className="text-sm font-medium">Trading Pair</label>
-              <Select
-                value={config.tradingPair}
-                onValueChange={(value) => updateConfig('tradingPair', value)}
-              >
+              <Select value={config.tradingPair} onValueChange={value => updateConfig('tradingPair', value)}>
                 <SelectTrigger>
                   <SelectValue placeholder="Select trading pair" />
                 </SelectTrigger>
@@ -136,9 +131,7 @@ export function BotConfigWizard() {
                   <SelectItem value="MATIC/USDT">MATIC/USDT</SelectItem>
                 </SelectContent>
               </Select>
-              <p className="text-xs text-muted-foreground">
-                Select the cryptocurrency pair you want to trade
-              </p>
+              <p className="text-xs text-muted-foreground">Select the cryptocurrency pair you want to trade</p>
             </div>
           </div>
         );
@@ -159,11 +152,9 @@ export function BotConfigWizard() {
                 type="number"
                 placeholder="1000"
                 value={config.maxPositionSize}
-                onChange={(e) => updateConfig('maxPositionSize', e.target.value)}
+                onChange={e => updateConfig('maxPositionSize', e.target.value)}
               />
-              <p className="text-xs text-muted-foreground">
-                Maximum amount to invest in a single position
-              </p>
+              <p className="text-xs text-muted-foreground">Maximum amount to invest in a single position</p>
             </div>
 
             <div className="space-y-2">
@@ -172,11 +163,9 @@ export function BotConfigWizard() {
                 type="number"
                 placeholder="5"
                 value={config.stopLoss}
-                onChange={(e) => updateConfig('stopLoss', e.target.value)}
+                onChange={e => updateConfig('stopLoss', e.target.value)}
               />
-              <p className="text-xs text-muted-foreground">
-                Percentage loss at which to automatically exit position
-              </p>
+              <p className="text-xs text-muted-foreground">Percentage loss at which to automatically exit position</p>
             </div>
 
             <div className="space-y-2">
@@ -185,11 +174,9 @@ export function BotConfigWizard() {
                 type="number"
                 placeholder="10"
                 value={config.takeProfit}
-                onChange={(e) => updateConfig('takeProfit', e.target.value)}
+                onChange={e => updateConfig('takeProfit', e.target.value)}
               />
-              <p className="text-xs text-muted-foreground">
-                Percentage gain at which to automatically take profits
-              </p>
+              <p className="text-xs text-muted-foreground">Percentage gain at which to automatically take profits</p>
             </div>
           </div>
         );
@@ -199,10 +186,7 @@ export function BotConfigWizard() {
           <div className="space-y-4">
             <div className="space-y-2">
               <label className="text-sm font-medium">Strategy Type</label>
-              <Select
-                value={config.strategyType}
-                onValueChange={(value) => updateConfig('strategyType', value)}
-              >
+              <Select value={config.strategyType} onValueChange={value => updateConfig('strategyType', value)}>
                 <SelectTrigger>
                   <SelectValue placeholder="Select strategy" />
                 </SelectTrigger>
@@ -216,10 +200,7 @@ export function BotConfigWizard() {
 
             <div className="space-y-2">
               <label className="text-sm font-medium">Primary Indicator</label>
-              <Select
-                value={config.indicator1}
-                onValueChange={(value) => updateConfig('indicator1', value)}
-              >
+              <Select value={config.indicator1} onValueChange={value => updateConfig('indicator1', value)}>
                 <SelectTrigger>
                   <SelectValue placeholder="Select indicator" />
                 </SelectTrigger>
@@ -234,10 +215,7 @@ export function BotConfigWizard() {
 
             <div className="space-y-2">
               <label className="text-sm font-medium">Secondary Indicator (Optional)</label>
-              <Select
-                value={config.indicator2}
-                onValueChange={(value) => updateConfig('indicator2', value)}
-              >
+              <Select value={config.indicator2} onValueChange={value => updateConfig('indicator2', value)}>
                 <SelectTrigger>
                   <SelectValue placeholder="Select indicator" />
                 </SelectTrigger>
@@ -257,9 +235,7 @@ export function BotConfigWizard() {
           <div className="space-y-4">
             <Alert variant="profit">
               <CheckCircle2 className="h-4 w-4" />
-              <AlertDescription>
-                Configuration complete! Review your settings before creating the bot.
-              </AlertDescription>
+              <AlertDescription>Configuration complete! Review your settings before creating the bot.</AlertDescription>
             </Alert>
 
             <div className="space-y-3">
@@ -322,18 +298,14 @@ export function BotConfigWizard() {
                   currentStep === step.id
                     ? 'border-gold-500 bg-gold-500 text-black font-bold'
                     : currentStep > step.id
-                    ? 'border-profit bg-profit text-black'
-                    : 'border-border bg-background text-muted-foreground'
+                      ? 'border-profit bg-profit text-black'
+                      : 'border-border bg-background text-muted-foreground'
                 }`}
               >
                 {currentStep > step.id ? <CheckCircle2 className="h-4 w-4" /> : step.id}
               </div>
               {index < steps.length - 1 && (
-                <div
-                  className={`h-0.5 w-12 mx-2 ${
-                    currentStep > step.id ? 'bg-profit' : 'bg-border'
-                  }`}
-                />
+                <div className={`h-0.5 w-12 mx-2 ${currentStep > step.id ? 'bg-profit' : 'bg-border'}`} />
               )}
             </div>
           ))}
@@ -344,22 +316,14 @@ export function BotConfigWizard() {
 
         <DialogFooter>
           <div className="flex items-center justify-between w-full">
-            <Button
-              variant="outline"
-              onClick={prevStep}
-              disabled={currentStep === 1}
-            >
+            <Button variant="outline" onClick={prevStep} disabled={currentStep === 1}>
               Previous
             </Button>
             <div className="text-sm text-muted-foreground">
               Step {currentStep} of {steps.length}
             </div>
             {currentStep < steps.length ? (
-              <Button
-                variant="gold"
-                onClick={nextStep}
-                disabled={!isStepValid(currentStep)}
-              >
+              <Button variant="gold" onClick={nextStep} disabled={!isStepValid(currentStep)}>
                 Next
               </Button>
             ) : (

@@ -79,12 +79,7 @@ router.get('/revenue', requireAdmin, async (req, res) => {
 router.get('/mrr', requireAdmin, async (req, res) => {
   try {
     // Use Redis cache wrapper
-    const result = await cache.wrap(
-      cache.prefixes.MRR,
-      () => revenueMetrics.calculateMRR(),
-      {},
-      cache.ttls.MRR
-    );
+    const result = await cache.wrap(cache.prefixes.MRR, () => revenueMetrics.calculateMRR(), {}, cache.ttls.MRR);
 
     res.json({
       success: true,
@@ -130,12 +125,7 @@ router.get('/arr', requireAdmin, async (req, res) => {
 router.get('/ltv', requireAdmin, async (req, res) => {
   try {
     // Use Redis cache wrapper
-    const result = await cache.wrap(
-      cache.prefixes.LTV,
-      () => revenueMetrics.calculateLTV(),
-      {},
-      cache.ttls.LTV
-    );
+    const result = await cache.wrap(cache.prefixes.LTV, () => revenueMetrics.calculateLTV(), {}, cache.ttls.LTV);
 
     res.json({
       success: true,
@@ -167,10 +157,7 @@ router.get('/churn', requireAdmin, async (req, res) => {
       });
     }
 
-    const churn = await revenueMetrics.calculateChurnRate(
-      new Date(startDate),
-      new Date(endDate)
-    );
+    const churn = await revenueMetrics.calculateChurnRate(new Date(startDate), new Date(endDate));
 
     res.json({
       success: true,
@@ -235,8 +222,9 @@ router.post('/churn-risk/calculate', requireAdmin, async (req, res) => {
       });
     }
 
-    const user = await User.findById(userId)
-      .select('subscription stats lastLogin createdAt supportTickets brokerConnections');
+    const user = await User.findById(userId).select(
+      'subscription stats lastLogin createdAt supportTickets brokerConnections'
+    );
 
     if (!user) {
       return res.status(404).json({

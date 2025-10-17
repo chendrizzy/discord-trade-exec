@@ -38,9 +38,7 @@ class ChurnPredictor {
       daysSinceSignup,
       tradeCount: stats.totalTrades || 0,
       lastTradeDate,
-      daysSinceLastTrade: lastTradeDate
-        ? Math.floor((now - lastTradeDate.getTime()) / (1000 * 60 * 60 * 24))
-        : null,
+      daysSinceLastTrade: lastTradeDate ? Math.floor((now - lastTradeDate.getTime()) / (1000 * 60 * 60 * 24)) : null,
       winRate: stats.winRate || 0,
       totalProfit: stats.totalProfit || stats.netProfit || 0,
       subscriptionTier: subscription.tier || 'basic',
@@ -210,5 +208,7 @@ function getChurnPredictorInstance() {
   return instance;
 }
 
-module.exports = ChurnPredictor;
-module.exports.getChurnPredictorInstance = getChurnPredictorInstance;
+module.exports = {
+  ChurnPredictor,
+  getChurnPredictorInstance
+};

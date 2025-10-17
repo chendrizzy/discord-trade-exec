@@ -154,7 +154,9 @@ class SubscriptionManager {
         req
       );
 
-      console.log(`[SubscriptionManager] Subscription renewed: ${user.discordUsername} -> ${user.subscription.tier} (renewal #${user.subscription.renewalCount})`);
+      console.log(
+        `[SubscriptionManager] Subscription renewed: ${user.discordUsername} -> ${user.subscription.tier} (renewal #${user.subscription.renewalCount})`
+      );
 
       return {
         success: true,
@@ -220,7 +222,9 @@ class SubscriptionManager {
         req
       );
 
-      console.log(`[SubscriptionManager] Subscription cancelled: ${user.discordUsername} -> ${previousTier} -> free (reason: ${reason})`);
+      console.log(
+        `[SubscriptionManager] Subscription cancelled: ${user.discordUsername} -> ${previousTier} -> free (reason: ${reason})`
+      );
 
       return {
         success: true,

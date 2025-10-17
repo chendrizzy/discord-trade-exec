@@ -24,6 +24,11 @@ module.exports = {
     }
   },
   testMatch: ['**/tests/**/*.test.js', '**/__tests__/**/*.js', '**/?(*.)+(spec|test).js'],
+  testPathIgnorePatterns: [
+    '/node_modules/',
+    '/tests/e2e/',  // Exclude Playwright E2E tests (run with `npx playwright test`)
+    '\\.spec\\.js$' // Exclude .spec.js files (Playwright convention)
+  ],
   setupFilesAfterEnv: ['<rootDir>/tests/setup.js'],
   testTimeout: 30000,
   verbose: true,

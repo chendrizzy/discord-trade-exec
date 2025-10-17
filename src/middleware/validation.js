@@ -427,7 +427,9 @@ const Schemas = {
     'schwab'
   ]),
 
-  symbol: z.string().regex(/^[A-Z0-9]{2,10}\/[A-Z0-9]{2,10}$/, 'Invalid symbol format. Expected: BASE/QUOTE (e.g., BTC/USDT)'),
+  symbol: z
+    .string()
+    .regex(/^[A-Z0-9]{2,10}\/[A-Z0-9]{2,10}$/, 'Invalid symbol format. Expected: BASE/QUOTE (e.g., BTC/USDT)'),
 
   orderId: z.string().min(1, 'Order ID is required'),
 

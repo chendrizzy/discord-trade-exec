@@ -168,6 +168,171 @@ const exchangeApiLimiter = rateLimit({
 });
 
 /**
+ * Broker Call Tracker
+ * Tracks individual stock broker API calls to respect broker-specific rate limits
+ * IBKR: 50 requests/second
+ * Schwab: 120 requests/minute
+ * Alpaca: 200 requests/minute
+ */
+class BrokerCallTracker {
+  constructor() {
+    // Store format: { userId: { brokerKey: { calls: [], resetTime: timestamp } } }
+    this.tracker = new Map();
+
+    // Broker-specific rate limits
+    this.brokerLimits = {
+      ibkr: { max: 50, window: 1000, message: 'IBKR API rate limit exceeded (50 requests/second)' },
+      schwab: { max: 120, window: 60000, message: 'Schwab API rate limit exceeded (120 requests/minute)' },
+      alpaca: { max: 200, window: 60000, message: 'Alpaca API rate limit exceeded (200 requests/minute)' },
+      // Crypto brokers (in case used as brokers)
+      binance: { max: 1200, window: 60000, message: 'Binance API rate limit exceeded (1200 requests/minute)' },
+      coinbase: { max: 10, window: 1000, message: 'Coinbase Pro API rate limit exceeded (10 requests/second)' },
+      kraken: { max: 15, window: 1000, message: 'Kraken API rate limit exceeded (15 requests/second)' }
+    };
+
+    // Cleanup old entries every 5 minutes
+    this.cleanupInterval = setInterval(
+      () => {
+        this.cleanup();
+      },
+      5 * 60 * 1000
+    );
+  }
+
+  /**
+   * Check if broker API call is allowed for user
+   * @param {string} userId - User ID
+   * @param {string} brokerKey - Broker key (lowercase)
+   * @returns {Object} - { allowed: boolean, retryAfter?: number, remaining?: number }
+   */
+  checkLimit(userId, brokerKey) {
+    const limit = this.brokerLimits[brokerKey.toLowerCase()];
+    if (!limit) {
+      // Unknown broker, allow by default
+      return { allowed: true };
+    }
+
+    // Get or create user tracker
+    if (!this.tracker.has(userId)) {
+      this.tracker.set(userId, new Map());
+    }
+
+    const userTracker = this.tracker.get(userId);
+
+    // Get or create broker tracker for user
+    if (!userTracker.has(brokerKey)) {
+      userTracker.set(brokerKey, { calls: [], resetTime: null });
+    }
+
+    const brokerTracker = userTracker.get(brokerKey);
+    const now = Date.now();
+
+    // Remove calls outside the current window (sliding window algorithm)
+    brokerTracker.calls = brokerTracker.calls.filter(timestamp => now - timestamp < limit.window);
+
+    // Check if limit exceeded
+    if (brokerTracker.calls.length >= limit.max) {
+      const oldestCall = brokerTracker.calls[0];
+      const retryAfter = Math.ceil((oldestCall + limit.window - now) / 1000);
+
+      return {
+        allowed: false,
+        retryAfter: retryAfter,
+        message: limit.message,
+        limit: limit.max,
+        window: `${limit.window / 1000}s`
+      };
+    }
+
+    // Record this call
+    brokerTracker.calls.push(now);
+
+    return {
+      allowed: true,
+      remaining: limit.max - brokerTracker.calls.length,
+      limit: limit.max,
+      resetTime: now + limit.window
+    };
+  }
+
+  /**
+   * Clean up old entries to prevent memory leaks
+   */
+  cleanup() {
+    const now = Date.now();
+    const maxAge = 10 * 60 * 1000; // 10 minutes
+
+    for (const [userId, userTracker] of this.tracker.entries()) {
+      for (const [brokerKey, brokerTracker] of userTracker.entries()) {
+        // Remove calls older than 10 minutes
+        brokerTracker.calls = brokerTracker.calls.filter(timestamp => now - timestamp < maxAge);
+
+        // Remove broker tracker if no recent calls
+        if (brokerTracker.calls.length === 0) {
+          userTracker.delete(brokerKey);
+        }
+      }
+
+      // Remove user tracker if no brokers tracked
+      if (userTracker.size === 0) {
+        this.tracker.delete(userId);
+      }
+    }
+  }
+
+  /**
+   * Get current usage for a user and broker
+   * @param {string} userId - User ID
+   * @param {string} brokerKey - Broker key
+   * @returns {Object} - { current: number, limit: number, remaining: number }
+   */
+  getUsage(userId, brokerKey) {
+    const limit = this.brokerLimits[brokerKey.toLowerCase()];
+    if (!limit) {
+      return { current: 0, limit: 0, remaining: 0 };
+    }
+
+    const userTracker = this.tracker.get(userId);
+    if (!userTracker) {
+      return { current: 0, limit: limit.max, remaining: limit.max };
+    }
+
+    const brokerTracker = userTracker.get(brokerKey);
+    if (!brokerTracker) {
+      return { current: 0, limit: limit.max, remaining: limit.max };
+    }
+
+    const now = Date.now();
+    const recentCalls = brokerTracker.calls.filter(timestamp => now - timestamp < limit.window);
+
+    return {
+      current: recentCalls.length,
+      limit: limit.max,
+      remaining: Math.max(0, limit.max - recentCalls.length)
+    };
+  }
+
+  /**
+   * Get rate limit configs for a broker
+   * @param {string} brokerKey - Broker key
+   * @returns {Object} - { max: number, window: number, message: string }
+   */
+  getLimitConfig(brokerKey) {
+    return this.brokerLimits[brokerKey.toLowerCase()] || null;
+  }
+
+  /**
+   * Clean up interval on shutdown
+   */
+  destroy() {
+    if (this.cleanupInterval) {
+      clearInterval(this.cleanupInterval);
+      this.cleanupInterval = null;
+    }
+  }
+}
+
+/**
  * In-Memory Exchange Call Tracker
  * Tracks individual exchange API calls to respect exchange-specific rate limits
  * Coinbase Pro: 10 requests/second
@@ -188,9 +353,12 @@ class ExchangeCallTracker {
     };
 
     // Cleanup old entries every 5 minutes
-    this.cleanupInterval = setInterval(() => {
-      this.cleanup();
-    }, 5 * 60 * 1000);
+    this.cleanupInterval = setInterval(
+      () => {
+        this.cleanup();
+      },
+      5 * 60 * 1000
+    );
   }
 
   /**
@@ -313,8 +481,107 @@ class ExchangeCallTracker {
   }
 }
 
-// Create global exchange call tracker instance
+// Create global tracker instances
+const brokerCallTracker = new BrokerCallTracker();
 const exchangeCallTracker = new ExchangeCallTracker();
+
+/**
+ * Middleware to enforce broker-specific rate limits
+ * Use this before making actual API calls to stock brokers (IBKR, Schwab, Alpaca)
+ * @param {string} brokerKey - Optional broker key, if not provided will extract from req.body or req.params
+ */
+const checkBrokerRateLimit = (brokerKey = null) => {
+  return (req, res, next) => {
+    // Only applies to authenticated users
+    if (!req.user) {
+      return res.status(401).json({
+        success: false,
+        error: 'Authentication required'
+      });
+    }
+
+    // Get broker key from parameter, body, params, or query
+    const broker = brokerKey || req.body?.brokerKey || req.params?.brokerKey || req.query?.brokerKey;
+
+    if (!broker) {
+      // No broker specified, continue (will be validated later)
+      return next();
+    }
+
+    // Check rate limit for this broker
+    const result = brokerCallTracker.checkLimit(req.user._id.toString(), broker.toLowerCase());
+
+    // Add rate limit info to response headers
+    if (result.limit) {
+      res.set({
+        'X-RateLimit-Limit': result.limit.toString(),
+        'X-RateLimit-Remaining': (result.remaining || 0).toString()
+      });
+
+      if (result.resetTime) {
+        res.set('X-RateLimit-Reset', new Date(result.resetTime).toISOString());
+      }
+    }
+
+    if (!result.allowed) {
+      res.set('Retry-After', result.retryAfter.toString());
+
+      return res.status(429).json({
+        success: false,
+        error: 'RATE_LIMIT_EXCEEDED',
+        message: result.message,
+        retryAfter: result.retryAfter,
+        limit: result.limit,
+        window: result.window,
+        broker: broker
+      });
+    }
+
+    next();
+  };
+};
+
+/**
+ * Dynamic broker rate limiter that extracts broker from request
+ * Use when broker key is in req.body, req.params, or req.query
+ */
+const dynamicBrokerRateLimiter = checkBrokerRateLimit();
+
+/**
+ * Get rate limit status for all brokers for a user (admin/debugging)
+ */
+const getBrokerRateLimitStatus = (req, res) => {
+  if (!req.user) {
+    return res.status(401).json({
+      success: false,
+      error: 'Authentication required'
+    });
+  }
+
+  const userId = req.user._id.toString();
+  const brokers = ['ibkr', 'schwab', 'alpaca', 'binance', 'coinbase', 'kraken'];
+
+  const status = brokers.map(broker => {
+    const usage = brokerCallTracker.getUsage(userId, broker);
+    const config = brokerCallTracker.getLimitConfig(broker);
+
+    return {
+      broker,
+      current: usage.current,
+      limit: usage.limit,
+      remaining: usage.remaining,
+      percentUsed: usage.limit > 0 ? ((usage.current / usage.limit) * 100).toFixed(1) : 0,
+      window: config ? `${config.window / 1000}s` : 'N/A'
+    };
+  });
+
+  res.json({
+    success: true,
+    userId,
+    timestamp: new Date().toISOString(),
+    brokers: status
+  });
+};
 
 /**
  * Middleware to enforce exchange-specific rate limits
@@ -395,6 +662,7 @@ const getExchangeRateLimitStatus = (req, res) => {
 
 // Graceful shutdown
 process.on('SIGTERM', () => {
+  brokerCallTracker.destroy();
   exchangeCallTracker.destroy();
   if (redisClient) {
     redisClient.disconnect();
@@ -410,5 +678,10 @@ module.exports = {
   checkExchangeRateLimit,
   getExchangeRateLimitStatus,
   exchangeCallTracker,
+  // Broker-specific rate limiting
+  checkBrokerRateLimit,
+  dynamicBrokerRateLimiter,
+  getBrokerRateLimitStatus,
+  brokerCallTracker,
   redisClient
 };

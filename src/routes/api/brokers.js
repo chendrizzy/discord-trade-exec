@@ -16,6 +16,10 @@ const {
 // Analytics
 const analyticsEventService = require('../../services/analytics/AnalyticsEventService');
 
+// Middleware
+const { checkBrokerAccess, requirePremiumBroker, checkBrokerLimit } = require('../../middleware/premiumGating');
+const { checkBrokerRateLimit } = require('../../middleware/rateLimiter');
+
 /**
  * Middleware to ensure user is authenticated
  */
@@ -54,7 +58,9 @@ router.get('/', ensureAuthenticated, (req, res) => {
         features: broker.features,
         authMethods: broker.authMethods,
         markets: broker.markets,
-        accountTypes: broker.accountTypes
+        accountTypes: broker.accountTypes,
+        credentialFields: broker.credentialFields,
+        prerequisites: broker.prerequisites
       })),
       stats: BrokerFactory.getStats()
     });
@@ -92,7 +98,9 @@ router.get('/:brokerKey', ensureAuthenticated, (req, res) => {
         authMethods: broker.authMethods,
         markets: broker.markets,
         accountTypes: broker.accountTypes,
-        docs: broker.docs
+        docs: broker.docs,
+        credentialFields: broker.credentialFields,
+        prerequisites: broker.prerequisites
       }
     });
   } catch (error) {
@@ -115,6 +123,16 @@ router.post('/test', ensureAuthenticated, async (req, res) => {
 
     if (!credentials || Object.keys(credentials).length === 0) {
       return sendValidationError(res, 'Credentials are required');
+    }
+
+    // Apply default values for Moomoo credentials
+    if (brokerKey === 'moomoo') {
+      if (!credentials.host) {
+        credentials.host = '127.0.0.1';
+      }
+      if (!credentials.port) {
+        credentials.port = 11111;
+      }
     }
 
     // Validate credentials format
@@ -145,7 +163,7 @@ router.post('/test', ensureAuthenticated, async (req, res) => {
  * Test connection for an already-configured broker
  * Retrieves stored credentials from database and tests the connection
  */
-router.post('/test/:brokerKey', ensureAuthenticated, async (req, res) => {
+router.post('/test/:brokerKey', ensureAuthenticated, checkBrokerRateLimit(), async (req, res) => {
   try {
     const { brokerKey } = req.params;
     const userId = req.user.id;
@@ -177,6 +195,16 @@ router.post('/test/:brokerKey', ensureAuthenticated, async (req, res) => {
       return sendError(res, 'Failed to decrypt credentials', 500, {
         message: 'Decryption service error. Please check AWS KMS configuration.'
       });
+    }
+
+    // Apply default values for Moomoo credentials (defensive, in case old configs don't have defaults)
+    if (brokerKey === 'moomoo') {
+      if (!decryptedCredentials.host) {
+        decryptedCredentials.host = '127.0.0.1';
+      }
+      if (!decryptedCredentials.port) {
+        decryptedCredentials.port = 11111;
+      }
     }
 
     // Prepare options
@@ -211,13 +239,23 @@ router.post('/test/:brokerKey', ensureAuthenticated, async (req, res) => {
  * POST /api/brokers/configure
  * Save broker configuration for the authenticated user
  */
-router.post('/configure', ensureAuthenticated, async (req, res) => {
+router.post('/configure', ensureAuthenticated, requirePremiumBroker, checkBrokerLimit, async (req, res) => {
   try {
     const { brokerKey, brokerType, authMethod, credentials, environment } = req.body;
     const userId = req.user.id;
 
     if (!brokerKey || !brokerType || !authMethod || !credentials) {
       return sendValidationError(res, 'Missing required fields: brokerKey, brokerType, authMethod, credentials');
+    }
+
+    // Apply default values for Moomoo credentials
+    if (brokerKey === 'moomoo') {
+      if (!credentials.host) {
+        credentials.host = '127.0.0.1';
+      }
+      if (!credentials.port) {
+        credentials.port = 11111;
+      }
     }
 
     // Validate credentials
@@ -241,6 +279,9 @@ router.post('/configure', ensureAuthenticated, async (req, res) => {
     if (!user.brokerConfigs) {
       user.brokerConfigs = {};
     }
+
+    // Check if this is a reconnection (before saving)
+    const isReconnection = !!user.brokerConfigs[brokerKey];
 
     // Encrypt credentials before storing
     const encryptionService = getEncryptionService();
@@ -274,14 +315,17 @@ router.post('/configure', ensureAuthenticated, async (req, res) => {
       {
         broker: brokerKey,
         accountType: brokerType,
-        isReconnection: !!user.brokerConfigs[brokerKey]?.lastVerified
+        isReconnection: isReconnection
       },
       req
     );
 
+    // Get broker info for response
+    const brokerInfo = BrokerFactory.getBrokerInfo(brokerKey);
+
     res.json({
       success: true,
-      message: 'Broker configuration saved successfully',
+      message: `${brokerInfo?.name || brokerKey} configuration saved successfully`,
       broker: {
         key: brokerKey,
         type: brokerType,
@@ -362,13 +406,16 @@ router.delete('/user/:brokerKey', ensureAuthenticated, async (req, res) => {
       return sendNotFound(res, `Broker '${brokerKey}' configuration`);
     }
 
+    // Get broker info before removing
+    const brokerInfo = BrokerFactory.getBrokerInfo(brokerKey);
+
     // Remove broker configuration
     delete user.brokerConfigs[brokerKey];
     await user.save();
 
     res.json({
       success: true,
-      message: 'Broker configuration removed successfully'
+      message: `${brokerInfo?.name || brokerKey} disconnected successfully`
     });
   } catch (error) {
     console.error('[BrokerAPI] Error removing broker config:', error);
@@ -378,24 +425,53 @@ router.delete('/user/:brokerKey', ensureAuthenticated, async (req, res) => {
 
 /**
  * POST /api/brokers/compare
- * Compare multiple brokers side-by-side
+ * Compare broker fees for a specific trade
+ * Compares fees across all configured brokers for the user
  */
-router.post('/compare', ensureAuthenticated, (req, res) => {
+router.post('/compare', ensureAuthenticated, async (req, res) => {
   try {
-    const { brokerKeys } = req.body;
+    const { symbol, quantity, side } = req.body;
+    const userId = req.user.id;
 
-    if (!brokerKeys || !Array.isArray(brokerKeys) || brokerKeys.length < 2) {
-      return sendValidationError(res, 'At least 2 broker keys required for comparison');
+    if (!symbol || !quantity || !side) {
+      return sendValidationError(res, 'symbol, quantity, and side are required');
     }
 
-    const comparison = BrokerFactory.compareBrokers(brokerKeys);
+    // Find user to get configured brokers
+    const user = await User.findById(userId);
+    if (!user) {
+      return sendNotFound(res, 'User');
+    }
+
+    // Get user's configured broker keys
+    const configuredBrokerKeys = Object.keys(user.brokerConfigs || {});
+
+    if (configuredBrokerKeys.length === 0) {
+      return res.json({
+        success: true,
+        comparison: {
+          symbol,
+          quantity,
+          brokers: [],
+          message: 'No brokers configured for comparison'
+        }
+      });
+    }
+
+    // Call BrokerFactory to compare fees
+    const comparison = await BrokerFactory.compareFeesForSymbol(
+      symbol,
+      quantity,
+      side,
+      configuredBrokerKeys
+    );
 
     res.json({
       success: true,
       comparison
     });
   } catch (error) {
-    console.error('[BrokerAPI] Error comparing brokers:', error);
+    console.error('[BrokerAPI] Error comparing fees:', error);
     return sendError(res, error.message);
   }
 });

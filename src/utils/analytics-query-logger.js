@@ -12,10 +12,7 @@ const winston = require('winston');
 // Query pattern logger
 const queryLogger = winston.createLogger({
   level: 'info',
-  format: winston.format.combine(
-    winston.format.timestamp(),
-    winston.format.json()
-  ),
+  format: winston.format.combine(winston.format.timestamp(), winston.format.json()),
   transports: [
     new winston.transports.File({ filename: 'logs/analytics-query-patterns.log' }),
     new winston.transports.File({
@@ -144,8 +141,7 @@ class QueryPatternLogger {
    * @private
    */
   cleanupOldestPatterns() {
-    const sortedPatterns = Array.from(this.patterns.entries())
-      .sort((a, b) => a[1].lastSeen - b[1].lastSeen);
+    const sortedPatterns = Array.from(this.patterns.entries()).sort((a, b) => a[1].lastSeen - b[1].lastSeen);
 
     // Remove oldest 20%
     const removeCount = Math.floor(this.PATTERN_CACHE_SIZE * 0.2);
@@ -252,7 +248,7 @@ class QueryPatternLogger {
         totalQueries: allPatterns.reduce((sum, p) => sum + p.count, 0),
         avgQueryTime: Math.round(
           allPatterns.reduce((sum, p) => sum + p.avgTime * p.count, 0) /
-          allPatterns.reduce((sum, p) => sum + p.count, 0)
+            allPatterns.reduce((sum, p) => sum + p.count, 0)
         ),
         slowPatterns: allPatterns.filter(p => p.avgTime > this.SLOW_QUERY_THRESHOLD).length
       },
@@ -369,11 +365,7 @@ class QueryPatternLogger {
         }
       };
 
-      await fs.writeFile(
-        path.resolve(filePath),
-        JSON.stringify(exportData, null, 2),
-        'utf8'
-      );
+      await fs.writeFile(path.resolve(filePath), JSON.stringify(exportData, null, 2), 'utf8');
 
       return { success: true, filePath };
     } catch (error) {

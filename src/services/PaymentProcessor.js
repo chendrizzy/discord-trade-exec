@@ -551,7 +551,9 @@ class PaymentProcessor {
 
     if (result.success) {
       // TODO: Send renewal confirmation email
-      console.log(`[PaymentProcessor] Successfully renewed subscription for user: ${result.user.id} (renewal #${result.user.renewalCount})`);
+      console.log(
+        `[PaymentProcessor] Successfully renewed subscription for user: ${result.user.id} (renewal #${result.user.renewalCount})`
+      );
     } else {
       console.error(`[PaymentProcessor] Failed to renew subscription:`, result.error);
     }
@@ -568,7 +570,9 @@ class PaymentProcessor {
     if (result.success) {
       // TODO: Send cancellation confirmation email
       // TODO: Ask for feedback to understand churn reasons
-      console.log(`[PaymentProcessor] Successfully canceled subscription for user: ${result.user.id} (${result.user.previousTier} -> ${result.user.newTier})`);
+      console.log(
+        `[PaymentProcessor] Successfully canceled subscription for user: ${result.user.id} (${result.user.previousTier} -> ${result.user.newTier})`
+      );
     } else {
       console.error(`[PaymentProcessor] Failed to cancel subscription:`, result.error);
     }

@@ -207,9 +207,9 @@ describe('Configuration Validator', () => {
   describe('Discord Configuration Schema Validation', () => {
     test('should validate complete Discord configuration', () => {
       const config = {
-        token: 'DISCORD_BOT_TOKEN_FOR_TESTING_ONLY_NOT_REAL',
+        token: 'DISCORD_BOT_TOKEN_FOR_TESTING_ONLY_NOT_REAL_1234567890',
         clientId: '123456789012345678',
-        clientSecret: 'a1b2c3d4e5f6g7h8i9j0'
+        clientSecret: 'a1b2c3d4e5f6g7h8i9j0k'
       };
 
       const result = validateConfig(config, discordConfigSchema);
@@ -218,7 +218,7 @@ describe('Configuration Validator', () => {
 
     test('should validate Discord client ID format', () => {
       const config = {
-        token: 'DISCORD_BOT_TOKEN_FOR_TESTING_ONLY_NOT_REAL',
+        token: 'DISCORD_BOT_TOKEN_FOR_TESTING_ONLY_NOT_REAL_123',
         clientId: 'invalid-id',
         clientSecret: 'a1b2c3d4e5f6g7h8i9j0'
       };
@@ -284,9 +284,9 @@ describe('Configuration Validator', () => {
           }
         },
         discord: {
-          token: 'DISCORD_BOT_TOKEN_FOR_TESTING_ONLY_NOT_REAL',
+          token: 'DISCORD_BOT_TOKEN_FOR_TESTING_ONLY_NOT_REAL_1234567890',
           clientId: '123456789012345678',
-          clientSecret: 'a1b2c3d4e5f6g7h8i9j0'
+          clientSecret: 'a1b2c3d4e5f6g7h8i9j0k'
         },
         urls: {
           dashboardUrl: 'http://localhost:3000',
@@ -319,9 +319,9 @@ describe('Configuration Validator', () => {
           }
         },
         discord: {
-          token: 'DISCORD_BOT_TOKEN_FOR_TESTING_ONLY_NOT_REAL',
+          token: 'DISCORD_BOT_TOKEN_FOR_TESTING_ONLY_NOT_REAL_1234567890',
           clientId: '123456789012345678',
-          clientSecret: 'a1b2c3d4e5f6g7h8i9j0'
+          clientSecret: 'a1b2c3d4e5f6g7h8i9j0k'
         },
         urls: {
           dashboardUrl: 'http://localhost:3000',
@@ -354,9 +354,9 @@ describe('Configuration Validator', () => {
           }
         },
         discord: {
-          token: 'DISCORD_BOT_TOKEN_FOR_TESTING_ONLY_NOT_REAL',
+          token: 'DISCORD_BOT_TOKEN_FOR_TESTING_ONLY_NOT_REAL_1234567890',
           clientId: '123456789012345678',
-          clientSecret: 'a1b2c3d4e5f6g7h8i9j0'
+          clientSecret: 'a1b2c3d4e5f6g7h8i9j0k'
         },
         urls: {
           dashboardUrl: 'http://localhost:3000',

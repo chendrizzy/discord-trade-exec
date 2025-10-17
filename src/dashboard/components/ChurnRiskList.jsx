@@ -5,7 +5,7 @@ import {
   getSortedRowModel,
   getFilteredRowModel,
   getPaginationRowModel,
-  useReactTable,
+  useReactTable
 } from '@tanstack/react-table';
 import { ArrowUpDown, ChevronDown, ChevronUp, AlertTriangle, Mail, RefreshCw } from 'lucide-react';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from './ui/table';
@@ -14,7 +14,7 @@ import { Input } from './ui/input';
 import { Badge } from './ui/badge';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from './ui/card';
 
-const getRiskBadgeVariant = (riskLevel) => {
+const getRiskBadgeVariant = riskLevel => {
   switch (riskLevel) {
     case 'critical':
       return 'destructive';
@@ -83,11 +83,7 @@ export function ChurnRiskList() {
             )}
           </Button>
         ),
-        cell: ({ row }) => (
-          <div className="font-semibold">
-            {row.getValue('username') || 'Unknown User'}
-          </div>
-        ),
+        cell: ({ row }) => <div className="font-semibold">{row.getValue('username') || 'Unknown User'}</div>
       },
       {
         accessorKey: 'subscription',
@@ -95,14 +91,11 @@ export function ChurnRiskList() {
         cell: ({ row }) => {
           const tier = row.getValue('subscription')?.tier || 'basic';
           return (
-            <Badge
-              variant={tier === 'premium' ? 'gold' : tier === 'pro' ? 'profit' : 'outline'}
-              className="capitalize"
-            >
+            <Badge variant={tier === 'premium' ? 'gold' : tier === 'pro' ? 'profit' : 'outline'} className="capitalize">
               {tier}
             </Badge>
           );
-        },
+        }
       },
       {
         accessorKey: 'riskScore',
@@ -129,12 +122,10 @@ export function ChurnRiskList() {
           return (
             <div className="flex items-center gap-2">
               <div className="text-sm font-mono font-bold">{score.toFixed(1)}</div>
-              {riskLevel === 'critical' && (
-                <AlertTriangle className="h-4 w-4 text-destructive" />
-              )}
+              {riskLevel === 'critical' && <AlertTriangle className="h-4 w-4 text-destructive" />}
             </div>
           );
-        },
+        }
       },
       {
         accessorKey: 'riskLevel',
@@ -162,7 +153,7 @@ export function ChurnRiskList() {
               {riskLevel}
             </Badge>
           );
-        },
+        }
       },
       {
         accessorKey: 'stats',
@@ -174,7 +165,7 @@ export function ChurnRiskList() {
               {stats?.totalTrades || 0} trades • {stats?.lastTradeDays || 'N/A'} days ago
             </div>
           );
-        },
+        }
       },
       {
         accessorKey: 'winRate',
@@ -203,7 +194,7 @@ export function ChurnRiskList() {
               {winRate.toFixed(1)}%
             </div>
           );
-        },
+        }
       },
       {
         id: 'recommendations',
@@ -211,12 +202,8 @@ export function ChurnRiskList() {
         cell: ({ row }) => {
           const recommendations = row.original.recommendations || [];
           const topTwo = recommendations.slice(0, 2);
-          return (
-            <div className="text-xs text-muted-foreground max-w-xs">
-              {topTwo.join(', ')}
-            </div>
-          );
-        },
+          return <div className="text-xs text-muted-foreground max-w-xs">{topTwo.join(', ')}</div>;
+        }
       },
       {
         id: 'actions',
@@ -225,27 +212,17 @@ export function ChurnRiskList() {
           const user = row.original;
           return (
             <div className="flex items-center gap-2">
-              <Button
-                size="sm"
-                variant="outline"
-                onClick={() => handleSendRetentionEmail(user)}
-                className="h-8"
-              >
+              <Button size="sm" variant="outline" onClick={() => handleSendRetentionEmail(user)} className="h-8">
                 <Mail className="h-3 w-3 mr-1" />
                 Email
               </Button>
-              <Button
-                size="sm"
-                variant="outline"
-                onClick={() => handleViewProfile(user)}
-                className="h-8"
-              >
+              <Button size="sm" variant="outline" onClick={() => handleViewProfile(user)} className="h-8">
                 View
               </Button>
             </div>
           );
-        },
-      },
+        }
+      }
     ],
     []
   );
@@ -255,9 +232,7 @@ export function ChurnRiskList() {
 
     // Filter by username
     if (usernameFilter) {
-      filtered = filtered.filter(user =>
-        (user.username || '').toLowerCase().includes(usernameFilter.toLowerCase())
-      );
+      filtered = filtered.filter(user => (user.username || '').toLowerCase().includes(usernameFilter.toLowerCase()));
     }
 
     // Filter by risk level
@@ -274,7 +249,7 @@ export function ChurnRiskList() {
     state: {
       sorting,
       columnFilters,
-      pagination,
+      pagination
     },
     onSortingChange: setSorting,
     onColumnFiltersChange: setColumnFilters,
@@ -282,16 +257,16 @@ export function ChurnRiskList() {
     getCoreRowModel: getCoreRowModel(),
     getSortedRowModel: getSortedRowModel(),
     getFilteredRowModel: getFilteredRowModel(),
-    getPaginationRowModel: getPaginationRowModel(),
+    getPaginationRowModel: getPaginationRowModel()
   });
 
-  const handleSendRetentionEmail = async (user) => {
+  const handleSendRetentionEmail = async user => {
     console.log('Send retention email to:', user.username);
     // TODO: Implement retention email sending
     alert(`Would send retention email to ${user.username}`);
   };
 
-  const handleViewProfile = (user) => {
+  const handleViewProfile = user => {
     console.log('View profile:', user.username);
     // TODO: Navigate to user profile
     alert(`Would navigate to profile for ${user.username}`);
@@ -340,9 +315,7 @@ export function ChurnRiskList() {
               <AlertTriangle className="h-5 w-5 text-orange-500" />
               Churn Risk Users
             </CardTitle>
-            <CardDescription>
-              Users at risk of canceling subscriptions
-            </CardDescription>
+            <CardDescription>Users at risk of canceling subscriptions</CardDescription>
           </div>
           <Button onClick={fetchChurnRisks} variant="outline" size="sm">
             <RefreshCw className="h-4 w-4 mr-2" />
@@ -371,9 +344,7 @@ export function ChurnRiskList() {
             </Badge>
             <span className="text-sm text-muted-foreground">Medium</span>
           </div>
-          <div className="ml-auto text-sm text-muted-foreground">
-            Total: {users.length} at-risk users
-          </div>
+          <div className="ml-auto text-sm text-muted-foreground">Total: {users.length} at-risk users</div>
         </div>
 
         {/* Filters */}
@@ -381,14 +352,14 @@ export function ChurnRiskList() {
           <Input
             placeholder="Search by username..."
             value={usernameFilter}
-            onChange={(event) => setUsernameFilter(event.target.value)}
+            onChange={event => setUsernameFilter(event.target.value)}
             className="max-w-sm"
           />
           <div className="flex items-center gap-2">
             <span className="text-sm text-muted-foreground">Risk Level:</span>
             <select
               value={riskFilter}
-              onChange={(e) => setRiskFilter(e.target.value)}
+              onChange={e => setRiskFilter(e.target.value)}
               className="px-3 py-2 text-sm rounded-md border border-border bg-background hover:bg-accent transition-colors"
             >
               <option value="all">All Levels</option>
@@ -404,13 +375,11 @@ export function ChurnRiskList() {
         <div className="rounded-md border">
           <Table>
             <TableHeader>
-              {table.getHeaderGroups().map((headerGroup) => (
+              {table.getHeaderGroups().map(headerGroup => (
                 <TableRow key={headerGroup.id}>
-                  {headerGroup.headers.map((header) => (
+                  {headerGroup.headers.map(header => (
                     <TableHead key={header.id}>
-                      {header.isPlaceholder
-                        ? null
-                        : flexRender(header.column.columnDef.header, header.getContext())}
+                      {header.isPlaceholder ? null : flexRender(header.column.columnDef.header, header.getContext())}
                     </TableHead>
                   ))}
                 </TableRow>
@@ -418,7 +387,7 @@ export function ChurnRiskList() {
             </TableHeader>
             <TableBody>
               {table.getRowModel().rows?.length ? (
-                table.getRowModel().rows.map((row) => (
+                table.getRowModel().rows.map(row => (
                   <TableRow
                     key={row.id}
                     data-state={row.getIsSelected() && 'selected'}
@@ -426,14 +395,12 @@ export function ChurnRiskList() {
                       row.original.riskLevel === 'critical'
                         ? 'bg-destructive/5 hover:bg-destructive/10'
                         : row.original.riskLevel === 'high'
-                        ? 'bg-orange-500/5 hover:bg-orange-500/10'
-                        : ''
+                          ? 'bg-orange-500/5 hover:bg-orange-500/10'
+                          : ''
                     }
                   >
-                    {row.getVisibleCells().map((cell) => (
-                      <TableCell key={cell.id}>
-                        {flexRender(cell.column.columnDef.cell, cell.getContext())}
-                      </TableCell>
+                    {row.getVisibleCells().map(cell => (
+                      <TableCell key={cell.id}>{flexRender(cell.column.columnDef.cell, cell.getContext())}</TableCell>
                     ))}
                   </TableRow>
                 ))
@@ -473,12 +440,7 @@ export function ChurnRiskList() {
             >
               Previous
             </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => table.nextPage()}
-              disabled={!table.getCanNextPage()}
-            >
+            <Button variant="outline" size="sm" onClick={() => table.nextPage()} disabled={!table.getCanNextPage()}>
               Next
             </Button>
           </div>
