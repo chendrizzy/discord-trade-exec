@@ -1,0 +1,137 @@
+[
+  {
+    "type": "event",
+    "name": "OrderFilled",
+    "inputs": [
+      {
+        "name": "orderHash",
+        "type": "bytes32",
+        "indexed": true
+      },
+      {
+        "name": "maker",
+        "type": "address",
+        "indexed": true
+      },
+      {
+        "name": "taker",
+        "type": "address",
+        "indexed": true
+      },
+      {
+        "name": "makerAssetId",
+        "type": "uint256",
+        "indexed": false
+      },
+      {
+        "name": "takerAssetId",
+        "type": "uint256",
+        "indexed": false
+      },
+      {
+        "name": "makerAmountFilled",
+        "type": "uint256",
+        "indexed": false
+      },
+      {
+        "name": "takerAmountFilled",
+        "type": "uint256",
+        "indexed": false
+      },
+      {
+        "name": "fee",
+        "type": "uint256",
+        "indexed": false
+      }
+    ]
+  },
+  {
+    "type": "event",
+    "name": "OrdersMatched",
+    "inputs": [
+      {
+        "name": "takerOrderHash",
+        "type": "bytes32",
+        "indexed": true
+      },
+      {
+        "name": "takerOrderMaker",
+        "type": "address",
+        "indexed": true
+      },
+      {
+        "name": "makerAssetId",
+        "type": "uint256",
+        "indexed": false
+      },
+      {
+        "name": "takerAssetId",
+        "type": "uint256",
+        "indexed": false
+      },
+      {
+        "name": "makerAmountFilled",
+        "type": "uint256",
+        "indexed": false
+      },
+      {
+        "name": "takerAmountFilled",
+        "type": "uint256",
+        "indexed": false
+      }
+    ]
+  },
+  {
+    "type": "event",
+    "name": "OrderCancelled",
+    "inputs": [
+      {
+        "name": "orderHash",
+        "type": "bytes32",
+        "indexed": true
+      }
+    ]
+  },
+  {
+    "type": "event",
+    "name": "FeeCharged",
+    "inputs": [
+      {
+        "name": "receiver",
+        "type": "address",
+        "indexed": true
+      },
+      {
+        "name": "tokenId",
+        "type": "uint256",
+        "indexed": false
+      },
+      {
+        "name": "amount",
+        "type": "uint256",
+        "indexed": false
+      }
+    ]
+  },
+  {
+    "type": "event",
+    "name": "TokenRegistered",
+    "inputs": [
+      {
+        "name": "token0",
+        "type": "uint256",
+        "indexed": false
+      },
+      {
+        "name": "token1",
+        "type": "uint256",
+        "indexed": false
+      },
+      {
+        "name": "conditionId",
+        "type": "bytes32",
+        "indexed": false
+      }
+    ]
+  }
+]
