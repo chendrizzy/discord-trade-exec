@@ -24,7 +24,10 @@ app.use(express.json());
 // Mock authentication middleware
 app.use((req, res, next) => {
   req.isAuthenticated = () => true;
-  req.user = { id: 'test-user-id' };
+  req.user = {
+    id: 'test-user-id',
+    _id: 'test-user-id' // Rate limiter uses _id
+  };
   next();
 });
 
@@ -33,6 +36,14 @@ app.use('/api/brokers', brokersRouter);
 describe('Broker API Endpoints - Moomoo UI Support', () => {
   beforeEach(() => {
     jest.clearAllMocks();
+  });
+
+  afterAll(() => {
+    // Clean up timers to prevent Jest open handles
+    const { brokerCallTracker } = require('../../../middleware/rateLimiter');
+    if (brokerCallTracker && brokerCallTracker.destroy) {
+      brokerCallTracker.destroy();
+    }
   });
 
   describe('GET /api/brokers', () => {

@@ -87,6 +87,19 @@ describe('Broker API Integration Tests', () => {
     }
   });
 
+  afterAll(() => {
+    // Clean up timers to prevent Jest open handles
+    if (brokerCallTracker && brokerCallTracker.destroy) {
+      brokerCallTracker.destroy();
+    }
+
+    // Clean up analytics event service timer
+    if (analyticsEventService && analyticsEventService.flushTimer) {
+      clearInterval(analyticsEventService.flushTimer);
+      analyticsEventService.flushTimer = null;
+    }
+  });
+
   describe('Premium Broker Access Control', () => {
     test('should allow free tier users to configure Alpaca', async () => {
       BrokerFactory.validateCredentials.mockReturnValue({ valid: true, errors: [] });
