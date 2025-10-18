@@ -52,6 +52,7 @@ export function BrokerConfigWizard() {
     apiKey: '',
     apiSecret: '',
     accessToken: '',
+    oauthConnected: false, // OAuth connection status
     environment: 'testnet', // 'testnet' or 'live'
     showApiKey: false,
     showApiSecret: false,
@@ -160,6 +161,7 @@ export function BrokerConfigWizard() {
       apiKey: '',
       apiSecret: '',
       accessToken: '',
+      oauthConnected: false,
       environment: 'testnet',
       showApiKey: false,
       showApiSecret: false,
@@ -175,27 +177,36 @@ export function BrokerConfigWizard() {
     setTestResult(null);
 
     try {
-      let credentials;
+      let response;
 
       if (config.authMethod === 'oauth') {
-        credentials = { accessToken: config.accessToken };
-      } else if (selectedBrokerInfo?.credentialFields) {
-        // Use dynamic credentials
-        credentials = { ...config.credentials };
+        // For OAuth, use /test/:brokerKey endpoint which loads saved credentials from database
+        response = await fetch(`/api/brokers/test/${config.brokerKey}`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' }
+        });
       } else {
-        // Legacy API Key/Secret
-        credentials = { apiKey: config.apiKey, apiSecret: config.apiSecret };
-      }
+        // For API Key auth, send credentials directly to /test endpoint
+        let credentials;
 
-      const response = await fetch('/api/brokers/test', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          brokerKey: config.brokerKey,
-          credentials,
-          options: { isTestnet: config.environment === 'testnet' }
-        }),
-      });
+        if (selectedBrokerInfo?.credentialFields) {
+          // Use dynamic credentials
+          credentials = { ...config.credentials };
+        } else {
+          // Legacy API Key/Secret
+          credentials = { apiKey: config.apiKey, apiSecret: config.apiSecret };
+        }
+
+        response = await fetch('/api/brokers/test', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            brokerKey: config.brokerKey,
+            credentials,
+            options: { isTestnet: config.environment === 'testnet' }
+          }),
+        });
+      }
 
       const data = await response.json();
 
@@ -214,15 +225,89 @@ export function BrokerConfigWizard() {
     }
   };
 
+  const handleOAuthConnect = () => {
+    setTesting(true);
+
+    // Build OAuth initiation URL
+    const oauthUrl = `/api/brokers/oauth/initiate/${config.brokerKey}?environment=${config.environment}`;
+
+    // Open popup window
+    const width = 600;
+    const height = 700;
+    const left = window.screen.width / 2 - width / 2;
+    const top = window.screen.height / 2 - height / 2;
+
+    const popup = window.open(
+      oauthUrl,
+      'OAuth Authorization',
+      `width=${width},height=${height},left=${left},top=${top},scrollbars=yes,resizable=yes`
+    );
+
+    // Listen for OAuth callback message
+    const handleMessage = (event) => {
+      // Security: Verify origin matches our domain
+      if (event.origin !== window.location.origin) {
+        return;
+      }
+
+      if (event.data.type === 'oauth-success' && event.data.broker === config.brokerKey) {
+        console.log('✅ OAuth connection successful');
+        setConfig(prev => ({ ...prev, oauthConnected: true }));
+        setTesting(false);
+        window.removeEventListener('message', handleMessage);
+
+        // Close popup if still open
+        if (popup && !popup.closed) {
+          popup.close();
+        }
+      } else if (event.data.type === 'oauth-error') {
+        console.error('❌ OAuth connection failed:', event.data.error);
+        setTesting(false);
+        window.removeEventListener('message', handleMessage);
+
+        // Close popup if still open
+        if (popup && !popup.closed) {
+          popup.close();
+        }
+      }
+    };
+
+    window.addEventListener('message', handleMessage);
+
+    // Cleanup listener if popup is closed manually
+    const checkPopupClosed = setInterval(() => {
+      if (popup && popup.closed) {
+        clearInterval(checkPopupClosed);
+        window.removeEventListener('message', handleMessage);
+        setTesting(false);
+      }
+    }, 500);
+  };
+
   const handleSave = async () => {
     setLoading(true);
 
     try {
+      // For OAuth, the credentials are already saved during OAuth callback
+      // We just need to verify the connection was successful
+      if (config.authMethod === 'oauth') {
+        if (!config.oauthConnected) {
+          console.error('OAuth connection not completed');
+          setLoading(false);
+          return;
+        }
+
+        // OAuth flow already saved credentials, just close wizard
+        setOpen(false);
+        resetWizard();
+        // Could trigger a success toast here
+        return;
+      }
+
+      // For API Key auth, save credentials normally
       let credentials;
 
-      if (config.authMethod === 'oauth') {
-        credentials = { accessToken: config.accessToken };
-      } else if (selectedBrokerInfo?.credentialFields) {
+      if (selectedBrokerInfo?.credentialFields) {
         // Use dynamic credentials
         credentials = { ...config.credentials };
       } else {
@@ -268,7 +353,7 @@ export function BrokerConfigWizard() {
         return config.authMethod !== '';
       case 4:
         if (config.authMethod === 'oauth') {
-          return config.accessToken !== '';
+          return config.oauthConnected === true;
         }
         // Check for dynamic credential fields
         if (selectedBrokerInfo?.credentialFields) {
@@ -555,16 +640,37 @@ export function BrokerConfigWizard() {
             </div>
 
             {config.authMethod === 'oauth' ? (
-              <div className="space-y-2">
-                <label className="text-sm font-medium">Access Token</label>
-                <Input
-                  type="password"
-                  placeholder="Enter OAuth access token"
-                  value={config.accessToken}
-                  onChange={(e) => updateConfig('accessToken', e.target.value)}
-                />
-                <p className="text-xs text-muted-foreground">
-                  Complete OAuth flow in {selectedBrokerInfo?.name} to get your access token
+              <div className="space-y-4">
+                <Alert variant="info">
+                  <Key className="h-4 w-4" />
+                  <AlertDescription>
+                    Click the button below to securely connect your {selectedBrokerInfo?.name} account.
+                    You'll be redirected to {selectedBrokerInfo?.name}'s login page.
+                  </AlertDescription>
+                </Alert>
+
+                {!config.oauthConnected ? (
+                  <Button
+                    variant="gold"
+                    className="w-full"
+                    onClick={handleOAuthConnect}
+                    disabled={testing}
+                  >
+                    <Building2 className="mr-2 h-4 w-4" />
+                    {testing ? 'Connecting...' : `Connect to ${selectedBrokerInfo?.name}`}
+                  </Button>
+                ) : (
+                  <Alert variant="profit">
+                    <CheckCircle2 className="h-4 w-4" />
+                    <AlertDescription>
+                      ✅ Successfully connected to {selectedBrokerInfo?.name}!
+                      You can proceed to test the connection.
+                    </AlertDescription>
+                  </Alert>
+                )}
+
+                <p className="text-xs text-muted-foreground text-center">
+                  Your credentials will be encrypted and stored securely. You will never see your access token.
                 </p>
               </div>
             ) : selectedBrokerInfo?.credentialFields ? (
