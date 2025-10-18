@@ -230,7 +230,7 @@ class DiscordTradeBot {
 
   setupSlashCommands() {
     // Register slash commands when bot is ready
-    this.client.once('ready', async () => {
+    this.client.once('clientReady', async () => {
       const commands = [
         {
           name: 'subscribe',
