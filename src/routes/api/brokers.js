@@ -352,7 +352,7 @@ router.post('/configure', ensureAuthenticated, requirePremiumBroker, checkBroker
 
     // Initialize brokerConfigs if not exists
     if (!user.brokerConfigs) {
-      user.brokerConfigs = {};
+      user.brokerConfigs = new Map();
     }
 
     // Check if this is a reconnection (before saving)
