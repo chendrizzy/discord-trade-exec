@@ -129,7 +129,7 @@ export function BrokerManagement() {
           <h2 className="text-2xl font-bold">Broker Connections</h2>
           <p className="text-muted-foreground">Manage your stock and crypto broker integrations</p>
         </div>
-        {configuredBrokers.length > 0 && <BrokerConfigWizard />}
+        {configuredBrokers.length > 0 && <BrokerConfigWizard onSuccess={fetchConfiguredBrokers} />}
       </div>
 
       {/* Empty State */}
@@ -145,7 +145,7 @@ export function BrokerManagement() {
                 </p>
               </div>
               <div className="flex justify-center">
-                <BrokerConfigWizard />
+                <BrokerConfigWizard onSuccess={fetchConfiguredBrokers} />
               </div>
             </div>
           </CardContent>

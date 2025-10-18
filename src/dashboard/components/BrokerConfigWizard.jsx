@@ -35,7 +35,7 @@ const steps = [
   { id: 6, name: 'Review', description: 'Review and save configuration' },
 ];
 
-export function BrokerConfigWizard() {
+export function BrokerConfigWizard({ onSuccess }) {
   const [open, setOpen] = useState(false);
   const [currentStep, setCurrentStep] = useState(1);
   const [loading, setLoading] = useState(false);
@@ -300,7 +300,8 @@ export function BrokerConfigWizard() {
         // OAuth flow already saved credentials, just close wizard
         setOpen(false);
         resetWizard();
-        // Could trigger a success toast here
+        // Notify parent to refresh broker list
+        onSuccess?.();
         return;
       }
 
@@ -332,7 +333,8 @@ export function BrokerConfigWizard() {
       if (data.success) {
         setOpen(false);
         resetWizard();
-        // Could trigger a success toast here
+        // Notify parent to refresh broker list
+        onSuccess?.();
       } else {
         console.error('Failed to save broker configuration:', data.error);
       }
