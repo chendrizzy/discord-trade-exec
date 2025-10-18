@@ -262,11 +262,10 @@ router.get('/callback/:brokerKey', async (req, res) => {
       brokerKey,
       brokerType: brokerKey === 'alpaca' ? 'stock' : 'stock',
       authMethod: 'oauth',
-      encryptedCredentials,
-      environment: stateData.environment,
-      isActive: true,
-      connectedAt: new Date(),
-      lastSyncedAt: new Date()
+      credentials: encryptedCredentials,
+      environment: stateData.environment || 'testnet',
+      configuredAt: new Date(),
+      lastVerified: new Date()
     });
 
     await user.save();
