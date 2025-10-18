@@ -68,6 +68,7 @@ class BrokerFactory {
       name: 'Moomoo',
       type: 'stock',
       class: null, // Loaded dynamically when needed
+      status: 'available', // Available despite lazy loading
       features: ['stocks', 'options', 'etfs', 'futures', 'commission-free', 'paper-trading', 'mobile-first'],
       description: 'Modern mobile-first trading platform with comprehensive OpenAPI',
       authMethods: ['api-key'],
