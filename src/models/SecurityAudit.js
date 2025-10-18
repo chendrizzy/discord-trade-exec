@@ -178,8 +178,8 @@ const securityAuditSchema = new mongoose.Schema(
     timestamp: {
       type: Date,
       default: Date.now,
-      required: true,
-      index: true
+      required: true
+      // Removed index: true - covered by 8 compound indexes + TTL index below
     }
   },
   {
