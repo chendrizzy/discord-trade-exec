@@ -217,6 +217,7 @@ app.use('/api/trades', tradesRoutes);
 app.use('/api/admin', adminRoutes);
 app.use('/api/brokers', brokerRoutes);
 app.use('/api/brokers/oauth', brokerOAuthRoutes); // OAuth routes (must be before catch-all)
+app.use('/api', require('./routes/api/debug-broker-config')); // Debug endpoint (DELETE after debugging)
 app.use('/api/signals', signalsRoutes);
 app.use('/api/analytics', analyticsRoutes);
 app.use('/api/subscriptions', subscriptionRoutes);
