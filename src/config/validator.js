@@ -33,6 +33,8 @@ const databaseSchema = Joi.object({
 
 /**
  * Broker Credentials Schema
+ * NOTE: Brokers can be configured later via OAuth in the UI dashboard,
+ * so we don't require at least one broker at startup
  */
 const brokerCredentialsSchema = Joi.object({
   alpaca: Joi.object({
@@ -59,7 +61,7 @@ const brokerCredentialsSchema = Joi.object({
     privateKey: Joi.string().required().min(10),
     environment: Joi.string().valid('live', 'testnet').default('live')
   }).optional()
-}).min(1); // At least one broker must be configured
+}).optional(); // Allow empty broker config - users configure via OAuth dashboard
 
 /**
  * AWS Configuration Schema
@@ -141,12 +143,8 @@ const environmentSchema = Joi.object({
   nodeEnv: Joi.string().valid('development', 'staging', 'production').default('development'),
   demoMode: Joi.boolean().default(false),
   database: databaseSchema.required(),
-  brokers: brokerCredentialsSchema.required(),
-  aws: Joi.when('nodeEnv', {
-    is: 'production',
-    then: awsConfigSchema.required(),
-    otherwise: awsConfigSchema.optional()
-  }),
+  brokers: brokerCredentialsSchema.optional().default({}),
+  aws: awsConfigSchema.optional(), // AWS KMS only needed when encrypting credentials
   api: apiConfigSchema.required(),
   discord: discordConfigSchema.required(),
   urls: urlConfigSchema.required()
@@ -310,6 +308,14 @@ function loadAndValidateConfig(exitOnError = process.env.NODE_ENV === 'productio
   }
 
   console.log('✅ Configuration validated successfully');
+
+  // Warn if no brokers are configured
+  const hasBrokers = config.brokers && Object.keys(config.brokers).length > 0;
+  if (!hasBrokers) {
+    console.warn('⚠️  No brokers configured via environment variables');
+    console.warn('⚠️  Users will need to configure brokers via OAuth dashboard');
+  }
+
   return result.config;
 }
 
