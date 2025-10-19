@@ -58,6 +58,20 @@ class MoomooAdapter extends BrokerAdapter {
     try {
       // Dynamically load moomoo-api (ES Module)
       if (!MoomooAPI) {
+        // Ensure protobuf is loaded first to initialize global $protobuf
+        const protobuf = require('protobufjs');
+
+        // Initialize global protobuf root if not already initialized
+        if (!global.$protobuf) {
+          global.$protobuf = protobuf;
+        }
+        if (!global.$protobuf.roots) {
+          global.$protobuf.roots = {};
+        }
+        if (!global.$protobuf.roots.default) {
+          global.$protobuf.roots.default = new protobuf.Root();
+        }
+
         const moomooModule = await import('moomoo-api');
         MoomooAPI = moomooModule.default;
       }
