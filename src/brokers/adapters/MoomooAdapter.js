@@ -11,9 +11,10 @@ let MoomooAPI = null;
  *
  * Configuration:
  * - accountId: Moomoo account ID
- * - password: Trading password for unlocking
+ * - password: Trading password for unlocking trades
+ * - websocketKey: WebSocket authentication key from OpenD Gateway
  * - host: OpenD Gateway host (default: 127.0.0.1)
- * - port: API port (default: 11111)
+ * - port: WebSocket port (default: 33333)
  * - isTestnet: Use paper trading account (default: true)
  *
  * @extends BrokerAdapter
@@ -28,8 +29,9 @@ class MoomooAdapter extends BrokerAdapter {
     // Moomoo connection configuration
     this.accountId = credentials.accountId || process.env.MOOMOO_ID;
     this.password = credentials.password || process.env.MOOMOO_PASSWORD;
+    this.websocketKey = credentials.websocketKey || process.env.MOOMOO_WEBSOCKET_KEY;
     this.host = credentials.host || process.env.MOOMOO_HOST || '127.0.0.1';
-    this.port = credentials.port || parseInt(process.env.MOOMOO_PORT) || 11111;
+    this.port = credentials.port || parseInt(process.env.MOOMOO_PORT) || 33333;
 
     // Moomoo API client
     this.moomoo = null;
@@ -41,6 +43,7 @@ class MoomooAdapter extends BrokerAdapter {
       accountId: this.accountId,
       host: this.host,
       port: this.port,
+      websocketKey: this.websocketKey ? `${this.websocketKey.substring(0, 4)}****` : 'NOT SET',
       isTestnet: this.isTestnet,
       tradeEnv: this.tradeEnv
     });
@@ -111,8 +114,9 @@ class MoomooAdapter extends BrokerAdapter {
           }
         };
 
-        // Start connection (host, port, ssl, key)
-        this.moomoo.start(this.host, this.port, false, this.password);
+        // Start connection (host, port, ssl, websocket_key)
+        // Note: 4th parameter is WebSocket auth key from OpenD Gateway, NOT the trading password
+        this.moomoo.start(this.host, this.port, false, this.websocketKey);
       });
 
       // Unlock trading
