@@ -68,6 +68,7 @@ class BrokerFactory {
       name: 'Moomoo',
       type: 'stock',
       class: null, // Loaded dynamically when needed
+      status: 'available', // Available despite lazy loading
       features: ['stocks', 'options', 'etfs', 'futures', 'commission-free', 'paper-trading', 'mobile-first'],
       description: 'Modern mobile-first trading platform with comprehensive OpenAPI',
       authMethods: ['api-key'],
@@ -126,6 +127,25 @@ class BrokerFactory {
           'Return here to configure your Moomoo connection'
         ]
       }
+    });
+
+    // Alpaca Crypto - Cryptocurrency trading via Alpaca
+    this.registerBroker('alpaca-crypto', {
+      name: 'Alpaca Crypto',
+      type: 'crypto',
+      class: AlpacaAdapter,
+      features: ['crypto', 'commission-free', 'oauth', 'api-trading', 'paper-trading', 'spot-trading'],
+      description: 'Commission-free cryptocurrency trading with Alpaca (BTC, ETH, and more)',
+      authMethods: ['oauth', 'api-key'],
+      websiteUrl: 'https://alpaca.markets/crypto',
+      docsUrl: 'https://docs.alpaca.markets/docs/crypto-trading',
+      minDeposit: 0,
+      accountTypes: ['individual'],
+      markets: ['US'],
+      fees: { maker: 0.0025, taker: 0.0025 },
+      minTradeAmount: 1,
+      apiFeatures: ['oauth-refresh-token', 'paper-trading', 'real-time-quotes', 'fractional-shares'],
+      cryptoAssets: ['BTC', 'ETH', 'USDC', 'USDT', 'BCH', 'LTC', 'LINK', 'AAVE', 'UNI', 'SUSHI']
     });
 
     // Coinbase Pro (Advanced Trade)
@@ -412,6 +432,7 @@ class BrokerFactory {
     // Broker-specific validation
     switch (brokerKey) {
       case 'alpaca':
+      case 'alpaca-crypto':
         if (!credentials.accessToken && (!credentials.apiKey || !credentials.apiSecret)) {
           result.valid = false;
           result.errors.push('Either accessToken (OAuth) or apiKey + apiSecret required');

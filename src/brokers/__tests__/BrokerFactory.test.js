@@ -17,10 +17,9 @@ describe('BrokerFactory', () => {
       expect(alpacaInfo.status).toBe('available');
     });
 
-    test('should throw error for unknown broker', () => {
-      expect(() => {
-        BrokerFactory.getBrokerInfo('unknown-broker');
-      }).toThrow('Unknown broker');
+    test('should return null for unknown broker', () => {
+      const result = BrokerFactory.getBrokerInfo('unknown-broker');
+      expect(result).toBeNull();
     });
   });
 

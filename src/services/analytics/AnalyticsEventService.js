@@ -13,8 +13,8 @@ class AnalyticsEventService {
     this.flushInterval = 30000; // Flush every 30 seconds
     this.isShuttingDown = false;
 
-    // Start periodic flush timer (skip in test environment to prevent test timeouts)
-    if (process.env.NODE_ENV !== 'test') {
+    // Start periodic flush timer (skip in test/dev environment to prevent test timeouts)
+    if (process.env.NODE_ENV !== 'test' && process.env.NODE_ENV !== 'development') {
       this.flushTimer = setInterval(() => {
         this.flush().catch(err => {
           console.error('Analytics event flush error:', err);

@@ -30,6 +30,7 @@ const portfolioRoutes = require('./routes/api/portfolio');
 const tradesRoutes = require('./routes/api/trades');
 const adminRoutes = require('./routes/api/admin');
 const brokerRoutes = require('./routes/api/brokers');
+const brokerOAuthRoutes = require('./routes/api/broker-oauth');
 const signalsRoutes = require('./routes/api/signals');
 const analyticsRoutes = require('./routes/api/analytics');
 const subscriptionRoutes = require('./routes/api/subscriptions');
@@ -40,7 +41,11 @@ const MarketingAutomation = require('./services/MarketingAutomation');
 const PaymentProcessor = require('./services/PaymentProcessor');
 const TradingViewParser = require('./services/TradingViewParser');
 const TradeExecutor = require('./services/TradeExecutor');
-const WebSocketServer = require('./services/WebSocketServer');
+const WebSocketServer = require('./services/websocket/WebSocketServer');
+const { createAuthMiddleware } = require('./services/websocket/middleware/auth');
+const { createRateLimitMiddleware } = require('./services/websocket/middleware/rateLimiter');
+const { createEventHandlers } = require('./services/websocket/handlers');
+const { createEmitters } = require('./services/websocket/emitters');
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -62,7 +67,7 @@ process.on('unhandledRejection', (reason, promise) => {
 process.on('SIGTERM', async () => {
   console.log('Received SIGTERM, shutting down gracefully...');
   if (webSocketServer) {
-    await webSocketServer.close();
+    await webSocketServer.shutdown();
   }
   process.exit(0);
 });
@@ -70,7 +75,7 @@ process.on('SIGTERM', async () => {
 process.on('SIGINT', async () => {
   console.log('Received SIGINT, shutting down gracefully...');
   if (webSocketServer) {
-    await webSocketServer.close();
+    await webSocketServer.shutdown();
   }
   process.exit(0);
 });
@@ -211,6 +216,8 @@ app.use('/api/portfolio', portfolioRoutes);
 app.use('/api/trades', tradesRoutes);
 app.use('/api/admin', adminRoutes);
 app.use('/api/brokers', brokerRoutes);
+app.use('/api/brokers/oauth', brokerOAuthRoutes); // OAuth routes (must be before catch-all)
+app.use('/api', require('./routes/api/debug-broker-config')); // Debug endpoint (DELETE after debugging)
 app.use('/api/signals', signalsRoutes);
 app.use('/api/analytics', analyticsRoutes);
 app.use('/api/subscriptions', subscriptionRoutes);
@@ -399,100 +406,126 @@ const server = app.listen(PORT, () => {
 });
 
 // Initialize WebSocket Server for real-time updates
-console.log('🔍 DEBUG: About to initialize WebSocket server');
-console.log('🔍 DEBUG: server object type:', typeof server);
-console.log('🔍 DEBUG: server is defined:', !!server);
-console.log('🔍 DEBUG: WebSocketServer type:', typeof WebSocketServer);
-console.log('🔍 DEBUG: WebSocketServer is defined:', !!WebSocketServer);
-console.log('🔍 DEBUG: NODE_ENV:', process.env.NODE_ENV);
-console.log('🔍 DEBUG: REDIS_URL exists:', !!process.env.REDIS_URL);
-console.log('🔍 DEBUG: REDIS_URL value:', process.env.REDIS_URL ? 'SET (redacted)' : 'NOT SET');
+(async () => {
+  try {
+    console.log('🔌 Initializing WebSocket server...');
 
-try {
-  console.log('🔍 DEBUG: Entered try block for WebSocket initialization');
-  webSocketServer = new WebSocketServer(server);
-  console.log('🔍 DEBUG: WebSocketServer constructor called successfully');
-  console.log('✅ WebSocket server initialized successfully');
-
-  // Connect TradeExecutor events to WebSocket emissions
-  if (tradeExecutor) {
-    // Listen for successful trade executions
-    tradeExecutor.on('trade:executed', async data => {
-      console.log(`📡 Broadcasting trade:executed for user ${data.userId}`);
-      webSocketServer.emitTradeNotification(data.userId, data.trade);
-
-      // Analyze and emit signal quality for the trade
-      try {
-        const { analyzeSignalQuality } = require('./services/signal-quality-tracker');
-        const quality = await analyzeSignalQuality({
-          tradeId: data.trade.id || data.trade._id,
-          symbol: data.trade.symbol,
-          side: data.trade.side,
-          entryPrice: data.trade.price || data.trade.entryPrice,
-          quantity: data.trade.quantity,
-          providerId: data.trade.providerId || data.signal?.provider || 'UNKNOWN'
-        });
-
-        if (quality) {
-          webSocketServer.emitSignalQuality(data.userId, data.trade.id || data.trade._id, quality);
-        }
-      } catch (error) {
-        console.error('Failed to analyze signal quality for WebSocket emission:', error);
+    // Create WebSocket server instance
+    webSocketServer = new WebSocketServer(server, {
+      cors: {
+        origin: process.env.DASHBOARD_URL || 'http://localhost:3000',
+        methods: ['GET', 'POST'],
+        credentials: true
       }
     });
 
-    // Listen for trade failures
-    tradeExecutor.on('trade:failed', data => {
-      console.log(`📡 Broadcasting trade:failed for user ${data.userId}`);
-      webSocketServer.emitTradeFailure(data.userId, data.error);
+    // Initialize with Redis adapter if available
+    await webSocketServer.initialize();
+
+    // Apply authentication middleware
+    const authMiddleware = createAuthMiddleware({
+      required: true,
+      sessionCollectionName: 'sessions'
+    });
+    webSocketServer.setAuthMiddleware(authMiddleware);
+
+    // Apply rate limiting middleware
+    const rateLimiter = createRateLimitMiddleware(webSocketServer.redisPubClient);
+    webSocketServer.setRateLimitMiddleware(rateLimiter.connectionLimit());
+
+    // Register event handlers
+    const handlers = createEventHandlers(rateLimiter);
+    Object.entries(handlers).forEach(([event, handler]) => {
+      webSocketServer.registerEventHandler(event, handler);
     });
 
-    // Listen for portfolio updates
-    tradeExecutor.on('portfolio:updated', async data => {
-      try {
-        console.log(`📡 Portfolio update triggered for user ${data.userId}`);
-        // Note: In production, fetch actual portfolio data from database/broker
-        // For now, we'll emit a notification to refresh
-        const User = mongoose.model('User');
-        const user = await User.findById(data.userId);
-        if (user) {
-          // Get portfolio data from brokers/exchanges
-          const positions = await tradeExecutor.getOpenPositions(user);
-          const portfolio = {
-            totalValue: 0, // Calculate from positions
-            cash: 0, // Get from broker balance
-            equity: 0, // Calculate from positions
-            positions: positions,
-            dayChange: 0,
-            dayChangePercent: 0
-          };
-          webSocketServer.emitPortfolioUpdate(data.userId, portfolio);
+    console.log('✅ WebSocket event handlers registered');
+
+    // Connect TradeExecutor events to WebSocket emitters
+    if (tradeExecutor) {
+      const emitters = createEmitters(webSocketServer);
+
+      // Listen for successful trade executions
+      tradeExecutor.on('trade:executed', async data => {
+        console.log(`📡 Broadcasting trade:executed for user ${data.userId}`);
+        emitters.emitTradeExecuted(data.userId, data.trade);
+
+        // Analyze and emit signal quality for the trade
+        try {
+          const { analyzeSignalQuality } = require('./services/signal-quality-tracker');
+          const quality = await analyzeSignalQuality({
+            tradeId: data.trade.id || data.trade._id,
+            symbol: data.trade.symbol,
+            side: data.trade.side,
+            entryPrice: data.trade.price || data.trade.entryPrice,
+            quantity: data.trade.quantity,
+            providerId: data.trade.providerId || data.signal?.provider || 'UNKNOWN'
+          });
+
+          if (quality) {
+            emitters.emitNotification(data.userId, {
+              title: 'Signal Quality Update',
+              message: `Quality score: ${quality.score}`,
+              type: 'info',
+              data: quality
+            });
+          }
+        } catch (error) {
+          console.error('Failed to analyze signal quality for WebSocket emission:', error);
         }
-      } catch (error) {
-        console.error('Error fetching portfolio for WebSocket update:', error);
-      }
-    });
-
-    // Listen for position closures
-    tradeExecutor.on('position:closed', data => {
-      console.log(`📡 Position closed for user ${data.userId}: ${data.position.symbol}`);
-      // Trigger portfolio update since position affects portfolio
-      tradeExecutor.emit('portfolio:updated', {
-        userId: data.userId,
-        trigger: 'position_closed',
-        symbol: data.position.symbol
       });
-    });
 
-    console.log('✅ TradeExecutor event listeners connected to WebSocket');
+      // Listen for trade failures
+      tradeExecutor.on('trade:failed', data => {
+        console.log(`📡 Broadcasting trade:failed for user ${data.userId}`);
+        emitters.emitTradeFailed(data.userId, data.error);
+      });
+
+      // Listen for portfolio updates
+      tradeExecutor.on('portfolio:updated', async data => {
+        try {
+          console.log(`📡 Portfolio update triggered for user ${data.userId}`);
+          const User = mongoose.model('User');
+          const user = await User.findById(data.userId);
+          if (user) {
+            // Get portfolio data from brokers/exchanges
+            const positions = await tradeExecutor.getOpenPositions(user);
+            const portfolio = {
+              totalValue: 0, // TODO: Calculate from positions
+              cash: 0, // TODO: Get from broker balance
+              equity: 0, // TODO: Calculate from positions
+              positions: positions,
+              dayChange: 0,
+              dayChangePercent: 0
+            };
+            emitters.emitPortfolioUpdate(data.userId, portfolio);
+          }
+        } catch (error) {
+          console.error('Error fetching portfolio for WebSocket update:', error);
+        }
+      });
+
+      // Listen for position closures
+      tradeExecutor.on('position:closed', data => {
+        console.log(`📡 Position closed for user ${data.userId}: ${data.position.symbol}`);
+        emitters.emitPositionClosed(data.userId, data.position);
+
+        // Trigger portfolio update since position affects portfolio
+        tradeExecutor.emit('portfolio:updated', {
+          userId: data.userId,
+          trigger: 'position_closed',
+          symbol: data.position.symbol
+        });
+      });
+
+      console.log('✅ TradeExecutor event listeners connected to WebSocket emitters');
+    }
+
+    console.log('✅ WebSocket server initialization complete');
+  } catch (error) {
+    console.error('❌ Failed to initialize WebSocket server:', error);
   }
-} catch (error) {
-  console.log('🔍 DEBUG: Caught error in WebSocket initialization');
-  console.log('🔍 DEBUG: Error type:', typeof error);
-  console.log('🔍 DEBUG: Error message:', error?.message);
-  console.log('🔍 DEBUG: Error stack:', error?.stack);
-  console.error('❌ Failed to initialize WebSocket server:', error);
-}
+})();
 
 // Handle server errors
 server.on('error', error => {

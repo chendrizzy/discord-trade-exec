@@ -228,9 +228,8 @@ const CommunitySchema = new Schema(
     // Soft delete support (GDPR compliance)
     deletedAt: {
       type: Date,
-      default: null,
-      index: true,
-      sparse: true
+      default: null
+      // Removed index: true - covered by sparse schema index below
     }
   },
   {

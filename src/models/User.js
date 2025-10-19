@@ -161,7 +161,7 @@ const userSchema = new mongoose.Schema(
             default: true
           }
         },
-        default: {}
+        default: () => new Map()
       },
 
       // Risk management settings

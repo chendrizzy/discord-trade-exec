@@ -10,7 +10,7 @@ import { ConnectionStatusIndicator } from './ConnectionStatusIndicator';
  *
  * Features:
  * - Real-time quote updates via WebSocket
- * - Subscribe to 'quote:update' events
+ * - Subscribe to 'watchlist:quote' events
  * - Animated price changes (green up, red down)
  * - Add/remove symbols from watchlist
  * - Shows price, change %, volume
@@ -38,7 +38,7 @@ export function LiveWatchlist() {
     console.log('📊 Subscribing to quote updates...');
 
     // Subscribe to quote update events
-    const unsubscribe = subscribe('quote:update', data => {
+    const unsubscribe = subscribe('watchlist:quote', data => {
       console.log('📊 Received quote update:', data);
 
       const { symbol, price, change, changePercent, volume, timestamp } = data;

@@ -31,7 +31,7 @@ const client = new Client({
   intents: [GatewayIntentBits.Guilds, GatewayIntentBits.GuildMessages, GatewayIntentBits.MessageContent]
 });
 
-client.on('ready', () => {
+client.on('clientReady', () => {
   console.log('   ✅ Discord bot connected as:', client.user.tag);
   console.log('   ✅ Bot is in', client.guilds.cache.size, 'server(s)');
   client.destroy();

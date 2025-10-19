@@ -11,9 +11,10 @@ let MoomooAPI = null;
  *
  * Configuration:
  * - accountId: Moomoo account ID
- * - password: Trading password for unlocking
+ * - password: Trading password for unlocking trades
+ * - websocketKey: WebSocket authentication key from OpenD Gateway
  * - host: OpenD Gateway host (default: 127.0.0.1)
- * - port: API port (default: 11111)
+ * - port: WebSocket port (default: 33333)
  * - isTestnet: Use paper trading account (default: true)
  *
  * @extends BrokerAdapter
@@ -28,8 +29,9 @@ class MoomooAdapter extends BrokerAdapter {
     // Moomoo connection configuration
     this.accountId = credentials.accountId || process.env.MOOMOO_ID;
     this.password = credentials.password || process.env.MOOMOO_PASSWORD;
+    this.websocketKey = credentials.websocketKey || process.env.MOOMOO_WEBSOCKET_KEY;
     this.host = credentials.host || process.env.MOOMOO_HOST || '127.0.0.1';
-    this.port = credentials.port || parseInt(process.env.MOOMOO_PORT) || 11111;
+    this.port = credentials.port || parseInt(process.env.MOOMOO_PORT) || 33333;
 
     // Moomoo API client
     this.moomoo = null;
@@ -41,6 +43,7 @@ class MoomooAdapter extends BrokerAdapter {
       accountId: this.accountId,
       host: this.host,
       port: this.port,
+      websocketKey: this.websocketKey ? `${this.websocketKey.substring(0, 4)}****` : 'NOT SET',
       isTestnet: this.isTestnet,
       tradeEnv: this.tradeEnv
     });
@@ -56,10 +59,38 @@ class MoomooAdapter extends BrokerAdapter {
     }
 
     try {
-      // Dynamically load moomoo-api (ES Module)
+      // Dynamically load moomoo-api with CommonJS require to avoid ES/CJS module isolation
       if (!MoomooAPI) {
-        const moomooModule = await import('moomoo-api');
-        MoomooAPI = moomooModule.default;
+        console.log('[MoomooAdapter] Loading moomoo-api package...');
+
+        try {
+          // Attempt CommonJS require to avoid ES/CJS module mixing
+          // This prevents protobuf instance isolation between the global scope and moomoo-api's internal proto.js
+          const moomooPackage = require('moomoo-api');
+          MoomooAPI = moomooPackage.default || moomooPackage;
+          console.log('[MoomooAdapter] Loaded moomoo-api via require() - avoiding module isolation');
+        } catch (requireError) {
+          console.log('[MoomooAdapter] require() failed, trying dynamic import...');
+          console.log('[MoomooAdapter] Error:', requireError.message);
+
+          // Fallback to dynamic import with protobuf initialization
+          const protobuf = require('protobufjs/light');
+
+          // Ensure global protobuf is initialized
+          if (!global.$protobuf) {
+            global.$protobuf = protobuf;
+          }
+          if (!global.$protobuf.roots) {
+            global.$protobuf.roots = {};
+          }
+          if (!global.$protobuf.roots.default) {
+            global.$protobuf.roots.default = new protobuf.Root();
+          }
+
+          const moomooModule = await import('moomoo-api');
+          MoomooAPI = moomooModule.default;
+          console.log('[MoomooAdapter] Loaded moomoo-api via import() - protobuf initialized');
+        }
       }
 
       console.log(`[MoomooAdapter] Connecting to OpenD Gateway at ${this.host}:${this.port}...`);
@@ -83,8 +114,9 @@ class MoomooAdapter extends BrokerAdapter {
           }
         };
 
-        // Start connection (host, port, ssl, key)
-        this.moomoo.start(this.host, this.port, false, this.password);
+        // Start connection (host, port, ssl, websocket_key)
+        // Note: 4th parameter is WebSocket auth key from OpenD Gateway, NOT the trading password
+        this.moomoo.start(this.host, this.port, false, this.websocketKey);
       });
 
       // Unlock trading

@@ -10,7 +10,20 @@
     "build:dashboard": "vite build",
     "preview:dashboard": "vite preview",
     "test": "jest",
-    "deploy": "railway up"
+    "deploy": "railway up",
+    "deploy:staging": "./scripts/deployment/deploy-staging.sh",
+    "deploy:validate": "node scripts/deployment/validate-websocket-deployment.js",
+    "deploy:validate:comprehensive": "VALIDATION_MODE=comprehensive node scripts/deployment/validate-websocket-deployment.js",
+    "test:order-types:staging": "NODE_ENV=staging node scripts/deployment/validate-order-types.js",
+    "test:rate-limit:staging": "NODE_ENV=staging node scripts/deployment/stress-test-rate-limits.js",
+    "test:rate-limit:ibkr": "NODE_ENV=staging node -e \"require('./scripts/deployment/stress-test-rate-limits.js').testIBKR()\"",
+    "test:rate-limit:schwab": "NODE_ENV=staging node -e \"require('./scripts/deployment/stress-test-rate-limits.js').testSchwab()\"",
+    "test:rate-limit:alpaca": "NODE_ENV=staging node -e \"require('./scripts/deployment/stress-test-rate-limits.js').testAlpaca()\"",
+    "monitoring:setup": "./scripts/deployment/setup-monitoring.sh",
+    "db:backup:staging": "echo 'Database backup script not yet implemented'",
+    "db:migrate:staging": "echo 'Database migration script not yet implemented'",
+    "db:restore:staging": "echo 'Database restore script not yet implemented'",
+    "health-check:staging": "curl -f http://localhost:3000/health || exit 1"
   },
   "dependencies": {
     "@alpacahq/alpaca-trade-api": "^3.1.3",
