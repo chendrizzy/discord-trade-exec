@@ -3,6 +3,8 @@ const axios = require('axios');
 
 // Internal utilities and services
 const BrokerAdapter = require('../BrokerAdapter');
+const oauth2Service = require('../../services/OAuth2Service');
+const User = require('../../models/User');
 
 /**
  * Charles Schwab Stock Broker Adapter
@@ -28,84 +30,62 @@ class SchwabAdapter extends BrokerAdapter {
 
     this.marketDataURL = 'https://api.schwabapi.com/marketdata/v1';
 
-    // OAuth credentials
-    this.clientId = credentials.appKey || credentials.clientId || null;
-    this.clientSecret = credentials.appSecret || credentials.clientSecret || null;
-    this.accessToken = credentials.accessToken || null;
-    this.refreshToken = credentials.refreshToken || null;
-
-    // Token expiry tracking
-    this.tokenExpiresAt = null;
-    this.refreshTokenExpiresAt = null;
+    // User ID for OAuth2 token retrieval
+    this.userId = credentials.userId || null;
 
     // Account number (set after authentication)
     this.accountId = null;
+
+    // Access token (cached from OAuth2Service)
+    this.accessToken = null;
   }
 
   /**
-   * Authenticate with Schwab using OAuth 2.0 refresh token
-   * Access tokens expire after 30 minutes
-   * Refresh tokens expire after 7 days
+   * Authenticate with Schwab using OAuth2 tokens
+   * Tokens are retrieved from User model and managed by OAuth2Service
    */
   async authenticate() {
     try {
-      // If we have a valid access token, verify it
-      if (this.accessToken && this.tokenExpiresAt && Date.now() < this.tokenExpiresAt) {
-        this.isAuthenticated = true;
-        return true;
+      if (!this.userId) {
+        throw new Error('User ID required for Schwab OAuth2 authentication');
       }
 
-      // If access token expired but refresh token valid, refresh
-      if (this.refreshToken && (!this.refreshTokenExpiresAt || Date.now() < this.refreshTokenExpiresAt)) {
-        await this.refreshAccessToken();
-        this.isAuthenticated = true;
-        return true;
+      const user = await User.findById(this.userId);
+
+      if (!user || !user.tradingConfig.oauthTokens.has('schwab')) {
+        throw new Error('No OAuth2 tokens found for Schwab. Please complete OAuth2 flow.');
       }
 
-      throw new Error('No valid tokens available. Please complete OAuth flow to get refresh token.');
+      const encryptedTokens = user.tradingConfig.oauthTokens.get('schwab');
+
+      // Check if tokens are valid
+      if (!encryptedTokens.isValid) {
+        throw new Error('OAuth2 tokens marked invalid. Please re-authorize Schwab connection.');
+      }
+
+      // Check if access token is expired
+      const now = new Date();
+      if (now >= encryptedTokens.expiresAt) {
+        console.log('[SchwabAdapter] Access token expired, refreshing...');
+
+        // OAuth2Service handles token refresh automatically
+        const refreshedTokens = await oauth2Service.refreshAccessToken('schwab', this.userId);
+
+        // Cache the new access token
+        this.accessToken = refreshedTokens.accessToken;
+      } else {
+        // Decrypt and use existing access token
+        this.accessToken = oauth2Service.decryptToken(encryptedTokens.accessToken);
+      }
+
+      this.isAuthenticated = true;
+      console.log('[SchwabAdapter] OAuth2 authentication successful');
+
+      return true;
     } catch (error) {
       console.error('[SchwabAdapter] Authentication failed:', error.message);
       this.isAuthenticated = false;
       throw new Error(`Schwab authentication failed: ${error.message}`);
-    }
-  }
-
-  /**
-   * Refresh access token using refresh token
-   */
-  async refreshAccessToken() {
-    try {
-      const authString = Buffer.from(`${this.clientId}:${this.clientSecret}`).toString('base64');
-
-      const response = await axios.post(
-        'https://api.schwabapi.com/v1/oauth/token',
-        new URLSearchParams({
-          grant_type: 'refresh_token',
-          refresh_token: this.refreshToken
-        }),
-        {
-          headers: {
-            Authorization: `Basic ${authString}`,
-            'Content-Type': 'application/x-www-form-urlencoded'
-          }
-        }
-      );
-
-      this.accessToken = response.data.access_token;
-      this.refreshToken = response.data.refresh_token || this.refreshToken;
-
-      // Access token expires in 30 minutes
-      this.tokenExpiresAt = Date.now() + response.data.expires_in * 1000;
-
-      // Refresh token expires in 7 days
-      if (response.data.refresh_token_expires_in) {
-        this.refreshTokenExpiresAt = Date.now() + response.data.refresh_token_expires_in * 1000;
-      }
-
-      return true;
-    } catch (error) {
-      console.error('[SchwabAdapter] Token refresh failed:', error.message);
-      throw new Error(`Failed to refresh token: ${error.message}`);
     }
   }
 
@@ -667,56 +647,6 @@ class SchwabAdapter extends BrokerAdapter {
     return statusMap[status] || 'UNKNOWN';
   }
 
-  /**
-   * Get OAuth authorization URL
-   * @static
-   */
-  static getOAuthURL(clientId, redirectUri, state) {
-    const params = new URLSearchParams({
-      response_type: 'code',
-      client_id: clientId,
-      redirect_uri: redirectUri,
-      state: state
-    });
-
-    return `https://api.schwabapi.com/v1/oauth/authorize?${params.toString()}`;
-  }
-
-  /**
-   * Exchange authorization code for tokens
-   * @static
-   */
-  static async exchangeCodeForToken(code, clientId, clientSecret, redirectUri) {
-    try {
-      const authString = Buffer.from(`${clientId}:${clientSecret}`).toString('base64');
-
-      const response = await axios.post(
-        'https://api.schwabapi.com/v1/oauth/token',
-        new URLSearchParams({
-          grant_type: 'authorization_code',
-          code: code,
-          redirect_uri: redirectUri
-        }),
-        {
-          headers: {
-            Authorization: `Basic ${authString}`,
-            'Content-Type': 'application/x-www-form-urlencoded'
-          }
-        }
-      );
-
-      return {
-        accessToken: response.data.access_token,
-        refreshToken: response.data.refresh_token,
-        tokenType: response.data.token_type,
-        expiresIn: response.data.expires_in,
-        scope: response.data.scope
-      };
-    } catch (error) {
-      console.error('[SchwabAdapter] Token exchange error:', error.message);
-      throw new Error(`Failed to exchange code for token: ${error.message}`);
-    }
-  }
 }
 
 module.exports = SchwabAdapter;

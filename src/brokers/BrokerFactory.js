@@ -1,6 +1,8 @@
 // Internal utilities and services
 const AlpacaAdapter = require('./adapters/AlpacaAdapter');
 const IBKRAdapter = require('./adapters/IBKRAdapter');
+const TDAmeritradeAdapter = require('./adapters/TDAmeritradeAdapter');
+const EtradeAdapter = require('./adapters/EtradeAdapter');
 // MoomooAdapter uses ES Module (moomoo-api), loaded dynamically when needed
 // const MoomooAdapter = require('./adapters/MoomooAdapter');
 const SchwabAdapter = require('./adapters/SchwabAdapter');
@@ -37,9 +39,9 @@ class BrokerFactory {
       name: 'Interactive Brokers',
       type: 'stock',
       class: IBKRAdapter,
-      features: ['stocks', 'options', 'futures', 'forex', 'bonds', 'global-markets'],
+      features: ['stocks', 'options', 'futures', 'forex', 'bonds', 'global-markets', 'oauth'],
       description: 'Professional trading platform with global market access',
-      authMethods: ['api-key'],
+      authMethods: ['oauth', 'api-key'], // OAuth2 + legacy TWS/IB Gateway
       websiteUrl: 'https://www.interactivebrokers.com',
       docsUrl: 'https://interactivebrokers.github.io',
       minDeposit: 0,
@@ -60,6 +62,38 @@ class BrokerFactory {
       accountTypes: ['individual', 'ira', 'margin', 'joint'],
       markets: ['US'],
       apiFeatures: ['oauth-refresh-token', '7-day-token-expiry', 'options-trading', 'futures-trading']
+    });
+
+    // TD Ameritrade - Stock and options trading
+    this.registerBroker('tdameritrade', {
+      name: 'TD Ameritrade',
+      type: 'stock',
+      class: TDAmeritradeAdapter,
+      features: ['stocks', 'options', 'etfs', 'futures', 'commission-free', 'oauth'],
+      description: 'Commission-free trading with OAuth2 support (acquired by Schwab)',
+      authMethods: ['oauth'],
+      websiteUrl: 'https://www.tdameritrade.com',
+      docsUrl: 'https://developer.tdameritrade.com',
+      minDeposit: 0,
+      accountTypes: ['individual', 'ira', 'margin', 'joint'],
+      markets: ['US'],
+      apiFeatures: ['oauth-refresh-token', '30-minute-token-expiry', 'options-trading', 'futures-trading', 'frequent-refresh-required']
+    });
+
+    // E*TRADE - OAuth 1.0a stock broker
+    this.registerBroker('etrade', {
+      name: 'E*TRADE',
+      type: 'stock',
+      class: EtradeAdapter,
+      features: ['stocks', 'options', 'etfs', 'futures', 'commission-free', 'oauth'],
+      description: 'Full-service broker with OAuth 1.0a authentication',
+      authMethods: ['oauth'], // OAuth 1.0a
+      websiteUrl: 'https://us.etrade.com',
+      docsUrl: 'https://developer.etrade.com',
+      minDeposit: 0,
+      accountTypes: ['individual', 'ira', 'margin', 'joint'],
+      markets: ['US'],
+      apiFeatures: ['oauth-1.0a', 'token-renewal', '2-hour-token-expiry', 'preview-before-place', 'options-trading']
     });
 
     // Moomoo - Modern mobile-first trading platform
@@ -440,17 +474,32 @@ class BrokerFactory {
         break;
 
       case 'ibkr':
-        if (!credentials.clientId && !process.env.IBKR_CLIENT_ID) {
+        if (!credentials.userId && !credentials.clientId && !process.env.IBKR_CLIENT_ID) {
           result.valid = false;
-          result.errors.push('clientId required for IBKR connection');
+          result.errors.push('Either userId (OAuth) or clientId (TWS/IB Gateway) required for IBKR connection');
         }
-        if (!credentials.host && !process.env.IBKR_HOST) {
+        // TWS/IB Gateway fallback validation
+        if (!credentials.userId && (!credentials.host && !process.env.IBKR_HOST)) {
           result.valid = false;
-          result.errors.push('host required for IBKR connection');
+          result.errors.push('host required for IBKR TWS/IB Gateway connection');
         }
-        if (!credentials.port && !process.env.IBKR_PORT) {
+        if (!credentials.userId && (!credentials.port && !process.env.IBKR_PORT)) {
           result.valid = false;
-          result.errors.push('port required for IBKR connection');
+          result.errors.push('port required for IBKR TWS/IB Gateway connection');
+        }
+        break;
+
+      case 'tdameritrade':
+        if (!credentials.userId) {
+          result.valid = false;
+          result.errors.push('userId required for TD Ameritrade OAuth2 authentication');
+        }
+        break;
+
+      case 'etrade':
+        if (!credentials.userId) {
+          result.valid = false;
+          result.errors.push('userId required for E*TRADE OAuth 1.0a authentication');
         }
         break;
 

@@ -31,6 +31,7 @@ const tradesRoutes = require('./routes/api/trades');
 const adminRoutes = require('./routes/api/admin');
 const brokerRoutes = require('./routes/api/brokers');
 const brokerOAuthRoutes = require('./routes/api/broker-oauth');
+const oauth2AuthRoutes = require('./routes/api/auth'); // Unified OAuth2 authentication
 const signalsRoutes = require('./routes/api/signals');
 const analyticsRoutes = require('./routes/api/analytics');
 const subscriptionRoutes = require('./routes/api/subscriptions');
@@ -217,6 +218,7 @@ app.use('/api/trades', tradesRoutes);
 app.use('/api/admin', adminRoutes);
 app.use('/api/brokers', brokerRoutes);
 app.use('/api/brokers/oauth', brokerOAuthRoutes); // OAuth routes (must be before catch-all)
+app.use('/api/auth', oauth2AuthRoutes); // Mount unified OAuth2 authentication routes
 app.use('/api', require('./routes/api/debug-broker-config')); // Debug endpoint (DELETE after debugging)
 app.use('/api/signals', signalsRoutes);
 app.use('/api/analytics', analyticsRoutes);

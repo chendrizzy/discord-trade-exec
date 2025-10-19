@@ -1,9 +1,10 @@
 // External dependencies
 const Alpaca = require('@alpacahq/alpaca-trade-api');
-const axios = require('axios');
 
 // Internal utilities and services
 const BrokerAdapter = require('../BrokerAdapter');
+const oauth2Service = require('../../services/OAuth2Service');
+const User = require('../../models/User');
 
 /**
  * Alpaca Stock Broker Adapter
@@ -19,7 +20,7 @@ class AlpacaAdapter extends BrokerAdapter {
     this.baseURL = this.isTestnet ? 'https://paper-api.alpaca.markets' : 'https://api.alpaca.markets';
 
     this.alpacaClient = null;
-    this.accessToken = credentials.accessToken || null;
+    this.userId = credentials.userId || null;
     this.apiKey = credentials.apiKey || null;
     this.apiSecret = credentials.apiSecret || null;
   }
@@ -40,27 +41,50 @@ class AlpacaAdapter extends BrokerAdapter {
   }
 
   /**
-   * Authenticate with Alpaca using OAuth token or API key
+   * Authenticate with Alpaca using OAuth2 tokens or API key
+   * OAuth2 tokens are retrieved from User model if userId provided
    */
   async authenticate() {
     try {
-      if (this.accessToken) {
-        // OAuth authentication
+      let accessToken = null;
+
+      // Try OAuth2 authentication first if userId provided
+      if (this.userId) {
+        const user = await User.findById(this.userId);
+
+        if (user && user.tradingConfig.oauthTokens.has('alpaca')) {
+          const encryptedTokens = user.tradingConfig.oauthTokens.get('alpaca');
+
+          // Check if tokens are valid
+          if (encryptedTokens.isValid) {
+            // Decrypt access token
+            accessToken = oauth2Service.decryptToken(encryptedTokens.accessToken);
+
+            console.log('[AlpacaAdapter] Using OAuth2 access token from user profile');
+          } else {
+            console.warn('[AlpacaAdapter] OAuth2 tokens marked invalid, falling back to API key if available');
+          }
+        }
+      }
+
+      // Initialize Alpaca client
+      if (accessToken) {
+        // OAuth2 authentication
         this.alpacaClient = new Alpaca({
           keyId: 'oauth',
-          secretKey: this.accessToken,
+          secretKey: accessToken,
           paper: this.isTestnet,
-          oauth: this.accessToken
+          oauth: accessToken
         });
       } else if (this.apiKey && this.apiSecret) {
-        // API key authentication
+        // API key authentication (fallback)
         this.alpacaClient = new Alpaca({
           keyId: this.apiKey,
           secretKey: this.apiSecret,
           paper: this.isTestnet
         });
       } else {
-        throw new Error('No valid credentials provided for Alpaca');
+        throw new Error('No valid credentials provided for Alpaca (OAuth2 or API key)');
       }
 
       // Verify authentication by fetching account
@@ -442,54 +466,6 @@ class AlpacaAdapter extends BrokerAdapter {
     return statusMap[status] || 'UNKNOWN';
   }
 
-  /**
-   * Get OAuth authorization URL
-   * @static
-   */
-  static getOAuthURL(clientId, redirectUri, state, scope = 'account:write trading') {
-    const params = new URLSearchParams({
-      response_type: 'code',
-      client_id: clientId,
-      redirect_uri: redirectUri,
-      state: state,
-      scope: scope
-    });
-
-    return `https://app.alpaca.markets/oauth/authorize?${params.toString()}`;
-  }
-
-  /**
-   * Exchange authorization code for access token
-   * @static
-   */
-  static async exchangeCodeForToken(code, clientId, clientSecret, redirectUri) {
-    try {
-      const response = await axios.post(
-        'https://api.alpaca.markets/oauth/token',
-        {
-          grant_type: 'authorization_code',
-          code: code,
-          client_id: clientId,
-          client_secret: clientSecret,
-          redirect_uri: redirectUri
-        },
-        {
-          headers: {
-            'Content-Type': 'application/json'
-          }
-        }
-      );
-
-      return {
-        accessToken: response.data.access_token,
-        tokenType: response.data.token_type,
-        scope: response.data.scope
-      };
-    } catch (error) {
-      console.error('[AlpacaAdapter] Token exchange error:', error.message);
-      throw new Error(`Failed to exchange code for token: ${error.message}`);
-    }
-  }
 }
 
 module.exports = AlpacaAdapter;

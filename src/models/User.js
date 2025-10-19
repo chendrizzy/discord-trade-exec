@@ -164,6 +164,44 @@ const userSchema = new mongoose.Schema(
         default: () => new Map()
       },
 
+      // OAuth2 token storage (unified authentication)
+      oauthTokens: {
+        type: Map,
+        of: {
+          // Encrypted access token (AES-256-GCM)
+          accessToken: {
+            encrypted: String,
+            iv: String,
+            authTag: String
+          },
+          // Encrypted refresh token (AES-256-GCM)
+          refreshToken: {
+            encrypted: String,
+            iv: String,
+            authTag: String
+          },
+          // Token expiration timestamp
+          expiresAt: Date,
+          // OAuth2 scopes granted by user
+          scopes: [String],
+          // Token type (typically 'Bearer')
+          tokenType: {
+            type: String,
+            default: 'Bearer'
+          },
+          // Token validity status
+          isValid: {
+            type: Boolean,
+            default: true
+          },
+          // Last refresh error message
+          lastRefreshError: String,
+          // Last refresh attempt timestamp
+          lastRefreshAttempt: Date
+        },
+        default: () => new Map()
+      },
+
       // Risk management settings
       riskManagement: {
         // Position sizing
@@ -411,6 +449,13 @@ userSchema.index({
   'subscription.status': 1,
   'stats.winRate': 1,
   'metadata.lastActiveAt': -1
+});
+
+// OAuth2 token expiration queries - supports token refresh cron job
+userSchema.index({
+  'tradingConfig.oauthTokens.$*.expiresAt': 1
+}, {
+  sparse: true
 });
 
 // Methods
