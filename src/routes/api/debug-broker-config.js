@@ -7,12 +7,10 @@
 const express = require('express');
 const router = express.Router();
 const User = require('../../models/User');
+const { ensureAuthenticated } = require('../../middleware/auth');
 
-router.get('/debug-broker-config', async (req, res) => {
+router.get('/debug-broker-config', ensureAuthenticated, async (req, res) => {
   try {
-    if (!req.user) {
-      return res.status(401).json({ error: 'Unauthorized' });
-    }
 
     const user = await User.findById(req.user.id).lean(); // Use lean() to get raw MongoDB document
 
