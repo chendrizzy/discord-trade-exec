@@ -1,0 +1,248 @@
+const bullmqConfig = require('../config/bullmq');
+
+// Import processors
+const whaleUpdatesProcessor = require('./workers/whaleUpdates');
+const anomalyBatchProcessor = require('./workers/anomalyBatch');
+const analysisProcessor = require('./workers/analysis');
+const alertsProcessor = require('./workers/alerts');
+
+/**
+ * JobOrchestrator - Central BullMQ worker management
+ *
+ * Manages 4 worker pools:
+ * - Whale Updates (hourly)
+ * - Anomaly Batch (30s interval)
+ * - Analysis (on-demand)
+ * - Alerts (on-demand)
+ */
+class JobOrchestrator {
+  constructor() {
+    this.workers = {};
+    this.queues = {};
+  }
+
+  /**
+   * Start all workers and schedule recurring jobs
+   */
+  async start() {
+    if (!bullmqConfig.enabled) {
+      console.warn('[Jobs] BullMQ disabled - background jobs will not run');
+      console.warn('[Jobs] Real-time analysis will continue normally');
+      return;
+    }
+
+    console.log('[Jobs] Starting workers...');
+
+    try {
+      // Create workers
+      this.workers = {
+        whaleUpdates: bullmqConfig.createWorker(
+          'polymarket-whale-updates',
+          whaleUpdatesProcessor,
+          { concurrency: 1 }
+        ),
+        anomalyBatch: bullmqConfig.createWorker(
+          'polymarket-anomaly-batch',
+          anomalyBatchProcessor,
+          { concurrency: 3 }
+        ),
+        analysis: bullmqConfig.createWorker(
+          'polymarket-analysis',
+          analysisProcessor,
+          { concurrency: 10 }
+        ),
+        alerts: bullmqConfig.createWorker(
+          'polymarket-alerts',
+          alertsProcessor,
+          { concurrency: 5 }
+        )
+      };
+
+      // Create queues
+      this.queues = {
+        whaleUpdates: bullmqConfig.createQueue('polymarket-whale-updates'),
+        anomalyBatch: bullmqConfig.createQueue('polymarket-anomaly-batch'),
+        analysis: bullmqConfig.createQueue('polymarket-analysis'),
+        alerts: bullmqConfig.createQueue('polymarket-alerts')
+      };
+
+      // Attach event handlers
+      this._attachEventHandlers();
+
+      // Schedule recurring jobs
+      await this.scheduleRecurringJobs();
+
+      console.log('[Jobs] All workers started successfully');
+    } catch (err) {
+      console.error('[Jobs] Worker startup error:', err);
+      throw err;
+    }
+  }
+
+  /**
+   * Attach event handlers to workers
+   * @private
+   */
+  _attachEventHandlers() {
+    Object.entries(this.workers).forEach(([name, worker]) => {
+      if (!worker) return;
+
+      worker.on('completed', (job) => {
+        console.log(`[${name}] Job ${job.id} completed`);
+      });
+
+      worker.on('failed', (job, err) => {
+        console.error(`[${name}] Job ${job?.id} failed:`, err.message);
+      });
+
+      worker.on('progress', (job, progress) => {
+        console.log(`[${name}] Job ${job.id} progress: ${progress}%`);
+      });
+
+      worker.on('error', (err) => {
+        console.error(`[${name}] Worker error:`, err.message);
+      });
+    });
+  }
+
+  /**
+   * Schedule recurring jobs
+   */
+  async scheduleRecurringJobs() {
+    if (!this.queues.whaleUpdates || !this.queues.anomalyBatch) {
+      console.warn('[Jobs] Queues not available - recurring jobs not scheduled');
+      return;
+    }
+
+    console.log('[Jobs] Scheduling recurring jobs...');
+
+    try {
+      // Hourly whale updates
+      await this.queues.whaleUpdates.add(
+        'update-all-whales',
+        {
+          batchSize: parseInt(process.env.BULLMQ_WHALE_UPDATE_BATCH_SIZE || '1000', 10)
+        },
+        {
+          repeat: {
+            pattern: '0 * * * *' // Every hour on the hour
+          },
+          jobId: 'whale-updates-hourly' // Prevent duplicates
+        }
+      );
+
+      // 30-second anomaly batches
+      const anomalyInterval = parseInt(
+        process.env.BULLMQ_ANOMALY_BATCH_INTERVAL || '30000',
+        10
+      );
+
+      await this.queues.anomalyBatch.add(
+        'batch-detection',
+        {},
+        {
+          repeat: {
+            every: anomalyInterval
+          },
+          jobId: 'anomaly-batch-recurring' // Prevent duplicates
+        }
+      );
+
+      console.log('[Jobs] Recurring jobs scheduled:');
+      console.log('  - Whale updates: Hourly (0 * * * *)');
+      console.log(`  - Anomaly batch: Every ${anomalyInterval / 1000}s`);
+    } catch (err) {
+      console.error('[Jobs] Schedule recurring jobs error:', err);
+      throw err;
+    }
+  }
+
+  /**
+   * Queue a single analysis job
+   * @param {string} transactionId - Transaction ID to analyze
+   */
+  async queueAnalysis(transactionId) {
+    if (!this.queues.analysis) {
+      console.warn('[Jobs] Analysis queue not available');
+      return null;
+    }
+
+    return this.queues.analysis.add('analyze', {
+      transactionId
+    });
+  }
+
+  /**
+   * Queue a single alert job
+   * @param {string} alertId - Alert ID to send
+   */
+  async queueAlert(alertId) {
+    if (!this.queues.alerts) {
+      console.warn('[Jobs] Alerts queue not available');
+      return null;
+    }
+
+    return this.queues.alerts.add('send', {
+      alertId
+    });
+  }
+
+  /**
+   * Stop all workers gracefully
+   */
+  async stop() {
+    console.log('[Jobs] Stopping workers...');
+
+    try {
+      // Close all workers
+      await Promise.all(
+        Object.values(this.workers)
+          .filter(w => w)
+          .map(w => w.close())
+      );
+
+      // Close all queues
+      await Promise.all(
+        Object.values(this.queues)
+          .filter(q => q)
+          .map(q => q.close())
+      );
+
+      console.log('[Jobs] All workers stopped');
+    } catch (err) {
+      console.error('[Jobs] Worker shutdown error:', err);
+      throw err;
+    }
+  }
+
+  /**
+   * Get job statistics
+   * @returns {Promise<Object>} Stats for all queues
+   */
+  async getStats() {
+    if (!bullmqConfig.enabled) {
+      return { enabled: false };
+    }
+
+    const stats = {};
+
+    for (const [name, queue] of Object.entries(this.queues)) {
+      if (!queue) continue;
+
+      try {
+        const counts = await queue.getJobCounts();
+        stats[name] = counts;
+      } catch (err) {
+        console.error(`[Jobs] Get stats error for ${name}:`, err.message);
+        stats[name] = { error: err.message };
+      }
+    }
+
+    return {
+      enabled: true,
+      ...stats
+    };
+  }
+}
+
+module.exports = new JobOrchestrator();
