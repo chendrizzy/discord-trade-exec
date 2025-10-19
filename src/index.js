@@ -394,7 +394,18 @@ app.get('*', (req, res) => {
 // Connect to MongoDB
 mongoose
   .connect(process.env.MONGODB_URI || 'mongodb://localhost:27017/trade-executor')
-  .then(() => console.log('✅ MongoDB connected'))
+  .then(() => {
+    console.log('✅ MongoDB connected');
+
+    // Initialize OAuth2 token refresh cron jobs after DB connection
+    try {
+      const { startTokenRefreshJobs } = require('./jobs/tokenRefreshJob');
+      startTokenRefreshJobs();
+      console.log('✅ OAuth2 token refresh jobs initialized');
+    } catch (error) {
+      console.error('❌ Failed to initialize token refresh jobs:', error);
+    }
+  })
   .catch(err => console.error('❌ MongoDB connection error:', err));
 
 // Start the server
