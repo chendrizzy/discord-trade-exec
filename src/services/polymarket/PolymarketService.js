@@ -7,6 +7,8 @@
 const eventListener = require('./EventListener');
 const transactionProcessor = require('./TransactionProcessor');
 const blockchainProvider = require('./BlockchainProvider');
+const analysisPipeline = require('./AnalysisPipeline');
+const jobOrchestrator = require('../../jobs');
 const polygonConfig = require('../../config/polygon');
 
 class PolymarketService {
@@ -54,7 +56,15 @@ class PolymarketService {
 
     events.forEach(eventName => {
       this.eventListener.on(eventName, async (eventData) => {
-        await transactionProcessor.processEvent(eventData);
+        // Phase 1: Process and save transaction
+        const transaction = await transactionProcessor.processEvent(eventData);
+
+        // Phase 2: Intelligence analysis (non-blocking)
+        if (transaction && !transaction.duplicate) {
+          analysisPipeline.processTransaction(transaction).catch(err => {
+            console.error('[PolymarketService] Intelligence analysis error:', err.message);
+          });
+        }
       });
     });
 
@@ -78,11 +88,15 @@ class PolymarketService {
 
     await this.eventListener.startListening();
 
+    // Start background jobs (intelligence workers)
+    await jobOrchestrator.start();
+
     this.isRunning = true;
     this.startTime = new Date();
 
     console.log('[PolymarketService] Service started successfully');
     console.log('[PolymarketService] Monitoring Polymarket CTF Exchange events in real-time');
+    console.log('[PolymarketService] Intelligence analysis active');
   }
 
   /**
@@ -97,6 +111,9 @@ class PolymarketService {
 
     await this.eventListener.stopListening();
     blockchainProvider.stopHealthChecks();
+
+    // Stop background jobs
+    await jobOrchestrator.stop();
 
     this.isRunning = false;
 
