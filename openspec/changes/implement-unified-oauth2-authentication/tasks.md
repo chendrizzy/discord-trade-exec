@@ -337,7 +337,11 @@
 
 ---
 
-## Phase 5: OAuth2 UI Components
+## Phase 5: OAuth2 UI Components ⏳ (Implementation Plan Ready)
+
+**Status**: Ready for implementation after OAuth2 credentials obtained
+**Documentation**: See `PHASE_5_6_IMPLEMENTATION_PLAN.md` for comprehensive implementation guide
+**Blocker**: Requires real broker OAuth2 CLIENT_ID and CLIENT_SECRET from manual app registration
 
 ### 5.1 OAuth2ConnectButton Component
 
@@ -434,7 +438,11 @@
 
 ---
 
-## Phase 6: End-to-End Testing & Validation
+## Phase 6: End-to-End Testing & Validation ⏳ (Implementation Plan Ready)
+
+**Status**: Ready for execution after Phase 5 UI implementation
+**Documentation**: See `PHASE_5_6_IMPLEMENTATION_PLAN.md` for detailed test procedures and validation steps
+**Prerequisites**: OAuth2 credentials configured, Phase 5 UI deployed to staging
 
 ### 6.1 E2E OAuth2 Flow Tests
 
