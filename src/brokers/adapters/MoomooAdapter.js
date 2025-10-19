@@ -56,24 +56,38 @@ class MoomooAdapter extends BrokerAdapter {
     }
 
     try {
-      // Dynamically load moomoo-api (ES Module)
+      // Dynamically load moomoo-api with CommonJS require to avoid ES/CJS module isolation
       if (!MoomooAPI) {
-        // Ensure protobuf is loaded first to initialize global $protobuf
-        const protobuf = require('protobufjs');
+        console.log('[MoomooAdapter] Loading moomoo-api package...');
 
-        // Initialize global protobuf root if not already initialized
-        if (!global.$protobuf) {
-          global.$protobuf = protobuf;
-        }
-        if (!global.$protobuf.roots) {
-          global.$protobuf.roots = {};
-        }
-        if (!global.$protobuf.roots.default) {
-          global.$protobuf.roots.default = new protobuf.Root();
-        }
+        try {
+          // Attempt CommonJS require to avoid ES/CJS module mixing
+          // This prevents protobuf instance isolation between the global scope and moomoo-api's internal proto.js
+          const moomooPackage = require('moomoo-api');
+          MoomooAPI = moomooPackage.default || moomooPackage;
+          console.log('[MoomooAdapter] Loaded moomoo-api via require() - avoiding module isolation');
+        } catch (requireError) {
+          console.log('[MoomooAdapter] require() failed, trying dynamic import...');
+          console.log('[MoomooAdapter] Error:', requireError.message);
 
-        const moomooModule = await import('moomoo-api');
-        MoomooAPI = moomooModule.default;
+          // Fallback to dynamic import with protobuf initialization
+          const protobuf = require('protobufjs/light');
+
+          // Ensure global protobuf is initialized
+          if (!global.$protobuf) {
+            global.$protobuf = protobuf;
+          }
+          if (!global.$protobuf.roots) {
+            global.$protobuf.roots = {};
+          }
+          if (!global.$protobuf.roots.default) {
+            global.$protobuf.roots.default = new protobuf.Root();
+          }
+
+          const moomooModule = await import('moomoo-api');
+          MoomooAPI = moomooModule.default;
+          console.log('[MoomooAdapter] Loaded moomoo-api via import() - protobuf initialized');
+        }
       }
 
       console.log(`[MoomooAdapter] Connecting to OpenD Gateway at ${this.host}:${this.port}...`);
