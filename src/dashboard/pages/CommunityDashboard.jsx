@@ -1,7 +1,12 @@
 import { useState } from 'react';
-import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '../components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../components/ui/tabs';
 import { Navigation } from '../components/Navigation';
+import CommunityOverview from '../components/CommunityOverview';
+import SignalManagement from '../components/SignalManagement';
+import MemberActivity from '../components/MemberActivity';
+import CommunityAnalytics from '../components/CommunityAnalytics';
+import BillingSettings from '../components/BillingSettings';
+import IntegrationSettings from '../components/IntegrationSettings';
 
 /**
  * Community Host Dashboard
@@ -48,128 +53,32 @@ export function CommunityDashboard({ user, onLogout }) {
 
             {/* Overview Tab */}
             <TabsContent value="overview">
-              <div className="space-y-6">
-                <Card>
-                  <CardHeader>
-                    <CardTitle>Community Overview</CardTitle>
-                    <CardDescription>
-                      Key metrics and activity for your trading community
-                    </CardDescription>
-                  </CardHeader>
-                  <CardContent>
-                    {/* TODO: Phase 2.1 - Implement CommunityOverview component */}
-                    <div className="text-center text-muted-foreground py-12">
-                      <p className="text-lg font-semibold mb-2">Community Overview</p>
-                      <p className="text-sm">Coming soon in Phase 2</p>
-                    </div>
-                  </CardContent>
-                </Card>
-              </div>
+              <CommunityOverview />
             </TabsContent>
 
             {/* Signals Tab */}
             <TabsContent value="signals">
-              <div className="space-y-6">
-                <Card>
-                  <CardHeader>
-                    <CardTitle>Signal Management</CardTitle>
-                    <CardDescription>
-                      Configure signal providers and channels
-                    </CardDescription>
-                  </CardHeader>
-                  <CardContent>
-                    {/* TODO: Phase 2.2 - Implement SignalManagement component */}
-                    <div className="text-center text-muted-foreground py-12">
-                      <p className="text-lg font-semibold mb-2">Signal Management</p>
-                      <p className="text-sm">Coming soon in Phase 2</p>
-                    </div>
-                  </CardContent>
-                </Card>
-              </div>
+              <SignalManagement />
             </TabsContent>
 
             {/* Members Tab */}
             <TabsContent value="members">
-              <div className="space-y-6">
-                <Card>
-                  <CardHeader>
-                    <CardTitle>Member Management</CardTitle>
-                    <CardDescription>
-                      View and manage community members
-                    </CardDescription>
-                  </CardHeader>
-                  <CardContent>
-                    {/* TODO: Phase 2.3 - Implement MemberActivity component */}
-                    <div className="text-center text-muted-foreground py-12">
-                      <p className="text-lg font-semibold mb-2">Member Management</p>
-                      <p className="text-sm">Coming soon in Phase 2</p>
-                    </div>
-                  </CardContent>
-                </Card>
-              </div>
+              <MemberActivity />
             </TabsContent>
 
             {/* Analytics Tab */}
             <TabsContent value="analytics">
-              <div className="space-y-6">
-                <Card>
-                  <CardHeader>
-                    <CardTitle>Community Analytics</CardTitle>
-                    <CardDescription>
-                      Performance metrics and engagement data
-                    </CardDescription>
-                  </CardHeader>
-                  <CardContent>
-                    {/* TODO: Phase 2.4 - Implement CommunityAnalytics component */}
-                    <div className="text-center text-muted-foreground py-12">
-                      <p className="text-lg font-semibold mb-2">Community Analytics</p>
-                      <p className="text-sm">Coming soon in Phase 2</p>
-                    </div>
-                  </CardContent>
-                </Card>
-              </div>
+              <CommunityAnalytics />
             </TabsContent>
 
             {/* Billing Tab */}
             <TabsContent value="billing">
-              <div className="space-y-6">
-                <Card>
-                  <CardHeader>
-                    <CardTitle>Billing & Subscription</CardTitle>
-                    <CardDescription>
-                      Manage your community subscription and usage
-                    </CardDescription>
-                  </CardHeader>
-                  <CardContent>
-                    {/* TODO: Phase 2.5 - Implement BillingSettings component */}
-                    <div className="text-center text-muted-foreground py-12">
-                      <p className="text-lg font-semibold mb-2">Billing & Subscription</p>
-                      <p className="text-sm">Coming soon in Phase 2</p>
-                    </div>
-                  </CardContent>
-                </Card>
-              </div>
+              <BillingSettings />
             </TabsContent>
 
             {/* Settings Tab */}
             <TabsContent value="settings">
-              <div className="space-y-6">
-                <Card>
-                  <CardHeader>
-                    <CardTitle>Discord Integration</CardTitle>
-                    <CardDescription>
-                      Configure Discord webhooks and bot permissions
-                    </CardDescription>
-                  </CardHeader>
-                  <CardContent>
-                    {/* TODO: Phase 2.6 - Implement IntegrationSettings component */}
-                    <div className="text-center text-muted-foreground py-12">
-                      <p className="text-lg font-semibold mb-2">Discord Integration</p>
-                      <p className="text-sm">Coming soon in Phase 2</p>
-                    </div>
-                  </CardContent>
-                </Card>
-              </div>
+              <IntegrationSettings />
             </TabsContent>
           </Tabs>
         </div>

@@ -36,6 +36,8 @@ const signalsRoutes = require('./routes/api/signals');
 const analyticsRoutes = require('./routes/api/analytics');
 const subscriptionRoutes = require('./routes/api/subscriptions');
 const signalSubscriptionRoutes = require('./routes/api/signal-subscriptions');
+const communityRoutes = require('./routes/api/community');
+const traderRoutes = require('./routes/api/trader');
 const DiscordTradeBot = require('./services/DiscordBot');
 const SubscriptionManager = require('./services/subscription-manager');
 const MarketingAutomation = require('./services/MarketingAutomation');
@@ -224,6 +226,8 @@ app.use('/api/signals', signalsRoutes);
 app.use('/api/analytics', analyticsRoutes);
 app.use('/api/subscriptions', subscriptionRoutes);
 app.use('/api/signal-subscriptions', signalSubscriptionRoutes);
+app.use('/api/community', communityRoutes);
+app.use('/api/trader', traderRoutes);
 
 // Routes
 app.post('/webhook/stripe', (req, res) => {
