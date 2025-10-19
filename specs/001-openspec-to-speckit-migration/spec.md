@@ -1,0 +1,711 @@
+# Feature Specification: OpenSpec to Speckit Migration
+
+**Feature Branch**: `001-openspec-to-speckit-migration`
+**Created**: 2025-10-19
+**Status**: Draft
+**Input**: Comprehensive migration from OpenSpec to Speckit workflow system, encompassing entire Discord Trade Executor project with all planned features, marking completed tasks, and tracking incomplete work from OpenSpec proposals
+
+## User Scenarios & Testing *(mandatory)*
+
+### User Story 1 - Automated Trade Execution (Priority: P1) ✅
+
+Traders receive signals in Discord from providers, and the system automatically executes those trades across their connected broker accounts without manual intervention.
+
+**Why this priority**: Core value proposition - the primary reason users subscribe to the platform. Without this, there is no product.
+
+**Independent Test**: Can be fully tested by posting "BUY AAPL @ $150, SL $145, TP $160" in Discord and verifying trade appears in Alpaca account within 30 seconds.
+
+**Acceptance Scenarios**:
+
+1. **Given** user has connected Alpaca account with valid credentials, **When** signal provider posts "BUY AAPL @ $150" in monitored Discord channel, **Then** system parses signal with 95%+ accuracy and executes market order in user's Alpaca account
+2. **Given** user has position size limit of $5000, **When** signal for $10000 position received, **Then** system scales down to $5000 respecting risk parameters
+3. **Given** user has stop-loss enabled, **When** trade executed, **Then** stop-loss order placed at specified price automatically
+4. **Given** signal contains invalid ticker symbol, **When** parsed, **Then** system logs error and notifies user without executing trade
+
+**Status**: ✅ IMPLEMENTED (OpenSpec: automated trade execution baseline)
+
+---
+
+### User Story 2 - Multi-Broker Integration (Priority: P1) ⏳
+
+Traders can connect multiple broker accounts (stocks and crypto) from a single dashboard, with the system securely managing API credentials and routing trades to the appropriate broker.
+
+**Why this priority**: Platform differentiation - supporting 8+ brokers allows users to consolidate their trading automation in one place rather than using separate systems for stocks/crypto.
+
+**Independent Test**: Can be fully tested by connecting both Alpaca (stocks) and Coinbase Pro (crypto) accounts, then executing signals for AAPL and BTC-USD to verify proper broker routing.
+
+**Acceptance Scenarios**:
+
+1. **Given** user navigates to broker settings, **When** selects "Add Broker" and chooses IBKR, **Then** system redirects to OAuth2 flow and stores encrypted credentials after authorization
+2. **Given** user has both Alpaca and Binance connected, **When** stock signal received, **Then** system routes to Alpaca; when crypto signal received, routes to Binance
+3. **Given** user's Alpaca credentials expire, **When** OAuth2 token refresh scheduled, **Then** system automatically renews tokens without user intervention
+4. **Given** user disconnects broker, **When** signal arrives for that broker's assets, **Then** system skips execution and logs informational message
+
+**Status**: ⏳ IN PROGRESS (88.6% - 62/70 tasks complete in OpenSpec: implement-broker-integrations)
+
+**Completed Brokers**:
+- ✅ IBKR (Interactive Brokers) - OAuth2 + trade execution
+- ✅ Charles Schwab - OAuth2 + trade execution
+- ✅ Alpaca - API key + trade execution
+- ✅ Coinbase Pro - API key + trade execution
+- ✅ Kraken - API key + trade execution
+
+**Pending Work**:
+- Deploy broker adapters to production
+- Implement broker health monitoring
+- Create user-facing broker status dashboard
+
+---
+
+### User Story 3 - Real-Time Dashboard Updates (Priority: P2) ⏳
+
+Users see live updates on their dashboard as trades execute, positions change, and alerts fire without needing to refresh the page.
+
+**Why this priority**: Modern UX expectation - users expect real-time updates in 2025. Reduces support burden from "why isn't my trade showing?" questions.
+
+**Independent Test**: Can be fully tested by opening dashboard, executing trade via signal, and verifying dashboard updates within 2 seconds without page refresh.
+
+**Acceptance Scenarios**:
+
+1. **Given** user has dashboard open, **When** trade executes, **Then** trade appears in history table within 2 seconds via WebSocket push
+2. **Given** user monitoring portfolio value, **When** market prices change, **Then** portfolio value updates in real-time (max 5s latency)
+3. **Given** user loses internet connection, **When** connection restored, **Then** WebSocket reconnects automatically and resynchronizes state
+4. **Given** 10,000 concurrent users, **When** market volatility causes high update frequency, **Then** system maintains <2s update latency for 95th percentile
+
+**Status**: ⏳ IN PROGRESS (6.8% - 10/148 tasks complete in OpenSpec: implement-realtime-infrastructure)
+
+**Completed Work**:
+- ✅ Basic WebSocket connection infrastructure
+- ✅ Trade execution event broadcasting
+
+**Pending Work** (138 tasks):
+- Implement BullMQ job queues for background processing
+- Create portfolio value calculation service
+- Build real-time price feed integration
+- Develop connection health monitoring
+- Implement reconnection logic with exponential backoff
+
+---
+
+### User Story 4 - Polymarket Intelligence (Priority: P2) ✅
+
+Community hosts monitor Polymarket whale wallets and anomalous trading patterns via a dedicated intelligence dashboard, with automated alerts when significant activity detected.
+
+**Why this priority**: Premium feature that differentiates platform for crypto-focused communities. High engagement driver (users check whale activity multiple times per day).
+
+**Independent Test**: Can be fully tested by navigating to Polymarket Intelligence tab and verifying whale wallet positions displayed, then simulating $50K+ trade to trigger whale alert notification.
+
+**Acceptance Scenarios**:
+
+1. **Given** whale wallet has >$100K position in market, **When** user views whale leaderboard, **Then** wallet appears ranked by total position size with real-time balance
+2. **Given** new whale wallet (>$100K) enters market, **When** detection algorithm runs, **Then** automated alert sent to Discord webhook within 5 minutes
+3. **Given** anomaly detection enabled, **When** trading volume spikes 3+ standard deviations above mean, **Then** alert fired and highlighted on dashboard
+4. **Given** user filters by specific market, **When** selecting market from dropdown, **Then** only positions and alerts for that market displayed
+
+**Status**: ✅ IMPLEMENTED (OpenSpec: add-polymarket-intelligence Phase 1 & 2 complete)
+
+**Key Capabilities**:
+- Polygon blockchain monitoring via Alchemy
+- CTF Exchange contract position tracking
+- Whale detection algorithm (>$100K positions)
+- Anomaly detection using statistical analysis
+- Real-time alert system via Discord webhooks
+- Historical trend visualization with Recharts
+
+---
+
+### User Story 5 - Dual Dashboard System (Priority: P2) 🔮
+
+The system automatically detects user role (community host vs. individual trader) and routes them to the appropriate dashboard with role-specific features and navigation.
+
+**Why this priority**: Critical for UX scaling - prevents confusion as platform grows two distinct user segments with different needs. Community hosts need member management; traders need signal feeds.
+
+**Independent Test**: Can be fully tested by logging in as community host account and verifying redirect to `/community-dashboard` with member management visible, then logging in as trader account and verifying redirect to `/trader-dashboard` with signal feed.
+
+**Acceptance Scenarios**:
+
+1. **Given** user registers as "Community Host" role, **When** completes OAuth2 login, **Then** redirected to `/community-dashboard` with navigation showing Members, Signals, Billing tabs
+2. **Given** user has "Trader" role, **When** logs in, **Then** redirected to `/trader-dashboard` with navigation showing Feed, Brokers, History, Risk Settings
+3. **Given** community host viewing member list, **When** clicks member name, **Then** modal shows member's subscription tier, trade stats, and broker connections
+4. **Given** trader following 3 signal providers, **When** viewing signal feed, **Then** only signals from followed providers displayed with filtering options
+
+**Status**: 🔮 PROPOSED (0/216 tasks in OpenSpec: implement-dual-dashboard-system)
+
+**Planned Components**:
+- Community Dashboard: Overview, Signal Management, Member Management, Analytics, Billing, Integrations
+- Trader Dashboard: Overview, Signal Feed, Broker Management, Trade History, Risk Settings, Notifications, Subscription
+- Role-based routing middleware
+- Shared component library for common UI elements
+
+---
+
+### User Story 6 - Unified OAuth2 Authentication (Priority: P1) ⏳
+
+Users authenticate once via Discord OAuth2 and the system maintains their session across all features, with broker OAuth2 tokens automatically refreshed before expiration.
+
+**Why this priority**: Security and UX foundation - poor session management causes user frustration and support burden. Auto-refresh prevents "broker disconnected" errors.
+
+**Independent Test**: Can be fully tested by logging in with Discord, connecting IBKR via OAuth2, waiting until 5 minutes before token expiry, and verifying auto-refresh occurs without user action.
+
+**Acceptance Scenarios**:
+
+1. **Given** new user clicks "Login with Discord", **When** authorizes application, **Then** Discord OAuth2 flow completes and user redirected to dashboard with active session
+2. **Given** user session cookie has 7-day expiration, **When** returns within 7 days, **Then** session restored without re-authentication
+3. **Given** broker OAuth2 token expires in 4 hours, **When** scheduled refresh job runs, **Then** new tokens obtained and stored encrypted without user intervention
+4. **Given** broker refresh fails (revoked access), **When** detected, **Then** user notified via email and dashboard banner to re-authorize
+
+**Status**: ⏳ IN PROGRESS (39.9% - 65/163 tasks complete in OpenSpec: implement-unified-oauth2-authentication)
+
+**Completed Work**:
+- ✅ Discord OAuth2 integration (login/logout)
+- ✅ Express session management with MongoDB store
+- ✅ IBKR OAuth2 flow implementation
+- ✅ Schwab OAuth2 flow implementation
+- ✅ Token encryption at rest (AES-256-GCM)
+
+**Pending Work** (98 tasks):
+- Implement scheduled token refresh jobs
+- Build token expiry monitoring dashboard
+- Create user notification system for auth failures
+- Add OAuth2 scope management
+- Implement session analytics
+
+---
+
+### User Story 7 - Analytics Platform (Priority: P3) ⏳
+
+Community hosts and platform admins access business analytics including MRR/ARR, user acquisition funnels, cohort retention, and churn analysis to make data-driven decisions.
+
+**Why this priority**: Business intelligence layer - not blocking MVP launch but critical for scaling operations and optimizing growth strategies.
+
+**Independent Test**: Can be fully tested by navigating to Analytics tab, verifying MRR chart displays current month's recurring revenue, and checking that cohort retention table shows signup-to-activation rates by month.
+
+**Acceptance Scenarios**:
+
+1. **Given** admin viewing revenue dashboard, **When** selecting date range, **Then** MRR and ARR charts update to show subscription revenue trends with month-over-month growth rates
+2. **Given** 100 users signed up in January, **When** viewing cohort retention, **Then** table shows 40% activated (connected broker), 30% made first trade, 20% retained after 30 days
+3. **Given** analyzing user acquisition funnel, **When** viewing conversion rates, **Then** see percentages for: site visit → signup → activation → first trade → retained subscriber
+4. **Given** churn risk model enabled, **When** user hasn't traded in 14 days, **Then** flagged as "at risk" on dashboard with suggested intervention actions
+
+**Status**: ⏳ IN PROGRESS (69.4% - 43/62 tasks complete in OpenSpec: implement-analytics-platform)
+
+**Completed Work**:
+- ✅ Basic revenue tracking (MRR/ARR calculations)
+- ✅ User registration event logging
+- ✅ Simple cohort retention queries
+- ✅ Stripe webhook integration for subscription events
+
+**Pending Work** (19 tasks):
+- Build ML-based churn prediction model
+- Implement advanced segmentation (user personas)
+- Create automated email campaigns for at-risk users
+- Develop LTV:CAC ratio tracking
+
+---
+
+### User Story 8 - Moomoo Integration (Priority: P2) ✅
+
+Traders connect their Moomoo brokerage accounts to execute trades from Discord signals, with dedicated UI for API key management and connection status.
+
+**Why this priority**: Market expansion - Moomoo popular among Asian markets and younger retail traders. Adds competitive differentiation.
+
+**Independent Test**: Can be fully tested by navigating to broker settings, selecting "Add Moomoo", entering API credentials, and verifying connection test passes with green status indicator.
+
+**Acceptance Scenarios**:
+
+1. **Given** user selects Moomoo from broker list, **When** enters API key and secret, **Then** system validates credentials via test API call and stores encrypted if valid
+2. **Given** Moomoo account connected, **When** stock signal received (e.g., "BUY BABA @ $80"), **Then** order routed to Moomoo API and executed
+3. **Given** Moomoo API returns error, **When** trade attempted, **Then** user sees error notification with actionable message (e.g., "Insufficient buying power")
+4. **Given** user viewing broker status dashboard, **When** Moomoo connection healthy, **Then** green checkmark displayed with last successful ping timestamp
+
+**Status**: ✅ IMPLEMENTED (OpenSpec: add-moomoo-ui-support complete)
+
+**Key Capabilities**:
+- Moomoo API adapter with credential management
+- Broker selection UI in settings
+- Connection health monitoring
+- Error handling and user notifications
+
+---
+
+### User Story 9 - Advanced Analytics ML (Priority: P3) 🔮
+
+Platform uses machine learning models to predict user churn, recommend personalized signal providers, and forecast revenue trends, with insights surfaced on admin dashboard.
+
+**Why this priority**: Future optimization layer - not required for launch but enables data-driven retention and growth strategies at scale.
+
+**Independent Test**: Can be fully tested by running churn prediction model on user cohort, verifying model outputs churn probability scores, and checking that high-risk users (>70% probability) appear in intervention queue.
+
+**Acceptance Scenarios**:
+
+1. **Given** churn prediction model trained on historical data, **When** user exhibits low engagement patterns, **Then** model assigns churn probability score and recommends intervention (e.g., personalized email campaign)
+2. **Given** trader's historical preferences (asset classes, risk tolerance), **When** recommendation engine runs, **Then** suggests 3 signal providers with highest predicted satisfaction scores
+3. **Given** 12 months of subscription revenue data, **When** forecasting model runs, **Then** predicts next quarter MRR with 95% confidence interval
+4. **Given** A/B test running on pricing page, **When** sufficient sample size collected, **Then** Bayesian analysis calculates probability of improvement and recommends winner
+
+**Status**: 🔮 PROPOSED (0/85 tasks in OpenSpec: implement-analytics-advanced-features)
+
+**Planned Capabilities**:
+- Churn prediction using gradient boosting (XGBoost)
+- Collaborative filtering for signal provider recommendations
+- Time series forecasting for revenue (ARIMA/Prophet)
+- A/B testing framework with Bayesian statistics
+- Feature importance visualization for model explainability
+
+---
+
+### User Story 10 - Social Trading Features (Priority: P3) 🔮
+
+Traders discover and follow top-performing signal providers via leaderboards, copy trades automatically, and participate in community-driven strategy discussions.
+
+**Why this priority**: Viral growth driver - social proof and community features can accelerate user acquisition through network effects. Not blocking MVP but high upside.
+
+**Independent Test**: Can be fully tested by viewing signal provider leaderboard ranked by 30-day ROI, clicking "Follow" on top provider, and verifying subsequent signals from that provider execute automatically in user's account.
+
+**Acceptance Scenarios**:
+
+1. **Given** user viewing signal provider leaderboard, **When** sorted by 30-day ROI, **Then** top 10 providers displayed with verified performance stats (win rate, avg gain, max drawdown)
+2. **Given** user follows signal provider, **When** provider posts signal, **Then** trade auto-executes in follower's account scaled to their risk parameters
+3. **Given** user wants to stop following provider, **When** clicks "Unfollow", **Then** no future signals from that provider execute (existing positions unaffected)
+4. **Given** community discussion feature enabled, **When** user posts strategy analysis, **Then** appears in community feed with like/comment functionality
+
+**Status**: 🔮 PROPOSED (no tasks defined in OpenSpec: implement-social-trading)
+
+**Planned Capabilities**:
+- Signal provider leaderboard with verified performance
+- Follow/unfollow functionality with auto-copy trading
+- Community discussion forum (strategy sharing)
+- Performance verification system (prevent false claims)
+
+---
+
+### User Story 11 - Railway Deployment (Priority: P2) 🔮
+
+Platform deployed to Railway with production-grade configuration including auto-scaling, health checks, zero-downtime deployments, and MongoDB Atlas integration.
+
+**Why this priority**: Infrastructure reliability - Railway provides better WebSocket support and stateful session management than Vercel. Required before scaling to 1000+ users.
+
+**Independent Test**: Can be fully tested by deploying to Railway staging environment, triggering auto-scale by simulating 500 concurrent WebSocket connections, and verifying new instances spin up within 60 seconds.
+
+**Acceptance Scenarios**:
+
+1. **Given** Railway project configured with `railway.toml`, **When** git push to main branch, **Then** automated deployment triggers and completes within 5 minutes with zero downtime
+2. **Given** CPU usage exceeds 70% for 2 minutes, **When** Railway auto-scaling enabled, **Then** new instance provisioned and added to load balancer pool
+3. **Given** health check endpoint at `/health`, **When** Railway monitoring pings endpoint, **Then** returns 200 OK with uptime and version info
+4. **Given** environment variables configured in Railway dashboard, **When** deployment occurs, **Then** secrets injected at runtime without exposing in logs
+
+**Status**: 🔮 PROPOSED (0/106 tasks in OpenSpec: migrate-to-railway)
+
+**Planned Work**:
+- Create Railway project and configure services
+- Migrate environment variables to Railway
+- Set up MongoDB Atlas connection
+- Configure custom domain with SSL
+- Implement health check endpoints
+- Set up auto-scaling policies
+- Create staging and production environments
+
+---
+
+### User Story 12 - Crypto Exchange Expansion (Priority: P2) ⏳
+
+Traders connect additional cryptocurrency exchanges (Binance, Gemini, Bybit) beyond Coinbase/Kraken, with unified order management and cross-exchange arbitrage detection.
+
+**Why this priority**: Market coverage - different users have accounts on different exchanges. Supporting top 5 exchanges captures 90% of retail crypto traders.
+
+**Independent Test**: Can be fully tested by connecting Binance account, posting "BUY BTC-USDT @ $45000" signal, and verifying order executes on Binance with confirmation displayed on dashboard.
+
+**Acceptance Scenarios**:
+
+1. **Given** user selects Binance from broker list, **When** enters API key/secret, **Then** system validates credentials via Binance API and stores encrypted
+2. **Given** Binance, Coinbase, and Kraken all connected, **When** BTC signal received, **Then** user can select preferred exchange or system routes to exchange with best price
+3. **Given** user has positions on multiple exchanges, **When** viewing portfolio, **Then** aggregated view shows total crypto holdings with per-exchange breakdown
+4. **Given** arbitrage detection enabled, **When** BTC price differs >1% across exchanges, **Then** alert fired suggesting arbitrage opportunity
+
+**Status**: ⏳ IN PROGRESS (68.75% - 44/64 tasks complete in OpenSpec: implement-crypto-exchanges)
+
+**Completed Work**:
+- ✅ Coinbase Pro adapter (CCXT-based)
+- ✅ Kraken adapter (CCXT-based)
+- ✅ Multi-exchange portfolio aggregation
+- ✅ Exchange selection UI
+
+**Pending Work** (20 tasks):
+- Implement Binance adapter
+- Add Gemini adapter
+- Build arbitrage detection algorithm
+- Create exchange comparison tool (fees, liquidity)
+
+---
+
+### User Story 13 - Full Platform Vision (Priority: P3) 🔮
+
+Discord Trade Executor becomes a comprehensive trading automation ecosystem with social features, advanced analytics, multi-asset support, and white-label licensing for signal providers.
+
+**Why this priority**: Long-term vision - defines 2-3 year product roadmap. Not immediately actionable but guides strategic decisions.
+
+**Independent Test**: Conceptual vision, no single independent test. Success measured by achieving 10K+ active users, $500K+ ARR, and 5+ white-label partners.
+
+**Acceptance Scenarios**:
+
+1. **Given** platform at scale, **When** 10,000 concurrent users, **Then** system maintains <2s latency for 95% of requests with 99.9% uptime
+2. **Given** white-label licensing available, **When** signal provider purchases license, **Then** customized platform deployed with their branding within 24 hours
+3. **Given** multi-asset support expanded, **When** user wants to trade options, **Then** options signals parsed and executed via supported brokers (IBKR, TD Ameritrade)
+4. **Given** mobile app launched, **When** trade executes, **Then** push notification sent to user's phone within 5 seconds
+
+**Status**: 🔮 CONCEPTUAL (long-term vision, no specific tasks)
+
+**Vision Elements**:
+- Scale to 10K+ concurrent users
+- White-label licensing for signal providers
+- Multi-asset expansion (options, futures, forex)
+- Mobile app (iOS/Android) with push notifications
+- Institutional-grade API for algorithmic traders
+- International expansion (EU, Asia markets)
+
+---
+
+### Edge Cases
+
+- **What happens when Discord API rate limit exceeded?** - System queues pending signal parses, implements exponential backoff, and resumes when rate limit resets. User sees "Signal processing delayed" notification.
+
+- **How does system handle broker API downtime?** - Adapter implements circuit breaker pattern: after 3 consecutive failures, marks broker as "degraded" for 5 minutes, notifies user, and skips trade execution during outage.
+
+- **What if user's broker account has insufficient buying power?** - Trade fails with clear error message: "Insufficient buying power: $500 available, $1000 required." User can adjust position sizing or deposit funds.
+
+- **How to prevent duplicate trade execution if signal re-posted?** - System maintains signal deduplication cache (Redis) with 24-hour TTL, keyed by signal content hash. Duplicate signals logged but not executed.
+
+- **What if OAuth2 refresh token revoked by broker?** - Refresh job fails, user flagged as "re-authorization required," email notification sent, dashboard banner displayed with "Reconnect [Broker]" button.
+
+- **How does session management work with multiple devices?** - MongoDB-backed sessions allow concurrent login from multiple devices. Last-write-wins for settings changes. WebSocket broadcasts sync state across all open tabs.
+
+- **What happens during MongoDB connection loss?** - Application retry logic attempts reconnection with exponential backoff (max 30s). Read operations fail gracefully with cached data; writes queued and flushed on reconnection.
+
+- **How to handle Stripe webhook signature failures?** - Invalid signatures rejected with 400 error logged to security audit trail. Legitimate webhooks retried by Stripe up to 3 days.
+
+- **What if user deletes Discord account mid-subscription?** - Subscription remains active (Stripe billing), but user cannot login. Support intervention required to migrate to email-based auth or refund.
+
+- **How does system handle market closed hours for stock signals?** - Signals parsed and validated immediately; orders queued as "pending market open." Executed at next market open (9:30 AM ET). User notified of delay.
+
+---
+
+## Requirements *(mandatory)*
+
+### Functional Requirements
+
+**Core Trading Automation**
+
+- **FR-001**: System MUST parse Discord signals with 95%+ accuracy across formats: "BUY [TICKER] @ $[PRICE], SL $[STOP], TP $[TARGET]", "LONG [TICKER]", "[TICKER] CALL $[STRIKE] [DATE]"
+- **FR-002**: System MUST execute trades within 30 seconds of signal detection for 95% of signals (excludes broker API latency)
+- **FR-003**: System MUST apply user-defined risk parameters including: max position size (% of account), daily loss limits, max open positions, allowed asset classes
+- **FR-004**: System MUST automatically place stop-loss and take-profit orders when specified in signal
+- **FR-005**: System MUST log all trade attempts with: timestamp, signal source, parsed parameters, execution result, broker response, failure reasons
+- **FR-006**: System MUST support both market orders and limit orders based on signal syntax (@ price = limit, no price = market)
+- **FR-007**: System MUST scale position sizes proportionally when signal amount exceeds user's max position size
+
+**Multi-Broker Integration**
+
+- **FR-008**: System MUST support minimum 8 broker integrations: Alpaca, IBKR, Charles Schwab, Coinbase Pro, Kraken, Binance, Moomoo, TD Ameritrade
+- **FR-009**: System MUST encrypt all broker API credentials at rest using AES-256-GCM with unique per-user encryption keys
+- **FR-010**: System MUST validate broker credentials via test API call before enabling trading
+- **FR-011**: System MUST route trades to appropriate broker based on asset class: stocks/ETFs → Alpaca/IBKR/Schwab, crypto → Coinbase/Kraken/Binance
+- **FR-012**: System MUST display broker connection status on dashboard: connected (green), degraded (yellow), disconnected (red), with last successful ping timestamp
+- **FR-013**: System MUST implement adapter pattern for brokers with consistent interface: `executeTrade()`, `getPositions()`, `getAccountBalance()`, `validateCredentials()`
+- **FR-014**: System MUST handle broker-specific rate limits via client-side throttling (e.g., Alpaca 200 req/min, Binance weight-based)
+
+**Real-Time Infrastructure**
+
+- **FR-015**: System MUST establish WebSocket connections for authenticated users to receive real-time updates
+- **FR-016**: System MUST broadcast trade execution events to user's WebSocket within 2 seconds of trade completion
+- **FR-017**: System MUST update portfolio values in real-time with maximum 5-second latency for price changes
+- **FR-018**: System MUST implement WebSocket reconnection logic with exponential backoff (1s, 2s, 4s, 8s, max 30s)
+- **FR-019**: System MUST resynchronize client state upon WebSocket reconnection without duplicate events
+- **FR-020**: System MUST support minimum 10,000 concurrent WebSocket connections
+
+**Polymarket Intelligence**
+
+- **FR-021**: System MUST monitor Polymarket CTF Exchange contract (0x123...) on Polygon blockchain for position changes
+- **FR-022**: System MUST detect whale wallets (positions >$100,000) and rank by total position size
+- **FR-023**: System MUST identify anomalous trading patterns: volume spikes (>3 standard deviations), rapid position accumulation (>$50K in <1 hour)
+- **FR-024**: System MUST send Discord webhook alerts within 5 minutes of whale detection or anomaly event
+- **FR-025**: System MUST display whale leaderboard with: wallet address (truncated), total position size, top 3 markets, 24h change
+- **FR-026**: System MUST allow filtering by specific Polymarket market to view positions and alerts for that market only
+- **FR-027**: System MUST run blockchain sync jobs every 60 seconds via BullMQ scheduled tasks
+
+**Dual Dashboard System**
+
+- **FR-028**: System MUST detect user role on login (community host vs. trader) and redirect to appropriate dashboard: `/community-dashboard` or `/trader-dashboard`
+- **FR-029**: Community dashboard MUST include tabs: Overview, Signal Management, Member Management, Community Analytics, Billing Settings, Integration Settings
+- **FR-030**: Trader dashboard MUST include tabs: Overview, Signal Feed, Broker Management, Trade History, Risk Settings, Notifications, Personal Subscription
+- **FR-031**: System MUST restrict access to community-specific features (e.g., member management) via role-based middleware
+- **FR-032**: System MUST allow traders to follow multiple signal providers with independent follow/unfollow actions
+- **FR-033**: System MUST display member list for community hosts with: username, subscription tier, signup date, trade count, connected brokers, status (active/churned)
+- **FR-034**: System MUST provide audit trail for community hosts: member joins/leaves, subscription changes, billing events
+
+**Authentication & Authorization**
+
+- **FR-035**: System MUST support Discord OAuth2 login as primary authentication method
+- **FR-036**: System MUST maintain user sessions via express-session with MongoDB store and 7-day cookie lifetime
+- **FR-037**: System MUST implement broker OAuth2 flows for IBKR and Charles Schwab with PKCE (Proof Key for Code Exchange)
+- **FR-038**: System MUST automatically refresh OAuth2 tokens when within 4 hours of expiration via scheduled jobs
+- **FR-039**: System MUST notify users via email when broker re-authorization required (refresh token expired/revoked)
+- **FR-040**: System MUST store OAuth2 tokens encrypted using same AES-256-GCM scheme as API credentials
+
+**Analytics & Business Intelligence**
+
+- **FR-041**: System MUST track user acquisition funnel events: site visit, signup, activation (broker connected), first trade, retained subscriber
+- **FR-042**: System MUST calculate MRR (Monthly Recurring Revenue) and ARR (Annual Run Rate) from Stripe subscription data
+- **FR-043**: System MUST generate cohort retention reports showing: signup month, activation rate, 30-day retention, 90-day retention, average LTV
+- **FR-044**: System MUST log all critical business events to MongoDB for analytics: user registration, subscription created/cancelled, trade executed, broker connected/disconnected
+- **FR-045**: System MUST provide admin dashboard displaying: current MRR, user growth chart, top signal providers by follower count, trade volume trends
+
+**Payment Processing**
+
+- **FR-046**: System MUST integrate with Stripe for subscription billing with tiers: Basic ($49/month, 100 signals/day), Pro ($99/month, unlimited), Premium ($299/month, multi-broker)
+- **FR-047**: System MUST handle Stripe webhook events: `customer.subscription.created`, `customer.subscription.updated`, `customer.subscription.deleted`, `invoice.payment_succeeded`, `invoice.payment_failed`
+- **FR-048**: System MUST verify Stripe webhook signatures using `STRIPE_WEBHOOK_SECRET` before processing events
+- **FR-049**: System MUST disable trading features when subscription lapses or payment fails
+- **FR-050**: System MUST send email notifications for billing events: payment success, payment failure (retry), subscription cancelled
+
+**Security & Compliance**
+
+- **FR-051**: System MUST enforce HTTPS in production with secure cookies (httpOnly, secure, sameSite flags)
+- **FR-052**: System MUST implement rate limiting: 100 requests/15 minutes per IP for unauthenticated endpoints, 1000 requests/15 minutes for authenticated
+- **FR-053**: System MUST sanitize all user inputs to prevent XSS and SQL injection attacks
+- **FR-054**: System MUST log security events to audit trail: failed login attempts, unauthorized access attempts, API key validation failures
+- **FR-055**: System MUST never log or expose sensitive data in plaintext: API keys, OAuth tokens, broker credentials, user passwords
+
+### Key Entities
+
+- **User**: Represents platform users (both community hosts and individual traders). Attributes: Discord ID, email, role (host/trader), subscription tier, registration date, last login, connected brokers (array of broker IDs), risk parameters (position limits, loss limits), followed signal providers (array of provider IDs)
+
+- **Trade**: Execution record for each trade attempt. Attributes: trade ID, user ID, signal source (Discord message ID), ticker symbol, action (BUY/SELL/LONG/SHORT), quantity, price (limit or market), stop loss, take profit, broker used, execution status (pending/executed/failed), execution timestamp, broker response, failure reason
+
+- **SignalProvider**: Discord users or channels that post trading signals. Attributes: provider ID, Discord user/channel ID, community ID, follower count, performance metrics (win rate, avg gain, max drawdown), verification status, active status
+
+- **BrokerConnection**: User's connected broker account. Attributes: connection ID, user ID, broker type (Alpaca/IBKR/Schwab/etc.), credentials (encrypted API key/OAuth tokens), connection status (connected/degraded/disconnected), last ping timestamp, last error message
+
+- **Subscription**: User's billing subscription. Attributes: subscription ID, user ID, Stripe customer ID, Stripe subscription ID, tier (Basic/Pro/Premium), status (active/past_due/cancelled), current period start/end, MRR contribution
+
+- **PolymarketPosition**: Whale wallet position on Polymarket. Attributes: position ID, wallet address, market ID, market title, position size (USD), shares held, outcome, last update timestamp, detected timestamp
+
+- **PolymarketAlert**: Anomaly or whale detection alert. Attributes: alert ID, alert type (whale_detected/volume_spike/rapid_accumulation), market ID, wallet address (if applicable), severity (low/medium/high), timestamp, Discord webhook sent (boolean), description
+
+- **Community**: Represents a Discord community/server using the platform. Attributes: community ID, Discord server ID, host user ID, name, member count, subscription tier, billing status, created date
+
+- **WebSocketConnection**: Active WebSocket connection for real-time updates. Attributes: connection ID, user ID, session ID, connected timestamp, last heartbeat, connection state (connected/reconnecting/disconnected)
+
+---
+
+## Success Criteria *(mandatory)*
+
+### Measurable Outcomes
+
+**User Experience Metrics**
+
+- **SC-001**: Users can complete account creation and broker connection in under 5 minutes (90% of users on first attempt)
+- **SC-002**: Trade execution latency <30 seconds for 95% of signals (measured from Discord message post to broker order confirmation)
+- **SC-003**: Dashboard load time <2 seconds for 95th percentile (measured from navigation to interactive)
+- **SC-004**: Signal parsing accuracy >95% (correctly extracted: ticker, action, price, stop loss, take profit)
+- **SC-005**: User activation rate >40% (activation = connected at least one broker within 7 days of signup)
+
+**Technical Performance**
+
+- **SC-006**: System supports 10,000 concurrent WebSocket connections without degradation
+- **SC-007**: Real-time updates delivered within 2 seconds for 95% of events (trade execution, portfolio update, alert)
+- **SC-008**: Broker OAuth2 token refresh success rate >98% (automated renewal without user intervention)
+- **SC-009**: API endpoint response time <500ms for 95th percentile (excluding external broker API calls)
+- **SC-010**: Zero data loss for critical events (trades, subscriptions, alerts) during system restarts or MongoDB failover
+
+**Business Metrics**
+
+- **SC-011**: User activation rate >40% (signup → broker connection within 7 days)
+- **SC-012**: 30-day retention rate >50% (users who made first trade still active after 30 days)
+- **SC-013**: Monthly churn rate <10% (subscription cancellations as % of active subscribers)
+- **SC-014**: Lifetime Value to Customer Acquisition Cost ratio (LTV:CAC) >3:1
+- **SC-015**: Net Promoter Score (NPS) >40 (measured via quarterly surveys)
+- **SC-016**: Monthly Recurring Revenue (MRR) growth >20% month-over-month for first 12 months
+
+**Reliability & Security**
+
+- **SC-017**: Broker credential encryption audit passes: all API keys/OAuth tokens stored using AES-256-GCM, no plaintext in logs/database
+- **SC-018**: System uptime >99.9% (excluding planned maintenance windows <4 hours/month)
+- **SC-019**: Test coverage >80% globally, >95% for critical trading logic (signal parsing, trade execution, risk management)
+- **SC-020**: Security audit findings: zero critical vulnerabilities, <5 high-severity issues resolved within 48 hours
+- **SC-021**: Mean Time To Recovery (MTTR) <15 minutes for production incidents
+
+**Feature Adoption**
+
+- **SC-022**: Polymarket Intelligence feature engagement: >30% of crypto-focused users view whale leaderboard weekly
+- **SC-023**: Multi-broker adoption: >25% of Pro/Premium users connect 2+ brokers
+- **SC-024**: Social trading adoption: >40% of traders follow at least one signal provider within 30 days
+- **SC-025**: Real-time dashboard engagement: >60% of active users have WebSocket connection during market hours
+
+---
+
+## Migration Status Tracking
+
+This specification consolidates work from 13 OpenSpec proposals into a unified Speckit workflow.
+
+| OpenSpec Change | Status | Progress | Speckit User Story | Notes |
+|----------------|--------|----------|-------------------|-------|
+| **add-moomoo-ui-support** | ✅ Complete | 100% | US-8 | Moomoo adapter and UI fully implemented |
+| **add-polymarket-intelligence** | ✅ Complete | 100% (Phase 1 & 2) | US-4 | Whale detection, anomaly analysis, alerts operational |
+| **implement-broker-integrations** | ⏳ In Progress | 88.6% (62/70) | US-2 | IBKR, Schwab, Alpaca, Coinbase, Kraken complete; deployment pending |
+| **implement-unified-oauth2-authentication** | ⏳ In Progress | 39.9% (65/163) | US-6 | Core OAuth2 flows done; token refresh automation pending |
+| **implement-crypto-exchanges** | ⏳ In Progress | 68.75% (44/64) | US-12 | Coinbase/Kraken complete; Binance, Gemini pending |
+| **implement-analytics-platform** | ⏳ In Progress | 69.4% (43/62) | US-7 | Basic analytics operational; ML features pending |
+| **implement-realtime-infrastructure** | ⏳ In Progress | 6.8% (10/148) | US-3 | WebSocket foundation laid; BullMQ, reconnection logic pending |
+| **implement-dual-dashboard-system** | 🔮 Proposed | 0% (0/216) | US-5 | Full specification exists; implementation not started |
+| **migrate-to-railway** | 🔮 Proposed | 0% (0/106) | US-11 | Migration plan documented; not executed |
+| **implement-analytics-advanced-features** | 🔮 Proposed | 0% (0/85) | US-9 | ML models planned; no implementation |
+| **implement-social-trading** | 🔮 Proposed | 0% (no tasks) | US-10 | Conceptual design only; no detailed tasks |
+| *Baseline Trading* | ✅ Complete | 100% (implicit) | US-1 | Core signal parsing, trade execution, risk management operational |
+| *Full Platform Vision* | 🔮 Conceptual | N/A | US-13 | Long-term roadmap; no actionable tasks |
+
+**Total Tasks Tracked**: 992+ tasks across all proposals
+**Overall Completion**: ~45% (449/992 tasks complete)
+**Active Development**: 6 proposals in progress
+**Completed Milestones**: 3 proposals fully delivered
+
+---
+
+## Implementation Phases
+
+### Phase 1: Foundation (Complete) ✅
+- Core trade execution engine
+- Discord signal monitoring
+- Basic broker integrations (Alpaca)
+- User authentication (Discord OAuth2)
+- MongoDB data persistence
+
+### Phase 2: Multi-Broker Expansion (88.6% Complete) ⏳
+- ✅ IBKR, Schwab, Coinbase Pro, Kraken adapters
+- ⏳ Production deployment & health monitoring
+- ⏳ Token refresh automation (65% complete)
+- ⏳ Broker status dashboard
+
+### Phase 3: Real-Time Features (6.8% Complete) ⏳
+- ✅ Basic WebSocket infrastructure
+- ⏳ BullMQ job queues (138 tasks pending)
+- ⏳ Portfolio value real-time updates
+- ⏳ Reconnection logic & state sync
+
+### Phase 4: Premium Intelligence (Complete) ✅
+- ✅ Polymarket whale detection
+- ✅ Anomaly analysis
+- ✅ Discord webhook alerts
+- ✅ Trend visualization
+
+### Phase 5: Analytics & BI (69.4% Complete) ⏳
+- ✅ MRR/ARR tracking
+- ✅ Basic cohort retention
+- ⏳ ML churn prediction (19 tasks pending)
+- ⏳ Advanced segmentation
+
+### Phase 6: Dual UX (Proposed) 🔮
+- 🔮 Community dashboard (216 tasks)
+- 🔮 Trader dashboard
+- 🔮 Role-based routing
+- 🔮 Component library
+
+### Phase 7: Infrastructure Maturity (Proposed) 🔮
+- 🔮 Railway migration (106 tasks)
+- 🔮 Auto-scaling configuration
+- 🔮 Zero-downtime deployments
+- 🔮 Production monitoring
+
+### Phase 8: Social & Expansion (Proposed) 🔮
+- 🔮 Signal provider leaderboard
+- 🔮 Follow/copy trading
+- 🔮 Crypto exchange expansion (Binance, Gemini)
+- 🔮 Advanced ML features (85 tasks)
+
+---
+
+## Dependencies and Assumptions
+
+### Dependencies
+
+**External Services**:
+- Discord API (bot token, OAuth2) - CRITICAL
+- Stripe (subscription billing, webhooks) - CRITICAL
+- MongoDB Atlas (data persistence) - CRITICAL
+- Broker APIs (Alpaca, IBKR, Schwab, Coinbase, Kraken, etc.) - CRITICAL
+- Alchemy API (Polygon blockchain data for Polymarket) - HIGH
+- Railway platform (deployment target) - MEDIUM
+
+**Internal Systems**:
+- OAuth2 token refresh jobs depend on unified authentication (FR-038)
+- Real-time updates depend on WebSocket infrastructure (FR-015)
+- Dual dashboards depend on role-based auth (FR-028)
+- Analytics ML features depend on basic analytics data collection (FR-041)
+- Social trading depends on signal provider performance tracking (FR-023)
+
+**Technology Stack**:
+- Node.js >=22.11.0
+- React 19.2.0
+- MongoDB 8.0.4
+- Express.js 4.18.2
+- Discord.js 14.14.1
+
+### Assumptions
+
+**Business Assumptions**:
+- Target users have existing broker accounts (platform does not provide brokerage services)
+- Users willing to pay $49-$299/month for automated trading features
+- Discord remains primary channel for retail trading signal distribution
+- Brokers maintain stable API contracts without breaking changes
+- Regulatory environment allows automated trade execution for retail users
+
+**Technical Assumptions**:
+- Broker APIs provide sufficient rate limits for production scale (200+ req/min)
+- OAuth2 refresh tokens remain valid for minimum 30 days
+- MongoDB Atlas provides 99.9%+ uptime SLA
+- Discord API maintains 99.9%+ uptime for bot connections
+- WebSocket connections remain stable for hours without forced disconnects
+
+**User Behavior Assumptions**:
+- Users check dashboard at least once per trading day
+- Users set appropriate risk parameters (position limits, stop losses)
+- Users understand trading risks and don't hold platform liable for losses
+- Community hosts actively moderate signal quality
+- Traders follow signal providers with verified track records
+
+**Performance Assumptions**:
+- Average signal processing time <10 seconds (parsing + validation)
+- Broker API latency <20 seconds for trade execution
+- MongoDB query response time <100ms for 95% of queries
+- WebSocket message delivery <500ms under normal load
+- Blockchain sync jobs complete within 30 seconds per run
+
+---
+
+## Quality Standards
+
+All implementation work must meet these non-negotiable quality gates before merge:
+
+1. **Test Coverage**: >80% globally, >95% for trading logic (signal parsing, trade execution, risk management)
+2. **Security Audit**: Zero critical vulnerabilities, all secrets encrypted, no sensitive data in logs
+3. **Performance**: API endpoints <500ms p95, dashboard load <2s p95, WebSocket latency <2s
+4. **Code Review**: Minimum 2 approvals for production changes, architecture review for new adapters
+5. **Documentation**: All APIs documented (OpenAPI), READMEs updated, inline comments for complex logic
+6. **Monitoring**: Prometheus metrics exposed, error tracking (Sentry), logs structured (JSON)
+7. **Deployment**: Zero-downtime deployment via Railway, automated rollback on health check failure
+
+---
+
+## Out of Scope
+
+The following items are explicitly excluded from this specification:
+
+- **Financial Advice**: Platform does not provide trading recommendations or investment advice
+- **Brokerage Services**: Users must maintain their own broker accounts; platform does not custody funds
+- **Market Data**: Real-time quotes from brokers only; no separate market data subscriptions
+- **Tax Reporting**: Users responsible for tracking trades for tax purposes (platform provides CSV exports)
+- **International Compliance**: Initial launch US-only; EU/Asia expansion requires separate compliance work
+- **Mobile Apps**: Initial launch web-only; iOS/Android apps planned for Phase 9+
+- **Options/Futures**: Initial launch stocks + crypto spot only; derivatives require additional broker integrations
+- **White-Label Licensing**: Deferred to Phase 9+ after platform stability proven
+- **On-Premise Deployment**: SaaS-only model; no self-hosted option
+- **Custom Broker Integrations**: Users cannot request one-off broker integrations; roadmap-driven only
