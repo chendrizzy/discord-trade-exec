@@ -123,6 +123,81 @@ const authLimiter = rateLimit({
   legacyHeaders: false
 });
 
+// Dashboard overview endpoints rate limiter (Constitution Principle V)
+const overviewLimiter = rateLimit({
+  windowMs: 60 * 1000, // 1 minute window
+  max: 100, // 100 requests per minute
+  message: { error: 'Too many overview requests, please try again later' },
+  standardHeaders: true,
+  legacyHeaders: false,
+  keyGenerator: req => {
+    // Per-user rate limiting (requires authentication)
+    return req.user ? `overview:${req.user._id}` : ipKeyGenerator(req);
+  },
+  handler: (req, res) => {
+    res.status(429).json({
+      error: 'Too many requests',
+      message: 'Dashboard overview rate limit exceeded (100 requests/minute)',
+      retryAfter: Math.ceil((req.rateLimit.resetTime.getTime() - Date.now()) / 1000)
+    });
+  },
+  store: redisClient ? new RedisStore() : undefined
+});
+
+// Dashboard analytics endpoints rate limiter (Constitution Principle V)
+const analyticsLimiter = rateLimit({
+  windowMs: 60 * 1000, // 1 minute window
+  max: 20, // 20 requests per minute (more expensive queries)
+  message: { error: 'Too many analytics requests, please try again later' },
+  standardHeaders: true,
+  legacyHeaders: false,
+  keyGenerator: req => {
+    // Per-user rate limiting
+    return req.user ? `analytics:${req.user._id}` : ipKeyGenerator(req);
+  },
+  handler: (req, res) => {
+    res.status(429).json({
+      error: 'Too many requests',
+      message: 'Analytics rate limit exceeded (20 requests/minute)',
+      retryAfter: Math.ceil((req.rateLimit.resetTime.getTime() - Date.now()) / 1000)
+    });
+  },
+  store: redisClient ? new RedisStore() : undefined
+});
+
+// Trade history endpoints rate limiter (Constitution Principle V)
+const tradesLimiter = rateLimit({
+  windowMs: 60 * 1000, // 1 minute window
+  max: 50, // 50 requests per minute
+  message: { error: 'Too many trade history requests, please try again later' },
+  standardHeaders: true,
+  legacyHeaders: false,
+  keyGenerator: req => {
+    return req.user ? `trades:${req.user._id}` : ipKeyGenerator(req);
+  },
+  handler: (req, res) => {
+    res.status(429).json({
+      error: 'Too many requests',
+      message: 'Trade history rate limit exceeded (50 requests/minute)',
+      retryAfter: Math.ceil((req.rateLimit.resetTime.getTime() - Date.now()) / 1000)
+    });
+  },
+  store: redisClient ? new RedisStore() : undefined
+});
+
+// General dashboard API rate limiter
+const dashboardLimiter = rateLimit({
+  windowMs: 60 * 1000, // 1 minute window
+  max: 100, // 100 requests per minute for general endpoints
+  message: { error: 'Too many dashboard requests, please try again later' },
+  standardHeaders: true,
+  legacyHeaders: false,
+  keyGenerator: req => {
+    return req.user ? `dashboard:${req.user._id}` : ipKeyGenerator(req);
+  },
+  store: redisClient ? new RedisStore() : undefined
+});
+
 // Login rate limiter (per IP)
 const loginLimiter = rateLimit({
   windowMs: 60 * 60 * 1000, // 1 hour
@@ -683,5 +758,10 @@ module.exports = {
   dynamicBrokerRateLimiter,
   getBrokerRateLimitStatus,
   brokerCallTracker,
+  // Dashboard-specific rate limiting (Constitution Principle V)
+  overviewLimiter,
+  analyticsLimiter,
+  tradesLimiter,
+  dashboardLimiter,
   redisClient
 };

@@ -8,6 +8,7 @@
 const express = require('express');
 const router = express.Router();
 const requireTrader = require('../../middleware/requireTrader');
+const { overviewLimiter, analyticsLimiter, tradesLimiter, dashboardLimiter } = require('../../middleware/rateLimiter');
 const redis = require('../../services/redis');
 const stripe = require('../../services/stripe');
 
@@ -18,6 +19,8 @@ router.use(requireTrader);
  * GET /api/trader/overview
  * Get personal trader overview with metrics
  *
+ * Rate Limit: 100 requests/minute (Constitution Principle V)
+ *
  * Returns:
  * - Personal P&L and statistics
  * - Active positions count
@@ -25,7 +28,7 @@ router.use(requireTrader);
  * - Top followed signal providers
  * - Recent trade history
  */
-router.get('/overview', async (req, res) => {
+router.get('/overview', overviewLimiter, async (req, res) => {
   try {
     const user = req.user;
 
@@ -109,12 +112,14 @@ router.get('/overview', async (req, res) => {
  * GET /api/trader/signals
  * Get available signal providers from community (community-scoped)
  *
+ * Rate Limit: 100 requests/minute (Constitution Principle V)
+ *
  * Query params:
  * - filter: Filter type (all, following, available)
  * - sortBy: Sort by (winRate, followers, signals)
  * - minWinRate: Minimum win rate filter
  */
-router.get('/signals', async (req, res) => {
+router.get('/signals', dashboardLimiter, async (req, res) => {
   try {
     const { filter = 'all', sortBy = 'winRate', minWinRate } = req.query;
     const user = req.user;
@@ -237,6 +242,8 @@ router.post('/signals/:id/follow', async (req, res) => {
  * GET /api/trader/trades
  * Get personal trade history with pagination and filters
  *
+ * Rate Limit: 50 requests/minute (Constitution Principle V)
+ *
  * Query params:
  * - page: Page number (default: 1)
  * - limit: Results per page (default: 25)
@@ -245,7 +252,7 @@ router.post('/signals/:id/follow', async (req, res) => {
  * - symbol: Filter by symbol
  * - side: Filter by side (buy/sell)
  */
-router.get('/trades', async (req, res) => {
+router.get('/trades', tradesLimiter, async (req, res) => {
   try {
     const { page = 1, limit = 25, startDate, endDate, symbol, side } = req.query;
     const skip = (page - 1) * limit;
@@ -314,12 +321,14 @@ router.get('/trades', async (req, res) => {
  * GET /api/trader/analytics/performance
  * Get personal performance analytics with caching
  *
+ * Rate Limit: 20 requests/minute (Constitution Principle V)
+ *
  * Query params:
  * - startDate: Start date (ISO format)
  * - endDate: End date (ISO format)
  * - groupBy: Grouping period (day, week, month)
  */
-router.get('/analytics/performance', async (req, res) => {
+router.get('/analytics/performance', analyticsLimiter, async (req, res) => {
   try {
     const { startDate, endDate, groupBy = 'day' } = req.query;
     const user = req.user;
@@ -458,8 +467,10 @@ router.put('/notifications', async (req, res) => {
 /**
  * GET /api/trader/subscription
  * Get personal subscription information
+ *
+ * Rate Limit: 100 requests/minute (Constitution Principle V)
  */
-router.get('/subscription', async (req, res) => {
+router.get('/subscription', dashboardLimiter, async (req, res) => {
   try {
     const user = req.user;
 

@@ -8,6 +8,7 @@
 const express = require('express');
 const router = express.Router();
 const requireCommunityAdmin = require('../../middleware/requireCommunityAdmin');
+const { overviewLimiter, analyticsLimiter, dashboardLimiter } = require('../../middleware/rateLimiter');
 const redis = require('../../services/redis');
 const stripe = require('../../services/stripe');
 const discord = require('../../services/discord');
@@ -19,13 +20,15 @@ router.use(requireCommunityAdmin);
  * GET /api/community/overview
  * Get community overview with KPIs and metrics
  *
+ * Rate Limit: 100 requests/minute (Constitution Principle V)
+ *
  * Returns:
  * - Member count and activity metrics
  * - Top signal providers by performance
  * - Recent activity feed
  * - Community health indicators
  */
-router.get('/overview', async (req, res) => {
+router.get('/overview', overviewLimiter, async (req, res) => {
   try {
     const user = req.user;
 
@@ -125,13 +128,15 @@ router.get('/overview', async (req, res) => {
  * GET /api/community/members
  * Get list of community members with pagination
  *
+ * Rate Limit: 100 requests/minute (Constitution Principle V)
+ *
  * Query params:
  * - page: Page number (default: 1)
  * - limit: Results per page (default: 25)
  * - search: Search by username
  * - role: Filter by communityRole
  */
-router.get('/members', async (req, res) => {
+router.get('/members', dashboardLimiter, async (req, res) => {
   try {
     const { page = 1, limit = 25, search, role } = req.query;
     const skip = (page - 1) * limit;
@@ -240,8 +245,10 @@ router.post('/members/:id/role', async (req, res) => {
 /**
  * GET /api/community/signals
  * Get list of signal providers and their configuration
+ *
+ * Rate Limit: 100 requests/minute (Constitution Principle V)
  */
-router.get('/signals', async (req, res) => {
+router.get('/signals', dashboardLimiter, async (req, res) => {
   try {
     // TODO: Replace with actual database query
     // const providers = await SignalProvider.find({ tenantId: req.user.tenantId });
@@ -337,12 +344,14 @@ router.put('/signals/:id', async (req, res) => {
  * GET /api/community/analytics/performance
  * Get community performance analytics with caching
  *
+ * Rate Limit: 20 requests/minute (Constitution Principle V)
+ *
  * Query params:
  * - startDate: Start date (ISO format)
  * - endDate: End date (ISO format)
  * - groupBy: Grouping period (day, week, month)
  */
-router.get('/analytics/performance', async (req, res) => {
+router.get('/analytics/performance', analyticsLimiter, async (req, res) => {
   try {
     const { startDate, endDate, groupBy = 'day' } = req.query;
 
@@ -384,8 +393,10 @@ router.get('/analytics/performance', async (req, res) => {
 /**
  * GET /api/community/subscription
  * Get community subscription and billing information
+ *
+ * Rate Limit: 100 requests/minute (Constitution Principle V)
  */
-router.get('/subscription', async (req, res) => {
+router.get('/subscription', dashboardLimiter, async (req, res) => {
   try {
     const user = req.user;
 
