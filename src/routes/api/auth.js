@@ -1,7 +1,9 @@
 /**
- * OAuth2 Authentication Routes
+ * OAuth2 Authentication Routes & MFA Endpoints
  *
- * Handles OAuth2 authorization and callback flows for broker integrations.
+ * Handles:
+ * - OAuth2 authorization and callback flows for broker integrations
+ * - Multi-Factor Authentication (MFA) setup and verification
  */
 
 const express = require('express');
@@ -9,7 +11,11 @@ const router = express.Router();
 const oauth2Service = require('../../services/OAuth2Service');
 const { isOAuth2Broker } = require('../../config/oauth2Providers');
 const { ensureAuthenticated } = require('../../middleware/auth');
+const { getMFAService } = require('../../services/MFAService');
 const User = require('../../models/User');
+
+// Initialize MFA service
+const mfaService = getMFAService();
 
 /**
  * GET /api/auth/broker/:broker/authorize
@@ -294,6 +300,392 @@ router.post('/brokers/:broker/oauth/refresh', ensureAuthenticated, async (req, r
     res.status(500).json({
       success: false,
       error: error.message
+    });
+  }
+});
+
+// ============================================================================
+// MULTI-FACTOR AUTHENTICATION (MFA) ENDPOINTS
+// ============================================================================
+
+/**
+ * POST /api/auth/mfa/setup
+ *
+ * Generate TOTP secret and QR code for MFA setup.
+ * First step in enabling MFA - user must scan QR code with authenticator app.
+ *
+ * @requires Authentication
+ * @returns {Object} { secret, qrCode, manualEntry, message }
+ * @throws {400} MFA already enabled
+ */
+router.post('/mfa/setup', ensureAuthenticated, async (req, res) => {
+  try {
+    const userId = req.user._id;
+
+    const setup = await mfaService.generateSecret(userId);
+
+    console.log(`[MFA] Setup initiated for user ${req.user.discordUsername} (${userId})`);
+
+    res.json({
+      success: true,
+      ...setup
+    });
+  } catch (error) {
+    console.error('[MFA] Setup failed:', error);
+
+    if (error.message.includes('already enabled')) {
+      return res.status(400).json({
+        success: false,
+        error: error.message,
+        code: 'MFA_ALREADY_ENABLED'
+      });
+    }
+
+    res.status(500).json({
+      success: false,
+      error: 'Failed to initiate MFA setup',
+      message: error.message
+    });
+  }
+});
+
+/**
+ * POST /api/auth/mfa/enable
+ *
+ * Enable MFA after user has scanned QR code and verified initial TOTP token.
+ * Generates and returns 10 backup codes (shown only once).
+ *
+ * @requires Authentication
+ * @body {string} token - 6-digit TOTP token from authenticator app
+ * @returns {Object} { enabled, backupCodes, message }
+ * @throws {400} Invalid token
+ * @throws {400} MFA already enabled
+ */
+router.post('/mfa/enable', ensureAuthenticated, async (req, res) => {
+  try {
+    const userId = req.user._id;
+    const { token } = req.body;
+
+    // Validate token provided
+    if (!token || !/^\d{6}$/.test(token)) {
+      return res.status(400).json({
+        success: false,
+        error: 'Invalid token format. Must be 6 digits.',
+        code: 'INVALID_TOKEN_FORMAT'
+      });
+    }
+
+    const result = await mfaService.enableMFA(userId, token);
+
+    console.log(`[MFA] MFA enabled successfully for user ${req.user.discordUsername} (${userId})`);
+
+    res.json({
+      success: true,
+      ...result
+    });
+  } catch (error) {
+    console.error('[MFA] Enable failed:', error);
+
+    if (error.message.includes('Invalid TOTP token')) {
+      return res.status(400).json({
+        success: false,
+        error: 'Invalid verification code. Please try again.',
+        code: 'INVALID_TOKEN'
+      });
+    }
+
+    if (error.message.includes('already enabled')) {
+      return res.status(400).json({
+        success: false,
+        error: error.message,
+        code: 'MFA_ALREADY_ENABLED'
+      });
+    }
+
+    if (error.message.includes('Rate limit exceeded')) {
+      return res.status(429).json({
+        success: false,
+        error: error.message,
+        code: 'RATE_LIMIT_EXCEEDED'
+      });
+    }
+
+    res.status(500).json({
+      success: false,
+      error: 'Failed to enable MFA',
+      message: error.message
+    });
+  }
+});
+
+/**
+ * POST /api/auth/mfa/disable
+ *
+ * Disable MFA for the user.
+ * Requires TOTP verification to prevent unauthorized MFA removal.
+ *
+ * @requires Authentication
+ * @body {string} token - 6-digit TOTP token from authenticator app
+ * @returns {Object} { disabled, message }
+ * @throws {400} Invalid token
+ * @throws {400} MFA not enabled
+ */
+router.post('/mfa/disable', ensureAuthenticated, async (req, res) => {
+  try {
+    const userId = req.user._id;
+    const { token } = req.body;
+
+    // Validate token provided
+    if (!token || !/^\d{6}$/.test(token)) {
+      return res.status(400).json({
+        success: false,
+        error: 'Invalid token format. Must be 6 digits.',
+        code: 'INVALID_TOKEN_FORMAT'
+      });
+    }
+
+    const result = await mfaService.disableMFA(userId, token);
+
+    // Clear MFA session flag
+    if (req.session) {
+      req.session.mfaVerified = false;
+    }
+
+    console.log(`[MFA] MFA disabled for user ${req.user.discordUsername} (${userId})`);
+
+    res.json({
+      success: true,
+      ...result
+    });
+  } catch (error) {
+    console.error('[MFA] Disable failed:', error);
+
+    if (error.message.includes('Invalid TOTP token')) {
+      return res.status(400).json({
+        success: false,
+        error: 'Invalid verification code. Cannot disable MFA without verification.',
+        code: 'INVALID_TOKEN'
+      });
+    }
+
+    if (error.message.includes('not enabled')) {
+      return res.status(400).json({
+        success: false,
+        error: error.message,
+        code: 'MFA_NOT_ENABLED'
+      });
+    }
+
+    if (error.message.includes('Rate limit exceeded')) {
+      return res.status(429).json({
+        success: false,
+        error: error.message,
+        code: 'RATE_LIMIT_EXCEEDED'
+      });
+    }
+
+    res.status(500).json({
+      success: false,
+      error: 'Failed to disable MFA',
+      message: error.message
+    });
+  }
+});
+
+/**
+ * POST /api/auth/mfa/backup-codes/regenerate
+ *
+ * Regenerate backup codes, invalidating all existing codes.
+ * Requires TOTP verification to prevent unauthorized regeneration.
+ *
+ * @requires Authentication
+ * @body {string} token - 6-digit TOTP token from authenticator app
+ * @returns {Object} { backupCodes, message }
+ * @throws {400} Invalid token
+ * @throws {400} MFA not enabled
+ */
+router.post('/mfa/backup-codes/regenerate', ensureAuthenticated, async (req, res) => {
+  try {
+    const userId = req.user._id;
+    const { token } = req.body;
+
+    // Validate token provided
+    if (!token || !/^\d{6}$/.test(token)) {
+      return res.status(400).json({
+        success: false,
+        error: 'Invalid token format. Must be 6 digits.',
+        code: 'INVALID_TOKEN_FORMAT'
+      });
+    }
+
+    const result = await mfaService.regenerateBackupCodes(userId, token);
+
+    console.log(`[MFA] Backup codes regenerated for user ${req.user.discordUsername} (${userId})`);
+
+    res.json({
+      success: true,
+      ...result
+    });
+  } catch (error) {
+    console.error('[MFA] Backup code regeneration failed:', error);
+
+    if (error.message.includes('Invalid TOTP token')) {
+      return res.status(400).json({
+        success: false,
+        error: 'Invalid verification code. Cannot regenerate backup codes without verification.',
+        code: 'INVALID_TOKEN'
+      });
+    }
+
+    if (error.message.includes('not enabled')) {
+      return res.status(400).json({
+        success: false,
+        error: error.message,
+        code: 'MFA_NOT_ENABLED'
+      });
+    }
+
+    if (error.message.includes('Rate limit exceeded')) {
+      return res.status(429).json({
+        success: false,
+        error: error.message,
+        code: 'RATE_LIMIT_EXCEEDED'
+      });
+    }
+
+    res.status(500).json({
+      success: false,
+      error: 'Failed to regenerate backup codes',
+      message: error.message
+    });
+  }
+});
+
+/**
+ * GET /api/auth/mfa/status
+ *
+ * Get current MFA status for the authenticated user.
+ *
+ * @requires Authentication
+ * @returns {Object} { enabled, verifiedAt, lastVerified, backupCodesRemaining, warning }
+ */
+router.get('/mfa/status', ensureAuthenticated, async (req, res) => {
+  try {
+    const userId = req.user._id;
+
+    const status = await mfaService.getMFAStatus(userId);
+
+    res.json({
+      success: true,
+      ...status
+    });
+  } catch (error) {
+    console.error('[MFA] Status check failed:', error);
+
+    res.status(500).json({
+      success: false,
+      error: 'Failed to get MFA status',
+      message: error.message
+    });
+  }
+});
+
+/**
+ * POST /api/auth/mfa/verify
+ *
+ * Verify MFA during login (two-step authentication).
+ * Accepts either TOTP token or backup code.
+ *
+ * This endpoint is called AFTER successful Discord OAuth authentication
+ * when user has MFA enabled. Sets session.mfaVerified = true on success.
+ *
+ * @requires Authentication (Discord OAuth completed, MFA pending)
+ * @body {string} token - 6-digit TOTP token OR 8-character backup code (format: XXXX-XXXX)
+ * @body {string} type - 'totp' or 'backup' (optional, auto-detected)
+ * @returns {Object} { verified, message }
+ * @throws {400} Invalid token
+ * @throws {401} Not authenticated
+ * @throws {403} MFA not required
+ * @throws {429} Rate limit exceeded
+ */
+router.post('/mfa/verify', ensureAuthenticated, async (req, res) => {
+  try {
+    const userId = req.user._id;
+    const { token, type } = req.body;
+
+    // Validate token provided
+    if (!token) {
+      return res.status(400).json({
+        success: false,
+        error: 'Verification code required',
+        code: 'TOKEN_REQUIRED'
+      });
+    }
+
+    // Check if MFA is enabled for this user
+    if (!req.user.mfa || !req.user.mfa.enabled) {
+      return res.status(403).json({
+        success: false,
+        error: 'MFA is not enabled for this account',
+        code: 'MFA_NOT_ENABLED'
+      });
+    }
+
+    // Auto-detect token type if not specified
+    const tokenType = type || (token.length === 6 && /^\d{6}$/.test(token) ? 'totp' : 'backup');
+
+    let isValid = false;
+
+    if (tokenType === 'totp') {
+      // Verify TOTP token
+      isValid = await mfaService.verifyTOTP(userId, token);
+    } else if (tokenType === 'backup') {
+      // Verify backup code
+      isValid = await mfaService.verifyBackupCode(userId, token);
+    } else {
+      return res.status(400).json({
+        success: false,
+        error: 'Invalid token type. Must be "totp" or "backup"',
+        code: 'INVALID_TYPE'
+      });
+    }
+
+    if (!isValid) {
+      console.warn(`[MFA] Verification failed for user ${req.user.discordUsername} (${userId})`);
+
+      return res.status(400).json({
+        success: false,
+        error: 'Invalid verification code',
+        code: 'INVALID_TOKEN'
+      });
+    }
+
+    // Mark MFA as verified in session
+    req.session.mfaVerified = true;
+
+    console.log(`[MFA] Verification successful for user ${req.user.discordUsername} (${userId}) using ${tokenType}`);
+
+    res.json({
+      success: true,
+      verified: true,
+      message: 'MFA verification successful',
+      type: tokenType
+    });
+  } catch (error) {
+    console.error('[MFA] Verification failed:', error);
+
+    if (error.message.includes('Rate limit exceeded')) {
+      return res.status(429).json({
+        success: false,
+        error: error.message,
+        code: 'RATE_LIMIT_EXCEEDED'
+      });
+    }
+
+    res.status(500).json({
+      success: false,
+      error: 'Failed to verify MFA',
+      message: error.message
     });
   }
 });

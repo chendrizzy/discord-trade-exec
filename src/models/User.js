@@ -380,6 +380,38 @@ const userSchema = new mongoose.Schema(
       }
     },
 
+    // Multi-Factor Authentication (MFA) - Phase 6 Security Enhancement
+    mfa: {
+      enabled: {
+        type: Boolean,
+        default: false,
+        index: true // Index for quick MFA status checks during authentication
+      },
+      secret: {
+        type: String,
+        select: false // Never include in queries by default (contains encrypted TOTP secret)
+      },
+      backupCodes: [
+        {
+          code: {
+            type: String, // Hashed with bcrypt
+            required: true
+          },
+          used: {
+            type: Boolean,
+            default: false
+          },
+          usedAt: Date // Timestamp when backup code was used
+        }
+      ],
+      verifiedAt: {
+        type: Date // When MFA was first enabled/verified
+      },
+      lastVerified: {
+        type: Date // Last successful MFA verification (for security monitoring)
+      }
+    },
+
     // Metadata
     metadata: {
       referralCode: {

@@ -58,6 +58,11 @@ const discordStrategy = new DiscordStrategy(
         });
       }
 
+      // MFA Check: If user has MFA enabled, authentication is not complete yet
+      // The session will be marked as 'mfaPending' by the Discord callback route
+      // User must verify MFA before gaining full access
+      // Note: MFA status is checked in the callback route handler, not here
+
       return done(null, user);
     } catch (error) {
       return done(error, null);
@@ -115,8 +120,95 @@ function ensureSubscription(req, res, next) {
   res.status(403).json({ error: 'Active subscription required' });
 }
 
+/**
+ * Middleware to ensure MFA verification is complete
+ *
+ * Two-step authentication flow for users with MFA enabled:
+ * 1. User authenticates with Discord (req.isAuthenticated() = true)
+ * 2. If MFA enabled, session flag 'mfaPending' is set
+ * 3. User must verify MFA (TOTP or backup code)
+ * 4. After successful verification, 'mfaVerified' is set to true
+ *
+ * This middleware checks:
+ * - User has active session (req.isAuthenticated())
+ * - If MFA enabled, user has completed MFA verification in this session
+ *
+ * Usage:
+ *   // Protect routes that require full authentication including MFA
+ *   app.get('/api/sensitive', ensureAuthenticated, ensureMFAVerified, handler);
+ *
+ * MFA-exempt routes (setup, status endpoints) should NOT use this middleware.
+ *
+ * @param {Object} req - Express request object
+ * @param {Object} res - Express response object
+ * @param {Function} next - Express next middleware
+ */
+function ensureMFAVerified(req, res, next) {
+  // Must be authenticated first
+  if (!req.isAuthenticated()) {
+    return res.status(401).json({
+      error: 'Authentication required',
+      code: 'NOT_AUTHENTICATED'
+    });
+  }
+
+  // Check if user has MFA enabled
+  if (!req.user.mfa || !req.user.mfa.enabled) {
+    // MFA not enabled - allow access
+    return next();
+  }
+
+  // MFA is enabled - check if verified in current session
+  if (req.session.mfaVerified === true) {
+    // MFA verified - allow access
+    return next();
+  }
+
+  // MFA required but not verified yet
+  return res.status(403).json({
+    error: 'MFA verification required',
+    code: 'MFA_REQUIRED',
+    message: 'Please verify your multi-factor authentication to continue',
+    requiresMFA: true
+  });
+}
+
+/**
+ * Middleware to check if MFA verification is pending
+ *
+ * Returns true if user is authenticated but MFA verification is pending.
+ * Useful for conditional rendering in routes.
+ *
+ * This is NOT a blocking middleware - it just adds a flag to the request.
+ *
+ * Usage:
+ *   app.get('/dashboard', ensureAuthenticated, checkMFAPending, (req, res) => {
+ *     if (req.mfaPending) {
+ *       // Redirect to MFA verification page
+ *     }
+ *   });
+ *
+ * @param {Object} req - Express request object
+ * @param {Object} res - Express response object
+ * @param {Function} next - Express next middleware
+ */
+function checkMFAPending(req, res, next) {
+  req.mfaPending = false;
+
+  if (req.isAuthenticated() && req.user.mfa?.enabled) {
+    // MFA is enabled but not verified in session
+    if (req.session.mfaVerified !== true) {
+      req.mfaPending = true;
+    }
+  }
+
+  next();
+}
+
 module.exports = {
   passport,
   ensureAuthenticated,
-  ensureSubscription
+  ensureSubscription,
+  ensureMFAVerified,
+  checkMFAPending
 };
