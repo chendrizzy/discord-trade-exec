@@ -501,6 +501,144 @@
 
 ---
 
+## Phase 7: Security Hardening (4.5 hours total) 🆕 NEW PHASE
+
+**Status**: Required before 100% production rollout
+**Priority**: P0 (2 tasks), P1 (3 tasks), P2 (3 tasks)
+**Security Score**: Current 84% OWASP, Target 95%+
+
+### 7.1 AWS KMS Credential Validation (1 hour) 🚨 P0
+
+- [ ] 7.1.1 Update `src/services/encryption.js` constructor (lines 40-50):
+  ```javascript
+  constructor() {
+    const requiredEnvVars = ['AWS_REGION', 'AWS_ACCESS_KEY_ID', 'AWS_SECRET_ACCESS_KEY', 'AWS_KMS_CMK_ID'];
+    const missing = requiredEnvVars.filter(v => !process.env[v]);
+
+    if (missing.length > 0 && process.env.NODE_ENV === 'production') {
+      throw new Error(`CRITICAL: Missing AWS KMS vars: ${missing.join(', ')}`);
+    }
+    // ... rest of initialization
+  }
+  ```
+- [ ] 7.1.2 Add validation tests for missing credentials
+- [ ] 7.1.3 Update deployment checklist to verify KMS env vars
+- [ ] **Validation**: Production startup fails immediately if KMS credentials missing
+
+### 7.2 OAuth2 Audit Logging (2 hours) ⚠️ P1
+
+- [ ] 7.2.1 Add SecurityAudit logging to OAuth2Service:
+  - `auth.oauth2_token_exchange` (after successful token exchange)
+  - `auth.oauth2_token_refresh` (after successful refresh)
+  - `auth.oauth2_token_rotation` (when refresh token rotates)
+  - `credential.oauth2_token_decrypt` (when tokens decrypted for API use)
+  - `auth.oauth2_connection_revoked` (when user disconnects broker)
+
+- [ ] 7.2.2 Example implementation for token exchange:
+  ```javascript
+  await SecurityAudit.create({
+    userId: req.user._id,
+    tenantId: req.user.tenantId,
+    action: 'auth.oauth2_token_exchange',
+    details: {
+      broker,
+      scopes: tokens.scope,
+      expiresAt: tokens.expiresAt
+    },
+    ipAddress: req.ip,
+    userAgent: req.get('user-agent'),
+    riskLevel: 'MEDIUM'
+  });
+  ```
+
+- [ ] 7.2.3 Add audit log queries to analytics dashboard
+- [ ] 7.2.4 Create audit log retention policy (90 days)
+- [ ] **Validation**: All OAuth2 operations logged to SecurityAudit collection
+
+### 7.3 OAuth2 Callback Rate Limiting (30 min) 🚨 P0
+
+- [ ] 7.3.1 Add rate limiter to `src/routes/api/auth.js`:
+  ```javascript
+  const oauthCallbackLimiter = rateLimit({
+    windowMs: 15 * 60 * 1000,
+    max: 10,
+    message: 'Too many OAuth callback attempts'
+  });
+  router.get('/auth/broker/callback', oauthCallbackLimiter, async (req, res) => { /* ... */ });
+  ```
+- [ ] 7.3.2 Test rate limit enforcement (11th request → 429 Too Many Requests)
+- [ ] **Validation**: Brute-force CSRF attacks prevented by rate limiting
+
+### 7.4 Tenant Validation in OAuth2Service (1 hour) ⚠️ P1
+
+- [ ] 7.4.1 Add tenant validation method to OAuth2Service:
+  ```javascript
+  async validateTenantContext(user, expectedTenantId) {
+    if (user.tenantId.toString() !== expectedTenantId.toString()) {
+      await SecurityAudit.create({
+        userId: user._id,
+        tenantId: user.tenantId,
+        action: 'security.tenant_mismatch',
+        details: { expected: expectedTenantId, actual: user.tenantId },
+        riskLevel: 'CRITICAL'
+      });
+      throw new Error('Tenant validation failed');
+    }
+  }
+  ```
+- [ ] 7.4.2 Call validation before storing OAuth2 tokens in callback handler
+- [ ] 7.4.3 Add integration tests for cross-tenant OAuth2 attempts
+- [ ] **Validation**: Cross-tenant OAuth2 flows are blocked with security audit
+
+### 7.5 Polar Webhook Timing Attack Prevention (1 hour) ⚠️ P1
+
+- [ ] 7.5.1 Update `src/routes/webhook/polar.js` (lines 75-89):
+  ```javascript
+  // BEFORE (VULNERABLE):
+  return signature === expectedSignature;
+
+  // AFTER (SECURE):
+  return crypto.timingSafeEqual(
+    Buffer.from(signature),
+    Buffer.from(expectedSignature)
+  );
+  ```
+- [ ] 7.5.2 Add tests verifying timing-safe comparison used
+- [ ] **Validation**: Webhook signature verification is timing-attack resistant
+
+### 7.6 CSRF State Parameter Enhancement (30 min) ⚠️ P2
+
+- [ ] 7.6.1 Increase state parameter entropy from 32 bytes → 64 bytes
+- [ ] 7.6.2 Add state parameter usage tracking (prevent replay attacks)
+- [ ] 7.6.3 Store state metadata: createdAt, usedAt, ipAddress
+- [ ] **Validation**: State parameters are single-use and have higher entropy
+
+### 7.7 OAuth2 Token Storage Encryption Audit (30 min) ⚠️ P2
+
+- [ ] 7.7.1 Verify AES-256-GCM used with unique IV per token
+- [ ] 7.7.2 Verify authTag stored and validated on decryption
+- [ ] 7.7.3 Verify no plaintext tokens in MongoDB (manual inspection)
+- [ ] 7.7.4 Document encryption algorithm and key rotation policy
+- [ ] **Validation**: Token encryption meets OWASP standards
+
+### 7.8 Documentation Updates (1 hour)
+
+- [ ] 7.8.1 Update security documentation with hardening changes
+- [ ] 7.8.2 Document all SecurityAudit event types
+- [ ] 7.8.3 Create security incident response playbook
+- [ ] 7.8.4 Update Constitution compliance matrix
+- [ ] **Validation**: Security documentation is comprehensive and current
+
+### 7.9 Security Validation (30 min)
+
+- [ ] 7.9.1 Run OWASP security audit (target: 95%+ compliance)
+- [ ] 7.9.2 Verify Constitution Principle III compliance (85%+ target)
+- [ ] 7.9.3 Test all P0 security fixes in staging
+- [ ] 7.9.4 Document any remaining security debt
+- [ ] **Validation**: Security score improved from 84% → 95%+
+
+---
+
 ## Completion Checklist
 
 - [ ] All unit tests pass (OAuth2Service, adapters)

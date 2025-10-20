@@ -1,39 +1,106 @@
 /**
  * Redis Caching Service
  *
- * Handles Redis caching for analytics and performance optimization.
+ * Production Redis caching with intelligent graceful fallback to in-memory Map.
+ * Automatically falls back when REDIS_URL not configured or Redis unavailable.
  *
- * TODO: Implement actual Redis integration
- * - Install: npm install redis
- * - Configure: Set REDIS_URL in environment
- * - Initialize: const redis = require('redis');
- *              const client = redis.createClient({ url: process.env.REDIS_URL });
+ * @see openspec/changes/implement-production-redis-caching/proposal.md
  */
 
-// In-memory cache fallback (replace with actual Redis)
+const redis = require('redis');
+
+// Cache mode tracking
+let cacheMode = 'initializing';
+let client = null;
 const memoryCache = new Map();
+
+/**
+ * Initialize Redis client with connection handling
+ */
+const initializeRedis = async () => {
+  const redisUrl = process.env.REDIS_URL;
+
+  if (!redisUrl) {
+    console.warn('[Redis] REDIS_URL not configured - using in-memory fallback');
+    cacheMode = 'memory';
+    return;
+  }
+
+  try {
+    client = redis.createClient({
+      url: redisUrl,
+      socket: {
+        connectTimeout: 5000,
+        reconnectStrategy: (retries) => {
+          if (retries > 10) {
+            console.error('[Redis] Max reconnection attempts reached - falling back to memory cache');
+            cacheMode = 'memory';
+            return new Error('Max reconnection attempts');
+          }
+          return Math.min(retries * 100, 3000);
+        }
+      }
+    });
+
+    client.on('error', (err) => {
+      console.error('[Redis] Connection error:', err.message);
+      if (cacheMode === 'redis') {
+        console.warn('[Redis] Falling back to memory cache due to error');
+        cacheMode = 'memory';
+      }
+    });
+
+    client.on('connect', () => {
+      console.log('[Redis] Connected successfully');
+      cacheMode = 'redis';
+    });
+
+    client.on('reconnecting', () => {
+      console.log('[Redis] Reconnecting...');
+    });
+
+    await client.connect();
+    console.log('[Redis] Initialization complete - using distributed Redis cache');
+    cacheMode = 'redis';
+  } catch (err) {
+    console.error('[Redis] Failed to initialize:', err.message);
+    console.warn('[Redis] Falling back to in-memory cache');
+    cacheMode = 'memory';
+    client = null;
+  }
+};
 
 /**
  * Get cached value
  * @param {string} key - Cache key
  * @returns {Promise<any>} Cached value or null
- *
- * TODO: Replace with actual Redis call:
- * const value = await client.get(key);
- * return value ? JSON.parse(value) : null;
  */
 const get = async (key) => {
-  // Check memory cache first
+  if (cacheMode === 'redis' && client) {
+    try {
+      const value = await client.get(key);
+      if (value) {
+        console.log(`[Cache:Redis] HIT: ${key}`);
+        return JSON.parse(value);
+      }
+      return null;
+    } catch (err) {
+      console.error(`[Redis] GET error for key ${key}:`, err.message);
+      console.warn('[Redis] Falling back to memory cache');
+      cacheMode = 'memory';
+    }
+  }
+
+  // Memory cache fallback
   const cached = memoryCache.get(key);
   if (!cached) return null;
 
-  // Check if expired
   if (cached.expiry && Date.now() > cached.expiry) {
     memoryCache.delete(key);
     return null;
   }
 
-  console.log(`[Cache] HIT: ${key}`);
+  console.log(`[Cache:Memory] HIT: ${key}`);
   return cached.value;
 };
 
@@ -43,44 +110,66 @@ const get = async (key) => {
  * @param {any} value - Value to cache
  * @param {number} ttlSeconds - Time to live in seconds (default: 300 = 5 minutes)
  * @returns {Promise<void>}
- *
- * TODO: Replace with actual Redis call:
- * await client.setEx(key, ttlSeconds, JSON.stringify(value));
  */
 const set = async (key, value, ttlSeconds = 300) => {
+  if (cacheMode === 'redis' && client) {
+    try {
+      await client.setEx(key, ttlSeconds, JSON.stringify(value));
+      console.log(`[Cache:Redis] SET: ${key} (TTL: ${ttlSeconds}s)`);
+      return;
+    } catch (err) {
+      console.error(`[Redis] SET error for key ${key}:`, err.message);
+      console.warn('[Redis] Falling back to memory cache');
+      cacheMode = 'memory';
+    }
+  }
+
+  // Memory cache fallback
   const expiry = Date.now() + (ttlSeconds * 1000);
-
-  memoryCache.set(key, {
-    value,
-    expiry
-  });
-
-  console.log(`[Cache] SET: ${key} (TTL: ${ttlSeconds}s)`);
+  memoryCache.set(key, { value, expiry });
+  console.log(`[Cache:Memory] SET: ${key} (TTL: ${ttlSeconds}s)`);
 };
 
 /**
  * Delete cached value
  * @param {string} key - Cache key
  * @returns {Promise<void>}
- *
- * TODO: Replace with actual Redis call:
- * await client.del(key);
  */
 const del = async (key) => {
+  if (cacheMode === 'redis' && client) {
+    try {
+      await client.del(key);
+      console.log(`[Cache:Redis] DEL: ${key}`);
+      return;
+    } catch (err) {
+      console.error(`[Redis] DEL error for key ${key}:`, err.message);
+    }
+  }
+
   memoryCache.delete(key);
-  console.log(`[Cache] DEL: ${key}`);
+  console.log(`[Cache:Memory] DEL: ${key}`);
 };
 
 /**
  * Delete all cached values matching pattern
  * @param {string} pattern - Key pattern (e.g., 'community:*')
  * @returns {Promise<void>}
- *
- * TODO: Replace with actual Redis call:
- * const keys = await client.keys(pattern);
- * if (keys.length > 0) await client.del(keys);
  */
 const delPattern = async (pattern) => {
+  if (cacheMode === 'redis' && client) {
+    try {
+      const keys = await client.keys(pattern);
+      if (keys.length > 0) {
+        await client.del(keys);
+        console.log(`[Cache:Redis] DEL PATTERN: ${pattern} (${keys.length} keys)`);
+        return;
+      }
+    } catch (err) {
+      console.error(`[Redis] DEL PATTERN error for ${pattern}:`, err.message);
+    }
+  }
+
+  // Memory cache fallback
   const regex = new RegExp('^' + pattern.replace('*', '.*') + '$');
   const keysToDelete = [];
 
@@ -91,7 +180,7 @@ const delPattern = async (pattern) => {
   }
 
   keysToDelete.forEach(key => memoryCache.delete(key));
-  console.log(`[Cache] DEL PATTERN: ${pattern} (${keysToDelete.length} keys)`);
+  console.log(`[Cache:Memory] DEL PATTERN: ${pattern} (${keysToDelete.length} keys)`);
 };
 
 /**
@@ -102,19 +191,14 @@ const delPattern = async (pattern) => {
  * @returns {Promise<any>} Cached or computed value
  */
 const getOrCompute = async (key, computeFn, ttlSeconds = 300) => {
-  // Try to get from cache first
   const cached = await get(key);
   if (cached !== null) {
     return cached;
   }
 
-  // Compute value
-  console.log(`[Cache] MISS: ${key} - computing...`);
+  console.log(`[Cache:${cacheMode}] MISS: ${key} - computing...`);
   const value = await computeFn();
-
-  // Store in cache
   await set(key, value, ttlSeconds);
-
   return value;
 };
 
@@ -123,11 +207,18 @@ const getOrCompute = async (key, computeFn, ttlSeconds = 300) => {
  * @param {string} key - Counter key
  * @param {number} amount - Amount to increment (default: 1)
  * @returns {Promise<number>} New counter value
- *
- * TODO: Replace with actual Redis call:
- * return await client.incrBy(key, amount);
  */
 const increment = async (key, amount = 1) => {
+  if (cacheMode === 'redis' && client) {
+    try {
+      const result = await client.incrBy(key, amount);
+      return result;
+    } catch (err) {
+      console.error(`[Redis] INCR error for key ${key}:`, err.message);
+    }
+  }
+
+  // Memory cache fallback
   const current = await get(key) || 0;
   const newValue = current + amount;
   await set(key, newValue);
@@ -135,10 +226,45 @@ const increment = async (key, amount = 1) => {
 };
 
 /**
- * Get cache statistics
- * @returns {Object} Cache statistics
+ * Check if key exists
+ * @param {string} key - Cache key
+ * @returns {Promise<boolean>} True if key exists
  */
-const getStats = () => {
+const exists = async (key) => {
+  if (cacheMode === 'redis' && client) {
+    try {
+      const result = await client.exists(key);
+      return result === 1;
+    } catch (err) {
+      console.error(`[Redis] EXISTS error for key ${key}:`, err.message);
+    }
+  }
+
+  return memoryCache.has(key);
+};
+
+/**
+ * Get cache statistics
+ * @returns {Promise<Object>} Cache statistics
+ */
+const getStats = async () => {
+  if (cacheMode === 'redis' && client) {
+    try {
+      const info = await client.info('memory');
+      const dbSize = await client.dbSize();
+
+      return {
+        mode: 'redis',
+        keys: dbSize,
+        memoryUsed: info.match(/used_memory_human:(.+)/)?.[1] || 'unknown',
+        connected: client.isReady
+      };
+    } catch (err) {
+      console.error('[Redis] STATS error:', err.message);
+    }
+  }
+
+  // Memory cache statistics
   let totalSize = 0;
   let expiredCount = 0;
 
@@ -150,6 +276,7 @@ const getStats = () => {
   }
 
   return {
+    mode: 'memory',
     keys: memoryCache.size,
     expired: expiredCount,
     sizeBytes: totalSize,
@@ -160,14 +287,44 @@ const getStats = () => {
 /**
  * Clear all cache
  * @returns {Promise<void>}
- *
- * TODO: Replace with actual Redis call:
- * await client.flushDb();
  */
 const clear = async () => {
+  if (cacheMode === 'redis' && client) {
+    try {
+      await client.flushDb();
+      console.log('[Cache:Redis] CLEARED all keys');
+      return;
+    } catch (err) {
+      console.error('[Redis] CLEAR error:', err.message);
+    }
+  }
+
   memoryCache.clear();
-  console.log('[Cache] CLEARED all keys');
+  console.log('[Cache:Memory] CLEARED all keys');
 };
+
+/**
+ * Get current cache mode
+ * @returns {string} 'redis', 'memory', or 'initializing'
+ */
+const getMode = () => cacheMode;
+
+/**
+ * Gracefully close Redis connection
+ * @returns {Promise<void>}
+ */
+const close = async () => {
+  if (client && client.isReady) {
+    await client.quit();
+    console.log('[Redis] Connection closed gracefully');
+  }
+};
+
+// Initialize on module load
+initializeRedis().catch(err => {
+  console.error('[Redis] Initialization failed:', err);
+  cacheMode = 'memory';
+});
 
 module.exports = {
   get,
@@ -176,6 +333,9 @@ module.exports = {
   delPattern,
   getOrCompute,
   increment,
+  exists,
   getStats,
-  clear
+  clear,
+  getMode,
+  close
 };

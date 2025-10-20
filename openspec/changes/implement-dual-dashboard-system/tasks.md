@@ -62,7 +62,12 @@
 - [x] Implement `/api/community/analytics/performance` endpoint (SCAFFOLDED - mock data with Redis caching structure)
 - [ ] Add P&L aggregation query with date range filters (TODO: database queries in `INTEGRATION_GUIDE.md`)
 - [x] Create interactive charts using Recharts (SCAFFOLDED - placeholder for data integration)
-- [x] Implement Redis caching (5-minute TTL) for analytics (SCAFFOLDED - `src/services/redis.js` with in-memory fallback)
+- [ ] 🚨 **CRITICAL P0 BLOCKER**: Implement Redis caching (5-minute TTL) for analytics
+  - **Current Status**: SCAFFOLDED - `src/services/redis.js` uses in-memory Map fallback (NOT actual Redis)
+  - **Impact**: Analytics endpoints CANNOT meet Constitution Principle V <1s target without distributed cache
+  - **Required Fix**: Deploy actual Redis client connection (see lines 122-136 in IMPLEMENTATION_STATUS_UPDATE.md)
+  - **Effort**: 1-2 days
+  - **Blocks**: Production deployment
 - [x] Add export functionality for analytics reports (SCAFFOLDED - stub in UI)
 - [ ] **Validation**: Analytics load with cached data, charts are interactive (TODO: integrate real data + Recharts)
 
@@ -204,7 +209,10 @@
 - [x] Implement `PUT /api/community/signals/:id` for provider config (SCAFFOLDED - route exists, needs DB queries)
 - [x] Implement `GET /api/community/analytics/performance` with caching (SCAFFOLDED - route + Redis structure exists)
 - [x] Implement `GET /api/community/subscription` for billing info (SCAFFOLDED - route exists, needs Stripe integration)
-- [ ] Add rate limiting (100 req/min for overview, 20 req/min for analytics) (TODO: express-rate-limit middleware)
+- [x] Add rate limiting (100 req/min for overview, 20 req/min for analytics) ✅ (commit a28ac6c)
+  - Implementation: `src/middleware/rateLimiter.js`
+  - 100 req/min for overview endpoints
+  - 20 req/min for analytics endpoints
 - [ ] **Validation**: All endpoints return correct data with proper authorization (TODO: database queries needed)
 
 ### 5.2 Trader API endpoints 📦
@@ -231,6 +239,35 @@
 - [ ] Add SecurityAudit calls for signal provider config changes (TODO: implement in signal endpoints)
 - [ ] Add SecurityAudit calls for subscription upgrades/downgrades (TODO: implement in subscription handlers)
 - [ ] **Validation**: All sensitive operations are logged with complete metadata
+
+### 5.5 Performance Baseline Establishment (2 hours) 🆕 NEW PHASE
+
+- [ ] 5.5.1 Run .explain() on all aggregation queries
+  - Community overview aggregations
+  - Analytics performance queries
+  - Trade history queries with filters
+  - Member activity queries
+  - Document query execution plans
+
+- [ ] 5.5.2 Measure p95 response times for all endpoints
+  - GET /api/community/overview
+  - GET /api/community/analytics/performance
+  - GET /api/trader/overview
+  - GET /api/trader/trades (with 10,000 trade dataset)
+  - Document current baselines
+
+- [ ] 5.5.3 Create performance regression test suite
+  - Automated performance tests in CI/CD
+  - Alert on >20% degradation from baseline
+  - Track performance trends over time
+
+- [ ] 5.5.4 Validate index usage with production-like data
+  - Load 10,000+ trades per test user
+  - Verify compound indexes used (ESR rule)
+  - Check for collection scans (COLLSCAN)
+  - Optimize indexes based on findings
+
+- [ ] **Validation**: All endpoints meet Constitution Principle V targets with actual data
 
 ## Phase 6: Testing & Quality (Week 6) ✅ COMPREHENSIVE TESTS CREATED
 
@@ -277,7 +314,10 @@
 - [x] **Validation**: Feature flag toggles dashboards without restart (COMPLETE - environment variable based)
 
 ### 7.2 Database migration ✅
-- [x] Add all required indexes for performance (COMPLETE - 42 indexes across 7 models)
+- [x] Add all required indexes for performance ✅ (42 indexes across 7 models)
+  - Script: `scripts/deployment/create-dual-dashboard-indexes.js` (162 lines)
+  - Validation: Displays index counts and collection stats
+  - Follows ESR rule (Equality, Sort, Range)
 - [x] Create Signal model with execution tracking (COMPLETE - `src/models/Signal.js`, 268 lines)
 - [x] Create UserSignalSubscription model (COMPLETE - `src/models/UserSignalSubscription.js`, 263 lines)
 - [x] Create index migration script (COMPLETE - `scripts/deployment/create-dual-dashboard-indexes.js`, 162 lines)

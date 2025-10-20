@@ -307,7 +307,9 @@ app.post('/webhook/tradingview', express.raw({ type: 'application/json' }), asyn
 });
 
 // Health check
-app.get('/health', (req, res) => {
+app.get('/health', async (req, res) => {
+  const RedisService = require('./services/redis');
+
   const health = {
     status: 'healthy',
     timestamp: new Date().toISOString(),
@@ -315,12 +317,49 @@ app.get('/health', (req, res) => {
     memory: process.memoryUsage()
   };
 
+  // Include Redis statistics
+  try {
+    health.redis = await RedisService.getStats();
+  } catch (err) {
+    health.redis = { mode: 'error', error: err.message };
+  }
+
   // Include WebSocket statistics if available
   if (webSocketServer) {
     health.websocket = webSocketServer.getStats();
   }
 
   res.json(health);
+});
+
+// Redis health check endpoint (for monitoring)
+app.get('/health/redis', async (req, res) => {
+  const RedisService = require('./services/redis');
+
+  try {
+    const stats = await RedisService.getStats();
+    const cacheMode = RedisService.getMode();
+
+    if (cacheMode === 'redis') {
+      res.json({
+        status: 'ok',
+        mode: cacheMode,
+        stats
+      });
+    } else {
+      res.status(503).json({
+        status: 'degraded',
+        mode: cacheMode,
+        message: 'Using in-memory fallback - distributed cache unavailable',
+        stats
+      });
+    }
+  } catch (err) {
+    res.status(500).json({
+      status: 'error',
+      error: err.message
+    });
+  }
 });
 
 // API info endpoint
