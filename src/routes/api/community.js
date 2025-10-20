@@ -461,39 +461,70 @@ router.post('/members/:id/role', dashboardLimiter, async (req, res) => {
  */
 router.get('/signals', dashboardLimiter, async (req, res) => {
   try {
-    // TODO: Replace with actual database query
-    // const providers = await SignalProvider.find({ tenantId: req.user.tenantId });
+    const tenantId = req.user.communityId; // Constitution Principle I: MUST include tenant scoping
 
-    const mockProviders = [
-      {
-        id: 'provider_1',
-        name: '#crypto-signals',
-        channelId: '123456789012345678',
-        enabled: true,
-        stats: {
-          signalsToday: 45,
-          signalsThisWeek: 312,
-          totalSignals: 2345,
-          winRate: 68.5,
-          followers: 34
-        }
-      },
-      {
-        id: 'provider_2',
-        name: '#forex-alerts',
-        channelId: '234567890123456789',
-        enabled: true,
-        stats: {
-          signalsToday: 32,
-          signalsThisWeek: 198,
-          totalSignals: 1876,
-          winRate: 72.1,
-          followers: 28
-        }
-      }
-    ];
+    // Time boundaries
+    const todayStart = new Date();
+    todayStart.setHours(0, 0, 0, 0);
+    const weekStart = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
 
-    res.json({ providers: mockProviders });
+    // Import models
+    const SignalProvider = require('../../models/SignalProvider');
+    const Signal = require('../../models/Signal');
+    const UserSignalSubscription = require('../../models/UserSignalSubscription');
+
+    // Fetch all providers for this community (tenant-scoped)
+    const providers = await SignalProvider.find({
+      communityId: tenantId
+    })
+      .select('name discordChannelId enabled performance verificationStatus')
+      .sort({ 'performance.winRate': -1 })
+      .lean();
+
+    // Enhance each provider with stats
+    const providersWithStats = await Promise.all(
+      providers.map(async provider => {
+        // Count signals
+        const [signalsToday, signalsWeek, totalSignals, followers] = await Promise.all([
+          Signal.countDocuments({
+            communityId: tenantId,
+            providerId: provider._id,
+            createdAt: { $gte: todayStart }
+          }),
+          Signal.countDocuments({
+            communityId: tenantId,
+            providerId: provider._id,
+            createdAt: { $gte: weekStart }
+          }),
+          Signal.countDocuments({
+            communityId: tenantId,
+            providerId: provider._id
+          }),
+          UserSignalSubscription.countDocuments({
+            communityId: tenantId,
+            providerId: provider._id,
+            active: true
+          })
+        ]);
+
+        return {
+          id: provider._id.toString(),
+          name: provider.name,
+          channelId: provider.discordChannelId,
+          enabled: provider.enabled,
+          verificationStatus: provider.verificationStatus,
+          stats: {
+            signalsToday,
+            signalsThisWeek: signalsWeek,
+            totalSignals,
+            winRate: provider.performance?.winRate || 0,
+            followers
+          }
+        };
+      })
+    );
+
+    res.json({ providers: providersWithStats });
   } catch (error) {
     console.error('[Community API] Error fetching signal providers:', error);
     res.status(500).json({ error: 'Failed to fetch signal providers' });
@@ -513,6 +544,10 @@ router.put('/signals/:id', async (req, res) => {
   try {
     const { id } = req.params;
     const { channelId, enabled, name } = req.body;
+    const tenantId = req.user.communityId; // Constitution Principle I: MUST include tenant scoping
+
+    // Import models
+    const SignalProvider = require('../../models/SignalProvider');
 
     // Validate Discord channel if provided
     if (channelId) {
@@ -525,24 +560,33 @@ router.put('/signals/:id', async (req, res) => {
       }
     }
 
-    // TODO: Update provider in database
-    // const provider = await SignalProvider.findOne({ _id: id, tenantId: req.user.tenantId });
-    // if (!provider) return res.status(404).json({ error: 'Provider not found' });
-    // if (channelId) provider.channelId = channelId;
-    // if (enabled !== undefined) provider.enabled = enabled;
-    // if (name) provider.name = name;
-    // await provider.save();
+    // Find provider (tenant-scoped)
+    const provider = await SignalProvider.findOne({
+      _id: id,
+      communityId: tenantId
+    });
 
-    console.log(`[Community API] Provider updated: ${id}`);
+    if (!provider) {
+      return res.status(404).json({ error: 'Provider not found in this community' });
+    }
+
+    // Update fields
+    if (channelId !== undefined) provider.discordChannelId = channelId;
+    if (enabled !== undefined) provider.enabled = enabled;
+    if (name !== undefined) provider.name = name;
+
+    await provider.save();
+
+    console.log(`[Community API] Provider updated: ${id} in community ${tenantId}`);
 
     res.json({
       success: true,
       message: 'Signal provider updated successfully',
       provider: {
-        id,
-        channelId,
-        enabled,
-        name
+        id: provider._id.toString(),
+        name: provider.name,
+        channelId: provider.discordChannelId,
+        enabled: provider.enabled
       }
     });
   } catch (error) {

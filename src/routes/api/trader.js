@@ -265,72 +265,164 @@ router.get('/signals', dashboardLimiter, async (req, res) => {
   try {
     const { filter = 'all', sortBy = 'winRate', minWinRate } = req.query;
     const user = req.user;
+    const userId = user._id;
+    const tenantId = user.communityId; // Constitution Principle I: MUST include tenant scoping
 
-    // TODO: Replace with actual database query
-    // const providers = await SignalProvider.find({ tenantId: user.tenantId, enabled: true });
-    // Apply user's followed status from UserSignalSubscription model
+    // Time boundaries
+    const weekStart = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
+    const monthStart = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
 
-    const mockProviders = [
-      {
-        id: 'provider_1',
-        name: '#crypto-signals',
-        description: 'High-quality crypto trading signals',
-        channelId: '123456789012345678',
-        stats: {
-          totalSignals: 2345,
-          winRate: 68.5,
-          avgPnL: 234.56,
-          followers: 34,
-          signalsThisWeek: 312
-        },
-        performance: {
-          week: 12.5,
-          month: 45.3,
-          allTime: 234.5
-        },
-        following: true
-      },
-      {
-        id: 'provider_2',
-        name: '#forex-alerts',
-        description: 'Professional forex trading alerts',
-        channelId: '234567890123456789',
-        stats: {
-          totalSignals: 1876,
-          winRate: 72.1,
-          avgPnL: 189.34,
-          followers: 28,
-          signalsThisWeek: 198
-        },
-        performance: {
-          week: 8.3,
-          month: 32.1,
-          allTime: 189.2
-        },
-        following: true
-      },
-      {
-        id: 'provider_3',
-        name: '#options-flow',
-        description: 'Options flow trading signals',
-        channelId: '345678901234567890',
-        stats: {
-          totalSignals: 1234,
-          winRate: 65.3,
-          avgPnL: 156.78,
-          followers: 19,
-          signalsThisWeek: 145
-        },
-        performance: {
-          week: 5.7,
-          month: 28.9,
-          allTime: 156.8
-        },
-        following: false
-      }
-    ];
+    // Import models
+    const SignalProvider = require('../../models/SignalProvider');
+    const Signal = require('../../models/Signal');
+    const UserSignalSubscription = require('../../models/UserSignalSubscription');
+    const Trade = require('../../models/Trade');
 
-    res.json({ providers: mockProviders });
+    // Build provider query (tenant-scoped)
+    const providerQuery = {
+      communityId: tenantId,
+      enabled: true,
+      verificationStatus: 'verified'
+    };
+
+    // Apply minimum win rate filter
+    if (minWinRate) {
+      providerQuery['performance.winRate'] = { $gte: parseFloat(minWinRate) };
+    }
+
+    // Determine sort criteria
+    let sort = {};
+    switch (sortBy) {
+      case 'followers':
+        sort = { 'stats.followerCount': -1 };
+        break;
+      case 'signals':
+        sort = { 'stats.signalCount': -1 };
+        break;
+      case 'winRate':
+      default:
+        sort = { 'performance.winRate': -1 };
+        break;
+    }
+
+    // Fetch providers
+    const providers = await SignalProvider.find(providerQuery)
+      .sort(sort)
+      .lean();
+
+    // Get user's subscriptions
+    const subscriptions = await UserSignalSubscription.find({
+      communityId: tenantId,
+      userId,
+      active: true
+    }).select('providerId').lean();
+
+    const followedProviderIds = new Set(subscriptions.map(sub => sub.providerId.toString()));
+
+    // Enhance providers with stats and follow status
+    const providersWithDetails = await Promise.all(
+      providers.map(async provider => {
+        const isFollowing = followedProviderIds.has(provider._id.toString());
+
+        // Apply filter
+        if (filter === 'following' && !isFollowing) return null;
+        if (filter === 'available' && isFollowing) return null;
+
+        // Count signals and followers
+        const [totalSignals, signalsWeek, followers] = await Promise.all([
+          Signal.countDocuments({
+            communityId: tenantId,
+            providerId: provider._id
+          }),
+          Signal.countDocuments({
+            communityId: tenantId,
+            providerId: provider._id,
+            createdAt: { $gte: weekStart }
+          }),
+          UserSignalSubscription.countDocuments({
+            communityId: tenantId,
+            providerId: provider._id,
+            active: true
+          })
+        ]);
+
+        // Calculate performance metrics (from trades)
+        const [weekPerf, monthPerf, allTimePerf] = await Promise.all([
+          Trade.aggregate([
+            {
+              $match: {
+                communityId: tenantId,
+                'signalSource.providerId': provider._id,
+                entryTime: { $gte: weekStart },
+                status: { $in: ['FILLED', 'PARTIAL'] }
+              }
+            },
+            {
+              $group: {
+                _id: null,
+                totalPnL: { $sum: '$profitLoss' }
+              }
+            }
+          ]),
+          Trade.aggregate([
+            {
+              $match: {
+                communityId: tenantId,
+                'signalSource.providerId': provider._id,
+                entryTime: { $gte: monthStart },
+                status: { $in: ['FILLED', 'PARTIAL'] }
+              }
+            },
+            {
+              $group: {
+                _id: null,
+                totalPnL: { $sum: '$profitLoss' }
+              }
+            }
+          ]),
+          Trade.aggregate([
+            {
+              $match: {
+                communityId: tenantId,
+                'signalSource.providerId': provider._id,
+                status: { $in: ['FILLED', 'PARTIAL'] }
+              }
+            },
+            {
+              $group: {
+                _id: null,
+                totalPnL: { $sum: '$profitLoss' }
+              }
+            }
+          ])
+        ]);
+
+        return {
+          id: provider._id.toString(),
+          name: provider.name,
+          description: provider.description || '',
+          channelId: provider.discordChannelId,
+          stats: {
+            totalSignals,
+            winRate: provider.performance?.winRate || 0,
+            avgPnL: provider.performance?.avgPnL || 0,
+            followers,
+            signalsThisWeek: signalsWeek
+          },
+          performance: {
+            week: weekPerf[0]?.totalPnL || 0,
+            month: monthPerf[0]?.totalPnL || 0,
+            allTime: allTimePerf[0]?.totalPnL || 0
+          },
+          following: isFollowing
+        };
+      })
+    );
+
+    // Filter out nulls (from filter application)
+    const filteredProviders = providersWithDetails.filter(p => p !== null);
+
+    res.json({ providers: filteredProviders });
   } catch (error) {
     console.error('[Trader API] Error fetching signal providers:', error);
     res.status(500).json({ error: 'Failed to fetch signal providers' });
@@ -343,39 +435,109 @@ router.get('/signals', dashboardLimiter, async (req, res) => {
  *
  * Body:
  * - following: Boolean (true to follow, false to unfollow)
+ * - autoExecute: Boolean (optional, auto-execute signals from this provider)
  */
 router.post('/signals/:id/follow', async (req, res) => {
   try {
-    const { id } = req.params;
-    const { following } = req.body;
+    const { id: providerId } = req.params;
+    const { following, autoExecute = false } = req.body;
     const user = req.user;
+    const userId = user._id;
+    const tenantId = user.communityId; // Constitution Principle I: MUST include tenant scoping
 
-    // TODO: Update UserSignalSubscription in database
-    // if (following) {
-    //   await UserSignalSubscription.create({
-    //     userId: user._id,
-    //     providerId: id,
-    //     tenantId: user.tenantId
-    //   });
-    // } else {
-    //   await UserSignalSubscription.deleteOne({
-    //     userId: user._id,
-    //     providerId: id
-    //   });
-    // }
+    // Import models
+    const SignalProvider = require('../../models/SignalProvider');
+    const UserSignalSubscription = require('../../models/UserSignalSubscription');
 
-    console.log(`[Trader API] User ${user._id} ${following ? 'followed' : 'unfollowed'} provider ${id}`);
-
-    res.json({
-      success: true,
-      message: `Successfully ${following ? 'followed' : 'unfollowed'} signal provider`,
-      provider: {
-        id,
-        following
-      }
+    // Validate provider exists and is in user's community
+    const provider = await SignalProvider.findOne({
+      _id: providerId,
+      communityId: tenantId,
+      enabled: true
     });
+
+    if (!provider) {
+      return res.status(404).json({ error: 'Signal provider not found in your community' });
+    }
+
+    if (following) {
+      // Follow provider - create or update subscription
+      let subscription = await UserSignalSubscription.findOne({
+        communityId: tenantId,
+        userId,
+        providerId
+      });
+
+      if (subscription) {
+        // Update existing subscription
+        subscription.active = true;
+        subscription.autoExecute = autoExecute;
+        await subscription.save();
+      } else {
+        // Create new subscription
+        subscription = await UserSignalSubscription.create({
+          communityId: tenantId,
+          userId,
+          providerId,
+          active: true,
+          autoExecute,
+          stats: {
+            signalsReceived: 0,
+            signalsExecuted: 0,
+            totalPnL: 0
+          }
+        });
+      }
+
+      console.log(
+        `[Trader API] User ${user.discordUsername} (${userId}) followed provider ${provider.name} (${providerId})`
+      );
+
+      res.json({
+        success: true,
+        message: 'Successfully followed signal provider',
+        provider: {
+          id: provider._id.toString(),
+          name: provider.name,
+          following: true,
+          autoExecute
+        }
+      });
+    } else {
+      // Unfollow provider - mark subscription inactive
+      const subscription = await UserSignalSubscription.findOne({
+        communityId: tenantId,
+        userId,
+        providerId
+      });
+
+      if (subscription) {
+        subscription.active = false;
+        await subscription.save();
+
+        console.log(
+          `[Trader API] User ${user.discordUsername} (${userId}) unfollowed provider ${provider.name} (${providerId})`
+        );
+      }
+
+      res.json({
+        success: true,
+        message: 'Successfully unfollowed signal provider',
+        provider: {
+          id: provider._id.toString(),
+          name: provider.name,
+          following: false
+        }
+      });
+    }
   } catch (error) {
     console.error('[Trader API] Error updating signal subscription:', error);
+
+    // Handle duplicate key errors (shouldn't happen with findOne first, but defensive)
+    if (error.code === 11000) {
+      return res.status(409).json({ error: 'Subscription already exists' });
+    }
+
     res.status(500).json({ error: 'Failed to update signal subscription' });
   }
 });
@@ -739,34 +901,74 @@ router.put('/risk-profile', dashboardLimiter, async (req, res) => {
  * - discordDM: Enable Discord DM notifications
  * - email: Enable email notifications
  * - alertThresholds: Alert threshold settings
+ *   - profitTarget: Threshold for profit alerts (percentage)
+ *   - lossLimit: Threshold for loss alerts (percentage)
+ *   - positionSize: Alert when position size exceeds threshold
  */
 router.put('/notifications', async (req, res) => {
   try {
-    const user = req.user;
+    const userId = req.user._id;
     const { discordDM, email, alertThresholds } = req.body;
 
-    // TODO: Update user's notification preferences in database
-    // await User.findByIdAndUpdate(user._id, {
-    //   'preferences.notifications': {
-    //     discordDM,
-    //     email,
-    //     alertThresholds
-    //   }
-    // });
+    // Import models
+    const User = require('../../models/User');
 
-    console.log(`[Trader API] Notification preferences updated for user ${user._id}`);
+    // Get current user
+    const currentUser = await User.findById(userId);
+    if (!currentUser) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+
+    // Build update object (only update provided fields)
+    const updates = {};
+
+    if (discordDM !== undefined) {
+      updates['preferences.notifications.discordDM'] = discordDM;
+    }
+    if (email !== undefined) {
+      updates['preferences.notifications.email'] = email;
+    }
+    if (alertThresholds) {
+      if (alertThresholds.profitTarget !== undefined) {
+        updates['preferences.notifications.alertThresholds.profitTarget'] = alertThresholds.profitTarget;
+      }
+      if (alertThresholds.lossLimit !== undefined) {
+        updates['preferences.notifications.alertThresholds.lossLimit'] = alertThresholds.lossLimit;
+      }
+      if (alertThresholds.positionSize !== undefined) {
+        updates['preferences.notifications.alertThresholds.positionSize'] = alertThresholds.positionSize;
+      }
+    }
+
+    // Update user preferences
+    await User.findByIdAndUpdate(userId, { $set: updates }, { new: true, runValidators: true });
+
+    // Fetch updated preferences for response
+    const updatedUser = await User.findById(userId)
+      .select('preferences.notifications')
+      .lean();
+
+    console.log(
+      `[Trader API] Notification preferences updated for user ${req.user.discordUsername} (${userId})`
+    );
 
     res.json({
       success: true,
       message: 'Notification preferences updated successfully',
-      preferences: {
-        discordDM,
-        email,
-        alertThresholds
-      }
+      preferences: updatedUser.preferences.notifications
     });
   } catch (error) {
     console.error('[Trader API] Error updating notification preferences:', error);
+
+    // Handle Mongoose validation errors
+    if (error.name === 'ValidationError') {
+      const errors = Object.values(error.errors).map(e => e.message);
+      return res.status(400).json({
+        error: 'Validation failed',
+        details: errors
+      });
+    }
+
     res.status(500).json({ error: 'Failed to update notification preferences' });
   }
 });
