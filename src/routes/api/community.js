@@ -673,24 +673,150 @@ router.get('/analytics/performance', analyticsLimiter, async (req, res) => {
 
 /**
  * GET /api/community/subscription
- * Get community subscription and billing information
+ * Get community subscription and billing information from Stripe
  *
- * Rate Limit: 100 requests/minute (Constitution Principle V)
+ * Returns:
+ * - Stripe subscription status and details
+ * - Current tier and limits
+ * - Usage metrics vs limits
+ * - Billing portal URL
+ *
+ * Constitution Compliance:
+ * - Principle I: Tenant-scoped usage queries
+ * - Principle V: Rate limiting applied
+ *
+ * Rate Limit: 100 requests/minute
  */
 router.get('/subscription', dashboardLimiter, async (req, res) => {
   try {
     const user = req.user;
+    const tenantId = user.communityId; // Constitution Principle I: MUST include tenant scoping
 
-    // TODO: Get actual Stripe customer ID from database
-    // const tenant = await Tenant.findById(user.tenantId);
-    // const customerId = tenant.stripeCustomerId;
+    // Import models and services
+    const Community = require('../../models/Community');
+    const User = require('../../models/User');
+    const Signal = require('../../models/Signal');
+    const SignalProvider = require('../../models/SignalProvider');
 
-    const customerId = 'cus_mock_community_123';
-    const subscription = await stripe.getCommunitySubscription(customerId);
+    // Get community from database
+    const community = await Community.findById(tenantId);
+    if (!community) {
+      return res.status(404).json({ error: 'Community not found' });
+    }
 
-    res.json(subscription);
+    // Check if community has Stripe customer ID
+    if (!community.subscription || !community.subscription.stripeCustomerId) {
+      // No Stripe customer - return free tier info
+      const [memberCount, signalCount, providerCount] = await Promise.all([
+        User.countDocuments({ communityId: tenantId }),
+        Signal.countDocuments({ communityId: tenantId }),
+        SignalProvider.countDocuments({ communityId: tenantId })
+      ]);
+
+      return res.json({
+        tier: 'free',
+        status: 'trial',
+        subscription: null,
+        limits: {
+          maxMembers: 10,
+          maxSignalProviders: 2,
+          maxSignalsPerDay: 50
+        },
+        usage: {
+          members: memberCount,
+          signalProviders: providerCount,
+          signalsToday: signalCount
+        },
+        billing: {
+          hasStripeCustomer: false
+        }
+      });
+    }
+
+    // Get subscription from Stripe
+    const stripeSubscription = await stripe.getCommunitySubscription(
+      community.subscription.stripeCustomerId
+    );
+
+    // Calculate current usage (tenant-scoped)
+    const todayStart = new Date();
+    todayStart.setHours(0, 0, 0, 0);
+
+    const [memberCount, signalProviderCount, signalsTodayCount] = await Promise.all([
+      User.countDocuments({ communityId: tenantId }),
+      SignalProvider.countDocuments({ communityId: tenantId }),
+      Signal.countDocuments({
+        communityId: tenantId,
+        createdAt: { $gte: todayStart }
+      })
+    ]);
+
+    // Determine tier from subscription (based on price or metadata)
+    // This would typically come from Stripe product/price metadata
+    const tier = community.subscription.tier || 'professional';
+
+    // Define tier limits (could also come from Stripe product metadata)
+    const tierLimits = {
+      free: {
+        maxMembers: 10,
+        maxSignalProviders: 2,
+        maxSignalsPerDay: 50
+      },
+      professional: {
+        maxMembers: 100,
+        maxSignalProviders: 10,
+        maxSignalsPerDay: 1000
+      },
+      enterprise: {
+        maxMembers: 1000,
+        maxSignalProviders: 50,
+        maxSignalsPerDay: 10000
+      }
+    };
+
+    const limits = tierLimits[tier] || tierLimits.professional;
+
+    // Create billing portal session for subscription management
+    const portalUrl = process.env.APP_URL || 'http://localhost:3000';
+    let billingPortalUrl = null;
+
+    try {
+      const portalSession = await stripe.createCustomerPortalSession(
+        community.subscription.stripeCustomerId,
+        `${portalUrl}/dashboard/community/subscription`
+      );
+      billingPortalUrl = portalSession.url;
+    } catch (portalError) {
+      console.error('[Community API] Error creating billing portal:', portalError.message);
+      // Continue without portal URL
+    }
+
+    res.json({
+      tier,
+      status: stripeSubscription?.status || community.subscription.status || 'trial',
+      subscription: stripeSubscription,
+      limits,
+      usage: {
+        members: memberCount,
+        signalProviders: signalProviderCount,
+        signalsToday: signalsTodayCount
+      },
+      billing: {
+        hasStripeCustomer: true,
+        portalUrl: billingPortalUrl
+      }
+    });
   } catch (error) {
     console.error('[Community API] Error fetching subscription:', error);
+
+    // Handle Stripe-specific errors
+    if (error.type === 'StripeInvalidRequestError') {
+      return res.status(400).json({
+        error: 'Invalid subscription request',
+        message: error.message
+      });
+    }
+
     res.status(500).json({ error: 'Failed to fetch subscription information' });
   }
 });
