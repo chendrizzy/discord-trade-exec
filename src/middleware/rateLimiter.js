@@ -206,6 +206,60 @@ const loginLimiter = rateLimit({
   message: { error: 'Too many login attempts, please try again later' }
 });
 
+// OAuth callback rate limiter (per IP)
+// Prevents CSRF and brute-force attacks on OAuth callback endpoint
+const oauthCallbackLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 10, // 10 OAuth callbacks per 15 minutes per IP
+  message: { error: 'Too many OAuth callback requests, please try again later' },
+  standardHeaders: true,
+  legacyHeaders: false,
+  keyGenerator: ipKeyGenerator,
+  handler: (req, res) => {
+    console.warn(`[OAuth2] Rate limit exceeded for IP ${req.ip} on OAuth callback`);
+
+    // Audit log for security monitoring
+    const SecurityAudit = require('../models/SecurityAudit');
+    SecurityAudit.log({
+      action: 'security.rate_limit_exceeded',
+      resourceType: 'System',
+      operation: 'EXECUTE',
+      status: 'blocked',
+      errorMessage: 'OAuth callback rate limit exceeded (10 requests/15min)',
+      riskLevel: 'high',
+      requiresReview: true,
+      ipAddress: req.ip || 'unknown',
+      userAgent: req.get('user-agent'),
+      endpoint: req.originalUrl,
+      httpMethod: req.method
+    }).catch(err => console.error('[OAuth2] Audit log failed:', err));
+
+    res.status(429).send(`
+      <!DOCTYPE html>
+      <html>
+        <head>
+          <title>Too Many Requests</title>
+          <style>
+            body { font-family: system-ui; padding: 40px; text-align: center; }
+            .error { color: #dc2626; margin: 20px 0; }
+            button { padding: 10px 20px; background: #3b82f6; color: white; border: none; border-radius: 6px; cursor: pointer; }
+          </style>
+        </head>
+        <body>
+          <h1>Too Many Requests</h1>
+          <p class="error">You have exceeded the rate limit for OAuth callbacks (10 requests per 15 minutes).</p>
+          <p>Please wait ${Math.ceil((req.rateLimit.resetTime.getTime() - Date.now()) / 60000)} minutes before trying again.</p>
+          <button onclick="window.close()">Close Window</button>
+        </body>
+      </html>
+    `);
+  },
+  skip: (req) => {
+    // Don't rate limit in development for easier testing
+    return process.env.NODE_ENV === 'development' && process.env.SKIP_OAUTH_RATE_LIMIT === 'true';
+  }
+});
+
 /**
  * Exchange API Rate Limiter
  * Enforces per-user rate limits for crypto exchange API calls
@@ -749,6 +803,7 @@ module.exports = {
   apiLimiter,
   authLimiter,
   loginLimiter,
+  oauthCallbackLimiter,
   exchangeApiLimiter,
   checkExchangeRateLimit,
   getExchangeRateLimitStatus,

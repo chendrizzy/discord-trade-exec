@@ -18,6 +18,7 @@ const crypto = require('crypto');
 const User = require('../../models/User');
 const encryptionService = require('../../services/encryption');
 const { sendSuccess, sendError, sendValidationError } = require('../../utils/api-response');
+const { oauthCallbackLimiter } = require('../../middleware/rateLimiter');
 
 // Import broker adapters
 const AlpacaAdapter = require('../../brokers/adapters/AlpacaAdapter');
@@ -112,8 +113,9 @@ router.get('/initiate/:brokerKey', async (req, res) => {
 /**
  * GET /api/brokers/oauth/callback/:brokerKey
  * Handles OAuth callback from broker
+ * Rate limited to 10 requests per 15 minutes per IP
  */
-router.get('/callback/:brokerKey', async (req, res) => {
+router.get('/callback/:brokerKey', oauthCallbackLimiter, async (req, res) => {
   try {
     const { brokerKey } = req.params;
     const { code, state, error, error_description } = req.query;
