@@ -126,6 +126,12 @@ async function handleSubscriptionCreated(event, req) {
     community.subscription.currentPeriodEnd = new Date(event.data.currentPeriodEnd);
     community.subscription.cancelAtPeriodEnd = event.data.cancelAtPeriodEnd || false;
 
+    // Update community limits based on tier
+    const tierLimits = getCommunityTierLimits(tier);
+    community.limits.memberCount = tierLimits.memberCount;
+    community.limits.signalProvidersCount = tierLimits.signalProvidersCount;
+    community.limits.signalsPerDay = tierLimits.signalsPerDay;
+
     await community.save();
 
     // Log security audit
@@ -227,6 +233,14 @@ async function handleSubscriptionUpdated(event, req) {
     community.subscription.currentPeriodEnd = new Date(event.data.currentPeriodEnd);
     community.subscription.cancelAtPeriodEnd = event.data.cancelAtPeriodEnd || false;
 
+    // Update community limits if tier changed
+    if (oldTier !== tier) {
+      const tierLimits = getCommunityTierLimits(tier);
+      community.limits.memberCount = tierLimits.memberCount;
+      community.limits.signalProvidersCount = tierLimits.signalProvidersCount;
+      community.limits.signalsPerDay = tierLimits.signalsPerDay;
+    }
+
     await community.save();
 
     await SecurityAudit.log({
@@ -306,6 +320,12 @@ async function handleSubscriptionCancelled(event, req) {
     // If cancelled immediately (not at period end), downgrade to free
     if (!cancelAtPeriodEnd) {
       community.subscription.tier = 'free';
+
+      // Reset to free tier limits
+      const freeLimits = getCommunityTierLimits('free');
+      community.limits.memberCount = freeLimits.memberCount;
+      community.limits.signalProvidersCount = freeLimits.signalProvidersCount;
+      community.limits.signalsPerDay = freeLimits.signalsPerDay;
     }
 
     await community.save();
@@ -394,6 +414,13 @@ async function handleCheckoutCompleted(event, req) {
       community.subscription.polarCustomerId = customerId;
       community.subscription.tier = tier;
       community.subscription.status = 'active';
+
+      // Update community limits based on tier
+      const tierLimits = getCommunityTierLimits(tier);
+      community.limits.memberCount = tierLimits.memberCount;
+      community.limits.signalProvidersCount = tierLimits.signalProvidersCount;
+      community.limits.signalsPerDay = tierLimits.signalsPerDay;
+
       await community.save();
 
       console.log(`[Polar Webhook] Checkout completed for community: ${community.name}`);
@@ -419,9 +446,9 @@ async function handleCheckoutCompleted(event, req) {
 }
 
 /**
- * Get tier limits for a subscription tier
- * @param {string} tier - 'free', 'professional', or 'enterprise'
- * @returns {Object} Tier limits (placeholder - update after pricing research)
+ * Get tier limits for trader subscription tiers (account-based, global)
+ * @param {string} tier - 'free', 'professional', or 'elite'
+ * @returns {Object} Tier limits
  */
 function getTierLimits(tier) {
   const limits = {
@@ -430,12 +457,39 @@ function getTierLimits(tier) {
       maxBrokers: 1
     },
     professional: {
-      signalsPerDay: 50,
+      signalsPerDay: 100,
       maxBrokers: 3
     },
+    elite: {
+      signalsPerDay: 999999,
+      maxBrokers: 999
+    }
+  };
+
+  return limits[tier] || limits.free;
+}
+
+/**
+ * Get tier limits for community subscription tiers (server-based)
+ * @param {string} tier - 'free', 'professional', or 'enterprise'
+ * @returns {Object} Community tier limits
+ */
+function getCommunityTierLimits(tier) {
+  const limits = {
+    free: {
+      memberCount: 10,
+      signalProvidersCount: 2,
+      signalsPerDay: 50
+    },
+    professional: {
+      memberCount: 100,
+      signalProvidersCount: 5,
+      signalsPerDay: 500
+    },
     enterprise: {
-      signalsPerDay: 200,
-      maxBrokers: 10
+      memberCount: 1000,
+      signalProvidersCount: 20,
+      signalsPerDay: 5000
     }
   };
 

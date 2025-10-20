@@ -213,6 +213,22 @@ const CommunitySchema = new Schema(
       default: () => ({})
     },
 
+    // Community tier limits (server-based)
+    limits: {
+      memberCount: {
+        type: Number,
+        default: 10 // Free tier default
+      },
+      signalProvidersCount: {
+        type: Number,
+        default: 2 // Free tier default
+      },
+      signalsPerDay: {
+        type: Number,
+        default: 50 // Free tier default
+      }
+    },
+
     // Security: Per-tenant encryption key ID
     encryptionKeyId: {
       type: String,

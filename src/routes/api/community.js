@@ -754,26 +754,12 @@ router.get('/subscription', dashboardLimiter, async (req, res) => {
     // Determine tier from subscription (stored in Community model)
     const tier = community.subscription.tier || 'free';
 
-    // Define tier limits (placeholder - will be updated after pricing research)
-    const tierLimits = {
-      free: {
-        maxMembers: 10,
-        maxSignalProviders: 2,
-        maxSignalsPerDay: 50
-      },
-      professional: {
-        maxMembers: 100,
-        maxSignalProviders: 10,
-        maxSignalsPerDay: 1000
-      },
-      enterprise: {
-        maxMembers: 1000,
-        maxSignalProviders: 50,
-        maxSignalsPerDay: 10000
-      }
+    // Use limits from community document (set by webhook handlers)
+    const limits = {
+      maxMembers: community.limits.memberCount,
+      maxSignalProviders: community.limits.signalProvidersCount,
+      maxSignalsPerDay: community.limits.signalsPerDay
     };
-
-    const limits = tierLimits[tier] || tierLimits.free;
 
     // Create billing portal session for subscription management
     const portalUrl = process.env.APP_URL || 'http://localhost:3000';
