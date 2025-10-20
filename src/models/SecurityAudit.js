@@ -39,6 +39,13 @@ const securityAuditSchema = new mongoose.Schema(
         'auth.mfa_enable',
         'auth.mfa_disable',
 
+        // OAuth2 Authentication (Broker Connections)
+        'auth.oauth2_token_exchange',
+        'auth.oauth2_refresh_token',
+        'auth.oauth2_revoke_token',
+        'auth.oauth2_connection_failed',
+        'auth.oauth2_csrf_validation_failed',
+
         // User Management
         'user.create',
         'user.update',

@@ -14,6 +14,7 @@
 const crypto = require('crypto');
 const axios = require('axios');
 const { getProviderConfig, isOAuth2Broker } = require('../config/oauth2Providers');
+const SecurityAudit = require('../models/SecurityAudit');
 
 // AES-256-GCM encryption algorithm
 const ALGORITHM = 'aes-256-gcm';
@@ -92,6 +93,20 @@ class OAuth2Service {
     // Check state exists in session
     if (!session.oauthState) {
       console.warn('[OAuth2Service] State validation failed: Session state not found');
+
+      // Audit log: CSRF validation failed (CRITICAL)
+      SecurityAudit.log({
+        action: 'auth.oauth2_csrf_validation_failed',
+        resourceType: 'System',
+        operation: 'EXECUTE',
+        status: 'blocked',
+        errorMessage: 'Session state not found',
+        riskLevel: 'critical',
+        requiresReview: true,
+        ipAddress: session.ipAddress || 'unknown',
+        userAgent: session.userAgent
+      }).catch(err => console.error('[OAuth2Service] Audit log failed:', err));
+
       return { valid: false, error: 'Session state not found' };
     }
 
@@ -100,6 +115,22 @@ class OAuth2Service {
     // Validate state equality
     if (state !== callbackState) {
       console.warn('[OAuth2Service] State validation failed: State mismatch (possible CSRF attack)');
+
+      // Audit log: CSRF validation failed (CRITICAL)
+      SecurityAudit.log({
+        action: 'auth.oauth2_csrf_validation_failed',
+        resourceType: 'User',
+        resourceId: userId,
+        operation: 'EXECUTE',
+        status: 'blocked',
+        errorMessage: 'State mismatch - possible CSRF attack',
+        riskLevel: 'critical',
+        requiresReview: true,
+        ipAddress: session.ipAddress || 'unknown',
+        userAgent: session.userAgent,
+        dataBefore: { broker, expectedState: state.substring(0, 8) + '...', receivedState: callbackState.substring(0, 8) + '...' }
+      }).catch(err => console.error('[OAuth2Service] Audit log failed:', err));
+
       return { valid: false, error: 'State mismatch - possible CSRF attack' };
     }
 
@@ -107,6 +138,22 @@ class OAuth2Service {
     const age = Date.now() - createdAt;
     if (age > STATE_TTL_MS) {
       console.warn(`[OAuth2Service] State validation failed: State expired (age: ${age}ms > ${STATE_TTL_MS}ms)`);
+
+      // Audit log: CSRF validation failed (CRITICAL)
+      SecurityAudit.log({
+        action: 'auth.oauth2_csrf_validation_failed',
+        resourceType: 'User',
+        resourceId: userId,
+        operation: 'EXECUTE',
+        status: 'blocked',
+        errorMessage: `State expired (age: ${age}ms)`,
+        riskLevel: 'critical',
+        requiresReview: true,
+        ipAddress: session.ipAddress || 'unknown',
+        userAgent: session.userAgent,
+        dataBefore: { broker, stateAge: age, maxAge: STATE_TTL_MS }
+      }).catch(err => console.error('[OAuth2Service] Audit log failed:', err));
+
       return { valid: false, error: 'State expired' };
     }
 
@@ -170,6 +217,29 @@ class OAuth2Service {
 
       console.log(`[OAuth2Service] Token exchange successful | broker: ${broker} | expiresAt: ${expiresAt.toISOString()}`);
 
+      // Audit log: Successful token exchange (MEDIUM risk)
+      const User = require('../models/User');
+      User.findById(validation.userId)
+        .then(user => {
+          if (user) {
+            SecurityAudit.log({
+              communityId: user.tradingConfig.communityId,
+              userId: validation.userId,
+              userRole: 'trader',
+              action: 'auth.oauth2_token_exchange',
+              resourceType: 'User',
+              resourceId: validation.userId,
+              operation: 'CREATE',
+              status: 'success',
+              riskLevel: 'medium',
+              ipAddress: session.ipAddress || 'unknown',
+              userAgent: session.userAgent,
+              dataAfter: { broker, expiresAt, scopes: tokenData.scope ? tokenData.scope.split(' ') : config.scopes }
+            }).catch(err => console.error('[OAuth2Service] Audit log failed:', err));
+          }
+        })
+        .catch(err => console.error('[OAuth2Service] User lookup for audit failed:', err));
+
       return {
         accessToken: tokenData.access_token,
         refreshToken: tokenData.refresh_token,
@@ -179,6 +249,33 @@ class OAuth2Service {
       };
     } catch (error) {
       console.error(`[OAuth2Service] Token exchange failed | broker: ${broker}`, error.response?.data || error.message);
+
+      // Audit log: Token exchange failed (HIGH risk)
+      const User = require('../models/User');
+      User.findById(validation.userId)
+        .then(user => {
+          if (user) {
+            SecurityAudit.log({
+              communityId: user.tradingConfig.communityId,
+              userId: validation.userId,
+              userRole: 'trader',
+              action: 'auth.oauth2_connection_failed',
+              resourceType: 'User',
+              resourceId: validation.userId,
+              operation: 'CREATE',
+              status: 'failure',
+              errorMessage: error.response?.data?.error_description || error.message,
+              errorCode: error.response?.data?.error,
+              riskLevel: 'high',
+              requiresReview: true,
+              ipAddress: session.ipAddress || 'unknown',
+              userAgent: session.userAgent,
+              dataBefore: { broker, operation: 'token_exchange' }
+            }).catch(err => console.error('[OAuth2Service] Audit log failed:', err));
+          }
+        })
+        .catch(err => console.error('[OAuth2Service] User lookup for audit failed:', err));
+
       throw new Error(`Token exchange failed: ${error.response?.data?.error_description || error.message}`);
     }
   }
@@ -266,6 +363,21 @@ class OAuth2Service {
       });
       await user.save();
 
+      // Audit log: Successful token refresh (MEDIUM risk)
+      SecurityAudit.log({
+        communityId: user.tradingConfig.communityId,
+        userId,
+        userRole: 'trader',
+        action: 'auth.oauth2_refresh_token',
+        resourceType: 'User',
+        resourceId: userId,
+        operation: 'UPDATE',
+        status: 'success',
+        riskLevel: 'medium',
+        ipAddress: 'system',
+        dataAfter: { broker, expiresAt, tokenRotated: !!tokenData.refresh_token }
+      }).catch(err => console.error('[OAuth2Service] Audit log failed:', err));
+
       // Clear decrypted tokens from memory
       refreshToken.replace(/./g, '0');
 
@@ -284,6 +396,29 @@ class OAuth2Service {
       if (statusCode >= 400 && statusCode < 500) {
         console.error(`[OAuth2Service] Token refresh failed (permanent) | broker: ${broker} | error: ${errorCode}`, error.response?.data);
 
+        // Audit log: Token refresh failed permanently (HIGH risk)
+        const User = require('../models/User');
+        const user = await User.findById(userId);
+        if (user) {
+          SecurityAudit.log({
+            communityId: user.tradingConfig.communityId,
+            userId,
+            userRole: 'trader',
+            action: 'auth.oauth2_connection_failed',
+            resourceType: 'User',
+            resourceId: userId,
+            operation: 'UPDATE',
+            status: 'failure',
+            errorMessage: error.response?.data?.error_description || error.message,
+            errorCode,
+            statusCode,
+            riskLevel: 'high',
+            requiresReview: true,
+            ipAddress: 'system',
+            dataBefore: { broker, operation: 'token_refresh', failureType: 'permanent', retryAttempt: retryCount }
+          }).catch(err => console.error('[OAuth2Service] Audit log failed:', err));
+        }
+
         // Mark tokens as invalid in user document
         await this.markTokensInvalid(broker, userId, errorCode || error.message);
 
@@ -301,6 +436,28 @@ class OAuth2Service {
 
       // Max retries exceeded
       console.error(`[OAuth2Service] Token refresh failed (max retries) | broker: ${broker}`, error.message);
+
+      // Audit log: Token refresh failed after max retries (HIGH risk)
+      const User = require('../models/User');
+      const user = await User.findById(userId);
+      if (user) {
+        SecurityAudit.log({
+          communityId: user.tradingConfig.communityId,
+          userId,
+          userRole: 'trader',
+          action: 'auth.oauth2_connection_failed',
+          resourceType: 'User',
+          resourceId: userId,
+          operation: 'UPDATE',
+          status: 'failure',
+          errorMessage: `Token refresh failed after ${MAX_RETRIES} retries: ${error.message}`,
+          riskLevel: 'high',
+          requiresReview: true,
+          ipAddress: 'system',
+          dataBefore: { broker, operation: 'token_refresh', failureType: 'max_retries', retryAttempt: MAX_RETRIES }
+        }).catch(err => console.error('[OAuth2Service] Audit log failed:', err));
+      }
+
       throw new Error(`Token refresh failed after ${MAX_RETRIES} retries: ${error.message}`);
     }
   }
