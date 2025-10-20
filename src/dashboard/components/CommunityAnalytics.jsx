@@ -17,6 +17,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from './ui/select';
+import PerformanceChart from './shared/PerformanceChart';
 
 const CommunityAnalytics = () => {
   const [analytics, setAnalytics] = useState(null);
@@ -204,37 +205,12 @@ const CommunityAnalytics = () => {
         </Card>
       </div>
 
-      {/* Performance Chart Placeholder */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Performance Over Time</CardTitle>
-          <CardDescription>Daily P&L and cumulative returns</CardDescription>
-        </CardHeader>
-        <CardContent>
-          {/* TODO: Integrate Recharts for performance visualization */}
-          {/*
-          <ResponsiveContainer width="100%" height={300}>
-            <LineChart data={performance.dailyData}>
-              <CartesianGrid strokeDasharray="3 3" />
-              <XAxis dataKey="date" />
-              <YAxis />
-              <Tooltip />
-              <Legend />
-              <Line type="monotone" dataKey="pnl" stroke="#22c55e" name="Daily P&L" />
-              <Line type="monotone" dataKey="cumulative" stroke="#3b82f6" name="Cumulative" />
-            </LineChart>
-          </ResponsiveContainer>
-          */}
-          <div className="flex items-center justify-center h-64 bg-muted rounded-lg">
-            <div className="text-center">
-              <div className="text-muted-foreground mb-2">Chart Visualization</div>
-              <div className="text-sm text-muted-foreground">
-                Performance chart will be integrated with Recharts library
-              </div>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
+      {/* Performance Chart */}
+      <PerformanceChart
+        scope="community"
+        title="Performance Over Time"
+        description="Daily P&L and cumulative returns"
+      />
 
       {/* Key Metrics */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
