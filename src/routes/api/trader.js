@@ -601,56 +601,132 @@ router.get('/analytics/performance', analyticsLimiter, async (req, res) => {
 
 /**
  * PUT /api/trader/risk-profile
- * Update trader's risk management settings
+ * Update trader's risk management settings with validation
  *
  * Body:
- * - positionSizingMode: 'percentage' or 'fixed'
- * - positionSize: Position size value
- * - defaultStopLoss: Default stop loss (percentage)
- * - defaultTakeProfit: Default take profit (percentage)
- * - maxDailyLoss: Maximum daily loss limit
- * - maxPositionSize: Maximum position size limit
+ * - positionSizingMethod: 'fixed' | 'risk_based' | 'kelly'
+ * - maxPositionSize: Max position size (0.005-0.1, default 0.02)
+ * - defaultStopLoss: Default stop loss percentage (0.01-0.1, default 0.02)
+ * - defaultTakeProfit: Default take profit percentage (0.02-0.2, default 0.04)
+ * - maxDailyLoss: Maximum daily loss limit (0.02-0.2, default 0.05)
+ * - maxOpenPositions: Maximum open positions (1-10, default 3)
+ * - useTrailingStop: Enable trailing stop (boolean)
+ * - trailingStopPercent: Trailing stop percentage (default 0.015)
+ *
+ * Constitution Compliance:
+ * - Principle I: User-specific update (no tenant scoping needed)
+ * - Principle V: Rate limiting applied (dashboardLimiter)
+ *
+ * Rate Limit: 100 requests/minute
  */
-router.put('/risk-profile', async (req, res) => {
+router.put('/risk-profile', dashboardLimiter, async (req, res) => {
   try {
-    const user = req.user;
+    const userId = req.user._id;
     const {
-      positionSizingMode,
-      positionSize,
+      positionSizingMethod,
+      maxPositionSize,
       defaultStopLoss,
       defaultTakeProfit,
       maxDailyLoss,
-      maxPositionSize
+      maxOpenPositions,
+      useTrailingStop,
+      trailingStopPercent
     } = req.body;
 
-    // TODO: Update user's trading config in database
-    // await User.findByIdAndUpdate(user._id, {
-    //   'tradingConfig.riskManagement': {
-    //     positionSizingMode,
-    //     positionSize,
-    //     defaultStopLoss,
-    //     defaultTakeProfit,
-    //     maxDailyLoss,
-    //     maxPositionSize
-    //   }
-    // });
+    // Import models
+    const User = require('../../models/User');
 
-    console.log(`[Trader API] Risk profile updated for user ${user._id}`);
+    // Validation helper
+    const validateRange = (value, min, max, name) => {
+      if (value !== undefined && (value < min || value > max)) {
+        throw new Error(`${name} must be between ${min} and ${max}`);
+      }
+    };
+
+    // Validate inputs
+    if (positionSizingMethod && !['fixed', 'risk_based', 'kelly'].includes(positionSizingMethod)) {
+      return res.status(400).json({
+        error: 'Invalid positionSizingMethod. Must be: fixed, risk_based, or kelly'
+      });
+    }
+
+    try {
+      validateRange(maxPositionSize, 0.005, 0.1, 'maxPositionSize');
+      validateRange(defaultStopLoss, 0.01, 0.1, 'defaultStopLoss');
+      validateRange(defaultTakeProfit, 0.02, 0.2, 'defaultTakeProfit');
+      validateRange(maxDailyLoss, 0.02, 0.2, 'maxDailyLoss');
+      validateRange(trailingStopPercent, 0.005, 0.05, 'trailingStopPercent');
+
+      if (maxOpenPositions !== undefined && (maxOpenPositions < 1 || maxOpenPositions > 10)) {
+        throw new Error('maxOpenPositions must be between 1 and 10');
+      }
+    } catch (validationError) {
+      return res.status(400).json({ error: validationError.message });
+    }
+
+    // Get current user with full tradingConfig
+    const currentUser = await User.findById(userId);
+    if (!currentUser) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+
+    // Build update object (only update provided fields)
+    const updates = {};
+
+    if (positionSizingMethod !== undefined) {
+      updates['tradingConfig.riskManagement.positionSizingMethod'] = positionSizingMethod;
+    }
+    if (maxPositionSize !== undefined) {
+      updates['tradingConfig.riskManagement.maxPositionSize'] = maxPositionSize;
+    }
+    if (defaultStopLoss !== undefined) {
+      updates['tradingConfig.riskManagement.defaultStopLoss'] = defaultStopLoss;
+    }
+    if (defaultTakeProfit !== undefined) {
+      updates['tradingConfig.riskManagement.defaultTakeProfit'] = defaultTakeProfit;
+    }
+    if (maxDailyLoss !== undefined) {
+      updates['tradingConfig.riskManagement.maxDailyLoss'] = maxDailyLoss;
+    }
+    if (maxOpenPositions !== undefined) {
+      updates['tradingConfig.riskManagement.maxOpenPositions'] = maxOpenPositions;
+    }
+    if (useTrailingStop !== undefined) {
+      updates['tradingConfig.riskManagement.useTrailingStop'] = useTrailingStop;
+    }
+    if (trailingStopPercent !== undefined) {
+      updates['tradingConfig.riskManagement.trailingStopPercent'] = trailingStopPercent;
+    }
+
+    // Update user's risk management config
+    await User.findByIdAndUpdate(userId, { $set: updates }, { new: true, runValidators: true });
+
+    // Fetch updated config for response
+    const updatedUser = await User.findById(userId)
+      .select('tradingConfig.riskManagement')
+      .lean();
+
+    console.log(
+      `[Trader API] Risk profile updated for user ${req.user.discordUsername} (${userId})`
+    );
 
     res.json({
       success: true,
       message: 'Risk profile updated successfully',
-      riskProfile: {
-        positionSizingMode,
-        positionSize,
-        defaultStopLoss,
-        defaultTakeProfit,
-        maxDailyLoss,
-        maxPositionSize
-      }
+      riskProfile: updatedUser.tradingConfig.riskManagement
     });
   } catch (error) {
     console.error('[Trader API] Error updating risk profile:', error);
+
+    // Handle Mongoose validation errors
+    if (error.name === 'ValidationError') {
+      const errors = Object.values(error.errors).map(e => e.message);
+      return res.status(400).json({
+        error: 'Validation failed',
+        details: errors
+      });
+    }
+
     res.status(500).json({ error: 'Failed to update risk profile' });
   }
 });

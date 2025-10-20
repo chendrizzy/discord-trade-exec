@@ -29,7 +29,7 @@ const userSchema = new mongoose.Schema(
     // Community role (for multi-tenant access control)
     communityRole: {
       type: String,
-      enum: ['admin', 'trader', 'viewer'],
+      enum: ['admin', 'moderator', 'trader', 'viewer'],
       default: 'trader'
     },
 

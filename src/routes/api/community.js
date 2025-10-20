@@ -330,45 +330,122 @@ router.get('/members', dashboardLimiter, async (req, res) => {
 
 /**
  * POST /api/community/members/:id/role
- * Update member's community role
+ * Update member's community role with SecurityAudit logging
  *
  * Body:
- * - role: New community role (admin, trader, viewer)
+ * - role: New community role (admin, moderator, trader, viewer)
+ *
+ * Constitution Compliance:
+ * - Principle I: Tenant-scoped query (communityId)
+ * - Principle III: SecurityAudit logging for role changes (HIGH risk)
+ *
+ * Rate Limit: 20 requests/minute (sensitive operation)
  */
-router.post('/members/:id/role', async (req, res) => {
+router.post('/members/:id/role', dashboardLimiter, async (req, res) => {
   try {
-    const { id } = req.params;
-    const { role } = req.body;
+    const { id: targetUserId } = req.params;
+    const { role: newRole } = req.body;
+    const user = req.user;
+    const tenantId = user.communityId; // Constitution Principle I: MUST include tenant scoping
+
+    // Import models
+    const User = require('../../models/User');
+    const SecurityAudit = require('../../models/SecurityAudit');
 
     // Validate role
-    const validRoles = ['admin', 'trader', 'viewer'];
-    if (!validRoles.includes(role)) {
-      return res.status(400).json({ error: `Invalid role. Must be one of: ${validRoles.join(', ')}` });
+    const validRoles = ['admin', 'moderator', 'trader', 'viewer'];
+    if (!validRoles.includes(newRole)) {
+      return res.status(400).json({
+        error: `Invalid role. Must be one of: ${validRoles.join(', ')}`
+      });
     }
 
-    // TODO: Update user role in database
-    // const user = await User.findOne({ _id: id, tenantId: req.user.tenantId });
-    // if (!user) return res.status(404).json({ error: 'Member not found' });
-    // user.communityRole = role;
-    // await user.save();
+    // Get target user (tenant-scoped)
+    const targetUser = await User.findOne({
+      _id: targetUserId,
+      communityId: tenantId
+    });
 
-    // TODO: Create security audit log
-    // await SecurityAudit.create({
-    //   tenantId: req.user.tenantId,
-    //   userId: req.user._id,
-    //   action: 'role_change',
-    //   targetUserId: id,
-    //   details: { oldRole: user.communityRole, newRole: role }
-    // });
+    if (!targetUser) {
+      // Log unauthorized attempt (Constitution Principle III)
+      await SecurityAudit.log({
+        communityId: tenantId,
+        userId: user._id,
+        userRole: user.communityRole,
+        username: user.discordUsername,
+        action: 'security.unauthorized_access',
+        resourceType: 'User',
+        resourceId: targetUserId,
+        operation: 'UPDATE',
+        status: 'blocked',
+        statusCode: 404,
+        ipAddress: req.ip || 'unknown',
+        userAgent: req.get('user-agent'),
+        endpoint: req.path,
+        httpMethod: req.method,
+        errorMessage: 'Target user not found in community',
+        riskLevel: 'high',
+        requiresReview: true
+      });
 
-    console.log(`[Community API] Role changed: User ${id} → ${role} (by ${req.user.username})`);
+      return res.status(404).json({ error: 'Member not found in this community' });
+    }
+
+    const oldRole = targetUser.communityRole;
+
+    // No change needed
+    if (oldRole === newRole) {
+      return res.json({
+        success: true,
+        message: 'Member already has this role',
+        member: {
+          id: targetUser._id.toString(),
+          username: targetUser.discordUsername,
+          role: newRole
+        }
+      });
+    }
+
+    // Update role
+    targetUser.communityRole = newRole;
+    await targetUser.save();
+
+    // Log role change to SecurityAudit (Constitution Principle III)
+    await SecurityAudit.log({
+      communityId: tenantId,
+      userId: user._id,
+      userRole: user.communityRole,
+      username: user.discordUsername,
+      action: 'user.role_change',
+      resourceType: 'User',
+      resourceId: targetUser._id,
+      operation: 'UPDATE',
+      status: 'success',
+      statusCode: 200,
+      ipAddress: req.ip || 'unknown',
+      userAgent: req.get('user-agent'),
+      endpoint: req.path,
+      httpMethod: req.method,
+      dataBefore: { communityRole: oldRole },
+      dataAfter: { communityRole: newRole },
+      changes: [`communityRole: ${oldRole} → ${newRole}`],
+      riskLevel: 'high',
+      requiresReview: true
+    });
+
+    console.log(
+      `[Community API] Role changed: User ${targetUser.discordUsername} (${targetUserId}) ` +
+      `from '${oldRole}' to '${newRole}' by ${user.discordUsername}`
+    );
 
     res.json({
       success: true,
       message: 'Member role updated successfully',
       member: {
-        id,
-        role
+        id: targetUser._id.toString(),
+        username: targetUser.discordUsername,
+        role: newRole,
+        previousRole: oldRole
       }
     });
   } catch (error) {
