@@ -10,7 +10,7 @@ const router = express.Router();
 const requireTrader = require('../../middleware/requireTrader');
 const { overviewLimiter, analyticsLimiter, tradesLimiter, dashboardLimiter } = require('../../middleware/rateLimiter');
 const redis = require('../../services/redis');
-const polar = require('../../services/polar');
+const BillingProviderFactory = require('../../services/billing/BillingProviderFactory');
 
 // Apply trader authorization to all routes
 router.use(requireTrader);
@@ -796,7 +796,8 @@ router.get('/subscription', dashboardLimiter, async (req, res) => {
       });
     }
 
-    const subscription = await polar.getUserSubscription(customerId);
+    const billingProvider = BillingProviderFactory.createProvider();
+    const subscription = await billingProvider.getSubscription(customerId);
 
     res.json(subscription);
   } catch (error) {

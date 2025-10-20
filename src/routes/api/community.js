@@ -696,7 +696,8 @@ router.get('/subscription', dashboardLimiter, async (req, res) => {
     const User = require('../../models/User');
     const Signal = require('../../models/Signal');
     const SignalProvider = require('../../models/SignalProvider');
-    const polar = require('../../services/polar');
+    const BillingProviderFactory = require('../../services/billing/BillingProviderFactory');
+    const billingProvider = BillingProviderFactory.createProvider();
 
     // Get community from database
     const community = await Community.findById(tenantId);
@@ -733,8 +734,8 @@ router.get('/subscription', dashboardLimiter, async (req, res) => {
       });
     }
 
-    // Get subscription from Polar.sh
-    const polarSubscription = await polar.getCommunitySubscription(
+    // Get subscription from billing provider
+    const polarSubscription = await billingProvider.getSubscription(
       community.subscription.polarCustomerId
     );
 
@@ -766,7 +767,7 @@ router.get('/subscription', dashboardLimiter, async (req, res) => {
     let billingPortalUrl = null;
 
     try {
-      const portalSession = await polar.createCustomerPortalSession(
+      const portalSession = await billingProvider.createCustomerPortalSession(
         community.subscription.polarCustomerId,
         `${portalUrl}/dashboard/community/subscription`
       );

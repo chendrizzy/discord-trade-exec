@@ -18,7 +18,7 @@
 
 const express = require('express');
 const router = express.Router();
-const polar = require('../../services/polar');
+const BillingProviderFactory = require('../../services/billing/BillingProviderFactory');
 const Community = require('../../models/Community');
 const User = require('../../models/User');
 const SecurityAudit = require('../../models/SecurityAudit');
@@ -29,6 +29,9 @@ const SecurityAudit = require('../../models/SecurityAudit');
  */
 router.post('/', express.raw({ type: 'application/json' }), async (req, res) => {
   try {
+    // Create billing provider instance
+    const billingProvider = BillingProviderFactory.createProvider();
+
     // Get signature from headers
     const signature = req.headers['polar-signature'] || req.headers['x-polar-signature'];
     const webhookSecret = process.env.POLAR_WEBHOOK_SECRET;
@@ -40,7 +43,7 @@ router.post('/', express.raw({ type: 'application/json' }), async (req, res) => 
 
     // Verify webhook signature
     const rawBody = req.body.toString('utf8');
-    const isValid = polar.verifyWebhookSignature(rawBody, signature, webhookSecret);
+    const isValid = billingProvider.verifyWebhookSignature(rawBody, signature, webhookSecret);
 
     if (!isValid) {
       console.error('[Polar Webhook] Invalid signature');
@@ -103,7 +106,7 @@ async function handleSubscriptionCreated(event, req) {
   const { customerId, id: subscriptionId, productId, status } = event.data;
 
   // Get product details to determine subscription type
-  const product = await polar.getProduct(productId);
+  const product = await billingProvider.getProduct(productId);
   const subscriptionType = product.metadata?.type; // 'community' or 'trader'
   const tier = product.metadata?.tier; // 'professional' or 'enterprise'
 
@@ -211,7 +214,7 @@ async function handleSubscriptionUpdated(event, req) {
   const { customerId, id: subscriptionId, productId, status } = event.data;
 
   // Get product details to determine subscription type
-  const product = await polar.getProduct(productId);
+  const product = await billingProvider.getProduct(productId);
   const subscriptionType = product.metadata?.type;
   const tier = product.metadata?.tier;
 
@@ -399,7 +402,7 @@ async function handleCheckoutCompleted(event, req) {
   const { customerId, productId, metadata } = event.data;
 
   // Get product details
-  const product = await polar.getProduct(productId);
+  const product = await billingProvider.getProduct(productId);
   const subscriptionType = product.metadata?.type;
   const tier = product.metadata?.tier;
 
