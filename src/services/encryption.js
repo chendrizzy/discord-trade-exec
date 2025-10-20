@@ -36,6 +36,30 @@ const { KMSClient, EncryptCommand, DecryptCommand, GenerateDataKeyCommand } = re
  */
 class EncryptionService {
   constructor() {
+    // 🚨 SECURITY: AWS KMS Credential Validation (P0)
+    // Required for production-grade encryption at rest
+    const requiredEnvVars = [
+      'AWS_REGION',
+      'AWS_ACCESS_KEY_ID',
+      'AWS_SECRET_ACCESS_KEY',
+      'AWS_KMS_CMK_ID'
+    ];
+
+    const missing = requiredEnvVars.filter(v => !process.env[v]);
+
+    if (missing.length > 0) {
+      const errorMsg = `CRITICAL: Missing AWS KMS environment variables: ${missing.join(', ')}`;
+
+      if (process.env.NODE_ENV === 'production') {
+        // FAIL FAST in production - encryption required
+        throw new Error(errorMsg + ' - Production deployment requires AWS KMS encryption');
+      } else {
+        // WARN in development - allow local testing with fallback encryption
+        console.warn(`[EncryptionService] WARNING: ${errorMsg}`);
+        console.warn('[EncryptionService] Using fallback local encryption (NOT suitable for production)');
+      }
+    }
+
     // Initialize AWS KMS client
     this.kms = new KMSClient({
       region: process.env.AWS_REGION || 'us-east-1',
