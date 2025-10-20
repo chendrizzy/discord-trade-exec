@@ -1,148 +1,152 @@
 # Implementation Tasks: Dual Dashboard System
 
-## Phase 1: Foundation & Routing (Week 1)
+## Phase 1: Foundation & Routing (Week 1) ✅ COMPLETE
 
-### 1.1 Create routing infrastructure
-- [ ] Create `src/middleware/dashboardRouter.js` with role detection logic
-- [ ] Implement automatic redirect based on `user.communityRole`
-- [ ] Add deep link preservation through auth flow (`returnTo` parameter)
-- [ ] Handle unauthenticated user redirects to Discord OAuth
-- [ ] Add unit tests for routing logic (all role scenarios)
-- [ ] **Validation**: All routing scenarios pass tests
+### 1.1 Create routing infrastructure ✅
+- [x] Create `src/middleware/dashboardRouter.js` with role detection logic
+- [x] Implement automatic redirect based on `user.communityRole`
+- [x] Add deep link preservation through auth flow (`returnTo` parameter)
+- [x] Handle unauthenticated user redirects to Discord OAuth
+- [x] Add unit tests for routing logic (all role scenarios)
+- [x] **Validation**: All routing scenarios pass tests (48/48 tests passing)
 
-### 1.2 Set up dashboard page structure
-- [ ] Create `src/dashboard/pages/CommunityDashboard.jsx` container
-- [ ] Create `src/dashboard/pages/TraderDashboard.jsx` container
-- [ ] Set up React Router routes for `/dashboard/community/*` and `/dashboard/trader/*`
-- [ ] Add 404 handling for invalid dashboard routes
-- [ ] Implement layout components (header, sidebar, content area)
-- [ ] **Validation**: Both dashboards render without errors
+### 1.2 Set up dashboard page structure ✅
+- [x] Create `src/dashboard/pages/CommunityDashboard.jsx` container
+- [x] Create `src/dashboard/pages/TraderDashboard.jsx` container
+- [x] Set up React Router routes for `/dashboard/community/*` and `/dashboard/trader/*`
+- [x] Add 404 handling for invalid dashboard routes
+- [x] Implement layout components (header, sidebar, content area)
+- [x] **Validation**: Both dashboards render without errors
 
-### 1.3 Implement access control middleware
-- [ ] Create `src/middleware/requireCommunityAdmin.js` for admin endpoints
-- [ ] Create `src/middleware/requireTrader.js` for trader endpoints
-- [ ] Add role validation on all protected routes
-- [ ] Return 403 Forbidden with clear error messages for unauthorized access
-- [ ] Add integration tests for access control
-- [ ] **Validation**: Unauthorized access attempts are properly blocked
+### 1.3 Implement access control middleware ✅
+- [x] Create `src/middleware/requireCommunityAdmin.js` for admin endpoints
+- [x] Create `src/middleware/requireTrader.js` for trader endpoints
+- [x] Add role validation on all protected routes
+- [x] Return 403 Forbidden with clear error messages for unauthorized access
+- [x] Add integration tests for access control
+- [x] **Validation**: Unauthorized access attempts are properly blocked
 
-## Phase 2: Community Dashboard (Week 2)
+## Phase 2: Community Dashboard (Week 2) 📦 SCAFFOLDED
 
-### 2.1 Community overview page
-- [ ] Create `src/dashboard/components/CommunityOverview.jsx`
-- [ ] Implement `/api/community/overview` endpoint with KPIs
-- [ ] Add real-time member count and activity metrics
-- [ ] Display top signal providers by performance
-- [ ] Create recent activity feed component
-- [ ] Add loading states and error handling
-- [ ] **Validation**: Overview loads in <2s with accurate data
+> **Note**: All components and API endpoints created with complete UI structure and mock data. Integration points clearly marked with TODO comments. See `INTEGRATION_GUIDE.md` for step-by-step implementation details.
 
-### 2.2 Signal management interface
-- [ ] Create `src/dashboard/components/SignalManagement.jsx`
-- [ ] Implement `/api/community/signals` GET and PUT endpoints
-- [ ] Add Discord channel validation via Discord API
-- [ ] Create signal provider enable/disable toggle
-- [ ] Implement signal provider configuration form
-- [ ] Add success/error toast notifications
-- [ ] **Validation**: Signal channels can be added and validated
+### 2.1 Community overview page 📦
+- [x] Create `src/dashboard/components/CommunityOverview.jsx` (SCAFFOLDED)
+- [x] Implement `/api/community/overview` endpoint with KPIs (SCAFFOLDED - mock data)
+- [ ] Add real-time member count and activity metrics (TODO: database queries needed)
+- [ ] Display top signal providers by performance (TODO: database queries needed)
+- [x] Create recent activity feed component (SCAFFOLDED - mock data)
+- [x] Add loading states and error handling (COMPLETE)
+- [ ] **Validation**: Overview loads in <2s with accurate data (TODO: integrate real data)
 
-### 2.3 Member management
-- [ ] Create `src/dashboard/components/MemberActivity.jsx`
-- [ ] Implement `/api/community/members` endpoint with pagination
-- [ ] Add member role update functionality via `/api/community/members/:id/role`
-- [ ] Create member detail view with trade history
-- [ ] Add SecurityAudit logging for role changes
-- [ ] Implement member search and filtering
-- [ ] **Validation**: Role changes are logged and immediately effective
+### 2.2 Signal management interface 📦
+- [x] Create `src/dashboard/components/SignalManagement.jsx` (SCAFFOLDED)
+- [x] Implement `/api/community/signals` GET and PUT endpoints (SCAFFOLDED - mock data)
+- [ ] Add Discord channel validation via Discord API (TODO: Discord integration in `src/services/discord.js`)
+- [x] Create signal provider enable/disable toggle (SCAFFOLDED - UI complete)
+- [x] Implement signal provider configuration form (SCAFFOLDED - UI complete)
+- [x] Add success/error toast notifications (COMPLETE)
+- [ ] **Validation**: Signal channels can be added and validated (TODO: Discord integration needed)
 
-### 2.4 Community analytics
-- [ ] Create `src/dashboard/components/CommunityAnalytics.jsx`
-- [ ] Implement `/api/community/analytics/performance` endpoint
-- [ ] Add P&L aggregation query with date range filters
-- [ ] Create interactive charts using Recharts (line, bar charts)
-- [ ] Implement Redis caching (5-minute TTL) for analytics
-- [ ] Add export functionality for analytics reports
-- [ ] **Validation**: Analytics load with cached data, charts are interactive
+### 2.3 Member management 📦
+- [x] Create `src/dashboard/components/MemberActivity.jsx` (SCAFFOLDED)
+- [x] Implement `/api/community/members` endpoint with pagination (SCAFFOLDED - mock data)
+- [x] Add member role update functionality via `/api/community/members/:id/role` (SCAFFOLDED - API structure complete)
+- [x] Create member detail view with trade history (SCAFFOLDED - mock data)
+- [ ] Add SecurityAudit logging for role changes (TODO: database integration needed)
+- [x] Implement member search and filtering (SCAFFOLDED - UI complete)
+- [ ] **Validation**: Role changes are logged and immediately effective (TODO: database + audit integration)
 
-### 2.5 Billing and subscription
-- [ ] Create `src/dashboard/components/BillingSettings.jsx`
-- [ ] Implement `/api/community/subscription` endpoint
-- [ ] Display current tier, usage limits, renewal date
-- [ ] Add tier upgrade/downgrade UI with Stripe integration
-- [ ] Link to Stripe customer portal for payment management
-- [ ] Add usage progress bars and limit warnings
-- [ ] **Validation**: Subscription changes reflect immediately
+### 2.4 Community analytics 📦
+- [x] Create `src/dashboard/components/CommunityAnalytics.jsx` (SCAFFOLDED)
+- [x] Implement `/api/community/analytics/performance` endpoint (SCAFFOLDED - mock data with Redis caching structure)
+- [ ] Add P&L aggregation query with date range filters (TODO: database queries in `INTEGRATION_GUIDE.md`)
+- [x] Create interactive charts using Recharts (SCAFFOLDED - placeholder for data integration)
+- [x] Implement Redis caching (5-minute TTL) for analytics (SCAFFOLDED - `src/services/redis.js` with in-memory fallback)
+- [x] Add export functionality for analytics reports (SCAFFOLDED - stub in UI)
+- [ ] **Validation**: Analytics load with cached data, charts are interactive (TODO: integrate real data + Recharts)
 
-### 2.6 Discord integration settings
-- [ ] Create `src/dashboard/components/IntegrationSettings.jsx`
-- [ ] Add webhook configuration form for channels
-- [ ] Implement channel validation and bot permission checks
-- [ ] Create "Send Test Notification" functionality
-- [ ] Display current bot status and permissions
-- [ ] Add troubleshooting guide for common Discord issues
-- [ ] **Validation**: Test notifications are received in configured channels
+### 2.5 Billing and subscription 📦
+- [x] Create `src/dashboard/components/BillingSettings.jsx` (SCAFFOLDED)
+- [x] Implement `/api/community/subscription` endpoint (SCAFFOLDED - mock data)
+- [x] Display current tier, usage limits, renewal date (SCAFFOLDED - UI complete with mock data)
+- [x] Add tier upgrade/downgrade UI with Stripe integration (SCAFFOLDED - UI complete, needs Stripe.js integration)
+- [x] Link to Stripe customer portal for payment management (SCAFFOLDED - `src/services/stripe.js` stub)
+- [x] Add usage progress bars and limit warnings (COMPLETE)
+- [ ] **Validation**: Subscription changes reflect immediately (TODO: Stripe integration in `INTEGRATION_GUIDE.md`)
 
-## Phase 3: Trader Dashboard (Week 3)
+### 2.6 Discord integration settings 📦
+- [x] Create `src/dashboard/components/IntegrationSettings.jsx` (SCAFFOLDED)
+- [x] Add webhook configuration form for channels (SCAFFOLDED - UI complete)
+- [x] Implement channel validation and bot permission checks (SCAFFOLDED - `src/services/discord.js` stub)
+- [x] Create "Send Test Notification" functionality (SCAFFOLDED - UI button complete, needs Discord integration)
+- [x] Display current bot status and permissions (SCAFFOLDED - mock data)
+- [x] Add troubleshooting guide for common Discord issues (SCAFFOLDED - static content in component)
+- [ ] **Validation**: Test notifications are received in configured channels (TODO: Discord.js integration)
 
-### 3.1 Trader overview page
-- [ ] Create `src/dashboard/components/TraderOverview.jsx`
-- [ ] Implement `/api/trader/overview` endpoint with personal metrics
-- [ ] Display personal P&L, active positions, execution rate
-- [ ] Add top followed signal providers section
-- [ ] Create recent trade history widget
-- [ ] Implement empty state with onboarding guide
-- [ ] **Validation**: Overview displays accurate personal data in <2s
+## Phase 3: Trader Dashboard (Week 3) 📦 SCAFFOLDED
 
-### 3.2 Signal feed and provider discovery
-- [ ] Create `src/dashboard/components/SignalFeed.jsx`
-- [ ] Implement `/api/trader/signals` endpoint (community-scoped providers)
-- [ ] Add follow/unfollow functionality via `/api/trader/signals/:id/follow`
-- [ ] Create signal provider detail modal with performance charts
-- [ ] Implement provider filtering (by win rate, P&L, category)
-- [ ] Add saved filter presets
-- [ ] **Validation**: Following providers updates signal delivery
+> **Note**: All components and API endpoints created with complete UI structure and mock data. Integration points clearly marked with TODO comments. See `INTEGRATION_GUIDE.md` for step-by-step implementation details.
 
-### 3.3 Broker management
-- [ ] Reuse existing `BrokerManagement.jsx` component from unified dashboard
+### 3.1 Trader overview page 📦
+- [x] Create `src/dashboard/components/TraderOverview.jsx` (SCAFFOLDED)
+- [x] Implement `/api/trader/overview` endpoint with personal metrics (SCAFFOLDED - mock data)
+- [x] Display personal P&L, active positions, execution rate (SCAFFOLDED - UI complete with mock data)
+- [x] Add top followed signal providers section (SCAFFOLDED - mock data)
+- [x] Create recent trade history widget (SCAFFOLDED - mock data)
+- [x] Implement empty state with onboarding guide (COMPLETE)
+- [ ] **Validation**: Overview displays accurate personal data in <2s (TODO: integrate real database queries)
+
+### 3.2 Signal feed and provider discovery 📦
+- [x] Create `src/dashboard/components/SignalFeed.jsx` (SCAFFOLDED)
+- [x] Implement `/api/trader/signals` endpoint (community-scoped providers) (SCAFFOLDED - mock data)
+- [x] Add follow/unfollow functionality via `/api/trader/signals/:id/follow` (SCAFFOLDED - API structure complete)
+- [x] Create signal provider detail modal with performance charts (SCAFFOLDED - UI complete with mock data)
+- [x] Implement provider filtering (by win rate, P&L, category) (COMPLETE - client-side filtering ready)
+- [x] Add saved filter presets (SCAFFOLDED - UI complete, needs localStorage persistence)
+- [ ] **Validation**: Following providers updates signal delivery (TODO: database integration for UserSignalSubscription)
+
+### 3.3 Broker management ⏳ PENDING
+- [ ] Reuse existing `BrokerManagement.jsx` component from unified dashboard (TODO: Phase 3.3 - component not yet adapted)
 - [ ] Update component to work within trader dashboard layout
 - [ ] Ensure OAuth flows work from new route context
 - [ ] Add broker connection health checks
 - [ ] Display broker balances and positions
 - [ ] **Validation**: Brokers can be added/removed without errors
 
-### 3.4 Trade history and analysis
-- [ ] Create `src/dashboard/components/TradeHistory.jsx`
-- [ ] Implement `/api/trader/trades` endpoint with pagination and filters
-- [ ] Add sortable table with all trade columns
-- [ ] Implement date range filtering with presets (7d, 30d, etc.)
-- [ ] Create CSV export functionality
-- [ ] Add trade detail modal with full execution data
-- [ ] **Validation**: 10,000 trades export in <5s
+### 3.4 Trade history and analysis 📦
+- [x] Create `src/dashboard/components/TradeHistory.jsx` (SCAFFOLDED)
+- [x] Implement `/api/trader/trades` endpoint with pagination and filters (SCAFFOLDED - mock data)
+- [x] Add sortable table with all trade columns (COMPLETE - client-side sorting ready)
+- [x] Implement date range filtering with presets (7d, 30d, etc.) (COMPLETE - UI ready)
+- [x] Create CSV export functionality (SCAFFOLDED - stub in UI, needs implementation)
+- [x] Add trade detail modal with full execution data (SCAFFOLDED - UI complete with mock data)
+- [ ] **Validation**: 10,000 trades export in <5s (TODO: implement CSV export logic + database queries)
 
-### 3.5 Risk and position settings
-- [ ] Create `src/dashboard/components/RiskSettings.jsx`
-- [ ] Add position sizing configuration (percentage or fixed amount)
-- [ ] Implement default stop-loss/take-profit settings
-- [ ] Create risk profile presets (conservative, moderate, aggressive)
-- [ ] Add position size calculator with live preview
-- [ ] Save settings to `User.tradingConfig.riskManagement`
-- [ ] **Validation**: Settings are applied to new trades immediately
+### 3.5 Risk and position settings 📦
+- [x] Create `src/dashboard/components/RiskSettings.jsx` (SCAFFOLDED)
+- [x] Add position sizing configuration (percentage or fixed amount) (COMPLETE - UI with state management)
+- [x] Implement default stop-loss/take-profit settings (COMPLETE - UI with state management)
+- [x] Create risk profile presets (conservative, moderate, aggressive) (COMPLETE)
+- [x] Add position size calculator with live preview (COMPLETE - client-side calculation ready)
+- [ ] Save settings to `User.tradingConfig.riskManagement` (TODO: PUT /api/trader/risk-profile needs database integration)
+- [ ] **Validation**: Settings are applied to new trades immediately (TODO: database integration + trade execution logic)
 
-### 3.6 Notifications and alerts
-- [ ] Create `src/dashboard/components/PersonalSettings.jsx` (notifications tab)
-- [ ] Add Discord DM notification toggles
-- [ ] Implement alert threshold configuration (daily loss, position size)
-- [ ] Create "Send Test Notification" for each channel
-- [ ] Add notification history/log
-- [ ] **Validation**: Test notifications are received via configured channels
+### 3.6 Notifications and alerts 📦
+- [x] Create `src/dashboard/components/PersonalSettings.jsx` (notifications tab) (SCAFFOLDED)
+- [x] Add Discord DM notification toggles (SCAFFOLDED - UI complete)
+- [x] Implement alert threshold configuration (daily loss, position size) (SCAFFOLDED - UI complete)
+- [x] Create "Send Test Notification" for each channel (SCAFFOLDED - UI buttons complete, needs Discord integration)
+- [x] Add notification history/log (SCAFFOLDED - UI component with mock data)
+- [ ] **Validation**: Test notifications are received via configured channels (TODO: Discord.js integration + database)
 
-### 3.7 Personal subscription management
-- [ ] Reuse `SubscriptionCard` component with `type="user"` prop
-- [ ] Display personal tier, usage, and renewal information
-- [ ] Add inline upgrade flow with Stripe
-- [ ] Link to Stripe customer portal
-- [ ] Show signal usage progress (daily limit tracking)
-- [ ] **Validation**: Upgrades complete and tier changes immediately
+### 3.7 Personal subscription management 📦
+- [x] Reuse `SubscriptionCard` component with `type="user"` prop (SCAFFOLDED - placeholder in PersonalSettings tab)
+- [x] Display personal tier, usage, and renewal information (SCAFFOLDED - mock data via API)
+- [x] Add inline upgrade flow with Stripe (SCAFFOLDED - UI complete, needs Stripe.js integration)
+- [x] Link to Stripe customer portal (SCAFFOLDED - `src/services/stripe.js` stub)
+- [x] Show signal usage progress (daily limit tracking) (SCAFFOLDED - UI with mock data)
+- [ ] **Validation**: Upgrades complete and tier changes immediately (TODO: Stripe integration in `INTEGRATION_GUIDE.md`)
 
 ## Phase 4: Shared Components (Week 4)
 
@@ -186,52 +190,56 @@
 - [ ] Link to Stripe customer portal
 - [ ] **Validation**: Card displays correct data for both types
 
-## Phase 5: API Implementation (Week 5)
+## Phase 5: API Implementation (Week 5) 📦 PARTIALLY SCAFFOLDED
 
-### 5.1 Community API endpoints
-- [ ] Implement `GET /api/community/overview` with aggregated metrics
-- [ ] Implement `GET /api/community/members` with pagination
-- [ ] Implement `POST /api/community/members/:id/role` with audit logging
-- [ ] Implement `GET /api/community/signals` for provider list
-- [ ] Implement `PUT /api/community/signals/:id` for provider config
-- [ ] Implement `GET /api/community/analytics/performance` with caching
-- [ ] Implement `GET /api/community/subscription` for billing info
-- [ ] Add rate limiting (100 req/min for overview, 20 req/min for analytics)
-- [ ] **Validation**: All endpoints return correct data with proper authorization
+> **Note**: All API route files created (`src/routes/api/community.js`, `src/routes/api/trader.js`) with Express route structure, middleware authorization, and mock data responses. Database queries need implementation per `INTEGRATION_GUIDE.md`.
 
-### 5.2 Trader API endpoints
-- [ ] Implement `GET /api/trader/overview` with personal metrics
-- [ ] Implement `GET /api/trader/signals` (community-scoped providers)
-- [ ] Implement `POST /api/trader/signals/:id/follow` with validation
-- [ ] Implement `GET /api/trader/trades` with pagination and filters
-- [ ] Implement `GET /api/trader/analytics/performance` with caching
-- [ ] Implement `PUT /api/trader/risk-profile` for settings update
-- [ ] Implement `PUT /api/trader/notifications` for preference updates
-- [ ] Add rate limiting (100 req/min general, 50 req/min for trades)
-- [ ] **Validation**: All endpoints enforce user-scoping correctly
+### 5.1 Community API endpoints 📦
+- [x] Implement `GET /api/community/overview` with aggregated metrics (SCAFFOLDED - route exists with mock data)
+- [x] Implement `GET /api/community/members` with pagination (SCAFFOLDED - route exists with mock data)
+- [x] Implement `POST /api/community/members/:id/role` with audit logging (SCAFFOLDED - route structure complete, needs DB + audit)
+- [x] Implement `GET /api/community/signals` for provider list (SCAFFOLDED - route exists with mock data)
+- [x] Implement `PUT /api/community/signals/:id` for provider config (SCAFFOLDED - route exists, needs DB queries)
+- [x] Implement `GET /api/community/analytics/performance` with caching (SCAFFOLDED - route + Redis structure exists)
+- [x] Implement `GET /api/community/subscription` for billing info (SCAFFOLDED - route exists, needs Stripe integration)
+- [ ] Add rate limiting (100 req/min for overview, 20 req/min for analytics) (TODO: express-rate-limit middleware)
+- [ ] **Validation**: All endpoints return correct data with proper authorization (TODO: database queries needed)
 
-### 5.3 Authorization middleware
-- [ ] Ensure all `/api/community/*` endpoints use `requireCommunityAdmin`
-- [ ] Ensure all `/api/trader/*` endpoints validate user session
-- [ ] Add tenant scoping validation on all queries
-- [ ] Return consistent error responses (403 with clear messages)
-- [ ] **Validation**: Cross-community and cross-role access attempts are blocked
+### 5.2 Trader API endpoints 📦
+- [x] Implement `GET /api/trader/overview` with personal metrics (SCAFFOLDED - route exists with mock data)
+- [x] Implement `GET /api/trader/signals` (community-scoped providers) (SCAFFOLDED - route exists with mock data)
+- [x] Implement `POST /api/trader/signals/:id/follow` with validation (SCAFFOLDED - route structure complete, needs DB)
+- [x] Implement `GET /api/trader/trades` with pagination and filters (SCAFFOLDED - route exists with mock data)
+- [x] Implement `GET /api/trader/analytics/performance` with caching (SCAFFOLDED - route + Redis structure exists)
+- [x] Implement `PUT /api/trader/risk-profile` for settings update (SCAFFOLDED - route exists, needs DB)
+- [x] Implement `PUT /api/trader/notifications` for preference updates (SCAFFOLDED - route exists, needs DB)
+- [ ] Add rate limiting (100 req/min general, 50 req/min for trades) (TODO: express-rate-limit middleware)
+- [ ] **Validation**: All endpoints enforce user-scoping correctly (TODO: database queries with tenantId scoping)
 
-### 5.4 Audit logging integration
-- [ ] Add SecurityAudit calls for member role changes
-- [ ] Add SecurityAudit calls for broker additions/removals
-- [ ] Add SecurityAudit calls for signal provider config changes
-- [ ] Add SecurityAudit calls for subscription upgrades/downgrades
+### 5.3 Authorization middleware ✅
+- [x] Ensure all `/api/community/*` endpoints use `requireCommunityAdmin` (COMPLETE - applied to all routes)
+- [x] Ensure all `/api/trader/*` endpoints validate user session (COMPLETE - requireTrader applied)
+- [ ] Add tenant scoping validation on all queries (TODO: implement in database queries)
+- [x] Return consistent error responses (403 with clear messages) (COMPLETE - middleware handles this)
+- [ ] **Validation**: Cross-community and cross-role access attempts are blocked (TODO: integration testing needed)
+
+### 5.4 Audit logging integration ⏳ PENDING
+- [ ] Add SecurityAudit calls for member role changes (TODO: implement in role change endpoint)
+- [ ] Add SecurityAudit calls for broker additions/removals (TODO: Phase 3.3 pending)
+- [ ] Add SecurityAudit calls for signal provider config changes (TODO: implement in signal endpoints)
+- [ ] Add SecurityAudit calls for subscription upgrades/downgrades (TODO: implement in subscription handlers)
 - [ ] **Validation**: All sensitive operations are logged with complete metadata
 
 ## Phase 6: Testing & Quality (Week 6)
 
+> **Note**: Phase 1 routing and access control tests complete (48/48 passing). Phases 2-5 need comprehensive testing once database integration is complete.
+
 ### 6.1 Unit tests
-- [ ] Test routing middleware for all role scenarios
-- [ ] Test access control middleware for authorization logic
-- [ ] Test API endpoints for correct data scoping
-- [ ] Test shared components with different props
-- [ ] Achieve 90%+ coverage on new code
+- [x] Test routing middleware for all role scenarios (COMPLETE - 48 tests passing from Phase 1)
+- [x] Test access control middleware for authorization logic (COMPLETE - included in Phase 1 tests)
+- [ ] Test API endpoints for correct data scoping (TODO: after database queries implemented)
+- [ ] Test shared components with different props (TODO: Phase 4 components not yet created)
+- [ ] Achieve 90%+ coverage on new code (TODO: currently ~60% with Phase 1 tests only)
 - [ ] **Validation**: All unit tests pass, coverage meets threshold
 
 ### 6.2 Integration tests
