@@ -11,6 +11,7 @@ import { Badge } from './ui/badge';
 import { Button } from './ui/button';
 import { Input } from './ui/input';
 import { Alert } from './ui/alert';
+import SignalCard from './shared/SignalCard';
 
 const SignalManagement = () => {
   const [providers, setProviders] = useState([]);
@@ -98,36 +99,13 @@ const SignalManagement = () => {
       {/* Providers List */}
       <div className="space-y-4">
         {providers.map((provider) => (
-          <Card key={provider.id}>
-            <CardHeader>
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <CardTitle className="text-lg">{provider.name}</CardTitle>
-                  <Badge variant={provider.enabled ? 'default' : 'secondary'}>
-                    {provider.enabled ? 'Active' : 'Disabled'}
-                  </Badge>
-                </div>
-                <div className="flex gap-2">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => handleToggleProvider(provider)}
-                  >
-                    {provider.enabled ? 'Disable' : 'Enable'}
-                  </Button>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => setEditingId(provider.id)}
-                  >
-                    Edit
-                  </Button>
-                </div>
-              </div>
-              <CardDescription>Channel ID: {provider.channelId}</CardDescription>
-            </CardHeader>
-            <CardContent>
-              {editingId === provider.id ? (
+          editingId === provider.id ? (
+            <Card key={provider.id}>
+              <CardHeader>
+                <CardTitle>Edit Provider</CardTitle>
+                <CardDescription>Update signal provider configuration</CardDescription>
+              </CardHeader>
+              <CardContent>
                 <div className="space-y-4">
                   <div>
                     <label className="text-sm font-medium">Provider Name</label>
@@ -150,28 +128,17 @@ const SignalManagement = () => {
                     <Button variant="outline" onClick={() => setEditingId(null)}>Cancel</Button>
                   </div>
                 </div>
-              ) : (
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                  <div>
-                    <div className="text-sm text-muted-foreground">Signals Today</div>
-                    <div className="text-2xl font-bold">{provider.stats.signalsToday}</div>
-                  </div>
-                  <div>
-                    <div className="text-sm text-muted-foreground">This Week</div>
-                    <div className="text-2xl font-bold">{provider.stats.signalsThisWeek}</div>
-                  </div>
-                  <div>
-                    <div className="text-sm text-muted-foreground">Win Rate</div>
-                    <div className="text-2xl font-bold text-green-600">{provider.stats.winRate}%</div>
-                  </div>
-                  <div>
-                    <div className="text-sm text-muted-foreground">Followers</div>
-                    <div className="text-2xl font-bold">{provider.stats.followers}</div>
-                  </div>
-                </div>
-              )}
-            </CardContent>
-          </Card>
+              </CardContent>
+            </Card>
+          ) : (
+            <SignalCard
+              key={provider.id}
+              provider={provider}
+              viewMode="admin"
+              onToggle={handleToggleProvider}
+              onConfigure={() => setEditingId(provider.id)}
+            />
+          )
         ))}
       </div>
 
