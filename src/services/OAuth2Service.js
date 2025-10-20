@@ -179,6 +179,29 @@ class OAuth2Service {
       throw new Error(`OAuth2 state validation failed: ${validation.error}`);
     }
 
+    // 🚨 SECURITY: Multi-tenant validation
+    // Ensure user can only connect brokers to their own community
+    const User = require('../models/User');
+    const user = await User.findById(validation.userId);
+
+    if (!user) {
+      throw new Error('User not found');
+    }
+
+    if (!user.tradingConfig.communityId) {
+      throw new Error('User must be associated with a community to connect brokers');
+    }
+
+    // Verify communityId hasn't changed since OAuth flow started
+    if (session.oauthState && session.oauthState.communityId) {
+      const sessionCommunityId = session.oauthState.communityId;
+      const userCommunityId = user.tradingConfig.communityId.toString();
+
+      if (sessionCommunityId !== userCommunityId) {
+        throw new Error('Community mismatch detected - possible cross-tenant attack attempt');
+      }
+    }
+
     const config = getProviderConfig(broker);
     if (!config) {
       throw new Error(`Broker '${broker}' OAuth2 configuration not found`);
