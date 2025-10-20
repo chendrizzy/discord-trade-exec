@@ -58,7 +58,7 @@ describe('WebSocket Server Load Tests', () => {
           discordUsername: `loaduser${i}`,
           isAdmin: false,
           subscription: {
-            tier: 'premium',
+            tier: 'elite',
             status: 'active'
           }
         })

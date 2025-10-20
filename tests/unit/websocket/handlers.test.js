@@ -4,7 +4,7 @@
  */
 
 // Mock logger before importing modules
-jest.mock('../../../utils/logger', () => ({
+jest.mock('../../../src/utils/logger', () => ({
   info: jest.fn(),
   error: jest.fn(),
   debug: jest.fn(),

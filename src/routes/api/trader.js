@@ -10,7 +10,7 @@ const router = express.Router();
 const requireTrader = require('../../middleware/requireTrader');
 const { overviewLimiter, analyticsLimiter, tradesLimiter, dashboardLimiter } = require('../../middleware/rateLimiter');
 const redis = require('../../services/redis');
-const stripe = require('../../services/stripe');
+const polar = require('../../services/polar');
 
 // Apply trader authorization to all routes
 router.use(requireTrader);
@@ -781,11 +781,22 @@ router.get('/subscription', dashboardLimiter, async (req, res) => {
   try {
     const user = req.user;
 
-    // TODO: Get actual Stripe customer ID from database
-    // const customerId = user.stripeCustomerId;
+    // Get Polar customer ID from user subscription
+    const customerId = user.subscription?.polarCustomerId;
 
-    const customerId = 'cus_mock_user_123';
-    const subscription = await stripe.getUserSubscription(customerId);
+    if (!customerId) {
+      // Free tier user - return free tier subscription
+      return res.json({
+        tier: 'free',
+        status: 'active',
+        limits: {
+          signalsPerDay: user.limits.signalsPerDay || 5,
+          maxBrokers: user.limits.maxBrokers || 1
+        }
+      });
+    }
+
+    const subscription = await polar.getUserSubscription(customerId);
 
     res.json(subscription);
   } catch (error) {

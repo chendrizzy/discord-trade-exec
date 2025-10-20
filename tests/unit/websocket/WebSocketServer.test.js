@@ -12,7 +12,7 @@ const WebSocketServer = require('../../../src/services/websocket/WebSocketServer
 jest.mock('socket.io');
 jest.mock('@socket.io/redis-adapter');
 jest.mock('ioredis');
-jest.mock('../../../utils/logger', () => ({
+jest.mock('../../../src/utils/logger', () => ({
   info: jest.fn(),
   error: jest.fn(),
   debug: jest.fn(),

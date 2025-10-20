@@ -1,3 +1,44 @@
+<!--
+SYNC IMPACT REPORT - Constitution v1.1.0
+===========================================
+
+VERSION CHANGE: 1.0.0 → 1.1.0 (MINOR)
+
+RATIONALE FOR MINOR BUMP:
+- Added new Principle VIII: Billing Provider Independence
+- Expanded Quality Standards to include Payment Processing Standards
+- No backward-incompatible changes to existing principles
+- Existing code complies with new principle (Polar.sh migration already complete)
+
+MODIFIED PRINCIPLES:
+- None (all existing principles unchanged)
+
+ADDED SECTIONS:
+- Principle VIII: Billing Provider Independence (NEW)
+  Establishes graceful degradation, provider abstraction, and migration protocols
+  for payment processing systems following Stripe→Polar.sh migration
+
+- Payment Processing Standards (NEW subsection under Quality Standards)
+  Codifies billing provider configuration and testing requirements
+
+REMOVED SECTIONS:
+- None
+
+TEMPLATES REQUIRING UPDATES:
+✅ .specify/templates/plan-template.md - Reviewed, no changes needed (constitution gates already generic)
+✅ .specify/templates/spec-template.md - Reviewed, no changes needed (requirements remain technology-agnostic)
+✅ .specify/templates/tasks-template.md - Reviewed, no changes needed (task organization unchanged)
+
+FOLLOW-UP TODOS:
+- None (all placeholders filled, all templates validated for consistency)
+
+DOCUMENT CHANGES:
+- Updated LAST_AMENDED_DATE to 2025-10-20
+- Incremented VERSION to 1.1.0
+- Added Principle VIII with code examples and validation requirements
+- Added Payment Processing Standards to Quality Standards section
+-->
+
 # Discord Trade Exec Constitution
 
 ## Core Principles
@@ -208,6 +249,66 @@ return result;
 
 ---
 
+### VIII. Billing Provider Independence
+
+**Payment processing MUST support provider migration without service disruption.**
+
+**Rationale**: Platform switched from Stripe to Polar.sh (October 2025) for Merchant of Record (MoR) tax compliance. This principle ensures future billing provider changes remain low-risk.
+
+**Requirements**:
+- Billing services MUST implement graceful degradation when unconfigured
+- Customer/subscription IDs MUST use provider-agnostic field names (`polarCustomerId`, not `customerId`)
+- Free tier users MUST function without any billing provider configured
+- Provider API clients MUST return mock/default data when credentials missing
+- Schema migrations MUST preserve data integrity during provider transitions
+
+**Enforcement**:
+```javascript
+// CORRECT - Graceful degradation in polar.js service
+getUserSubscription(customerId) {
+  if (!this.polar || !process.env.POLAR_ACCESS_TOKEN) {
+    console.warn('[Polar] Service not configured, returning mock subscription');
+    return {
+      tier: 'free',
+      status: 'active',
+      limits: { signalsPerDay: 5, maxBrokers: 1 }
+    };
+  }
+  return this.polar.customers.get(customerId);
+}
+
+// CORRECT - Provider-specific field naming in User model
+subscription: {
+  polarCustomerId: { type: String }, // Provider-specific
+  polarSubscriptionId: { type: String },
+  tier: { type: String, enum: ['free', 'professional', 'elite'] }, // Provider-agnostic
+  status: { type: String, enum: ['active', 'past_due', 'canceled'] }
+}
+
+// FORBIDDEN - Generic naming that creates migration conflicts
+subscription: {
+  customerId: { type: String }, // Too generic - which provider?
+  subscriptionId: { type: String }
+}
+```
+
+**Migration Protocol**:
+1. Add new provider fields to schema (e.g., `polarCustomerId`) without removing old ones
+2. Implement new billing service with graceful degradation
+3. Update webhook handlers for new provider events
+4. Deploy with feature flag to enable gradual rollout
+5. Migrate customer data: old provider ID → new provider ID
+6. Verify all subscription tiers and limits function correctly
+7. Remove old provider code and fields after 30-day stability period
+
+**Validation**:
+- Billing service MUST return valid free tier data when provider unconfigured
+- Tests MUST verify both configured and unconfigured billing provider scenarios
+- Integration tests MUST verify webhook handling for all subscription lifecycle events
+- Migration scripts MUST preserve all customer subscription data and history
+
+---
+
 ## Quality Standards
 
 ### Code Quality
@@ -231,6 +332,15 @@ return result;
 - **Compound Indexes**: Follow ESR rule (Equality, Sort, Range)
 - **Query Optimization**: Use `.explain()` to verify index usage
 - **Connections**: Connection pooling with max 10 connections per instance
+
+### Payment Processing Standards
+
+- **Provider Configuration**: All billing provider credentials via environment variables (`POLAR_ACCESS_TOKEN`, `POLAR_ORGANIZATION_ID`, etc.)
+- **Webhook Security**: Verify webhook signatures using provider secret (`POLAR_WEBHOOK_SECRET`)
+- **Graceful Degradation**: Billing services MUST function (free tier) without provider configuration
+- **UUID Format**: Use RFC 4122 UUIDs for customer/subscription IDs when provider requires
+- **Metadata Routing**: Store provider-agnostic subscription metadata (tier, limits, features) in application database
+- **Testing**: Mock billing provider responses in tests using test environment variables
 
 ---
 
@@ -368,7 +478,7 @@ All pull requests MUST include a compliance statement:
 
 ---
 
-**Version**: 1.0.0
+**Version**: 1.1.0
 **Ratified**: 2025-10-19
-**Last Amended**: 2025-10-19
+**Last Amended**: 2025-10-20
 **Next Review**: 2026-01-19 (Quarterly)

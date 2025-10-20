@@ -25,6 +25,18 @@ process.env.POLAR_ACCESS_TOKEN = 'polar_at_test_123456789012345678901234567890';
 process.env.POLAR_WEBHOOK_SECRET = 'whsec_test_123456789012345678901234567890';
 process.env.POLAR_ORGANIZATION_ID = '550e8400-e29b-41d4-a716-446655440000';
 process.env.MONGODB_URI = 'mongodb://localhost:27017/trade-executor-test';
+process.env.ENCRYPTION_KEY = '584fc10bcc68bd3d32d9810a6d633481df732c1fbfd6a70564988ba5dc489239';
+// OAuth2 Provider Credentials (for testing OAuth2Service and broker adapters)
+process.env.ALPACA_OAUTH_CLIENT_ID = 'test_alpaca_client_id';
+process.env.ALPACA_OAUTH_CLIENT_SECRET = 'test_alpaca_client_secret';
+process.env.IBKR_OAUTH_CLIENT_ID = 'test_ibkr_client_id';
+process.env.IBKR_OAUTH_CLIENT_SECRET = 'test_ibkr_client_secret';
+process.env.TDAMERITRADE_OAUTH_CLIENT_ID = 'test_tdameritrade_client_id';
+process.env.TDAMERITRADE_OAUTH_CLIENT_SECRET = 'test_tdameritrade_client_secret';
+process.env.ETRADE_OAUTH_CLIENT_ID = 'test_etrade_client_id';
+process.env.ETRADE_OAUTH_CLIENT_SECRET = 'test_etrade_client_secret';
+process.env.SCHWAB_OAUTH_CLIENT_ID = 'test_schwab_client_id';
+process.env.SCHWAB_OAUTH_CLIENT_SECRET = 'test_schwab_client_secret';
 
 // Global test database setup (only for Node.js environment)
 let mongoServer;

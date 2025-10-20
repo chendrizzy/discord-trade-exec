@@ -43,7 +43,7 @@ describe('WebSocket Integration', () => {
       discordUsername: 'integrationtester',
       isAdmin: false,
       subscription: {
-        tier: 'premium',
+        tier: 'elite',
         status: 'active'
       }
     });
