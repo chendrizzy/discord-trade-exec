@@ -79,10 +79,20 @@ Discord Trade Executor is an automated trading bot SaaS platform that:
   - `DiscordTradeBot` - Discord integration and signal monitoring
   - `TradeExecutor` - Trade execution orchestration
   - `SignalParser` - NLP-based signal interpretation
-  - `SubscriptionManager` - Stripe billing management
+  - `SubscriptionManager` - Subscription lifecycle management
   - `MarketingAutomation` - Customer acquisition automation
   - `PaymentProcessor` - Payment webhook handling
   - `TradingViewParser` - TradingView webhook integration
+  - **Billing Provider Abstraction:**
+    - Base: `BillingProvider` (abstract interface with 9 methods)
+    - Factory: `BillingProviderFactory` (provider selection via `BILLING_PROVIDER` env var)
+    - Implementations:
+      - **Polar.sh**: `PolarBillingProvider` (production-ready with mock data fallback)
+      - **Stripe**: `StripeBillingProvider` (stub with implementation guide)
+    - Location: `src/services/billing/`
+    - Data Normalization: Provider-specific formats → unified `Subscription`, `Customer`, `Product` formats
+    - Security: HMAC-SHA256 webhook verification with timing-safe comparison
+    - Documentation: `docs/billing/BILLING_PROVIDER_IMPLEMENTATION_GUIDE.md`
 
 - **Adapter Pattern:** Broker abstraction layer
   - Base: `BrokerAdapter` (abstract interface)
