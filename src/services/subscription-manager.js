@@ -4,52 +4,55 @@ const analyticsEventService = require('./analytics/AnalyticsEventService');
 
 /**
  * SubscriptionManager Service
- * Handles subscription lifecycle events, billing updates, and integrates with analytics tracking
+ * Handles trader subscription lifecycle events, billing updates, and integrates with analytics tracking
+ *
+ * NOTE: Subscription lifecycle is primarily managed by Polar.sh webhooks (src/routes/webhook/polar.js)
+ * This service provides:
+ * - Tier configuration and limits
+ * - Manual admin operations
+ * - Status queries
+ * - Legacy methods for backward compatibility
  */
 class SubscriptionManager {
   constructor() {
-    // Tier pricing configuration (must match RevenueMetrics service)
+    // Trader tier pricing configuration (validated from pricing research)
     this.tierPricing = {
       free: 0,
-      basic: 49,
-      pro: 99,
-      premium: 299
+      professional: 49,  // Monthly price
+      elite: 149         // Monthly price
     };
 
-    // Tier limits configuration
+    // Trader tier limits configuration (account-based, global across all communities)
     this.tierLimits = {
       free: {
-        signalsPerDay: 10,
+        signalsPerDay: 5,
         maxBrokers: 1
       },
-      basic: {
+      professional: {
         signalsPerDay: 100,
-        maxBrokers: 2
+        maxBrokers: 3
       },
-      pro: {
-        signalsPerDay: Infinity,
-        maxBrokers: 5
-      },
-      premium: {
-        signalsPerDay: Infinity,
-        maxBrokers: 10
+      elite: {
+        signalsPerDay: 999999,  // Unlimited (practical limit)
+        maxBrokers: 999         // Unlimited (practical limit)
       }
     };
   }
 
   /**
-   * Handle successful subscription creation (from Stripe checkout.session.completed)
-   * @param {Object} session - Stripe checkout session object
+   * Handle successful subscription creation
+   * @deprecated Prefer using Polar.sh webhook handler (src/routes/webhook/polar.js)
+   * @param {Object} session - Subscription session object
    * @param {Object} req - Express request object (optional, for metadata)
    */
   async handleSubscriptionCreated(session, req = null) {
     try {
-      const { customer, subscription: stripeSubscriptionId, metadata, customer_email } = session;
-      const tier = metadata?.plan || 'basic';
+      const { customer, subscription: subscriptionId, metadata, customer_email } = session;
+      const tier = metadata?.plan || metadata?.tier || 'professional';
       const amount = this.tierPricing[tier] || 0;
 
-      // Find user by Stripe customer ID or email
-      let user = await User.findOne({ 'subscription.stripeCustomerId': customer });
+      // Find user by Polar customer ID or email
+      let user = await User.findOne({ 'subscription.polarCustomerId': customer });
 
       if (!user && customer_email) {
         user = await User.findOne({ 'notifications.email': customer_email });
@@ -64,20 +67,18 @@ class SubscriptionManager {
       }
 
       // Update user subscription
-      const trialEndsAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
       const currentPeriodEnd = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
 
       user.subscription = {
         tier,
-        status: 'trial', // Stripe gives 7-day trial
-        stripeCustomerId: customer,
-        stripeSubscriptionId,
+        status: 'active',
+        polarCustomerId: customer,
+        polarSubscriptionId: subscriptionId,
         currentPeriodStart: new Date(),
-        currentPeriodEnd,
-        trialEndsAt
+        currentPeriodEnd
       };
 
-      // Update usage limits based on tier
+      // Update usage limits based on tier (account-based, global)
       const limits = this.tierLimits[tier] || this.tierLimits.free;
       user.limits.signalsPerDay = limits.signalsPerDay;
       user.limits.maxBrokers = limits.maxBrokers;
@@ -91,7 +92,7 @@ class SubscriptionManager {
           tier,
           amount,
           billingPeriod: 'monthly',
-          trialDays: 7
+          trialDays: 0
         },
         req
       );
@@ -103,7 +104,7 @@ class SubscriptionManager {
         user: {
           id: user._id,
           tier,
-          status: 'trial'
+          status: 'active'
         }
       };
     } catch (error) {
@@ -113,23 +114,24 @@ class SubscriptionManager {
   }
 
   /**
-   * Handle subscription renewal (from Stripe invoice.payment_succeeded)
-   * @param {Object} invoice - Stripe invoice object
+   * Handle subscription renewal
+   * @deprecated Prefer using Polar.sh webhook handler (src/routes/webhook/polar.js)
+   * @param {Object} invoice - Subscription invoice object
    * @param {Object} req - Express request object (optional, for metadata)
    */
   async handleSubscriptionRenewed(invoice, req = null) {
     try {
-      const { customer, subscription: stripeSubscriptionId, amount_paid, period_end } = invoice;
+      const { customer, subscription: subscriptionId, amount_paid, period_end } = invoice;
 
-      // Find user by Stripe customer ID
-      const user = await User.findOne({ 'subscription.stripeCustomerId': customer });
+      // Find user by Polar customer ID
+      const user = await User.findOne({ 'subscription.polarCustomerId': customer });
 
       if (!user) {
         console.error('[SubscriptionManager] User not found for renewal:', customer);
         return { success: false, error: 'User not found' };
       }
 
-      // Update subscription status to active (trial ended, payment succeeded)
+      // Update subscription status to active
       user.subscription.status = 'active';
       user.subscription.currentPeriodStart = new Date();
       user.subscription.currentPeriodEnd = new Date(period_end * 1000);
@@ -148,7 +150,7 @@ class SubscriptionManager {
         user._id,
         {
           tier: user.subscription.tier,
-          amount: amount_paid / 100, // Stripe uses cents
+          amount: amount_paid / 100, // Convert to dollars
           renewalCount: user.subscription.renewalCount
         },
         req
@@ -173,26 +175,27 @@ class SubscriptionManager {
   }
 
   /**
-   * Handle subscription cancellation (from Stripe customer.subscription.deleted or manual cancellation)
-   * @param {Object} subscription - Stripe subscription object or user object
+   * Handle subscription cancellation
+   * @deprecated Prefer using Polar.sh webhook handler (src/routes/webhook/polar.js)
+   * @param {Object} subscription - Subscription object or user object
    * @param {String} reason - Cancellation reason
    * @param {String} feedback - User feedback (optional)
    * @param {Object} req - Express request object (optional, for metadata)
    */
   async handleSubscriptionCanceled(subscription, reason = 'user_requested', feedback = null, req = null) {
     try {
-      const { customer, id: stripeSubscriptionId } = subscription;
+      const { customer, id: subscriptionId } = subscription;
 
-      // Find user by Stripe customer ID or subscription ID
+      // Find user by Polar customer ID or subscription ID
       const user = await User.findOne({
         $or: [
-          { 'subscription.stripeCustomerId': customer },
-          { 'subscription.stripeSubscriptionId': stripeSubscriptionId }
+          { 'subscription.polarCustomerId': customer },
+          { 'subscription.polarSubscriptionId': subscriptionId }
         ]
       });
 
       if (!user) {
-        console.error('[SubscriptionManager] User not found for cancellation:', { customer, stripeSubscriptionId });
+        console.error('[SubscriptionManager] User not found for cancellation:', { customer, subscriptionId });
         return { success: false, error: 'User not found' };
       }
 
@@ -202,7 +205,7 @@ class SubscriptionManager {
       user.subscription.status = 'cancelled';
       user.subscription.cancelledAt = new Date();
 
-      // Downgrade to free tier
+      // Downgrade to free tier (account-based limits reset)
       user.subscription.tier = 'free';
 
       // Reset limits to free tier
@@ -242,14 +245,15 @@ class SubscriptionManager {
   }
 
   /**
-   * Handle payment failure (from Stripe invoice.payment_failed)
-   * @param {Object} invoice - Stripe invoice object
+   * Handle payment failure
+   * @deprecated Prefer using Polar.sh webhook handler (src/routes/webhook/polar.js)
+   * @param {Object} invoice - Subscription invoice object
    */
   async handlePaymentFailed(invoice) {
     try {
       const { customer } = invoice;
 
-      const user = await User.findOne({ 'subscription.stripeCustomerId': customer });
+      const user = await User.findOne({ 'subscription.polarCustomerId': customer });
 
       if (!user) {
         console.error('[SubscriptionManager] User not found for payment failure:', customer);
@@ -281,7 +285,7 @@ class SubscriptionManager {
   /**
    * Manually upgrade user subscription (admin operation)
    * @param {String} userId - User ID
-   * @param {String} tier - New tier (basic, pro, premium)
+   * @param {String} tier - New tier (free, professional, elite)
    * @param {Object} req - Express request object (optional, for metadata)
    */
   async upgradeSubscription(userId, tier, req = null) {
@@ -301,7 +305,7 @@ class SubscriptionManager {
       user.subscription.currentPeriodStart = new Date();
       user.subscription.currentPeriodEnd = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
 
-      // Update limits
+      // Update limits (account-based, global)
       const limits = this.tierLimits[tier] || this.tierLimits.free;
       user.limits.signalsPerDay = limits.signalsPerDay;
       user.limits.maxBrokers = limits.maxBrokers;

@@ -10,7 +10,6 @@ const router = express.Router();
 const requireCommunityAdmin = require('../../middleware/requireCommunityAdmin');
 const { overviewLimiter, analyticsLimiter, dashboardLimiter } = require('../../middleware/rateLimiter');
 const redis = require('../../services/redis');
-const stripe = require('../../services/stripe');
 const discord = require('../../services/discord');
 
 // Apply community admin authorization to all routes
@@ -673,10 +672,10 @@ router.get('/analytics/performance', analyticsLimiter, async (req, res) => {
 
 /**
  * GET /api/community/subscription
- * Get community subscription and billing information from Stripe
+ * Get community subscription and billing information from Polar.sh
  *
  * Returns:
- * - Stripe subscription status and details
+ * - Polar.sh subscription status and details
  * - Current tier and limits
  * - Usage metrics vs limits
  * - Billing portal URL
@@ -697,6 +696,7 @@ router.get('/subscription', dashboardLimiter, async (req, res) => {
     const User = require('../../models/User');
     const Signal = require('../../models/Signal');
     const SignalProvider = require('../../models/SignalProvider');
+    const polar = require('../../services/polar');
 
     // Get community from database
     const community = await Community.findById(tenantId);
@@ -704,9 +704,9 @@ router.get('/subscription', dashboardLimiter, async (req, res) => {
       return res.status(404).json({ error: 'Community not found' });
     }
 
-    // Check if community has Stripe customer ID
-    if (!community.subscription || !community.subscription.stripeCustomerId) {
-      // No Stripe customer - return free tier info
+    // Check if community has Polar customer ID
+    if (!community.subscription || !community.subscription.polarCustomerId) {
+      // No Polar customer - return free tier info
       const [memberCount, signalCount, providerCount] = await Promise.all([
         User.countDocuments({ communityId: tenantId }),
         Signal.countDocuments({ communityId: tenantId }),
@@ -728,14 +728,14 @@ router.get('/subscription', dashboardLimiter, async (req, res) => {
           signalsToday: signalCount
         },
         billing: {
-          hasStripeCustomer: false
+          hasPolarCustomer: false
         }
       });
     }
 
-    // Get subscription from Stripe
-    const stripeSubscription = await stripe.getCommunitySubscription(
-      community.subscription.stripeCustomerId
+    // Get subscription from Polar.sh
+    const polarSubscription = await polar.getCommunitySubscription(
+      community.subscription.polarCustomerId
     );
 
     // Calculate current usage (tenant-scoped)
@@ -751,11 +751,10 @@ router.get('/subscription', dashboardLimiter, async (req, res) => {
       })
     ]);
 
-    // Determine tier from subscription (based on price or metadata)
-    // This would typically come from Stripe product/price metadata
-    const tier = community.subscription.tier || 'professional';
+    // Determine tier from subscription (stored in Community model)
+    const tier = community.subscription.tier || 'free';
 
-    // Define tier limits (could also come from Stripe product metadata)
+    // Define tier limits (placeholder - will be updated after pricing research)
     const tierLimits = {
       free: {
         maxMembers: 10,
@@ -774,15 +773,15 @@ router.get('/subscription', dashboardLimiter, async (req, res) => {
       }
     };
 
-    const limits = tierLimits[tier] || tierLimits.professional;
+    const limits = tierLimits[tier] || tierLimits.free;
 
     // Create billing portal session for subscription management
     const portalUrl = process.env.APP_URL || 'http://localhost:3000';
     let billingPortalUrl = null;
 
     try {
-      const portalSession = await stripe.createCustomerPortalSession(
-        community.subscription.stripeCustomerId,
+      const portalSession = await polar.createCustomerPortalSession(
+        community.subscription.polarCustomerId,
         `${portalUrl}/dashboard/community/subscription`
       );
       billingPortalUrl = portalSession.url;
@@ -793,8 +792,8 @@ router.get('/subscription', dashboardLimiter, async (req, res) => {
 
     res.json({
       tier,
-      status: stripeSubscription?.status || community.subscription.status || 'trial',
-      subscription: stripeSubscription,
+      status: polarSubscription?.status || community.subscription.status || 'trial',
+      subscription: polarSubscription,
       limits,
       usage: {
         members: memberCount,
@@ -802,15 +801,15 @@ router.get('/subscription', dashboardLimiter, async (req, res) => {
         signalsToday: signalsTodayCount
       },
       billing: {
-        hasStripeCustomer: true,
+        hasPolarCustomer: true,
         portalUrl: billingPortalUrl
       }
     });
   } catch (error) {
     console.error('[Community API] Error fetching subscription:', error);
 
-    // Handle Stripe-specific errors
-    if (error.type === 'StripeInvalidRequestError') {
+    // Handle Polar-specific errors
+    if (error.message?.includes('Polar')) {
       return res.status(400).json({
         error: 'Invalid subscription request',
         message: error.message

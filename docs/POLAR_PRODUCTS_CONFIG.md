@@ -2,7 +2,17 @@
 
 ## Product Setup Overview
 
-Create **4 separate products** in Polar.sh dashboard (1:1 product-price mapping required).
+Create **8 separate products** in Polar.sh dashboard (1:1 product-price mapping required):
+- 4 Community products (for server hosts)
+- 4 Trader products (for individual members)
+
+Each product requires metadata configuration:
+```json
+{
+  "type": "community",  // or "trader"
+  "tier": "professional" // or "enterprise" or "elite"
+}
+```
 
 ---
 
@@ -67,7 +77,7 @@ Professional trading signals platform for growing communities - Annual billing.
 ✓ Real-time trade execution via broker integration
 ✓ Advanced risk management tools
 ✓ Priority support
-✓ SAVE 17% with annual billing ($990/year vs $1,188/year monthly)
+✓ SAVE 20% with annual billing ($950/year vs $1,188/year monthly)
 
 Perfect for committed trading communities seeking maximum value.
 ```
@@ -75,7 +85,7 @@ Perfect for committed trading communities seeking maximum value.
 ### b. Product Media
 **Suggested Images**:
 - Hero image: Same dashboard screenshot as monthly (consistency)
-- Badge overlay: "Save 17% - Annual Plan"
+- Badge overlay: "Save 20% - Annual Plan"
 - Value proposition: Side-by-side monthly vs annual savings chart
 
 **Recommended Dimensions**: 1200x630px (Open Graph standard)
@@ -83,7 +93,7 @@ Perfect for committed trading communities seeking maximum value.
 ### c. Pricing Configuration
 - **Billing Period**: Yearly (recurring)
 - **Pricing Model**: Fixed pricing
-- **Price**: $990.00 USD/year
+- **Price**: $950.00 USD/year
 - **Billing Interval**: Every 12 months
 - **One-Time Purchase**: No (recurring subscription)
 
@@ -173,7 +183,7 @@ Enterprise-grade trading infrastructure for institutional communities - Annual b
 ✓ White-label branding options
 ✓ Dedicated account manager
 ✓ SLA guarantee with priority support
-✓ SAVE 17% with annual billing ($2,990/year vs $3,588/year monthly)
+✓ SAVE 20% with annual billing ($2,870/year vs $3,588/year monthly)
 
 Maximum value for committed enterprise trading operations.
 ```
@@ -181,7 +191,7 @@ Maximum value for committed enterprise trading operations.
 ### b. Product Media
 **Suggested Images**:
 - Hero image: Same enterprise dashboard as monthly (consistency)
-- Badge overlay: "Save 17% - Annual Plan"
+- Badge overlay: "Save 20% - Annual Plan"
 - ROI calculator: Showing annual savings for enterprise tier
 
 **Recommended Dimensions**: 1200x630px (Open Graph standard)
@@ -189,7 +199,7 @@ Maximum value for committed enterprise trading operations.
 ### c. Pricing Configuration
 - **Billing Period**: Yearly (recurring)
 - **Pricing Model**: Fixed pricing
-- **Price**: $2,990.00 USD/year
+- **Price**: $2,870.00 USD/year
 - **Billing Interval**: Every 12 months
 - **One-Time Purchase**: No (recurring subscription)
 
@@ -214,14 +224,257 @@ Maximum value for committed enterprise trading operations.
 
 ---
 
+## Product 5: Trader Professional - Monthly
+
+### a. Description
+```
+Professional trading execution for active individual traders.
+
+✓ 100 signals per day (account-based, global across all communities)
+✓ 3 broker connections
+✓ Advanced risk management tools
+✓ Real-time trade execution
+✓ Priority signal processing
+✓ Advanced analytics dashboard
+✓ Multi-community access
+
+Perfect for serious traders executing across multiple communities.
+```
+
+### b. Product Media
+**Suggested Images**:
+- Hero image: Trader dashboard showing multi-broker execution view
+- Feature highlight: Account-based limit meter showing global signal count
+- Value proposition: Multi-community trading interface
+
+**Recommended Dimensions**: 1200x630px (Open Graph standard)
+
+### c. Pricing Configuration
+- **Billing Period**: Monthly (recurring)
+- **Pricing Model**: Fixed pricing
+- **Price**: $49.00 USD/month
+- **Billing Interval**: Every 1 month
+- **One-Time Purchase**: No (recurring subscription)
+- **Product Metadata** (REQUIRED):
+  ```json
+  {
+    "type": "trader",
+    "tier": "professional"
+  }
+  ```
+
+### d. Automated Benefits
+**Recommended Configuration**:
+- ✅ **Custom** (0 configured)
+  - Custom benefit: "Trader professional tier (100 signals/day, 3 brokers)"
+  - Description: "Automatically grants professional trader subscription status"
+
+- ✅ **Discord Invite** (0 configured) - Optional
+  - Server invite link: `https://discord.gg/YOUR_TRADER_SERVER`
+  - Role assignment: "Professional Trader" role
+  - Description: "Access to professional traders community"
+
+- ⬜ **GitHub Repository Access** (not applicable)
+- ⬜ **File Downloads** (not applicable)
+- ⬜ **License Keys** (not applicable)
+- ⬜ **Meter Credits** (not applicable)
+
+---
+
+## Product 6: Trader Professional - Annual
+
+### a. Description
+```
+Professional trading execution for active individual traders - Annual billing.
+
+✓ 100 signals per day (account-based, global across all communities)
+✓ 3 broker connections
+✓ Advanced risk management tools
+✓ Real-time trade execution
+✓ Priority signal processing
+✓ Advanced analytics dashboard
+✓ Multi-community access
+✓ SAVE 20% with annual billing ($470/year vs $588/year monthly)
+
+Maximum value for committed professional traders.
+```
+
+### b. Product Media
+**Suggested Images**:
+- Hero image: Same trader dashboard as monthly (consistency)
+- Badge overlay: "Save 20% - Annual Plan"
+- ROI calculator: Showing annual savings for trader tier
+
+**Recommended Dimensions**: 1200x630px (Open Graph standard)
+
+### c. Pricing Configuration
+- **Billing Period**: Yearly (recurring)
+- **Pricing Model**: Fixed pricing
+- **Price**: $470.00 USD/year
+- **Billing Interval**: Every 12 months
+- **One-Time Purchase**: No (recurring subscription)
+- **Product Metadata** (REQUIRED):
+  ```json
+  {
+    "type": "trader",
+    "tier": "professional"
+  }
+  ```
+
+### d. Automated Benefits
+**Recommended Configuration**:
+- ✅ **Custom** (0 configured)
+  - Custom benefit: "Trader professional tier (100 signals/day, 3 brokers) - Annual"
+  - Description: "Automatically grants professional trader subscription status"
+
+- ✅ **Discord Invite** (0 configured) - Optional
+  - Server invite link: `https://discord.gg/YOUR_TRADER_SERVER`
+  - Role assignment: "Professional Trader - Annual" role
+  - Description: "Access to professional traders community with annual supporter badge"
+
+- ⬜ **GitHub Repository Access** (not applicable)
+- ⬜ **File Downloads** (not applicable)
+- ⬜ **License Keys** (not applicable)
+- ⬜ **Meter Credits** (not applicable)
+
+---
+
+## Product 7: Trader Elite - Monthly
+
+### a. Description
+```
+Elite trading platform for professional traders with unlimited execution.
+
+✓ UNLIMITED signals per day (account-based, global)
+✓ UNLIMITED broker connections
+✓ Advanced risk management with custom profiles
+✓ Priority execution with fastest routing
+✓ Premium analytics and performance tracking
+✓ API access for custom integrations
+✓ Dedicated trader support
+✓ Multi-community premium access
+
+Built for high-volume professional traders executing at scale.
+```
+
+### b. Product Media
+**Suggested Images**:
+- Hero image: Elite trader dashboard with advanced features
+- Feature highlight: Unlimited signals badge with multi-broker view
+- Trust indicator: Premium trader tier benefits showcase
+
+**Recommended Dimensions**: 1200x630px (Open Graph standard)
+
+### c. Pricing Configuration
+- **Billing Period**: Monthly (recurring)
+- **Pricing Model**: Fixed pricing
+- **Price**: $149.00 USD/month
+- **Billing Interval**: Every 1 month
+- **One-Time Purchase**: No (recurring subscription)
+- **Product Metadata** (REQUIRED):
+  ```json
+  {
+    "type": "trader",
+    "tier": "elite"
+  }
+  ```
+
+### d. Automated Benefits
+**Recommended Configuration**:
+- ✅ **Custom** (0 configured)
+  - Custom benefit: "Trader elite tier (unlimited signals, unlimited brokers)"
+  - Description: "Automatically grants elite trader subscription status"
+
+- ✅ **Discord Invite** (0 configured) - Optional
+  - Server invite link: `https://discord.gg/YOUR_ELITE_TRADER_SERVER`
+  - Role assignment: "Elite Trader" role
+  - Description: "Exclusive access to elite traders community with priority support"
+
+- ⬜ **GitHub Repository Access** (not applicable)
+- ⬜ **File Downloads** (not applicable)
+- ⬜ **License Keys** (not applicable)
+- ⬜ **Meter Credits** (not applicable)
+
+---
+
+## Product 8: Trader Elite - Annual
+
+### a. Description
+```
+Elite trading platform for professional traders with unlimited execution - Annual billing.
+
+✓ UNLIMITED signals per day (account-based, global)
+✓ UNLIMITED broker connections
+✓ Advanced risk management with custom profiles
+✓ Priority execution with fastest routing
+✓ Premium analytics and performance tracking
+✓ API access for custom integrations
+✓ Dedicated trader support
+✓ Multi-community premium access
+✓ SAVE 20% with annual billing ($1,430/year vs $1,788/year monthly)
+
+Ultimate value for committed elite traders.
+```
+
+### b. Product Media
+**Suggested Images**:
+- Hero image: Same elite trader dashboard as monthly (consistency)
+- Badge overlay: "Save 20% - Annual Plan"
+- Premium value: Elite tier benefits with annual savings showcase
+
+**Recommended Dimensions**: 1200x630px (Open Graph standard)
+
+### c. Pricing Configuration
+- **Billing Period**: Yearly (recurring)
+- **Pricing Model**: Fixed pricing
+- **Price**: $1,430.00 USD/year
+- **Billing Interval**: Every 12 months
+- **One-Time Purchase**: No (recurring subscription)
+- **Product Metadata** (REQUIRED):
+  ```json
+  {
+    "type": "trader",
+    "tier": "elite"
+  }
+  ```
+
+### d. Automated Benefits
+**Recommended Configuration**:
+- ✅ **Custom** (0 configured)
+  - Custom benefit: "Trader elite tier (unlimited signals, unlimited brokers) - Annual"
+  - Description: "Automatically grants elite trader subscription status"
+
+- ✅ **Discord Invite** (0 configured) - Optional
+  - Server invite link: `https://discord.gg/YOUR_ELITE_TRADER_SERVER`
+  - Role assignment: "Elite Trader - Annual" role
+  - Description: "Exclusive access to elite traders community with annual VIP badge"
+
+- ⬜ **GitHub Repository Access** (not applicable)
+- ⬜ **File Downloads** (not applicable)
+- ⬜ **License Keys** (not applicable)
+- ⬜ **Meter Credits** (not applicable)
+
+---
+
 ## Quick Reference Table
+
+### Community Products (Server Hosts)
 
 | Product | Price | Billing | Members | Providers | Signals/Day | Savings |
 |---------|-------|---------|---------|-----------|-------------|---------|
 | Professional Monthly | $99/mo | Monthly | 100 | 10 | 1,000 | - |
-| Professional Annual | $990/yr | Yearly | 100 | 10 | 1,000 | 17% ($198/yr) |
+| Professional Annual | $950/yr | Yearly | 100 | 10 | 1,000 | 20% ($238/yr) |
 | Enterprise Monthly | $299/mo | Monthly | 1,000 | 50 | 10,000 | - |
-| Enterprise Annual | $2,990/yr | Yearly | 1,000 | 50 | 10,000 | 17% ($598/yr) |
+| Enterprise Annual | $2,870/yr | Yearly | 1,000 | 50 | 10,000 | 20% ($718/yr) |
+
+### Trader Products (Individual Members)
+
+| Product | Price | Billing | Signals/Day | Max Brokers | Features | Savings |
+|---------|-------|---------|-------------|-------------|----------|---------|
+| Professional Monthly | $49/mo | Monthly | 100 | 3 | Advanced | - |
+| Professional Annual | $470/yr | Yearly | 100 | 3 | Advanced | 20% ($118/yr) |
+| Elite Monthly | $149/mo | Monthly | Unlimited | Unlimited | Premium | - |
+| Elite Annual | $1,430/yr | Yearly | Unlimited | Unlimited | Premium | 20% ($358/yr) |
 
 ---
 
@@ -231,10 +484,18 @@ After creating products in Polar.sh, you'll need to copy the product UUIDs and s
 
 ```bash
 # .env configuration (update after product creation)
-POLAR_PROFESSIONAL_MONTHLY_PRODUCT_ID=550e8400-xxxx-xxxx-xxxx-xxxxxxxxxxxx
-POLAR_PROFESSIONAL_ANNUAL_PRODUCT_ID=550e8400-xxxx-xxxx-xxxx-xxxxxxxxxxxx
-POLAR_ENTERPRISE_MONTHLY_PRODUCT_ID=550e8400-xxxx-xxxx-xxxx-xxxxxxxxxxxx
-POLAR_ENTERPRISE_ANNUAL_PRODUCT_ID=550e8400-xxxx-xxxx-xxxx-xxxxxxxxxxxx
+
+# Community Products (Server Hosts)
+POLAR_COMMUNITY_PROFESSIONAL_MONTHLY_PRODUCT_ID=550e8400-xxxx-xxxx-xxxx-xxxxxxxxxxxx
+POLAR_COMMUNITY_PROFESSIONAL_ANNUAL_PRODUCT_ID=550e8400-xxxx-xxxx-xxxx-xxxxxxxxxxxx
+POLAR_COMMUNITY_ENTERPRISE_MONTHLY_PRODUCT_ID=550e8400-xxxx-xxxx-xxxx-xxxxxxxxxxxx
+POLAR_COMMUNITY_ENTERPRISE_ANNUAL_PRODUCT_ID=550e8400-xxxx-xxxx-xxxx-xxxxxxxxxxxx
+
+# Trader Products (Individual Members)
+POLAR_TRADER_PROFESSIONAL_MONTHLY_PRODUCT_ID=550e8400-xxxx-xxxx-xxxx-xxxxxxxxxxxx
+POLAR_TRADER_PROFESSIONAL_ANNUAL_PRODUCT_ID=550e8400-xxxx-xxxx-xxxx-xxxxxxxxxxxx
+POLAR_TRADER_ELITE_MONTHLY_PRODUCT_ID=550e8400-xxxx-xxxx-xxxx-xxxxxxxxxxxx
+POLAR_TRADER_ELITE_ANNUAL_PRODUCT_ID=550e8400-xxxx-xxxx-xxxx-xxxxxxxxxxxx
 ```
 
 ---
@@ -265,41 +526,88 @@ Create these assets before setting up products:
 
 ## Polar.sh Dashboard Setup Checklist
 
+### Community Products Setup
+
 - [ ] Log in to https://polar.sh dashboard
 - [ ] Navigate to Products → Create Product
-- [ ] Create Product 1: Professional Monthly
+- [ ] Create Product 1: Community Professional Monthly
   - [ ] Add description from above
   - [ ] Upload product media
   - [ ] Configure pricing: $99/month, recurring, fixed
+  - [ ] **Set product metadata**: `{"type": "community", "tier": "professional"}`
   - [ ] Add Custom benefit (professional tier)
   - [ ] Add Discord Invite benefit (if applicable)
   - [ ] Copy product UUID
-- [ ] Create Product 2: Professional Annual
+- [ ] Create Product 2: Community Professional Annual
   - [ ] Add description from above
   - [ ] Upload product media
-  - [ ] Configure pricing: $990/year, recurring, fixed
+  - [ ] Configure pricing: $950/year, recurring, fixed
+  - [ ] **Set product metadata**: `{"type": "community", "tier": "professional"}`
   - [ ] Add Custom benefit (professional tier annual)
   - [ ] Add Discord Invite benefit (if applicable)
   - [ ] Copy product UUID
-- [ ] Create Product 3: Enterprise Monthly
+- [ ] Create Product 3: Community Enterprise Monthly
   - [ ] Add description from above
   - [ ] Upload product media
   - [ ] Configure pricing: $299/month, recurring, fixed
+  - [ ] **Set product metadata**: `{"type": "community", "tier": "enterprise"}`
   - [ ] Add Custom benefit (enterprise tier)
   - [ ] Add Discord Invite benefit (if applicable)
   - [ ] Add File Downloads benefit (onboarding guide - optional)
   - [ ] Copy product UUID
-- [ ] Create Product 4: Enterprise Annual
+- [ ] Create Product 4: Community Enterprise Annual
   - [ ] Add description from above
   - [ ] Upload product media
-  - [ ] Configure pricing: $2,990/year, recurring, fixed
+  - [ ] Configure pricing: $2,870/year, recurring, fixed
+  - [ ] **Set product metadata**: `{"type": "community", "tier": "enterprise"}`
   - [ ] Add Custom benefit (enterprise tier annual)
   - [ ] Add Discord Invite benefit (if applicable)
   - [ ] Add File Downloads benefit (onboarding guide - optional)
   - [ ] Copy product UUID
-- [ ] Update `.env` with all 4 product UUIDs
-- [ ] Test checkout flow with each product
+
+### Trader Products Setup
+
+- [ ] Create Product 5: Trader Professional Monthly
+  - [ ] Add description from above
+  - [ ] Upload product media
+  - [ ] Configure pricing: $49/month, recurring, fixed
+  - [ ] **Set product metadata**: `{"type": "trader", "tier": "professional"}`
+  - [ ] Add Custom benefit (trader professional tier)
+  - [ ] Add Discord Invite benefit (if applicable)
+  - [ ] Copy product UUID
+- [ ] Create Product 6: Trader Professional Annual
+  - [ ] Add description from above
+  - [ ] Upload product media
+  - [ ] Configure pricing: $470/year, recurring, fixed
+  - [ ] **Set product metadata**: `{"type": "trader", "tier": "professional"}`
+  - [ ] Add Custom benefit (trader professional tier annual)
+  - [ ] Add Discord Invite benefit (if applicable)
+  - [ ] Copy product UUID
+- [ ] Create Product 7: Trader Elite Monthly
+  - [ ] Add description from above
+  - [ ] Upload product media
+  - [ ] Configure pricing: $149/month, recurring, fixed
+  - [ ] **Set product metadata**: `{"type": "trader", "tier": "elite"}`
+  - [ ] Add Custom benefit (trader elite tier)
+  - [ ] Add Discord Invite benefit (if applicable)
+  - [ ] Copy product UUID
+- [ ] Create Product 8: Trader Elite Annual
+  - [ ] Add description from above
+  - [ ] Upload product media
+  - [ ] Configure pricing: $1,430/year, recurring, fixed
+  - [ ] **Set product metadata**: `{"type": "trader", "tier": "elite"}`
+  - [ ] Add Custom benefit (trader elite tier annual)
+  - [ ] Add Discord Invite benefit (if applicable)
+  - [ ] Copy product UUID
+
+### Final Steps
+
+- [ ] Update `.env` with all 8 product UUIDs
+- [ ] Test checkout flow with each product (4 community + 4 trader)
+- [ ] Verify webhook routing for both subscription types
 
 ---
 
-**Estimated Setup Time**: 30-45 minutes (after assets are ready)
+**Estimated Setup Time**: 60-90 minutes (after assets are ready)
+
+**CRITICAL**: Product metadata is REQUIRED for webhook routing to work correctly. Without it, the system cannot determine whether a subscription is for a community or trader.

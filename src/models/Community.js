@@ -128,17 +128,29 @@ const SubscriptionSchema = new Schema(
   {
     tier: {
       type: String,
-      enum: ['starter', 'pro', 'enterprise'],
-      default: 'starter'
+      enum: ['free', 'professional', 'enterprise'],
+      default: 'free'
     },
     status: {
       type: String,
       enum: ['trial', 'active', 'past_due', 'canceled'],
       default: 'trial'
     },
-    stripeCustomerId: String,
-    stripeSubscriptionId: String,
+    // Polar.sh identifiers (UUID format)
+    polarCustomerId: {
+      type: String,
+      match: /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
+    },
+    polarSubscriptionId: {
+      type: String,
+      match: /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
+    },
+    polarOrganizationId: {
+      type: String,
+      match: /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
+    },
     currentPeriodEnd: Date,
+    cancelAtPeriodEnd: Boolean,
     trialEndsAt: {
       type: Date,
       default: () => new Date(Date.now() + 14 * 24 * 60 * 60 * 1000) // 14-day trial

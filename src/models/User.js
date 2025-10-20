@@ -37,7 +37,7 @@ const userSchema = new mongoose.Schema(
     subscription: {
       tier: {
         type: String,
-        enum: ['free', 'basic', 'pro', 'premium'],
+        enum: ['free', 'professional', 'enterprise'],
         default: 'free'
       },
       status: {
@@ -45,8 +45,15 @@ const userSchema = new mongoose.Schema(
         enum: ['active', 'inactive', 'trial', 'cancelled', 'past_due'],
         default: 'trial'
       },
-      stripeCustomerId: String,
-      stripeSubscriptionId: String,
+      // Polar.sh identifiers (UUID format)
+      polarCustomerId: {
+        type: String,
+        match: /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
+      },
+      polarSubscriptionId: {
+        type: String,
+        match: /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
+      },
       currentPeriodStart: Date,
       currentPeriodEnd: Date,
       trialEndsAt: {

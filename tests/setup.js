@@ -21,8 +21,9 @@ process.env.NODE_ENV = 'development'; // Use 'development' to bypass strict vali
 process.env.DISCORD_BOT_TOKEN = 'test_discord_token_1234567890123456789012345678901234567890'; // Min 50 chars
 process.env.BINANCE_API_KEY = 'test_binance_key';
 process.env.BINANCE_SECRET = 'test_binance_secret';
-process.env.STRIPE_SECRET_KEY = 'sk_test_123456789';
-process.env.STRIPE_WEBHOOK_SECRET = 'whsec_test_123456789';
+process.env.POLAR_ACCESS_TOKEN = 'polar_at_test_123456789012345678901234567890';
+process.env.POLAR_WEBHOOK_SECRET = 'whsec_test_123456789012345678901234567890';
+process.env.POLAR_ORGANIZATION_ID = '550e8400-e29b-41d4-a716-446655440000';
 process.env.MONGODB_URI = 'mongodb://localhost:27017/trade-executor-test';
 
 // Global test database setup (only for Node.js environment)
