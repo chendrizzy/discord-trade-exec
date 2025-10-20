@@ -31,74 +31,216 @@ router.use(requireTrader);
 router.get('/overview', overviewLimiter, async (req, res) => {
   try {
     const user = req.user;
+    const userId = user._id;
+    const tenantId = user.communityId; // Constitution Principle I: MUST include tenant scoping
 
-    // TODO: Replace with actual database queries
-    // const trades = await Trade.find({ userId: user._id }).sort({ createdAt: -1 }).limit(10);
-    // const activePositions = await Position.countDocuments({ userId: user._id, status: 'open' });
+    // Time boundaries
+    const now = new Date();
+    const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const weekStart = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+    const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+
+    // Import models
+    const Trade = require('../../models/Trade');
+    const SignalProvider = require('../../models/SignalProvider');
+    const UserSignalSubscription = require('../../models/UserSignalSubscription');
+
+    // Personal P&L aggregation (tenant-scoped)
+    const [allTimePnL, todayPnL, weekPnL, monthPnL] = await Promise.all([
+      Trade.aggregate([
+        {
+          $match: {
+            communityId: tenantId,
+            userId,
+            status: { $in: ['FILLED', 'PARTIAL'] }
+          }
+        },
+        {
+          $group: {
+            _id: null,
+            totalPnL: { $sum: '$profitLoss' },
+            totalTrades: { $sum: 1 },
+            successfulTrades: {
+              $sum: { $cond: [{ $gt: ['$profitLoss', 0] }, 1, 0] }
+            }
+          }
+        }
+      ]),
+      Trade.aggregate([
+        {
+          $match: {
+            communityId: tenantId,
+            userId,
+            status: { $in: ['FILLED', 'PARTIAL'] },
+            entryTime: { $gte: todayStart }
+          }
+        },
+        {
+          $group: {
+            _id: null,
+            totalPnL: { $sum: '$profitLoss' }
+          }
+        }
+      ]),
+      Trade.aggregate([
+        {
+          $match: {
+            communityId: tenantId,
+            userId,
+            status: { $in: ['FILLED', 'PARTIAL'] },
+            entryTime: { $gte: weekStart }
+          }
+        },
+        {
+          $group: {
+            _id: null,
+            totalPnL: { $sum: '$profitLoss' }
+          }
+        }
+      ]),
+      Trade.aggregate([
+        {
+          $match: {
+            communityId: tenantId,
+            userId,
+            status: { $in: ['FILLED', 'PARTIAL'] },
+            entryTime: { $gte: monthStart }
+          }
+        },
+        {
+          $group: {
+            _id: null,
+            totalPnL: { $sum: '$profitLoss' }
+          }
+        }
+      ])
+    ]);
+
+    const allTimeStats = allTimePnL[0] || { totalPnL: 0, totalTrades: 0, successfulTrades: 0 };
+    const winRate = allTimeStats.totalTrades > 0 ? (allTimeStats.successfulTrades / allTimeStats.totalTrades) * 100 : 0;
+
+    // Active positions (OPEN trades)
+    const activePositions = await Trade.find({
+      communityId: tenantId,
+      userId,
+      status: 'OPEN'
+    }).lean();
+
+    const avgSize = activePositions.length > 0
+      ? activePositions.reduce((sum, t) => sum + (t.quantity * t.entryPrice), 0) / activePositions.length
+      : 0;
+
+    const totalExposure = activePositions.reduce((sum, t) => sum + (t.quantity * t.entryPrice), 0);
+    const largestPosition = activePositions.length > 0
+      ? Math.max(...activePositions.map(t => t.quantity * t.entryPrice))
+      : 0;
+
+    // Execution rate (signals received vs executed)
+    const subscriptions = await UserSignalSubscription.find({
+      communityId: tenantId,
+      userId,
+      active: true
+    }).lean();
+
+    const totalSignalsReceived = subscriptions.reduce((sum, sub) => sum + sub.stats.signalsReceived, 0);
+    const totalSignalsExecuted = subscriptions.reduce((sum, sub) => sum + sub.stats.signalsExecuted, 0);
+    const executionRate = totalSignalsReceived > 0 ? (totalSignalsExecuted / totalSignalsReceived) * 100 : 0;
+
+    const failedTrades = await Trade.countDocuments({
+      communityId: tenantId,
+      userId,
+      status: 'FAILED'
+    });
+
+    // Top followed providers
+    const followedProviders = await UserSignalSubscription.find({
+      communityId: tenantId,
+      userId,
+      active: true
+    })
+      .populate('providerId')
+      .sort({ 'stats.totalPnL': -1 })
+      .limit(3)
+      .lean();
+
+    const following = await Promise.all(
+      followedProviders.map(async sub => {
+        // Calculate this week's performance for this user
+        const weekPnLForProvider = await Trade.aggregate([
+          {
+            $match: {
+              communityId: tenantId,
+              userId,
+              'signalSource.providerId': sub.providerId._id,
+              entryTime: { $gte: weekStart },
+              status: { $in: ['FILLED', 'PARTIAL'] }
+            }
+          },
+          {
+            $group: {
+              _id: null,
+              totalPnL: { $sum: '$profitLoss' }
+            }
+          }
+        ]);
+
+        return {
+          id: sub.providerId._id.toString(),
+          name: sub.providerId.name,
+          performanceThisWeek: weekPnLForProvider[0]?.totalPnL || 0,
+          signalsReceived: sub.stats.signalsReceived,
+          tradesExecuted: sub.stats.signalsExecuted
+        };
+      })
+    );
+
+    // Recent trades
+    const recentTrades = await Trade.find({
+      communityId: tenantId,
+      userId,
+      status: { $in: ['FILLED', 'PARTIAL'] }
+    })
+      .sort({ entryTime: -1 })
+      .limit(10)
+      .lean();
+
+    const recentTradesFormatted = recentTrades.map(trade => ({
+      id: trade._id.toString(),
+      symbol: trade.symbol,
+      side: trade.side.toLowerCase(),
+      size: trade.quantity,
+      entryPrice: trade.entryPrice,
+      exitPrice: trade.exitPrice,
+      pnl: trade.profitLoss,
+      pnlPercent: trade.profitLossPercentage,
+      timestamp: trade.entryTime
+    }));
 
     const overview = {
       personal: {
-        totalPnL: 3456.78,
-        totalPnLPercent: 12.45,
-        todayPnL: 234.56,
-        weekPnL: 1234.67,
-        monthPnL: 3456.78,
-        winRate: 68.5,
-        totalTrades: 234,
-        successfulTrades: 160
+        totalPnL: allTimeStats.totalPnL,
+        totalPnLPercent: 0, // TODO: Calculate based on initial capital
+        todayPnL: todayPnL[0]?.totalPnL || 0,
+        weekPnL: weekPnL[0]?.totalPnL || 0,
+        monthPnL: monthPnL[0]?.totalPnL || 0,
+        winRate,
+        totalTrades: allTimeStats.totalTrades,
+        successfulTrades: allTimeStats.successfulTrades
       },
       positions: {
-        active: 5,
-        avgSize: 1000,
-        totalExposure: 5000,
-        largestPosition: 1500
+        active: activePositions.length,
+        avgSize,
+        totalExposure,
+        largestPosition
       },
       execution: {
-        rate: 94.2,
-        avgSlippage: 0.12,
-        avgLatency: 245,
-        failedSignals: 14
+        rate: executionRate,
+        avgSlippage: 0, // TODO: Calculate from trade execution data
+        avgLatency: 0, // TODO: Calculate from trade execution timestamps
+        failedSignals: failedTrades
       },
-      following: [
-        {
-          id: 'provider_1',
-          name: '#crypto-signals',
-          performanceThisWeek: 12.5,
-          signalsReceived: 45,
-          tradesExecuted: 42
-        },
-        {
-          id: 'provider_2',
-          name: '#forex-alerts',
-          performanceThisWeek: 8.3,
-          signalsReceived: 32,
-          tradesExecuted: 30
-        }
-      ],
-      recentTrades: [
-        {
-          id: 'trade_1',
-          symbol: 'BTC-USD',
-          side: 'buy',
-          size: 0.1,
-          entryPrice: 65000,
-          exitPrice: 66500,
-          pnl: 150,
-          pnlPercent: 2.3,
-          timestamp: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString()
-        },
-        {
-          id: 'trade_2',
-          symbol: 'ETH-USD',
-          side: 'sell',
-          size: 2,
-          entryPrice: 3200,
-          exitPrice: 3150,
-          pnl: 100,
-          pnlPercent: 1.56,
-          timestamp: new Date(Date.now() - 5 * 60 * 60 * 1000).toISOString()
-        }
-      ]
+      following,
+      recentTrades: recentTradesFormatted
     };
 
     res.json(overview);
@@ -257,58 +399,76 @@ router.get('/trades', tradesLimiter, async (req, res) => {
     const { page = 1, limit = 25, startDate, endDate, symbol, side } = req.query;
     const skip = (page - 1) * limit;
     const user = req.user;
+    const userId = user._id;
+    const tenantId = user.communityId; // Constitution Principle I: MUST include tenant scoping
 
-    // TODO: Replace with actual database query
-    // const query = { userId: user._id };
-    // if (startDate || endDate) query.createdAt = {};
-    // if (startDate) query.createdAt.$gte = new Date(startDate);
-    // if (endDate) query.createdAt.$lte = new Date(endDate);
-    // if (symbol) query.symbol = symbol;
-    // if (side) query.side = side;
-    // const trades = await Trade.find(query).skip(skip).limit(limit).sort({ createdAt: -1 });
+    // Import models
+    const Trade = require('../../models/Trade');
+    const SignalProvider = require('../../models/SignalProvider');
 
-    const mockTrades = [
-      {
-        id: 'trade_1',
-        symbol: 'BTC-USD',
-        side: 'buy',
-        size: 0.1,
-        entryPrice: 65000,
-        exitPrice: 66500,
-        pnl: 150,
-        pnlPercent: 2.3,
-        fee: 12.5,
-        broker: 'coinbase',
-        provider: '#crypto-signals',
-        status: 'closed',
-        openedAt: '2024-10-19T10:30:00Z',
-        closedAt: '2024-10-19T14:45:00Z'
-      },
-      {
-        id: 'trade_2',
-        symbol: 'ETH-USD',
-        side: 'sell',
-        size: 2,
-        entryPrice: 3200,
-        exitPrice: 3150,
-        pnl: 100,
-        pnlPercent: 1.56,
-        fee: 8.5,
-        broker: 'coinbase',
-        provider: '#crypto-signals',
-        status: 'closed',
-        openedAt: '2024-10-19T08:15:00Z',
-        closedAt: '2024-10-19T12:30:00Z'
-      }
-    ];
+    // Build query (tenant-scoped)
+    const query = {
+      communityId: tenantId,
+      userId
+    };
+
+    // Apply filters
+    if (startDate || endDate) {
+      query.entryTime = {};
+      if (startDate) query.entryTime.$gte = new Date(startDate);
+      if (endDate) query.entryTime.$lte = new Date(endDate);
+    }
+    if (symbol) query.symbol = symbol;
+    if (side) query.side = side.toUpperCase();
+
+    // Execute query with pagination
+    const [trades, total] = await Promise.all([
+      Trade.find(query)
+        .sort({ entryTime: -1 })
+        .skip(skip)
+        .limit(parseInt(limit))
+        .lean(),
+      Trade.countDocuments(query)
+    ]);
+
+    // Populate provider names for trades
+    const tradesWithProviders = await Promise.all(
+      trades.map(async trade => {
+        let providerName = 'Unknown';
+
+        if (trade.signalSource && trade.signalSource.providerId) {
+          const provider = await SignalProvider.findById(trade.signalSource.providerId).lean();
+          if (provider) {
+            providerName = provider.name;
+          }
+        }
+
+        return {
+          id: trade._id.toString(),
+          symbol: trade.symbol,
+          side: trade.side.toLowerCase(),
+          size: trade.quantity,
+          entryPrice: trade.entryPrice,
+          exitPrice: trade.exitPrice,
+          pnl: trade.profitLoss,
+          pnlPercent: trade.profitLossPercentage,
+          fee: trade.fees.total,
+          broker: trade.exchange,
+          provider: providerName,
+          status: trade.status === 'OPEN' ? 'open' : 'closed',
+          openedAt: trade.entryTime,
+          closedAt: trade.exitTime
+        };
+      })
+    );
 
     res.json({
-      trades: mockTrades,
+      trades: tradesWithProviders,
       pagination: {
         page: parseInt(page),
         limit: parseInt(limit),
-        total: 234,
-        pages: Math.ceil(234 / limit)
+        total,
+        pages: Math.ceil(total / limit)
       }
     });
   } catch (error) {
@@ -332,34 +492,105 @@ router.get('/analytics/performance', analyticsLimiter, async (req, res) => {
   try {
     const { startDate, endDate, groupBy = 'day' } = req.query;
     const user = req.user;
+    const userId = user._id;
+    const tenantId = user.communityId; // Constitution Principle I: MUST include tenant scoping
 
     // Generate cache key
-    const cacheKey = `trader:analytics:${user._id}:${startDate}:${endDate}:${groupBy}`;
+    const cacheKey = `trader:analytics:${userId}:${startDate}:${endDate}:${groupBy}`;
 
-    // Use Redis cache with 5-minute TTL
+    // Use Redis cache with 5-minute TTL (Constitution Principle VII)
     const data = await redis.getOrCompute(cacheKey, async () => {
-      // TODO: Replace with actual analytics query
-      // const trades = await Trade.aggregate([
-      //   { $match: { userId: user._id, createdAt: { $gte: startDate, $lte: endDate } } },
-      //   { $group: { _id: { $dateToString: { format: '%Y-%m-%d', date: '$createdAt' } }, pnl: { $sum: '$pnl' } } }
-      // ]);
+      const Trade = require('../../models/Trade');
+
+      // Parse date range
+      const start = startDate ? new Date(startDate) : new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
+      const end = endDate ? new Date(endDate) : new Date();
+
+      // Determine date grouping format
+      let dateFormat;
+      switch (groupBy) {
+        case 'week':
+          dateFormat = '%Y-W%V'; // ISO week
+          break;
+        case 'month':
+          dateFormat = '%Y-%m';
+          break;
+        case 'day':
+        default:
+          dateFormat = '%Y-%m-%d';
+          break;
+      }
+
+      // Aggregation pipeline (tenant-scoped)
+      const performance = await Trade.aggregate([
+        {
+          $match: {
+            communityId: tenantId,
+            userId,
+            entryTime: { $gte: start, $lte: end },
+            status: { $in: ['FILLED', 'PARTIAL'] }
+          }
+        },
+        {
+          $group: {
+            _id: { $dateToString: { format: dateFormat, date: '$entryTime' } },
+            pnl: { $sum: '$profitLoss' },
+            trades: { $sum: 1 },
+            successfulTrades: {
+              $sum: { $cond: [{ $gt: ['$profitLoss', 0] }, 1, 0] }
+            }
+          }
+        },
+        {
+          $sort: { _id: 1 }
+        },
+        {
+          $project: {
+            date: '$_id',
+            pnl: 1,
+            trades: 1,
+            winRate: {
+              $cond: [
+                { $gt: ['$trades', 0] },
+                { $multiply: [{ $divide: ['$successfulTrades', '$trades'] }, 100] },
+                0
+              ]
+            }
+          }
+        }
+      ]);
+
+      // Calculate summary statistics
+      const totalPnL = performance.reduce((sum, day) => sum + day.pnl, 0);
+      const totalTrades = performance.reduce((sum, day) => sum + day.trades, 0);
+      const avgWinRate = performance.length > 0
+        ? performance.reduce((sum, day) => sum + day.winRate, 0) / performance.length
+        : 0;
+
+      const bestDay = performance.length > 0
+        ? performance.reduce((best, day) => day.pnl > best.pnl ? day : best, performance[0])
+        : null;
+
+      const worstDay = performance.length > 0
+        ? performance.reduce((worst, day) => day.pnl < worst.pnl ? day : worst, performance[0])
+        : null;
 
       return {
-        performance: [
-          { date: '2024-10-01', pnl: 123.45, trades: 8, winRate: 75.0 },
-          { date: '2024-10-02', pnl: 234.56, trades: 12, winRate: 66.7 },
-          { date: '2024-10-03', pnl: -45.67, trades: 6, winRate: 50.0 },
-          { date: '2024-10-04', pnl: 345.67, trades: 15, winRate: 80.0 }
-        ],
+        performance: performance.map(({ _id, ...rest }) => ({
+          date: rest.date,
+          pnl: rest.pnl,
+          trades: rest.trades,
+          winRate: rest.winRate
+        })),
         summary: {
-          totalPnL: 658.01,
-          totalTrades: 41,
-          avgWinRate: 67.9,
-          bestDay: '2024-10-04',
-          worstDay: '2024-10-03'
+          totalPnL,
+          totalTrades,
+          avgWinRate,
+          bestDay: bestDay?.date || null,
+          worstDay: worstDay?.date || null
         }
       };
-    }, 300); // 5-minute cache
+    }, 300); // 5-minute cache per Constitution Principle VII
 
     res.json(data);
   } catch (error) {

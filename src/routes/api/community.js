@@ -31,88 +31,184 @@ router.use(requireCommunityAdmin);
 router.get('/overview', overviewLimiter, async (req, res) => {
   try {
     const user = req.user;
+    const tenantId = user.communityId; // Constitution Principle I: MUST include tenant scoping
 
-    // TODO: Replace with actual database queries
-    // const memberCount = await User.countDocuments({ tenantId: user.tenantId });
-    // const activeToday = await User.countDocuments({ tenantId: user.tenantId, lastActive: { $gte: todayStart } });
+    // Time boundaries
+    const now = new Date();
+    const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const weekStart = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+    const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+
+    // Import models
+    const User = require('../../models/User');
+    const Signal = require('../../models/Signal');
+    const SignalProvider = require('../../models/SignalProvider');
+    const UserSignalSubscription = require('../../models/UserSignalSubscription');
+    const Trade = require('../../models/Trade');
+
+    // Member metrics (tenant-scoped)
+    const [totalMembers, activeToday, activeThisWeek, newThisMonth] = await Promise.all([
+      User.countDocuments({ communityId: tenantId }),
+      User.countDocuments({ communityId: tenantId, lastActive: { $gte: todayStart } }),
+      User.countDocuments({ communityId: tenantId, lastActive: { $gte: weekStart } }),
+      User.countDocuments({ communityId: tenantId, createdAt: { $gte: monthStart } })
+    ]);
+
+    // Signal metrics (tenant-scoped)
+    const [signalsToday, signalsWeek, signalsMonth] = await Promise.all([
+      Signal.countDocuments({ communityId: tenantId, createdAt: { $gte: todayStart } }),
+      Signal.countDocuments({ communityId: tenantId, createdAt: { $gte: weekStart } }),
+      Signal.countDocuments({ communityId: tenantId, createdAt: { $gte: monthStart } })
+    ]);
+
+    // Top signal providers (tenant-scoped)
+    const topProviders = await SignalProvider.find({
+      communityId: tenantId,
+      isActive: true,
+      verificationStatus: 'verified'
+    })
+      .sort({ 'performance.winRate': -1, 'performance.netProfit': -1 })
+      .limit(3)
+      .lean();
+
+    // Get follower counts for top providers
+    const topProvidersWithFollowers = await Promise.all(
+      topProviders.map(async provider => {
+        const followers = await UserSignalSubscription.countDocuments({
+          communityId: tenantId,
+          providerId: provider._id,
+          active: true
+        });
+
+        const signalsToday = await Signal.countDocuments({
+          communityId: tenantId,
+          providerId: provider._id,
+          createdAt: { $gte: todayStart }
+        });
+
+        return {
+          id: provider._id.toString(),
+          name: provider.name,
+          signalsToday,
+          winRate: provider.performance.winRate || 0,
+          followers
+        };
+      })
+    );
+
+    // Performance metrics (tenant-scoped aggregation)
+    const performanceStats = await Trade.aggregate([
+      {
+        $match: {
+          communityId: tenantId,
+          status: { $in: ['FILLED', 'PARTIAL'] }
+        }
+      },
+      {
+        $group: {
+          _id: null,
+          totalPnL: { $sum: '$profitLoss' },
+          totalTrades: { $sum: 1 },
+          successfulTrades: {
+            $sum: { $cond: [{ $gt: ['$profitLoss', 0] }, 1, 0] }
+          }
+        }
+      }
+    ]);
+
+    const stats = performanceStats[0] || {
+      totalPnL: 0,
+      totalTrades: 0,
+      successfulTrades: 0
+    };
+
+    const winRate = stats.totalTrades > 0 ? (stats.successfulTrades / stats.totalTrades) * 100 : 0;
+    const avgPnLPerMember = totalMembers > 0 ? stats.totalPnL / totalMembers : 0;
+
+    // Recent activity (simplified - can be enhanced with AnalyticsEvent model)
+    const recentTrades = await Trade.find({ communityId: tenantId })
+      .sort({ createdAt: -1 })
+      .limit(1)
+      .lean();
+
+    const recentMembers = await User.find({ communityId: tenantId })
+      .sort({ createdAt: -1 })
+      .limit(1)
+      .lean();
+
+    const recentEvents = [];
+
+    if (recentMembers.length > 0) {
+      recentEvents.push({
+        id: `member_${recentMembers[0]._id}`,
+        type: 'new_member',
+        description: `${recentMembers[0].discordUsername} joined the community`,
+        timestamp: recentMembers[0].createdAt
+      });
+    }
+
+    if (signalsToday > 0 && topProvidersWithFollowers.length > 0) {
+      recentEvents.push({
+        id: `signal_${Date.now()}`,
+        type: 'signal',
+        description: `${signalsToday} new signals today from ${topProvidersWithFollowers[0].name}`,
+        timestamp: new Date()
+      });
+    }
+
+    if (stats.totalTrades >= 1000) {
+      recentEvents.push({
+        id: `milestone_trades`,
+        type: 'milestone',
+        description: `Community reached ${Math.floor(stats.totalTrades / 1000) * 1000} total trades`,
+        timestamp: recentTrades.length > 0 ? recentTrades[0].createdAt : new Date()
+      });
+    }
+
+    // Health score calculation
+    const engagementRate = totalMembers > 0 ? (activeThisWeek / totalMembers) * 100 : 0;
+    const healthScore = Math.min(100, Math.round(
+      engagementRate * 0.4 +
+      winRate * 0.3 +
+      (signalsWeek > 0 ? 30 : 0)
+    ));
 
     const overview = {
       members: {
-        total: 45,
-        activeToday: 23,
-        activeThisWeek: 38,
-        newThisMonth: 7,
+        total: totalMembers,
+        activeToday,
+        activeThisWeek,
+        newThisMonth,
         growth: {
-          daily: +2.3,
-          weekly: +5.1,
-          monthly: +18.4
+          daily: 0, // TODO: Calculate from historical data
+          weekly: 0, // TODO: Calculate from historical data
+          monthly: 0 // TODO: Calculate from historical data
         }
       },
       signals: {
-        totalToday: 234,
-        totalThisWeek: 1567,
-        totalThisMonth: 6234,
-        avgPerDay: 210,
-        topProviders: [
-          {
-            id: 'provider_1',
-            name: '#crypto-signals',
-            signalsToday: 45,
-            winRate: 68.5,
-            followers: 34
-          },
-          {
-            id: 'provider_2',
-            name: '#forex-alerts',
-            signalsToday: 32,
-            winRate: 72.1,
-            followers: 28
-          },
-          {
-            id: 'provider_3',
-            name: '#options-flow',
-            signalsToday: 28,
-            winRate: 65.3,
-            followers: 19
-          }
-        ]
+        totalToday: signalsToday,
+        totalThisWeek: signalsWeek,
+        totalThisMonth: signalsMonth,
+        avgPerDay: signalsWeek > 0 ? Math.round(signalsWeek / 7) : 0,
+        topProviders: topProvidersWithFollowers
       },
       performance: {
-        totalPnL: 23567.89,
-        avgPnLPerMember: 523.73,
-        winRate: 67.8,
-        totalTrades: 1234,
-        successfulTrades: 837
+        totalPnL: stats.totalPnL,
+        avgPnLPerMember,
+        winRate,
+        totalTrades: stats.totalTrades,
+        successfulTrades: stats.successfulTrades
       },
       activity: {
-        recentEvents: [
-          {
-            id: 'evt_1',
-            type: 'new_member',
-            description: 'TraderJoe joined the community',
-            timestamp: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString()
-          },
-          {
-            id: 'evt_2',
-            type: 'signal',
-            description: '45 new signals from #crypto-signals',
-            timestamp: new Date(Date.now() - 5 * 60 * 60 * 1000).toISOString()
-          },
-          {
-            id: 'evt_3',
-            type: 'milestone',
-            description: 'Community reached 1000 total trades',
-            timestamp: new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString()
-          }
-        ]
+        recentEvents: recentEvents.slice(0, 3)
       },
       health: {
-        score: 87,
+        score: healthScore,
         indicators: {
-          engagement: 'high',
-          retention: 'medium',
-          growth: 'high',
-          satisfaction: 'high'
+          engagement: engagementRate > 60 ? 'high' : engagementRate > 30 ? 'medium' : 'low',
+          retention: activeThisWeek > totalMembers * 0.5 ? 'high' : 'medium',
+          growth: newThisMonth > 0 ? 'high' : 'low',
+          satisfaction: winRate > 60 ? 'high' : winRate > 40 ? 'medium' : 'low'
         }
       }
     };
@@ -140,51 +236,90 @@ router.get('/members', dashboardLimiter, async (req, res) => {
   try {
     const { page = 1, limit = 25, search, role } = req.query;
     const skip = (page - 1) * limit;
+    const tenantId = req.user.communityId; // Constitution Principle I: MUST include tenant scoping
 
-    // TODO: Replace with actual database query
-    // const query = { tenantId: req.user.tenantId };
-    // if (search) query.$or = [{ username: new RegExp(search, 'i') }, { email: new RegExp(search, 'i') }];
-    // if (role) query.communityRole = role;
-    // const members = await User.find(query).skip(skip).limit(limit).sort({ createdAt: -1 });
+    // Import models
+    const User = require('../../models/User');
+    const Trade = require('../../models/Trade');
 
-    const mockMembers = [
-      {
-        id: 'user_1',
-        username: 'TraderJoe',
-        email: 'trader@example.com',
-        communityRole: 'trader',
-        accountStatus: 'active',
-        joinedAt: '2024-09-15T10:30:00Z',
-        lastActive: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString(),
-        stats: {
-          totalTrades: 234,
-          winRate: 68.5,
-          totalPnL: 3456.78
-        }
-      },
-      {
-        id: 'user_2',
-        username: 'CryptoKing',
-        email: 'king@example.com',
-        communityRole: 'trader',
-        accountStatus: 'active',
-        joinedAt: '2024-08-20T14:22:00Z',
-        lastActive: new Date(Date.now() - 5 * 60 * 60 * 1000).toISOString(),
-        stats: {
-          totalTrades: 567,
-          winRate: 72.1,
-          totalPnL: 7890.12
-        }
-      }
-    ];
+    // Build query (tenant-scoped)
+    const query = { communityId: tenantId };
+
+    // Apply search filter
+    if (search) {
+      query.$or = [
+        { discordUsername: new RegExp(search, 'i') },
+        { discordTag: new RegExp(search, 'i') }
+      ];
+    }
+
+    // Apply role filter
+    if (role) {
+      query.communityRole = role;
+    }
+
+    // Execute query with pagination
+    const [members, total] = await Promise.all([
+      User.find(query)
+        .sort({ createdAt: -1 })
+        .skip(skip)
+        .limit(parseInt(limit))
+        .select('discordUsername communityRole subscription.status createdAt lastActive')
+        .lean(),
+      User.countDocuments(query)
+    ]);
+
+    // Fetch trading stats for each member
+    const membersWithStats = await Promise.all(
+      members.map(async member => {
+        const stats = await Trade.aggregate([
+          {
+            $match: {
+              communityId: tenantId,
+              userId: member._id,
+              status: { $in: ['FILLED', 'PARTIAL'] }
+            }
+          },
+          {
+            $group: {
+              _id: null,
+              totalTrades: { $sum: 1 },
+              totalPnL: { $sum: '$profitLoss' },
+              successfulTrades: {
+                $sum: { $cond: [{ $gt: ['$profitLoss', 0] }, 1, 0] }
+              }
+            }
+          }
+        ]);
+
+        const memberStats = stats[0] || { totalTrades: 0, totalPnL: 0, successfulTrades: 0 };
+        const winRate = memberStats.totalTrades > 0
+          ? (memberStats.successfulTrades / memberStats.totalTrades) * 100
+          : 0;
+
+        return {
+          id: member._id.toString(),
+          username: member.discordUsername,
+          communityRole: member.communityRole,
+          accountStatus: member.subscription?.status || 'inactive',
+          joinedAt: member.createdAt,
+          lastActive: member.lastActive || member.createdAt,
+          stats: {
+            totalTrades: memberStats.totalTrades,
+            winRate,
+            totalPnL: memberStats.totalPnL
+          }
+        };
+      })
+    );
 
     res.json({
-      members: mockMembers,
+      members: membersWithStats,
       pagination: {
         page: parseInt(page),
         limit: parseInt(limit),
-        total: 45,
-        pages: Math.ceil(45 / limit)
+        total,
+        pages: Math.ceil(total / limit)
       }
     });
   } catch (error) {
@@ -354,34 +489,103 @@ router.put('/signals/:id', async (req, res) => {
 router.get('/analytics/performance', analyticsLimiter, async (req, res) => {
   try {
     const { startDate, endDate, groupBy = 'day' } = req.query;
+    const tenantId = req.user.communityId; // Constitution Principle I: MUST include tenant scoping
 
     // Generate cache key
-    const cacheKey = `community:analytics:${req.user.tenantId}:${startDate}:${endDate}:${groupBy}`;
+    const cacheKey = `community:analytics:${tenantId}:${startDate}:${endDate}:${groupBy}`;
 
-    // Use Redis cache with 5-minute TTL
+    // Use Redis cache with 5-minute TTL (Constitution Principle VII)
     const data = await redis.getOrCompute(cacheKey, async () => {
-      // TODO: Replace with actual analytics query
-      // const trades = await Trade.aggregate([
-      //   { $match: { tenantId: req.user.tenantId, createdAt: { $gte: startDate, $lte: endDate } } },
-      //   { $group: { _id: { $dateToString: { format: '%Y-%m-%d', date: '$createdAt' } }, pnl: { $sum: '$pnl' } } }
-      // ]);
+      const Trade = require('../../models/Trade');
+
+      // Parse date range
+      const start = startDate ? new Date(startDate) : new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
+      const end = endDate ? new Date(endDate) : new Date();
+
+      // Determine date grouping format
+      let dateFormat;
+      switch (groupBy) {
+        case 'week':
+          dateFormat = '%Y-W%V'; // ISO week
+          break;
+        case 'month':
+          dateFormat = '%Y-%m';
+          break;
+        case 'day':
+        default:
+          dateFormat = '%Y-%m-%d';
+          break;
+      }
+
+      // Aggregation pipeline (tenant-scoped)
+      const performance = await Trade.aggregate([
+        {
+          $match: {
+            communityId: tenantId,
+            entryTime: { $gte: start, $lte: end },
+            status: { $in: ['FILLED', 'PARTIAL'] }
+          }
+        },
+        {
+          $group: {
+            _id: { $dateToString: { format: dateFormat, date: '$entryTime' } },
+            pnl: { $sum: '$profitLoss' },
+            trades: { $sum: 1 },
+            successfulTrades: {
+              $sum: { $cond: [{ $gt: ['$profitLoss', 0] }, 1, 0] }
+            }
+          }
+        },
+        {
+          $sort: { _id: 1 }
+        },
+        {
+          $project: {
+            date: '$_id',
+            pnl: 1,
+            trades: 1,
+            winRate: {
+              $cond: [
+                { $gt: ['$trades', 0] },
+                { $multiply: [{ $divide: ['$successfulTrades', '$trades'] }, 100] },
+                0
+              ]
+            }
+          }
+        }
+      ]);
+
+      // Calculate summary statistics
+      const totalPnL = performance.reduce((sum, day) => sum + day.pnl, 0);
+      const totalTrades = performance.reduce((sum, day) => sum + day.trades, 0);
+      const avgWinRate = performance.length > 0
+        ? performance.reduce((sum, day) => sum + day.winRate, 0) / performance.length
+        : 0;
+
+      const bestDay = performance.length > 0
+        ? performance.reduce((best, day) => day.pnl > best.pnl ? day : best, performance[0])
+        : null;
+
+      const worstDay = performance.length > 0
+        ? performance.reduce((worst, day) => day.pnl < worst.pnl ? day : worst, performance[0])
+        : null;
 
       return {
-        performance: [
-          { date: '2024-10-01', pnl: 1234.56, trades: 45, winRate: 68.5 },
-          { date: '2024-10-02', pnl: 2345.67, trades: 52, winRate: 70.2 },
-          { date: '2024-10-03', pnl: -567.89, trades: 38, winRate: 62.1 },
-          { date: '2024-10-04', pnl: 3456.78, trades: 61, winRate: 75.3 }
-        ],
+        performance: performance.map(({ _id, ...rest }) => ({
+          date: rest.date,
+          pnl: rest.pnl,
+          trades: rest.trades,
+          winRate: rest.winRate
+        })),
         summary: {
-          totalPnL: 6469.12,
-          totalTrades: 196,
-          avgWinRate: 69.0,
-          bestDay: '2024-10-04',
-          worstDay: '2024-10-03'
+          totalPnL,
+          totalTrades,
+          avgWinRate,
+          bestDay: bestDay?.date || null,
+          worstDay: worstDay?.date || null
         }
       };
-    }, 300); // 5-minute cache
+    }, 300); // 5-minute cache per Constitution Principle VII
 
     res.json(data);
   } catch (error) {
