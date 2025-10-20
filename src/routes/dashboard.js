@@ -33,4 +33,9 @@ router.get('/providers', ensureAuthenticated, (req, res) => {
   res.sendFile('providers.html', { root: './public' });
 });
 
+// Security settings
+router.get('/security', ensureAuthenticated, (req, res) => {
+  res.sendFile('security.html', { root: './public' });
+});
+
 module.exports = router;
