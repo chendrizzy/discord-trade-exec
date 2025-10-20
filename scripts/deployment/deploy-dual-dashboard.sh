@@ -89,8 +89,8 @@ pre_deployment_checks() {
     # Check if all required components exist
     log_info "Checking React components..."
     required_components=(
-        "src/dashboard/components/CommunityDashboard.jsx"
-        "src/dashboard/components/TraderDashboard.jsx"
+        "src/dashboard/pages/CommunityDashboard.jsx"
+        "src/dashboard/pages/TraderDashboard.jsx"
         "src/dashboard/components/shared/PerformanceChart.jsx"
         "src/dashboard/components/shared/TradeTable.jsx"
         "src/dashboard/components/shared/SignalCard.jsx"
