@@ -47,3 +47,5 @@ monitor-moomoo.log
 # Deployment Platform Directories
 .vercel/
 .railway/
+.env*
+!.env.example
