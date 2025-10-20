@@ -58,8 +58,8 @@ class OAuth2Service {
 
     const config = getProviderConfig(broker);
 
-    // Generate cryptographically random state parameter
-    const state = crypto.randomBytes(32).toString('hex');
+    // Generate cryptographically random state parameter (512-bit for enhanced CSRF protection)
+    const state = crypto.randomBytes(64).toString('hex');
 
     // Store state in session with metadata
     session.oauthState = {

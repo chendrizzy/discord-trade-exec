@@ -46,8 +46,8 @@ router.get('/initiate/:brokerKey', async (req, res) => {
       return sendValidationError(res, 'User must be associated with a community to configure brokers');
     }
 
-    // Generate state parameter for CSRF protection
-    const state = crypto.randomBytes(32).toString('hex');
+    // Generate state parameter for CSRF protection (512-bit for enhanced security)
+    const state = crypto.randomBytes(64).toString('hex');
 
     // Store state with user info (expires in 10 minutes)
     oauthStates.set(state, {
