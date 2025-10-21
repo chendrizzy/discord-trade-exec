@@ -26,6 +26,25 @@ class AlpacaAdapter extends BrokerAdapter {
   }
 
   /**
+   * Generate OAuth authorization URL
+   * @param {string} clientId - OAuth client ID
+   * @param {string} redirectUri - Callback URL
+   * @param {string} state - CSRF protection state parameter
+   * @param {string} scope - OAuth scope (default: 'account:write trading')
+   * @returns {string} Authorization URL
+   */
+  static getOAuthURL(clientId, redirectUri, state, scope = 'account:write trading') {
+    const params = new URLSearchParams({
+      response_type: 'code',
+      client_id: clientId,
+      redirect_uri: redirectUri,
+      state,
+      scope
+    });
+    return `https://app.alpaca.markets/oauth/authorize?${params.toString()}`;
+  }
+
+  /**
    * Test connection to Alpaca API
    */
   async testConnection() {

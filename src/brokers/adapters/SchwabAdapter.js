@@ -41,6 +41,59 @@ class SchwabAdapter extends BrokerAdapter {
   }
 
   /**
+   * Generate OAuth authorization URL
+   * @param {string} clientId - OAuth client ID
+   * @param {string} redirectUri - Callback URL
+   * @param {string} state - CSRF protection state parameter
+   * @returns {string} Authorization URL
+   */
+  static getOAuthURL(clientId, redirectUri, state) {
+    const params = new URLSearchParams({
+      response_type: 'code',
+      client_id: clientId,
+      redirect_uri: redirectUri,
+      state
+    });
+    return `https://api.schwabapi.com/v1/oauth/authorize?${params.toString()}`;
+  }
+
+  /**
+   * Exchange authorization code for access tokens
+   * @param {string} code - Authorization code
+   * @param {string} clientId - OAuth client ID
+   * @param {string} clientSecret - OAuth client secret
+   * @param {string} redirectUri - Callback URL
+   * @returns {Promise<Object>} Token response
+   */
+  static async exchangeCodeForToken(code, clientId, clientSecret, redirectUri) {
+    const params = new URLSearchParams({
+      grant_type: 'authorization_code',
+      code,
+      client_id: clientId,
+      client_secret: clientSecret,
+      redirect_uri: redirectUri
+    });
+
+    const response = await axios.post(
+      'https://api.schwabapi.com/v1/oauth/token',
+      params.toString(),
+      {
+        headers: {
+          'Content-Type': 'application/x-www-form-urlencoded'
+        }
+      }
+    );
+
+    return {
+      accessToken: response.data.access_token,
+      refreshToken: response.data.refresh_token,
+      tokenType: response.data.token_type,
+      expiresIn: response.data.expires_in,
+      scope: response.data.scope
+    };
+  }
+
+  /**
    * Authenticate with Schwab using OAuth2 tokens
    * Tokens are retrieved from User model and managed by OAuth2Service
    */
