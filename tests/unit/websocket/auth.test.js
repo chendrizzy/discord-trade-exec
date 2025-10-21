@@ -48,14 +48,17 @@ describe('WebSocket Authentication Middleware', () => {
       collection: jest.fn().mockReturnValue(mockSessionsCollection)
     };
 
-    // Mock mongoose connection
-    mongoose.connection = {
-      db: mockDb
-    };
+    // Mock mongoose connection - set on the actual mongoose object, not replace it
+    if (!mongoose.connection) {
+      mongoose.connection = {};
+    }
+    mongoose.connection.db = mockDb;
   });
 
   afterEach(() => {
-    delete mongoose.connection.db;
+    if (mongoose.connection) {
+      mongoose.connection.db = null;
+    }
   });
 
   describe('createAuthMiddleware()', () => {

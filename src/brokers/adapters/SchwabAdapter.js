@@ -119,7 +119,7 @@ class SchwabAdapter extends BrokerAdapter {
             console.log('[SchwabAdapter] Using existing access token');
             return true;
           }
-          // Token expired, clear it and proceed to OAuth flow
+          // Token expired, clear it and proceed to refresh
           console.log('[SchwabAdapter] Access token expired, clearing...');
           this.accessToken = null;
         } else {
@@ -130,9 +130,45 @@ class SchwabAdapter extends BrokerAdapter {
         }
       }
 
+      // Test mode token refresh: Use credentials directly if no userId
+      if (!this.userId && this.refreshToken && this.clientId && this.clientSecret) {
+        console.log('[SchwabAdapter] Test mode: refreshing access token with refreshToken...');
+
+        if (!this.refreshToken) {
+          throw new Error('No valid tokens available');
+        }
+
+        const params = new URLSearchParams({
+          grant_type: 'refresh_token',
+          refresh_token: this.refreshToken
+        });
+
+        const authHeader = Buffer.from(`${this.clientId}:${this.clientSecret}`).toString('base64');
+
+        const response = await axios.post(
+          'https://api.schwabapi.com/v1/oauth/token',
+          params,
+          {
+            headers: {
+              'Content-Type': 'application/x-www-form-urlencoded',
+              Authorization: `Basic ${authHeader}`
+            }
+          }
+        );
+
+        this.accessToken = response.data.access_token;
+        this.refreshToken = response.data.refresh_token || this.refreshToken;
+        this.tokenExpiresAt = Date.now() + (response.data.expires_in * 1000);
+        this.refreshTokenExpiresAt = Date.now() + (response.data.refresh_token_expires_in * 1000);
+        this.isAuthenticated = true;
+
+        console.log('[SchwabAdapter] Test mode token refresh successful');
+        return true;
+      }
+
       // Production mode: Require userId for OAuth2Service integration
       if (!this.userId) {
-        throw new Error('User ID required for Schwab OAuth2 authentication');
+        throw new Error('No valid tokens available');
       }
 
       const user = await User.findById(this.userId);
