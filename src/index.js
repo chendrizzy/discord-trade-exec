@@ -39,6 +39,7 @@ const signalSubscriptionRoutes = require('./routes/api/signal-subscriptions');
 const communityRoutes = require('./routes/api/community');
 const traderRoutes = require('./routes/api/trader');
 const metricsRoutes = require('./routes/api/metrics');
+const polarWebhookRoutes = require('./routes/webhook/polar');
 const DiscordTradeBot = require('./services/DiscordBot');
 const SubscriptionManager = require('./services/subscription-manager');
 const MarketingAutomation = require('./services/MarketingAutomation');
@@ -171,8 +172,7 @@ try {
   console.log('💳 Subscription manager initialized successfully');
 } catch (error) {
   console.error('❌ Failed to initialize subscription manager:', error);
-  // Create a dummy handler if subscription manager fails
-  subscriptionManager = { handleStripeWebhook: (req, res) => res.status(503).json({ error: 'Service unavailable' }) };
+  subscriptionManager = null;
 }
 
 // Initialize Marketing Automation
@@ -230,16 +230,7 @@ app.use('/api/signal-subscriptions', signalSubscriptionRoutes);
 app.use('/api/community', communityRoutes);
 app.use('/api/trader', traderRoutes);
 app.use('/api/metrics', metricsRoutes);
-
-// Routes
-app.post('/webhook/stripe', (req, res) => {
-  try {
-    subscriptionManager.handleStripeWebhook(req, res);
-  } catch (error) {
-    console.error('Stripe webhook error:', error);
-    res.status(500).json({ error: 'Internal server error' });
-  }
-});
+app.use('/webhook/polar', polarWebhookRoutes);
 
 // TradingView webhook endpoint
 app.post('/webhook/tradingview', express.raw({ type: 'application/json' }), async (req, res) => {
@@ -396,7 +387,7 @@ app.get('/api', (req, res) => {
           '/api/brokers/recommend'
         ]
       },
-      webhooks: ['/webhook/stripe', '/webhook/tradingview'],
+      webhooks: ['/webhook/polar', '/webhook/tradingview'],
       health: ['/health'],
       websocket: {
         url: 'ws://' + (process.env.FRONTEND_URL || 'localhost:5000'),

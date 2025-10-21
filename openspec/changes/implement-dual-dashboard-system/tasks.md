@@ -76,10 +76,10 @@
 - [x] Create `src/dashboard/components/BillingSettings.jsx` (SCAFFOLDED)
 - [x] Implement `/api/community/subscription` endpoint (SCAFFOLDED - mock data)
 - [x] Display current tier, usage limits, renewal date (SCAFFOLDED - UI complete with mock data)
-- [x] Add tier upgrade/downgrade UI with Stripe integration (SCAFFOLDED - UI complete, needs Stripe.js integration)
-- [x] Link to Stripe customer portal for payment management (SCAFFOLDED - `src/services/stripe.js` stub)
+- [x] Add tier upgrade/downgrade UI with Polar billing integration (SCAFFOLDED - UI complete, awaiting live Polar products)
+- [x] Link to Polar billing portal for payment management (SCAFFOLDED - via `BillingProviderFactory` / `polar.js`)
 - [x] Add usage progress bars and limit warnings (COMPLETE)
-- [ ] **Validation**: Subscription changes reflect immediately (TODO: Stripe integration in `INTEGRATION_GUIDE.md`)
+- [ ] **Validation**: Subscription changes reflect immediately (TODO: Polar integration in `INTEGRATION_GUIDE.md`)
 
 ### 2.6 Discord integration settings 📦
 - [x] Create `src/dashboard/components/IntegrationSettings.jsx` (SCAFFOLDED)
@@ -113,8 +113,8 @@
 - [ ] **Validation**: Following providers updates signal delivery (TODO: database integration for UserSignalSubscription)
 
 ### 3.3 Broker management ⏳ PENDING
-- [ ] Reuse existing `BrokerManagement.jsx` component from unified dashboard (TODO: Phase 3.3 - component not yet adapted)
-- [ ] Update component to work within trader dashboard layout
+- [x] Reuse existing `BrokerManagement.jsx` component from unified dashboard (COMPLETE - mounted in trader dashboard tab)
+- [x] Update component to work within trader dashboard layout (COMPLETE)
 - [ ] Ensure OAuth flows work from new route context
 - [ ] Add broker connection health checks
 - [ ] Display broker balances and positions
@@ -135,7 +135,7 @@
 - [x] Implement default stop-loss/take-profit settings (COMPLETE - UI with state management)
 - [x] Create risk profile presets (conservative, moderate, aggressive) (COMPLETE)
 - [x] Add position size calculator with live preview (COMPLETE - client-side calculation ready)
-- [ ] Save settings to `User.tradingConfig.riskManagement` (TODO: PUT /api/trader/risk-profile needs database integration)
+- [x] Save settings to `User.tradingConfig.riskManagement` (COMPLETE - risk profile API persists updates)
 - [ ] **Validation**: Settings are applied to new trades immediately (TODO: database integration + trade execution logic)
 
 ### 3.6 Notifications and alerts 📦
@@ -149,10 +149,10 @@
 ### 3.7 Personal subscription management 📦
 - [x] Reuse `SubscriptionCard` component with `type="user"` prop (SCAFFOLDED - placeholder in PersonalSettings tab)
 - [x] Display personal tier, usage, and renewal information (SCAFFOLDED - mock data via API)
-- [x] Add inline upgrade flow with Stripe (SCAFFOLDED - UI complete, needs Stripe.js integration)
-- [x] Link to Stripe customer portal (SCAFFOLDED - `src/services/stripe.js` stub)
+- [x] Add inline upgrade flow with Polar checkout links (SCAFFOLDED - UI complete, awaiting live Polar products)
+- [x] Link to Polar billing portal (leverages `polar.createCustomerPortalSession`)
 - [x] Show signal usage progress (daily limit tracking) (SCAFFOLDED - UI with mock data)
-- [ ] **Validation**: Upgrades complete and tier changes immediately (TODO: Stripe integration in `INTEGRATION_GUIDE.md`)
+- [ ] **Validation**: Upgrades complete and tier changes immediately (TODO: Polar integration in `INTEGRATION_GUIDE.md`)
 
 ## Phase 4: Shared Components (Week 4) ✅ COMPLETE
 
@@ -195,8 +195,8 @@
 - [x] Support `type="community"` and `type="user"` props (COMPLETE)
 - [x] Display appropriate metrics based on subscription type (COMPLETE)
 - [x] Add upgrade/downgrade CTAs (COMPLETE)
-- [x] Link to Stripe customer portal (COMPLETE)
-- [x] **Validation**: Card displays correct data for both types (READY - awaits Stripe integration)
+- [x] Link to Polar billing portal (COMPLETE)
+- [x] **Validation**: Card displays correct data for both types (READY - awaits Polar integration)
 
 ## Phase 5: API Implementation (Week 5) 📚 DOCUMENTED
 
@@ -209,7 +209,7 @@
 - [x] Implement `GET /api/community/signals` for provider list (SCAFFOLDED - route exists with mock data)
 - [x] Implement `PUT /api/community/signals/:id` for provider config (SCAFFOLDED - route exists, needs DB queries)
 - [x] Implement `GET /api/community/analytics/performance` with caching (SCAFFOLDED - route + Redis structure exists)
-- [x] Implement `GET /api/community/subscription` for billing info (SCAFFOLDED - route exists, needs Stripe integration)
+- [x] Implement `GET /api/community/subscription` for billing info (SCAFFOLDED - route exists, uses Polar billing provider)
 - [x] Add rate limiting (100 req/min for overview, 20 req/min for analytics) ✅ (commit a28ac6c)
   - Implementation: `src/middleware/rateLimiter.js`
   - 100 req/min for overview endpoints

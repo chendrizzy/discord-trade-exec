@@ -2,7 +2,7 @@
  * PolarBillingProvider - Polar.sh Implementation
  *
  * Wraps Polar.sh API calls with BillingProvider interface for vendor independence.
- * Enables future migration to Stripe or other billing providers without code changes.
+ * Enables future migration to other billing providers without code changes.
  *
  * Data Mapping:
  * - Polar.sh subscription format → BillingProvider normalized format

@@ -6,7 +6,8 @@ import SignalFeed from '../components/SignalFeed';
 import TradeHistory from '../components/TradeHistory';
 import RiskSettings from '../components/RiskSettings';
 import PersonalSettings from '../components/PersonalSettings';
-// TODO: Phase 3.3 - Import and adapt BrokerManagement component from existing dashboard
+import { BrokerManagement } from '../components/BrokerManagement';
+import { SubscriptionCard } from '../components/shared/SubscriptionCard';
 
 /**
  * Trader Dashboard
@@ -64,11 +65,7 @@ export function TraderDashboard({ user, onLogout }) {
 
             {/* Brokers Tab */}
             <TabsContent value="brokers">
-              {/* TODO: Phase 3.3 - Reuse existing BrokerManagement component */}
-              <div className="text-center text-muted-foreground py-12">
-                <p className="text-lg font-semibold mb-2">Broker Management</p>
-                <p className="text-sm">Reuse existing BrokerManagement component (Phase 3.3)</p>
-              </div>
+              <BrokerManagement />
             </TabsContent>
 
             {/* History Tab */}
@@ -84,7 +81,9 @@ export function TraderDashboard({ user, onLogout }) {
             {/* Settings Tab */}
             <TabsContent value="settings">
               <PersonalSettings />
-              {/* TODO: Phase 3.7 - Add SubscriptionCard component for personal subscription */}
+              <div className="mt-8">
+                <SubscriptionCard type="user" />
+              </div>
             </TabsContent>
           </Tabs>
         </div>

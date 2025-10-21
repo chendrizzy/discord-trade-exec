@@ -4,14 +4,14 @@
 
 ### Phase 1: Dependencies & Setup (15 min)
 
-- [ ] **Task 1.1**: Install Polar.sh SDK
+- [x] **Task 1.1**: Install Polar.sh SDK
   ```bash
   npm install @polar-sh/sdk
   ```
   - Verify installation in package.json
   - Check for compatibility issues
 
-- [ ] **Task 1.2**: Remove Stripe dependencies
+- [x] **Task 1.2**: Remove Stripe dependencies
   ```bash
   npm uninstall stripe
   ```
@@ -20,7 +20,7 @@
 
 ### Phase 2: Schema Migration (30 min)
 
-- [ ] **Task 2.1**: Update Community model (`src/models/Community.js`)
+- [x] **Task 2.1**: Update Community model (`src/models/Community.js`)
   - Remove: `subscription.stripeCustomerId`
   - Remove: `subscription.stripeSubscriptionId`
   - Add: `subscription.polarCustomerId` (String, UUID regex validation)
@@ -28,7 +28,7 @@
   - Add: `subscription.polarOrganizationId` (String, UUID regex validation)
   - Keep: `subscription.tier`, `subscription.status`, `subscription.currentPeriodEnd`, etc.
 
-- [ ] **Task 2.2**: Update User model (`src/models/User.js`)
+- [x] **Task 2.2**: Update User model (`src/models/User.js`)
   - Remove: `subscription.stripeCustomerId`
   - Remove: `subscription.stripeSubscriptionId`
   - Add: `subscription.polarCustomerId` (String, UUID regex validation)
@@ -37,7 +37,7 @@
 
 ### Phase 3: Service Layer (1 hour)
 
-- [ ] **Task 3.1**: Create Polar.sh service (`src/services/polar.js`)
+- [x] **Task 3.1**: Create Polar.sh service (`src/services/polar.js`)
   - Initialize Polar SDK with `POLAR_ACCESS_TOKEN`
   - Implement graceful degradation (null client if unconfigured)
   - Implement `getCommunitySubscription(customerId)`
@@ -47,13 +47,13 @@
   - Add mock data methods for development
   - Export all functions
 
-- [ ] **Task 3.2**: Delete Stripe service
+- [x] **Task 3.2**: Delete Stripe service
   - Delete `src/services/stripe.js`
   - Verify no orphaned imports
 
 ### Phase 4: API Endpoints (1.5 hours)
 
-- [ ] **Task 4.1**: Update Community subscription endpoint (`src/routes/api/community.js`)
+- [x] **Task 4.1**: Update Community subscription endpoint (`src/routes/api/community.js`)
   - Line ~674-822: Replace Stripe integration
   - Change `stripeCustomerId` → `polarCustomerId`
   - Update free tier check (null `polarCustomerId`)
@@ -61,19 +61,19 @@
   - Replace `stripe.createCustomerPortalSession()` → `polar.createCustomerPortalSession()`
   - Update response format (if needed)
 
-- [ ] **Task 4.2**: Update Trader subscription endpoint (if exists) (`src/routes/api/trader.js`)
+- [x] **Task 4.2**: Update Trader subscription endpoint (if exists) (`src/routes/api/trader.js`)
   - Search for Stripe references (found 1)
   - Replace with Polar.sh equivalents
   - Update schema references
 
-- [ ] **Task 4.3**: Update subscription-manager service (`src/services/subscription-manager.js`)
+- [x] **Task 4.3**: Update subscription-manager service (`src/services/subscription-manager.js`)
   - Replace 7 Stripe references with Polar.sh
   - Update customer ID format handling (object ID → UUID)
   - Update external ID mapping logic
 
 ### Phase 5: Webhook Handler (45 min)
 
-- [ ] **Task 5.1**: Create Polar.sh webhook endpoint (`src/routes/webhook/polar.js`)
+- [x] **Task 5.1**: Create Polar.sh webhook endpoint (`src/routes/webhook/polar.js`)
   - Implement webhook signature verification
   - Handle `subscription.created` event
   - Handle `subscription.updated` event
@@ -82,17 +82,17 @@
   - Update Community/User models based on events
   - Add SecurityAudit logging
 
-- [ ] **Task 5.2**: Delete Stripe webhook handler
+- [x] **Task 5.2**: Delete Stripe webhook handler
   - Delete `src/routes/webhook/stripe.js` (if exists)
   - Remove route registration from main app
 
-- [ ] **Task 5.3**: Register Polar webhook route
+- [x] **Task 5.3**: Register Polar webhook route
   - Add `POST /webhook/polar` to Express app
   - Configure body parser for webhook payload
 
 ### Phase 6: Environment Configuration (10 min)
 
-- [ ] **Task 6.1**: Update `.env.staging`
+- [ ] **Task 6.1**: Update `.env.staging` *(N/A in repo - user to apply in deployment environment)*
   - Remove: `STRIPE_SECRET_KEY`
   - Remove: `STRIPE_WEBHOOK_SECRET`
   - Add: `POLAR_ACCESS_TOKEN=YOUR_POLAR_ACCESS_TOKEN_HERE`
@@ -100,7 +100,7 @@
   - Add: `POLAR_WEBHOOK_SECRET=YOUR_POLAR_WEBHOOK_SECRET_HERE`
   - Keep: `APP_URL` (used for redirects)
 
-- [ ] **Task 6.2**: Update `.env.example` (if exists)
+- [x] **Task 6.2**: Update `.env.example` (if exists)
   - Same changes as .env.staging
   - Add explanatory comments
 
@@ -131,7 +131,7 @@
 
 ### Phase 8: Documentation (30 min)
 
-- [ ] **Task 8.1**: Create Polar.sh setup guide (`docs/POLAR_SETUP.md`)
+- [x] **Task 8.1**: Create Polar.sh setup guide (`docs/POLAR_SETUP.md`)
   - Account creation instructions
   - Access token generation
   - Product creation (4 products: Professional Monthly/Yearly, Enterprise Monthly/Yearly)
@@ -139,11 +139,11 @@
   - Testing with sandbox mode
   - Production deployment checklist
 
-- [ ] **Task 8.2**: Archive Stripe documentation
+- [x] **Task 8.2**: Archive Stripe documentation
   - Rename `docs/STRIPE_SETUP.md` → `docs/archive/STRIPE_SETUP.md`
   - Add deprecation notice
 
-- [ ] **Task 8.3**: Update README (if Stripe mentioned)
+- [x] **Task 8.3**: Update README (if Stripe mentioned)
   - Replace Stripe references with Polar.sh
   - Update billing section
 

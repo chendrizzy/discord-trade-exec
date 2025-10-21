@@ -96,9 +96,9 @@ The community dashboard SHALL display the community's subscription tier, usage l
 - Subscription status and renewal date
 - Member usage vs. limits for current tier
 - Upgrade/downgrade options with tier comparison
-- Stripe customer portal link for payment management
+- Polar billing portal link for subscription management
 **And** they should be able to upgrade the tier inline
-**And** tier changes should be reflected immediately after Stripe confirmation
+**And** tier changes should be reflected immediately after Polar confirmation
 
 ### Requirement: Discord integration configuration
 

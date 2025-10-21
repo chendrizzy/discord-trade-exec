@@ -38,7 +38,8 @@ describe('Broker API Integration Tests', () => {
       subscription: {
         tier: 'free',
         status: 'active',
-        stripeCustomerId: 'cus_test',
+        polarCustomerId: '550e8400-e29b-41d4-a716-446655440000',
+        polarSubscriptionId: '550e8400-e29b-41d4-a716-446655440001',
         currentPeriodStart: new Date(),
         currentPeriodEnd: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000)
       },

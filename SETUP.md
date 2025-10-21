@@ -7,10 +7,11 @@
    - Create new application → Bot
    - Copy bot token to .env
 
-2. **Setup Stripe:**
-   - Create Stripe account
-   - Copy secret keys to .env
-   - Create webhook endpoint
+2. **Configure Polar.sh Billing:**
+   - Create account at https://polar.sh
+   - Generate a Polar access token and organization ID
+   - Copy `POLAR_ACCESS_TOKEN`, `POLAR_ORGANIZATION_ID`, and `POLAR_WEBHOOK_SECRET` to `.env`
+   - Configure the webhook endpoint to `POST /webhook/polar`
 
 3. **Deploy:**
    ```bash

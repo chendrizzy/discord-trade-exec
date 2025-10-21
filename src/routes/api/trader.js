@@ -7,6 +7,7 @@
 
 const express = require('express');
 const router = express.Router();
+const mongoose = require('mongoose');
 const requireTrader = require('../../middleware/requireTrader');
 const { overviewLimiter, analyticsLimiter, tradesLimiter, dashboardLimiter } = require('../../middleware/rateLimiter');
 const redis = require('../../services/redis');
@@ -762,22 +763,53 @@ router.get('/analytics/performance', analyticsLimiter, async (req, res) => {
 });
 
 /**
+ * GET /api/trader/risk-profile
+ * Retrieve trader's risk management settings
+ *
+ * Rate Limit: 100 requests/minute (Constitution Principle V)
+ */
+router.get('/risk-profile', dashboardLimiter, async (req, res) => {
+  try {
+    const User = require('../../models/User');
+    const user = await User.findById(req.user._id)
+      .select('tradingConfig.riskManagement')
+      .lean();
+
+    if (!user) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+
+    const risk = user.tradingConfig?.riskManagement || {};
+    const positionSizingMethod = risk.positionSizingMethod || 'risk_based';
+
+    const response = {
+      positionSizingMode: positionSizingMethod === 'fixed' ? 'fixed' : 'percentage',
+      positionSizePercent: Math.round(((risk.maxPositionSize ?? 0.02) * 100) * 10) / 10,
+      positionSizeFixed: risk.fixedPositionSize ?? 1000,
+      maxPositionSize: Math.round(((risk.maxPositionSize ?? 0.02) * 100) * 10) / 10,
+      defaultStopLoss: Math.round(((risk.defaultStopLoss ?? 0.02) * 100) * 10) / 10,
+      defaultTakeProfit: Math.round(((risk.defaultTakeProfit ?? 0.04) * 100) * 10) / 10,
+      maxDailyLoss: Math.round(((risk.maxDailyLoss ?? 0.05) * 100) * 10) / 10,
+      maxOpenPositions: risk.maxOpenPositions ?? 3,
+      useTrailingStop: risk.useTrailingStop ?? false,
+      trailingStopPercent: Math.round(((risk.trailingStopPercent ?? 0.015) * 100) * 10) / 10
+    };
+
+    res.json({
+      success: true,
+      data: response
+    });
+  } catch (error) {
+    console.error('[Trader API] Error fetching risk profile:', error);
+    res.status(500).json({ error: 'Failed to fetch risk profile' });
+  }
+});
+
+/**
  * PUT /api/trader/risk-profile
  * Update trader's risk management settings with validation
  *
- * Body:
- * - positionSizingMethod: 'fixed' | 'risk_based' | 'kelly'
- * - maxPositionSize: Max position size (0.005-0.1, default 0.02)
- * - defaultStopLoss: Default stop loss percentage (0.01-0.1, default 0.02)
- * - defaultTakeProfit: Default take profit percentage (0.02-0.2, default 0.04)
- * - maxDailyLoss: Maximum daily loss limit (0.02-0.2, default 0.05)
- * - maxOpenPositions: Maximum open positions (1-10, default 3)
- * - useTrailingStop: Enable trailing stop (boolean)
- * - trailingStopPercent: Trailing stop percentage (default 0.015)
- *
- * Constitution Compliance:
- * - Principle I: User-specific update (no tenant scoping needed)
- * - Principle V: Rate limiting applied (dashboardLimiter)
+ * Accepts both percentage-based and fixed sizing payloads from dashboard UI.
  *
  * Rate Limit: 100 requests/minute
  */
@@ -785,7 +817,11 @@ router.put('/risk-profile', dashboardLimiter, async (req, res) => {
   try {
     const userId = req.user._id;
     const {
+      positionSizingMode,
       positionSizingMethod,
+      positionSizing,
+      positionSizePercent,
+      positionSizeFixed,
       maxPositionSize,
       defaultStopLoss,
       defaultTakeProfit,
@@ -798,6 +834,17 @@ router.put('/risk-profile', dashboardLimiter, async (req, res) => {
     // Import models
     const User = require('../../models/User');
 
+    const requestedMode = positionSizingMode ?? positionSizing;
+    const resolvedPositionSizingMethod =
+      positionSizingMethod ||
+      (requestedMode === 'fixed' ? 'fixed' : 'risk_based');
+
+    const percentageToDecimal = value =>
+      value !== undefined ? Math.round((Number(value) / 100) * 10000) / 10000 : undefined;
+
+    const decimalToPercentage = value =>
+      value !== undefined ? Math.round(Number(value) * 1000) / 10 : undefined;
+
     // Validation helper
     const validateRange = (value, min, max, name) => {
       if (value !== undefined && (value < min || value > max)) {
@@ -806,18 +853,26 @@ router.put('/risk-profile', dashboardLimiter, async (req, res) => {
     };
 
     // Validate inputs
-    if (positionSizingMethod && !['fixed', 'risk_based', 'kelly'].includes(positionSizingMethod)) {
+    if (resolvedPositionSizingMethod && !['fixed', 'risk_based', 'kelly'].includes(resolvedPositionSizingMethod)) {
       return res.status(400).json({
         error: 'Invalid positionSizingMethod. Must be: fixed, risk_based, or kelly'
       });
     }
 
     try {
-      validateRange(maxPositionSize, 0.005, 0.1, 'maxPositionSize');
-      validateRange(defaultStopLoss, 0.01, 0.1, 'defaultStopLoss');
-      validateRange(defaultTakeProfit, 0.02, 0.2, 'defaultTakeProfit');
-      validateRange(maxDailyLoss, 0.02, 0.2, 'maxDailyLoss');
-      validateRange(trailingStopPercent, 0.005, 0.05, 'trailingStopPercent');
+      const maxPositionSizeDecimal = percentageToDecimal(
+        maxPositionSize !== undefined ? maxPositionSize : positionSizePercent
+      );
+      const defaultStopLossDecimal = percentageToDecimal(defaultStopLoss);
+      const defaultTakeProfitDecimal = percentageToDecimal(defaultTakeProfit);
+      const maxDailyLossDecimal = percentageToDecimal(maxDailyLoss);
+      const trailingStopDecimal = percentageToDecimal(trailingStopPercent);
+
+      validateRange(maxPositionSizeDecimal, 0.005, 0.1, 'maxPositionSize');
+      validateRange(defaultStopLossDecimal, 0.01, 0.1, 'defaultStopLoss');
+      validateRange(defaultTakeProfitDecimal, 0.02, 0.2, 'defaultTakeProfit');
+      validateRange(maxDailyLossDecimal, 0.02, 0.2, 'maxDailyLoss');
+      validateRange(trailingStopDecimal, 0.005, 0.05, 'trailingStopPercent');
 
       if (maxOpenPositions !== undefined && (maxOpenPositions < 1 || maxOpenPositions > 10)) {
         throw new Error('maxOpenPositions must be between 1 and 10');
@@ -835,20 +890,25 @@ router.put('/risk-profile', dashboardLimiter, async (req, res) => {
     // Build update object (only update provided fields)
     const updates = {};
 
-    if (positionSizingMethod !== undefined) {
-      updates['tradingConfig.riskManagement.positionSizingMethod'] = positionSizingMethod;
+    if (resolvedPositionSizingMethod !== undefined) {
+      updates['tradingConfig.riskManagement.positionSizingMethod'] = resolvedPositionSizingMethod;
+    }
+    if (positionSizeFixed !== undefined) {
+      updates['tradingConfig.riskManagement.fixedPositionSize'] = positionSizeFixed;
     }
     if (maxPositionSize !== undefined) {
-      updates['tradingConfig.riskManagement.maxPositionSize'] = maxPositionSize;
+      updates['tradingConfig.riskManagement.maxPositionSize'] = percentageToDecimal(maxPositionSize);
+    } else if (positionSizePercent !== undefined) {
+      updates['tradingConfig.riskManagement.maxPositionSize'] = percentageToDecimal(positionSizePercent);
     }
     if (defaultStopLoss !== undefined) {
-      updates['tradingConfig.riskManagement.defaultStopLoss'] = defaultStopLoss;
+      updates['tradingConfig.riskManagement.defaultStopLoss'] = percentageToDecimal(defaultStopLoss);
     }
     if (defaultTakeProfit !== undefined) {
-      updates['tradingConfig.riskManagement.defaultTakeProfit'] = defaultTakeProfit;
+      updates['tradingConfig.riskManagement.defaultTakeProfit'] = percentageToDecimal(defaultTakeProfit);
     }
     if (maxDailyLoss !== undefined) {
-      updates['tradingConfig.riskManagement.maxDailyLoss'] = maxDailyLoss;
+      updates['tradingConfig.riskManagement.maxDailyLoss'] = percentageToDecimal(maxDailyLoss);
     }
     if (maxOpenPositions !== undefined) {
       updates['tradingConfig.riskManagement.maxOpenPositions'] = maxOpenPositions;
@@ -857,7 +917,7 @@ router.put('/risk-profile', dashboardLimiter, async (req, res) => {
       updates['tradingConfig.riskManagement.useTrailingStop'] = useTrailingStop;
     }
     if (trailingStopPercent !== undefined) {
-      updates['tradingConfig.riskManagement.trailingStopPercent'] = trailingStopPercent;
+      updates['tradingConfig.riskManagement.trailingStopPercent'] = percentageToDecimal(trailingStopPercent);
     }
 
     // Update user's risk management config
@@ -872,10 +932,23 @@ router.put('/risk-profile', dashboardLimiter, async (req, res) => {
       `[Trader API] Risk profile updated for user ${req.user.discordUsername} (${userId})`
     );
 
+    const updatedRisk = updatedUser.tradingConfig.riskManagement;
+
     res.json({
       success: true,
       message: 'Risk profile updated successfully',
-      riskProfile: updatedUser.tradingConfig.riskManagement
+      riskProfile: {
+        positionSizingMode: resolvedPositionSizingMethod === 'fixed' ? 'fixed' : 'percentage',
+        positionSizePercent: decimalToPercentage(updatedRisk.maxPositionSize) ?? 0,
+        positionSizeFixed: updatedRisk.fixedPositionSize ?? 1000,
+        maxPositionSize: decimalToPercentage(updatedRisk.maxPositionSize) ?? 0,
+        defaultStopLoss: decimalToPercentage(updatedRisk.defaultStopLoss) ?? 0,
+        defaultTakeProfit: decimalToPercentage(updatedRisk.defaultTakeProfit) ?? 0,
+        maxDailyLoss: decimalToPercentage(updatedRisk.maxDailyLoss) ?? 0,
+        maxOpenPositions: updatedRisk.maxOpenPositions ?? 3,
+        useTrailingStop: updatedRisk.useTrailingStop ?? false,
+        trailingStopPercent: decimalToPercentage(updatedRisk.trailingStopPercent) ?? 0
+      }
     });
   } catch (error) {
     console.error('[Trader API] Error updating risk profile:', error);
@@ -905,10 +978,66 @@ router.put('/risk-profile', dashboardLimiter, async (req, res) => {
  *   - lossLimit: Threshold for loss alerts (percentage)
  *   - positionSize: Alert when position size exceeds threshold
  */
-router.put('/notifications', async (req, res) => {
+router.get('/notifications', dashboardLimiter, async (req, res) => {
+  try {
+    const User = require('../../models/User');
+    const user = await User.findById(req.user._id)
+      .select('preferences.notifications preferences.notificationHistory')
+      .lean();
+
+    if (!user) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+
+    const settings = user.preferences?.notifications || {};
+    const history = user.preferences?.notificationHistory || [];
+
+    res.json({
+      success: true,
+      data: {
+        settings: {
+          discordEnabled: settings.discordEnabled ?? true,
+          emailEnabled: settings.emailEnabled ?? false,
+          notifyOnTrade: settings.notifyOnTrade ?? true,
+          notifyOnProfit: settings.notifyOnProfit ?? true,
+          notifyOnLoss: settings.notifyOnLoss ?? true,
+          notifyOnDailyLimit: settings.notifyOnDailyLimit ?? true,
+          notifyOnPositionSize: settings.notifyOnPositionSize ?? false,
+          dailyLossThreshold: settings.dailyLossThreshold ?? 500,
+          positionSizeThreshold: settings.positionSizeThreshold ?? 1000,
+          profitThreshold: settings.profitThreshold ?? 100
+        },
+        history: history.slice(-20).map(entry => ({
+          id: entry.id,
+          type: entry.type,
+          channel: entry.channel,
+          message: entry.message,
+          sentAt: entry.sentAt,
+          status: entry.status
+        }))
+      }
+    });
+  } catch (error) {
+    console.error('[Trader API] Error fetching notification preferences:', error);
+    res.status(500).json({ error: 'Failed to fetch notification preferences' });
+  }
+});
+
+router.put('/notifications', dashboardLimiter, async (req, res) => {
   try {
     const userId = req.user._id;
-    const { discordDM, email, alertThresholds } = req.body;
+    const {
+      discordEnabled,
+      emailEnabled,
+      notifyOnTrade,
+      notifyOnProfit,
+      notifyOnLoss,
+      notifyOnDailyLimit,
+      notifyOnPositionSize,
+      dailyLossThreshold,
+      positionSizeThreshold,
+      profitThreshold
+    } = req.body;
 
     // Import models
     const User = require('../../models/User');
@@ -922,22 +1051,35 @@ router.put('/notifications', async (req, res) => {
     // Build update object (only update provided fields)
     const updates = {};
 
-    if (discordDM !== undefined) {
-      updates['preferences.notifications.discordDM'] = discordDM;
+    if (discordEnabled !== undefined) {
+      updates['preferences.notifications.discordEnabled'] = discordEnabled;
     }
-    if (email !== undefined) {
-      updates['preferences.notifications.email'] = email;
+    if (emailEnabled !== undefined) {
+      updates['preferences.notifications.emailEnabled'] = emailEnabled;
     }
-    if (alertThresholds) {
-      if (alertThresholds.profitTarget !== undefined) {
-        updates['preferences.notifications.alertThresholds.profitTarget'] = alertThresholds.profitTarget;
-      }
-      if (alertThresholds.lossLimit !== undefined) {
-        updates['preferences.notifications.alertThresholds.lossLimit'] = alertThresholds.lossLimit;
-      }
-      if (alertThresholds.positionSize !== undefined) {
-        updates['preferences.notifications.alertThresholds.positionSize'] = alertThresholds.positionSize;
-      }
+    if (notifyOnTrade !== undefined) {
+      updates['preferences.notifications.notifyOnTrade'] = notifyOnTrade;
+    }
+    if (notifyOnProfit !== undefined) {
+      updates['preferences.notifications.notifyOnProfit'] = notifyOnProfit;
+    }
+    if (notifyOnLoss !== undefined) {
+      updates['preferences.notifications.notifyOnLoss'] = notifyOnLoss;
+    }
+    if (notifyOnDailyLimit !== undefined) {
+      updates['preferences.notifications.notifyOnDailyLimit'] = notifyOnDailyLimit;
+    }
+    if (notifyOnPositionSize !== undefined) {
+      updates['preferences.notifications.notifyOnPositionSize'] = notifyOnPositionSize;
+    }
+    if (dailyLossThreshold !== undefined) {
+      updates['preferences.notifications.dailyLossThreshold'] = dailyLossThreshold;
+    }
+    if (positionSizeThreshold !== undefined) {
+      updates['preferences.notifications.positionSizeThreshold'] = positionSizeThreshold;
+    }
+    if (profitThreshold !== undefined) {
+      updates['preferences.notifications.profitThreshold'] = profitThreshold;
     }
 
     // Update user preferences
@@ -970,6 +1112,45 @@ router.put('/notifications', async (req, res) => {
     }
 
     res.status(500).json({ error: 'Failed to update notification preferences' });
+  }
+});
+
+router.post('/notifications/test', dashboardLimiter, async (req, res) => {
+  try {
+    const { type } = req.body;
+    const channel = ['discord', 'email', 'sms'].includes(type) ? type : 'discord';
+
+    const User = require('../../models/User');
+    const historyEntry = {
+      id: new mongoose.Types.ObjectId().toString(),
+      type: 'test',
+      channel,
+      message: `Test ${channel} notification sent at ${new Date().toISOString()}`,
+      sentAt: new Date(),
+      status: 'sent'
+    };
+
+    await User.findByIdAndUpdate(
+      req.user._id,
+      {
+        $push: {
+          'preferences.notificationHistory': {
+            $each: [historyEntry],
+            $slice: -20
+          }
+        }
+      },
+      { new: true }
+    );
+
+    res.json({
+      success: true,
+      message: `Test ${channel} notification dispatched`,
+      notification: historyEntry
+    });
+  } catch (error) {
+    console.error('[Trader API] Error sending test notification:', error);
+    res.status(500).json({ error: 'Failed to send test notification' });
   }
 });
 

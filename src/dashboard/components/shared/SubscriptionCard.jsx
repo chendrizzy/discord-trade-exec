@@ -14,7 +14,7 @@ import { Crown, TrendingUp, Users, Radio, ExternalLink } from 'lucide-react';
  * @param {Object} props
  * @param {'community'|'user'} props.type - Subscription type
  * @param {Function} props.onUpgrade - Callback for upgrade button
- * @param {Function} props.onManage - Callback for manage subscription (Stripe portal)
+ * @param {Function} props.onManage - Callback for manage subscription (billing portal)
  */
 export function SubscriptionCard({
   type = 'user',

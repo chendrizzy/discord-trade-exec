@@ -1,18 +1,17 @@
 /**
  * BillingProvider Abstract Interface
  *
- * Defines contract for all billing provider implementations (Polar.sh, Stripe, etc.)
+ * Defines contract for all billing provider implementations (Polar.sh today, extensible for future providers)
  * Achieves Constitution Principle VIII: Modular architecture with clear separation of concerns
  *
  * Purpose:
  * - Vendor independence: Switch billing providers via configuration, not code rewrite
  * - Testability: Mock billing operations without external API calls
  * - Maintainability: Isolate provider-specific logic to single file
- * - Future-proofing: Enterprise Stripe migration becomes days (not months)
+ * - Future-proofing: Vendor migrations become days (not months)
  *
- * Implementations:
+ * Implementation:
  * - PolarBillingProvider: Current Polar.sh integration
- * - StripeBillingProvider: Future Stripe integration (stub ready)
  *
  * Usage:
  *   const provider = BillingProviderFactory.createProvider();
@@ -26,7 +25,7 @@
 class BillingProvider {
   /**
    * Get active subscription for a customer
-   * @param {string} customerId - Customer UUID (Polar/Stripe customer ID)
+   * @param {string} customerId - Customer UUID (Polar customer ID)
    * @returns {Promise<Subscription|null>} Subscription object or null if no active subscription
    * @throws {Error} If API call fails
    *

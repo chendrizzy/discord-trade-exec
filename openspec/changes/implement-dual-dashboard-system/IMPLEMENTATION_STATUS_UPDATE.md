@@ -43,7 +43,7 @@ The Dual Dashboard System implementation demonstrates **exceptional architectura
 - [ ] Line 46: Discord channel validation (TODO: Discord API integration)
 - [ ] Line 57: SecurityAudit logging for role changes
 - [ ] Line 63: P&L aggregation queries
-- [ ] Line 76: Stripe customer portal integration
+- [ ] Line 76: Polar billing portal integration
 
 **Quality Score**: A (scaffolding excellent, integration pending)
 

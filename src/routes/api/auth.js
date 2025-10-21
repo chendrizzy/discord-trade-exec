@@ -9,10 +9,11 @@
 const express = require('express');
 const router = express.Router();
 const oauth2Service = require('../../services/OAuth2Service');
-const { isOAuth2Broker } = require('../../config/oauth2Providers');
+const { isOAuth2Broker, getEnabledProviders, getProviderConfig } = require('../../config/oauth2Providers');
 const { ensureAuthenticated } = require('../../middleware/auth');
 const { getMFAService } = require('../../services/MFAService');
 const User = require('../../models/User');
+const { BrokerFactory } = require('../../brokers');
 
 // Initialize MFA service
 const mfaService = getMFAService();
@@ -43,7 +44,12 @@ router.get('/broker/:broker/authorize', ensureAuthenticated, (req, res) => {
     const authorizationURL = oauth2Service.generateAuthorizationURL(
       broker,
       req.user.id,
-      req.session
+      req.session,
+      {
+        communityId: req.user.communityId ? req.user.communityId.toString() : null,
+        ipAddress: req.ip,
+        userAgent: req.get('user-agent')
+      }
     );
 
     console.log(`[AuthRoutes] Authorization URL generated | broker: ${broker} | userId: ${req.user.id}`);
@@ -54,6 +60,98 @@ router.get('/broker/:broker/authorize', ensureAuthenticated, (req, res) => {
     });
   } catch (error) {
     console.error('[AuthRoutes] Authorization URL generation failed:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message
+    });
+  }
+});
+
+/**
+ * GET /api/auth/brokers/status
+ *
+ * Retrieve OAuth2 connection status for all enabled brokers.
+ *
+ * @requires Authentication
+ * @returns {Object} { success, brokers: [...] }
+ */
+router.get('/brokers/status', ensureAuthenticated, async (req, res) => {
+  try {
+    const user = await User.findById(req.user.id);
+
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        error: 'User not found'
+      });
+    }
+
+    const enabledBrokers = getEnabledProviders();
+    const now = Date.now();
+
+    const brokers = enabledBrokers.map(brokerKey => {
+      const config = getProviderConfig(brokerKey);
+      if (!config) {
+        return null;
+      }
+
+      const brokerInfo = BrokerFactory.getBrokerInfo(brokerKey) || {};
+
+      let storedTokens;
+      if (user.tradingConfig?.oauthTokens?.get) {
+        storedTokens = user.tradingConfig.oauthTokens.get(brokerKey);
+      } else if (user.tradingConfig?.oauthTokens) {
+        storedTokens = user.tradingConfig.oauthTokens[brokerKey];
+      }
+
+      let expiresAt = storedTokens?.expiresAt ? new Date(storedTokens.expiresAt) : null;
+      const connectedAt = storedTokens?.connectedAt ? new Date(storedTokens.connectedAt) : null;
+      const lastRefreshAttempt = storedTokens?.lastRefreshAttempt ? new Date(storedTokens.lastRefreshAttempt) : null;
+
+      let status = 'disconnected';
+      if (storedTokens) {
+        if (storedTokens.isValid === false) {
+          status = 'revoked';
+        } else if (expiresAt && expiresAt.getTime() <= now) {
+          status = 'expired';
+        } else if (expiresAt && expiresAt.getTime() - now <= 60 * 60 * 1000) {
+          status = 'expiring';
+        } else {
+          status = 'connected';
+        }
+      }
+
+      const expiresInSeconds = expiresAt ? Math.max(0, Math.floor((expiresAt.getTime() - now) / 1000)) : null;
+
+      return {
+        key: brokerKey,
+        name: brokerInfo.name || brokerKey,
+        type: brokerInfo.type || 'stock',
+        authMethods: brokerInfo.authMethods || ['oauth'],
+        websiteUrl: brokerInfo.websiteUrl,
+        docsUrl: brokerInfo.docsUrl,
+        features: brokerInfo.features || [],
+        status,
+        isValid: storedTokens?.isValid !== false,
+        connectedAt: connectedAt ? connectedAt.toISOString() : null,
+        expiresAt: expiresAt ? expiresAt.toISOString() : null,
+        expiresInSeconds,
+        tokenType: storedTokens?.tokenType || config?.tokenType || 'Bearer',
+        scopes: storedTokens?.scopes || config?.scopes || [],
+        lastRefreshAttempt: lastRefreshAttempt ? lastRefreshAttempt.toISOString() : null,
+        lastRefreshError: storedTokens?.lastRefreshError || null,
+        supportsManualRefresh: !!config?.tokenURL,
+        supportsRefreshTokenRotation: !!config?.supportsRefreshTokenRotation,
+        tokenExpiryMs: config?.tokenExpiry || null
+      };
+    }).filter(Boolean);
+
+    res.json({
+      success: true,
+      brokers
+    });
+  } catch (error) {
+    console.error('[AuthRoutes] Failed to fetch OAuth2 broker status:', error);
     res.status(500).json({
       success: false,
       error: error.message
@@ -119,8 +217,16 @@ router.get('/callback', async (req, res) => {
       throw new Error(`User not found: ${userId}`);
     }
 
+    let existingTokens;
+    if (user.tradingConfig?.oauthTokens?.get) {
+      existingTokens = user.tradingConfig.oauthTokens.get(broker);
+    } else if (user.tradingConfig?.oauthTokens) {
+      existingTokens = user.tradingConfig.oauthTokens[broker];
+    }
+
     user.tradingConfig.oauthTokens.set(broker, {
       ...encryptedTokens,
+      connectedAt: existingTokens?.connectedAt || new Date(),
       isValid: true,
       lastRefreshError: null,
       lastRefreshAttempt: new Date()
@@ -192,8 +298,16 @@ router.post('/callback', async (req, res) => {
       throw new Error(`User not found: ${userId}`);
     }
 
+    let existingTokens;
+    if (user.tradingConfig?.oauthTokens?.get) {
+      existingTokens = user.tradingConfig.oauthTokens.get(broker);
+    } else if (user.tradingConfig?.oauthTokens) {
+      existingTokens = user.tradingConfig.oauthTokens[broker];
+    }
+
     user.tradingConfig.oauthTokens.set(broker, {
       ...encryptedTokens,
+      connectedAt: existingTokens?.connectedAt || new Date(),
       isValid: true,
       lastRefreshError: null,
       lastRefreshAttempt: new Date()

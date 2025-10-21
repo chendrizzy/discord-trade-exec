@@ -5,6 +5,8 @@ This diagram shows the complete MongoDB database schema with all collections, fi
 
 ## Entity-Relationship Diagram
 
+> **Note:** This diagram now models Polar.sh as the billing provider. Legacy Stripe terminology is retained in archived sections only.
+
 ```mermaid
 erDiagram
     Users ||--o{ Trades : "executes"
@@ -12,7 +14,7 @@ erDiagram
     Users }o--o{ SignalProviders : "subscribes_to"
     SignalProviders ||--o{ Signals : "posts"
     Trades }o--|| Signals : "triggered_by"
-    Users ||--|| StripeCustomers : "has_stripe_account"
+    Users ||--|| PolarCustomers : "has_polar_account"
 
     Users {
         ObjectId _id PK "Primary key"
@@ -23,8 +25,8 @@ erDiagram
         Object subscription "Subscription details"
         String subscription_tier "free|basic|pro|premium"
         String subscription_status "active|inactive|trial|cancelled|past_due"
-        String subscription_stripeCustomerId FK "Stripe customer ID"
-        String subscription_stripeSubscriptionId "Stripe subscription ID"
+        String subscription_polarCustomerId FK "Polar customer UUID"
+        String subscription_polarSubscriptionId "Polar subscription UUID"
         Date subscription_currentPeriodStart "Billing period start"
         Date subscription_currentPeriodEnd "Billing period end"
         Date subscription_trialEndsAt "Trial expiration (7 days default)"
@@ -172,11 +174,11 @@ erDiagram
         Date updatedAt "Last modification"
     }
 
-    StripeCustomers {
+    PolarCustomers {
         ObjectId _id PK "Primary key"
         ObjectId userId FK "References Users._id (indexed)"
-        String stripeCustomerId UK "Stripe customer ID (indexed)"
-        String stripeSubscriptionId "Current subscription ID"
+        String polarCustomerId UK "Polar customer UUID (indexed)"
+        String polarSubscriptionId "Current subscription UUID"
         String status "active|inactive|past_due|cancelled"
         String tier "basic|pro|premium"
         Number amount "Subscription amount (cents)"
@@ -190,7 +192,7 @@ erDiagram
         String paymentMethod_last4 "Last 4 digits"
         String paymentMethod_brand "visa|mastercard|amex"
         Array invoices "Invoice history"
-        String invoices_invoiceId "Stripe invoice ID"
+        String invoices_invoiceId "Polar invoice ID"
         Number invoices_amount "Amount (cents)"
         String invoices_status "paid|open|void"
         Date invoices_createdAt "Invoice date"
@@ -206,7 +208,7 @@ erDiagram
 
 **Key Fields**:
 - **Authentication**: `discordId` (unique, indexed), `discordUsername`, `email`, `avatar`
-- **Subscription**: Stripe integration, tier limits, trial management
+- **Subscription**: Polar.sh integration, tier limits, trial management
 - **Risk Management**: Position sizing, stop-loss/take-profit defaults, daily limits
 - **Trading Config**: Exchange API keys (encrypted), testnet mode
 - **Statistics**: Track performance, signal usage, trade history
@@ -220,7 +222,7 @@ erDiagram
   isAdmin: 1  // Admin route access control
 }
 {
-  'subscription.stripeCustomerId': 1  // Stripe webhook lookups
+  'subscription.polarCustomerId': 1  // Polar webhook lookups
 }
 {
   createdAt: -1  // Recent signups query

@@ -2,7 +2,14 @@
 const express = require('express');
 
 const router = express.Router();
-const { ensureAuthenticated, ensureAdmin } = require('../../middleware/auth');
+const { ensureAuthenticated } = require('../../middleware/auth');
+const { ensureAdmin } = require('../../middleware/admin');
+
+// Verify ensureAdmin is properly loaded
+if (typeof ensureAdmin !== 'function') {
+  console.error('[MetricsRoute] ensureAdmin is not a function:', ensureAdmin);
+  throw new Error('ensureAdmin middleware failed to load');
+}
 const { apiLimiter } = require('../../middleware/rateLimiter');
 const performanceTracker = require('../../PerformanceTracker');
 

@@ -1,0 +1,3 @@
+- Ensure relevant Jest (`npm test`) or Playwright suites pass for touched areas; target >80% coverage when practical.
+- Run appropriate build commands (`npm run build`, `npm run build:dashboard`) if changes affect deployment artifacts.
+- Follow Conventional Commits and reference issues when preparing commits/PRs; include UI screenshots whenever the dashboard changes.

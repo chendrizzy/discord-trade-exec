@@ -26,7 +26,7 @@ Discord Trade Executor is an automated trading platform that:
 - **Validates trades** through a 5-gate risk management pipeline
 - **Executes orders** across multiple exchanges and brokers
 - **Tracks performance** with professional-grade analytics
-- **Manages subscriptions** via Stripe (Free, Basic, Pro, Premium tiers)
+- **Manages subscriptions** via Polar.sh (Free, Basic, Pro, Premium tiers)
 - **Provides dashboards** for users and administrators
 
 ### Current Capabilities
@@ -36,7 +36,7 @@ Discord Trade Executor is an automated trading platform that:
 - Binance exchange support (crypto trading)
 - Risk management (stop-loss, take-profit, position sizing)
 - React dashboard with portfolio tracking
-- Stripe subscription billing
+- Polar.sh subscription billing
 - MongoDB data persistence
 - Railway cloud deployment
 
@@ -160,7 +160,7 @@ Complete MongoDB schema with all collections, fields, and relationships.
 3. **SignalProviders** - Provider profiles, performance stats
 4. **Signals** - Raw Discord signals, parsing results
 5. **BotConfigs** - User bot configurations
-6. **StripeCustomers** - Payment & subscription data
+6. **PolarCustomers** - Billing data (customer UUIDs, subscriptions, portal sessions)
 
 **Key Queries**:
 - Portfolio overview (open positions, today's trades)
@@ -291,7 +291,7 @@ npm install
 
 # Set up environment variables
 cp .env.example .env
-# Edit .env with your Discord bot token, MongoDB URI, Stripe keys
+# Edit .env with your Discord bot token, MongoDB URI, Polar billing keys
 
 # Run development server
 npm run dev
@@ -460,7 +460,7 @@ discord-trade-exec/
 │   ├── risk/                   # Risk validation pipeline
 │   ├── executor/               # Trade execution engine
 │   ├── brokers/                # Exchange adapters (CCXT, future stock brokers)
-│   ├── webhooks/               # Stripe payment webhooks
+│   ├── webhooks/               # Polar billing webhooks
 │   ├── analytics/              # Metrics calculation, cohort analysis
 │   ├── ml/                     # Churn prediction, signal scoring
 │   ├── jobs/                   # Background jobs (aggregation, forecasting)
@@ -488,7 +488,7 @@ discord-trade-exec/
 - **CCXT** v4.1.99 - Crypto exchange abstraction
 - **Mongoose** v8.0.4 - MongoDB ODM
 - **Passport.js** - OAuth authentication
-- **Stripe** v14.12.0 - Subscription billing
+- **Polar.sh** SDK - Subscription billing
 
 **Frontend**:
 - **React** v19.2.0 - UI library
@@ -501,7 +501,7 @@ discord-trade-exec/
 - **MongoDB Atlas** - Database (M30 cluster)
 - **Redis Cloud** - Caching & pub/sub
 - **Railway** - Deployment platform
-- **Stripe** - Payment processing
+- **Polar.sh** - Payment processing
 
 **Future Stack** (Phases 1-5):
 - **WebSocket** (Socket.io) - Real-time updates
@@ -541,7 +541,7 @@ discord-trade-exec/
 - `GET /api/admin/platform` - Platform health
 
 **Webhooks**:
-- `POST /api/webhooks/stripe` - Stripe payment events
+- `POST /api/webhooks/polar` - Polar billing events
 - `POST /api/webhooks/discord` - Discord interactions
 
 ### Testing Strategy
@@ -652,8 +652,9 @@ DISCORD_BOT_TOKEN=           # Discord bot API token
 DISCORD_CLIENT_ID=           # Discord OAuth client ID
 DISCORD_CLIENT_SECRET=       # Discord OAuth secret
 MONGODB_URI=                 # MongoDB connection string
-STRIPE_SECRET_KEY=           # Stripe API secret
-STRIPE_WEBHOOK_SECRET=       # Stripe webhook signing secret
+POLAR_ACCESS_TOKEN=          # Polar API access token
+POLAR_ORGANIZATION_ID=       # Polar organization identifier
+POLAR_WEBHOOK_SECRET=        # Polar webhook signing secret
 SESSION_SECRET=              # Express session secret
 NODE_ENV=production          # Environment
 ```
@@ -868,7 +869,7 @@ MIT License - see [LICENSE](../../LICENSE) for details.
 - ✅ Discord bot with NLP signal parsing
 - ✅ Risk management pipeline (5 gates)
 - ✅ React dashboard with portfolio tracking
-- ✅ Stripe subscription billing
+- ✅ Polar.sh subscription billing
 - ✅ MongoDB data persistence
 - ✅ Railway deployment
 

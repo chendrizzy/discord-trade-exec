@@ -121,8 +121,8 @@ recordTrade(success, P&L)   // Updates stats
 
 ---
 
-### 4. Stripe Subscription Manager (COMPLETE)
-**File**: `/src/subscription-manager.js` (COMPLETE REWRITE)
+### 4. Polar Billing Manager (COMPLETE)
+**Files**: `src/services/polar.js`, `src/services/PaymentProcessor.js`, `src/routes/webhook/polar.js`
 
 #### Pricing Tiers:
 ```javascript
@@ -134,61 +134,39 @@ Premium:  $299/month  → Unlimited + API access
 
 #### Features Implemented:
 
-**a) Customer Management**
-```javascript
-createCustomer(discordId, email)
-  → Creates Stripe customer
-  → Links to Discord via metadata
-  → Stores customerId in User DB
-```
+**a) Merchant-of-Record Billing**
+- Polar.sh handles tax collection/remittance globally
+- Customer metadata links back to Discord user and community
+- UUID-based identifiers stored in `User.subscription` for compliance
 
 **b) Checkout Sessions**
 ```javascript
-createCheckoutSession(discordId, planId, successUrl, cancelUrl)
-  → Dynamic pricing based on plan
-  → Metadata: discordId + planId
-  → Auto-links to existing customer
-  → Monthly recurring billing
+createCheckoutSession(productId, successUrl, email, metadata)
+  → Uses Polar product UUIDs per tier
+  → Prefills email + trial metadata
+  → Returns hosted checkout URL
 ```
 
-**c) Webhook Lifecycle Handling**
-All webhook events automatically update User database:
-
-- `checkout.session.completed`
-  - Links Stripe customer + subscription IDs
-  - Activates subscription
-
-- `customer.subscription.created`
-  - Sets subscription tier
-  - Updates signal limits (10 → 100 → ∞)
-  - Sets period dates
-
-- `customer.subscription.updated`
-  - Handles plan changes (upgrade/downgrade)
-  - Updates tier and limits
-  - Extends period dates
-
-- `invoice.payment_succeeded`
-  - Marks subscription active
-  - Extends current period
-
-- `invoice.payment_failed`
-  - Marks subscription past_due
-  - User notified via Discord
-
-- `customer.subscription.deleted`
-  - Marks subscription cancelled
-  - Reverts to free tier (10 signals/day)
-  - Records cancellation date
-
-**d) Subscription Management**
+**c) Customer Portal Sessions**
 ```javascript
-cancelSubscription(discordId)    // User-initiated cancellation
-getSubscriptionInfo(discordId)   // Current status + Stripe details
-getPlanTierFromPrice(amount)     // Auto-detects tier from price
+createCustomerPortalSession(customerId, returnUrl)
+  → Generates secure billing portal links
+  → Allows plan upgrades, cancellations, payment updates
 ```
 
-**Impact**: Fully automated subscription lifecycle, zero manual intervention
+**d) Webhook Lifecycle Handling**
+`/webhook/polar` processes all subscription events and updates MongoDB:
+- `subscription.created` → Activates tier, sets usage limits
+- `subscription.updated` → Handles upgrades/downgrades & trial transitions
+- `subscription.cancelled` → Marks account as cancelled or scheduled to cancel
+- `checkout.completed` → Finalizes trial conversions and links customer IDs
+
+**e) Dashboard Integration**
+- PaymentProcessor renders hosted checkout page when Polar credentials missing
+- Discord bot `/subscribe` command links directly to Polar checkout URL
+- BrokerManagement UI shows billing status using new OAuth2 components
+
+**Impact**: Merchant-of-Record billing with zero tax overhead, automated lifecycle management, and full dashboard integration.
 
 ---
 

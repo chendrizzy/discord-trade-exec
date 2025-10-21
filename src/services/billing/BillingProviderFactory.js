@@ -2,11 +2,11 @@
  * BillingProviderFactory
  *
  * Factory pattern for creating billing provider instances based on environment configuration.
- * Enables switching between Polar.sh and Stripe without code changes.
+ * Enables switching between Polar.sh and future billing providers without code changes.
  *
  * Configuration:
  * - Environment variable: BILLING_PROVIDER (defaults to 'polar')
- * - Supported values: 'polar', 'stripe'
+ * - Supported values: 'polar'
  *
  * Usage:
  *   const provider = BillingProviderFactory.createProvider();
@@ -20,8 +20,6 @@
  */
 
 const PolarBillingProvider = require('./providers/PolarBillingProvider');
-const StripeBillingProvider = require('./providers/StripeBillingProvider');
-
 class BillingProviderFactory {
   /**
    * Create billing provider instance based on environment configuration
@@ -36,14 +34,10 @@ class BillingProviderFactory {
         console.log('[BillingProviderFactory] Creating Polar.sh billing provider');
         return new PolarBillingProvider();
 
-      case 'stripe':
-        console.log('[BillingProviderFactory] Creating Stripe billing provider');
-        return new StripeBillingProvider();
-
       default:
         throw new Error(
           `Unsupported billing provider: "${providerType}". ` +
-          `Supported providers: "polar", "stripe". ` +
+          `Supported providers: "polar". ` +
           `Set BILLING_PROVIDER environment variable to change provider.`
         );
     }
@@ -51,10 +45,11 @@ class BillingProviderFactory {
 
   /**
    * Get current billing provider type from environment
-   * @returns {string} Provider type ('polar' or 'stripe')
+   * @returns {string} Provider type ('polar')
    */
   static getProviderType() {
-    return (process.env.BILLING_PROVIDER || 'polar').toLowerCase();
+    const requested = (process.env.BILLING_PROVIDER || 'polar').toLowerCase();
+    return this.isSupported(requested) ? requested : 'polar';
   }
 
   /**
@@ -64,7 +59,7 @@ class BillingProviderFactory {
    */
   static isSupported(providerType) {
     const normalizedType = (providerType || '').toLowerCase();
-    return ['polar', 'stripe'].includes(normalizedType);
+    return ['polar'].includes(normalizedType);
   }
 
   /**
@@ -72,7 +67,7 @@ class BillingProviderFactory {
    * @returns {string[]} Array of supported provider names
    */
   static getSupportedProviders() {
-    return ['polar', 'stripe'];
+    return ['polar'];
   }
 }
 

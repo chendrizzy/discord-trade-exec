@@ -364,6 +364,8 @@ class SubscriptionManager {
         subscription: {
           tier: user.subscription.tier,
           status: user.subscription.status,
+          polarCustomerId: user.subscription.polarCustomerId,
+          polarSubscriptionId: user.subscription.polarSubscriptionId,
           isActive,
           currentPeriodStart: user.subscription.currentPeriodStart,
           currentPeriodEnd: user.subscription.currentPeriodEnd,

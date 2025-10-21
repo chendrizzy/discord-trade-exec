@@ -1,0 +1,3 @@
+- Use 2-space indentation, camelCase variables, UPPER_CASE constants, and `export default function` for React components.
+- Stick to concise, purposeful comments; prefer self-explanatory code over verbose commentary.
+- Backend uses Express/Node patterns, frontend follows standard React with Vite build tooling.

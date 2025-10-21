@@ -122,15 +122,16 @@
   - MONGODB_URI=mongodb://localhost:27017/trade-executor
 ```
 
-##### Stripe Payments
+##### Polar Billing (Merchant of Record)
 ```bash
-□ Stripe Dashboard: https://dashboard.stripe.com
+□ Polar Dashboard: https://dashboard.polar.sh
 
   NEEDED:
-  - STRIPE_SECRET_KEY=<from dashboard>
-  - STRIPE_WEBHOOK_SECRET=<create webhook endpoint>
+  - POLAR_ACCESS_TOKEN=<from dashboard>
+  - POLAR_ORGANIZATION_ID=<org id>
+  - POLAR_WEBHOOK_SECRET=<create webhook endpoint>
 
-  Webhook URL: https://yourdomain.com/webhook/stripe
+  Webhook URL: https://yourdomain.com/webhook/polar
 ```
 
 ##### Alpaca Stock Trading
@@ -446,7 +447,7 @@ Estimated Coverage After: 85% (exceeds target)
 □ Set all environment variables in Railway dashboard
 □ Configure custom domain (for Discord OAuth)
 □ Set up MongoDB Atlas connection string
-□ Configure Stripe webhook endpoint
+□ Configure Polar webhook endpoint
 □ Test WebSocket connections in production
 ```
 
@@ -535,7 +536,7 @@ Social Trading (6-8 weeks):
 3. **Get Production Credentials** (2-3 hours)
    - Discord bot + OAuth
    - MongoDB database
-   - Stripe payments
+   - Polar billing (access token, org ID, webhook secret)
    - Generate session keys
 
 ### Next Week:
@@ -550,7 +551,7 @@ Social Trading (6-8 weeks):
 6. **Deploy to Production** (when Phase 1 complete)
    - Configure Railway environment
    - Set up custom domain
-   - Enable Stripe webhooks
+   - Enable Polar webhook
 
 ---
 
@@ -624,7 +625,7 @@ Social Trading (6-8 weeks):
 ### Hard Blockers (Can't Launch Without):
 1. **MongoDB Database** - Need connection string
 2. **Discord Bot Token** - Need for bot functionality
-3. **Stripe Keys** - Need for payments
+3. **Polar Billing Credentials** - Need for payments
 4. **Domain Name** - Need for OAuth callbacks in production
 
 ### Soft Blockers (Can Launch Without, But Limited):

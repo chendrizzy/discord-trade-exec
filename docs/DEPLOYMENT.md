@@ -4,7 +4,7 @@
 - Node.js 22.18.0
 - MongoDB Atlas account or MongoDB instance
 - Discord Developer Application
-- Stripe Account (for payments)
+- Polar.sh account (for billing)
 - Domain name (optional)
 
 ## Environment Setup
@@ -30,9 +30,10 @@ ENCRYPTION_KEY=generate_32_byte_hex_string_here
 BINANCE_API_KEY=your_binance_api_key
 BINANCE_SECRET=your_binance_secret
 
-# Stripe Payment Processing
-STRIPE_SECRET_KEY=your_stripe_secret_key
-STRIPE_WEBHOOK_SECRET=your_stripe_webhook_secret
+# Polar.sh Merchant of Record
+POLAR_ACCESS_TOKEN=your_polar_access_token
+POLAR_ORGANIZATION_ID=your_polar_organization_id
+POLAR_WEBHOOK_SECRET=your_polar_webhook_secret
 
 # TradingView Integration
 TRADINGVIEW_WEBHOOK_SECRET=your_tradingview_webhook_secret

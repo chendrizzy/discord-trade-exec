@@ -23,6 +23,9 @@ const Community = require('../../models/Community');
 const User = require('../../models/User');
 const SecurityAudit = require('../../models/SecurityAudit');
 
+const WEBHOOK_EVENT_LIMIT = parseInt(process.env.POLAR_WEBHOOK_EVENT_LIMIT || '50', 10);
+const webhookEvents = [];
+
 /**
  * POST /webhook/polar
  * Handle incoming Polar.sh webhook events
@@ -63,6 +66,24 @@ router.post('/', express.raw({ type: 'application/json' }), async (req, res) => 
     const event = JSON.parse(rawBody);
     const eventType = event.type;
 
+    const eventSummary = {
+      id: event.id,
+      type: eventType,
+      receivedAt: new Date().toISOString(),
+      customerId: event.data?.customerId,
+      status: event.data?.status,
+      subscriptionId: event.data?.id || event.data?.subscriptionId || null
+    };
+
+    if (process.env.POLAR_WEBHOOK_EVENT_DEBUG === 'true') {
+      eventSummary.payload = event;
+    }
+
+    webhookEvents.unshift(eventSummary);
+    if (webhookEvents.length > WEBHOOK_EVENT_LIMIT) {
+      webhookEvents.length = WEBHOOK_EVENT_LIMIT;
+    }
+
     console.log(`[Polar Webhook] Received event: ${eventType}`, {
       eventId: event.id,
       customerId: event.data?.customerId
@@ -71,11 +92,11 @@ router.post('/', express.raw({ type: 'application/json' }), async (req, res) => 
     // Route event to appropriate handler
     switch (eventType) {
       case 'subscription.created':
-        await handleSubscriptionCreated(event, req);
+        await handleSubscriptionCreated(event, req, billingProvider);
         break;
 
       case 'subscription.updated':
-        await handleSubscriptionUpdated(event, req);
+        await handleSubscriptionUpdated(event, req, billingProvider);
         break;
 
       case 'subscription.cancelled':
@@ -83,7 +104,7 @@ router.post('/', express.raw({ type: 'application/json' }), async (req, res) => 
         break;
 
       case 'checkout.completed':
-        await handleCheckoutCompleted(event, req);
+        await handleCheckoutCompleted(event, req, billingProvider);
         break;
 
       default:
@@ -102,7 +123,7 @@ router.post('/', express.raw({ type: 'application/json' }), async (req, res) => 
  * Handle subscription.created event
  * Activates new subscriptions for communities or traders
  */
-async function handleSubscriptionCreated(event, req) {
+async function handleSubscriptionCreated(event, req, billingProvider) {
   const { customerId, id: subscriptionId, productId, status } = event.data;
 
   // Get product details to determine subscription type
@@ -210,7 +231,7 @@ async function handleSubscriptionCreated(event, req) {
  * Handle subscription.updated event
  * Updates subscription status or tier changes
  */
-async function handleSubscriptionUpdated(event, req) {
+async function handleSubscriptionUpdated(event, req, billingProvider) {
   const { customerId, id: subscriptionId, productId, status } = event.data;
 
   // Get product details to determine subscription type
@@ -398,7 +419,7 @@ async function handleSubscriptionCancelled(event, req) {
  * Handle checkout.completed event
  * Links new customer to community or user after successful checkout
  */
-async function handleCheckoutCompleted(event, req) {
+async function handleCheckoutCompleted(event, req, billingProvider) {
   const { customerId, productId, metadata } = event.data;
 
   // Get product details
@@ -498,5 +519,20 @@ function getCommunityTierLimits(tier) {
 
   return limits[tier] || limits.free;
 }
+
+router.get('/events', (req, res) => {
+  const expectedToken = process.env.POLAR_WEBHOOK_INSPECT_TOKEN;
+  if (expectedToken) {
+    const providedToken = req.query.token || req.headers['x-polar-inspect-token'];
+    if (providedToken !== expectedToken) {
+      return res.status(403).json({ error: 'Forbidden' });
+    }
+  }
+
+  res.json({
+    count: webhookEvents.length,
+    events: webhookEvents
+  });
+});
 
 module.exports = router;

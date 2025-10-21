@@ -42,15 +42,15 @@ const BillingSettings = () => {
 
   const handleManageSubscription = async () => {
     try {
-      // TODO: Integrate with Stripe Customer Portal
+      // TODO: Integrate with Polar customer portal
       // const response = await fetch('/api/community/billing/portal', {
       //   method: 'POST'
       // });
       // const { url } = await response.json();
       // window.location.href = url;
 
-      console.log('Stripe portal integration not yet implemented');
-      alert('You will be redirected to the Stripe portal to manage your subscription');
+      console.log('Polar portal integration not yet implemented');
+      alert('You will be redirected to the Polar portal to manage your subscription');
     } catch (err) {
       console.error('[BillingSettings] Portal error:', err);
       setError(err.message);
@@ -59,7 +59,7 @@ const BillingSettings = () => {
 
   const handleUpgrade = async (tier) => {
     try {
-      // TODO: Integrate with Stripe Checkout
+      // TODO: Integrate with Polar checkout
       // const response = await fetch('/api/community/billing/upgrade', {
       //   method: 'POST',
       //   headers: { 'Content-Type': 'application/json' },
@@ -148,7 +148,7 @@ const BillingSettings = () => {
           </div>
           <div className="flex gap-2 mt-4">
             <Button onClick={handleManageSubscription}>
-              Manage in Stripe
+              Open Billing Portal
             </Button>
             <Button variant="outline">Cancel Subscription</Button>
           </div>
@@ -350,8 +350,8 @@ const BillingSettings = () => {
         </CardContent>
       </Card>
 
-      {/* TODO: Integrate Stripe Customer Portal for subscription management */}
-      {/* TODO: Implement Stripe Checkout for plan upgrades/downgrades */}
+      {/* TODO: Integrate Polar customer portal for subscription management */}
+      {/* TODO: Implement Polar checkout for plan upgrades/downgrades */}
       {/* TODO: Add webhook handlers for subscription events (renewal, cancellation, etc.) */}
       {/* TODO: Implement usage alerts when approaching limits */}
       {/* TODO: Add invoice PDF generation and email delivery */}

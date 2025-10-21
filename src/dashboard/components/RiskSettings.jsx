@@ -36,11 +36,11 @@ export function RiskSettings() {
   // Risk profile state
   const [positionSizingMode, setPositionSizingMode] = useState('percentage'); // 'percentage' or 'fixed'
   const [positionSizePercent, setPositionSizePercent] = useState(5);
-  const [positionSizeFixed, setPositionSizeFixed] = useState(100);
-  const [maxPositionSize, setMaxPositionSize] = useState(1000);
+  const [positionSizeFixed, setPositionSizeFixed] = useState(1000);
+  const [maxPositionSize, setMaxPositionSize] = useState(5);
   const [defaultStopLoss, setDefaultStopLoss] = useState(2);
   const [defaultTakeProfit, setDefaultTakeProfit] = useState(5);
-  const [maxDailyLoss, setMaxDailyLoss] = useState(500);
+  const [maxDailyLoss, setMaxDailyLoss] = useState(5);
   const [maxOpenPositions, setMaxOpenPositions] = useState(5);
 
   // Calculator state
@@ -61,14 +61,14 @@ export function RiskSettings() {
       if (data.success) {
         const profile = data.data;
         setPositionSizingMode(profile.positionSizingMode || 'percentage');
-        setPositionSizePercent(profile.positionSizePercent || 5);
-        setPositionSizeFixed(profile.positionSizeFixed || 100);
-        setMaxPositionSize(profile.maxPositionSize || 1000);
-        setDefaultStopLoss(profile.defaultStopLoss || 2);
-        setDefaultTakeProfit(profile.defaultTakeProfit || 5);
-        setMaxDailyLoss(profile.maxDailyLoss || 500);
-        setMaxOpenPositions(profile.maxOpenPositions || 5);
-        setAccountBalance(profile.accountBalance || 10000);
+        setPositionSizePercent(Number(profile.positionSizePercent ?? 5));
+        setPositionSizeFixed(Number(profile.positionSizeFixed ?? 1000));
+        setMaxPositionSize(Number(profile.maxPositionSize ?? 5));
+        setDefaultStopLoss(Number(profile.defaultStopLoss ?? 2));
+        setDefaultTakeProfit(Number(profile.defaultTakeProfit ?? 5));
+        setMaxDailyLoss(Number(profile.maxDailyLoss ?? 5));
+        setMaxOpenPositions(Number(profile.maxOpenPositions ?? 5));
+        setAccountBalance(profile.accountBalance ? Number(profile.accountBalance) : 10000);
       } else {
         setError(data.error || 'Failed to fetch risk profile');
       }
@@ -295,15 +295,16 @@ export function RiskSettings() {
 
             {/* Max Position Size */}
             <div className="space-y-2">
-              <label className="text-sm font-medium">Maximum Position Size ($)</label>
+              <label className="text-sm font-medium">Maximum Position Size (% of account)</label>
               <Input
                 type="number"
-                min="100"
-                step="100"
+                min="1"
+                max="25"
+                step="0.5"
                 value={maxPositionSize}
                 onChange={e => setMaxPositionSize(Number(e.target.value))}
               />
-              <p className="text-xs text-muted-foreground">Hard cap on individual position size regardless of mode</p>
+              <p className="text-xs text-muted-foreground">Hard cap on position risk relative to current balance</p>
             </div>
           </div>
         </CardContent>
@@ -377,15 +378,16 @@ export function RiskSettings() {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {/* Max Daily Loss */}
             <div className="space-y-2">
-              <label className="text-sm font-medium">Maximum Daily Loss ($)</label>
+              <label className="text-sm font-medium">Maximum Daily Loss (% of account)</label>
               <Input
                 type="number"
-                min="50"
-                step="50"
+                min="1"
+                max="20"
+                step="0.5"
                 value={maxDailyLoss}
                 onChange={e => setMaxDailyLoss(Number(e.target.value))}
               />
-              <p className="text-xs text-muted-foreground">Trading stops when this limit is reached</p>
+              <p className="text-xs text-muted-foreground">Trading stops when cumulative daily drawdown exceeds this percentage</p>
             </div>
 
             {/* Max Open Positions */}

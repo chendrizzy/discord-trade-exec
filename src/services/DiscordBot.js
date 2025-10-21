@@ -322,7 +322,7 @@ class DiscordTradeBot {
       new ButtonBuilder()
         .setLabel('Upgrade Now')
         .setStyle(ButtonStyle.Link)
-        .setURL(process.env.STRIPE_PAYMENT_LINK || 'https://your-payment-link.com')
+        .setURL(process.env.POLAR_CHECKOUT_URL || 'https://polar.sh/checkout')
     );
 
     await interaction.reply({ embeds: [embed], components: [row], ephemeral: true });

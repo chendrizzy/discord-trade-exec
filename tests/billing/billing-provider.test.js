@@ -5,14 +5,12 @@
  * - Factory pattern correctness
  * - Provider interface compliance
  * - Polar provider implementation
- * - Stripe provider stub behavior
  * - Webhook signature verification
  * - Data format normalization
  */
 
 const BillingProviderFactory = require('../../src/services/billing/BillingProviderFactory');
 const PolarBillingProvider = require('../../src/services/billing/providers/PolarBillingProvider');
-const StripeBillingProvider = require('../../src/services/billing/providers/StripeBillingProvider');
 const crypto = require('crypto');
 
 describe('Billing Provider Abstraction', () => {
@@ -37,16 +35,6 @@ describe('Billing Provider Abstraction', () => {
       process.env.BILLING_PROVIDER = originalEnv;
     });
 
-    it('should create Stripe provider when set', () => {
-      const originalEnv = process.env.BILLING_PROVIDER;
-      process.env.BILLING_PROVIDER = 'stripe';
-
-      const provider = BillingProviderFactory.createProvider();
-      expect(provider).toBeInstanceOf(StripeBillingProvider);
-
-      process.env.BILLING_PROVIDER = originalEnv;
-    });
-
     it('should throw error for unsupported provider', () => {
       const originalEnv = process.env.BILLING_PROVIDER;
       process.env.BILLING_PROVIDER = 'paypal';
@@ -56,18 +44,27 @@ describe('Billing Provider Abstraction', () => {
       process.env.BILLING_PROVIDER = originalEnv;
     });
 
-    it('should return current provider type', () => {
+    it('should return current provider type when supported', () => {
+      const originalEnv = process.env.BILLING_PROVIDER;
+      process.env.BILLING_PROVIDER = 'polar';
+
+      expect(BillingProviderFactory.getProviderType()).toBe('polar');
+
+      process.env.BILLING_PROVIDER = originalEnv;
+    });
+
+    it('should fall back to polar when unsupported provider requested', () => {
       const originalEnv = process.env.BILLING_PROVIDER;
       process.env.BILLING_PROVIDER = 'stripe';
 
-      expect(BillingProviderFactory.getProviderType()).toBe('stripe');
+      expect(BillingProviderFactory.getProviderType()).toBe('polar');
 
       process.env.BILLING_PROVIDER = originalEnv;
     });
 
     it('should check if provider type is supported', () => {
       expect(BillingProviderFactory.isSupported('polar')).toBe(true);
-      expect(BillingProviderFactory.isSupported('stripe')).toBe(true);
+      expect(BillingProviderFactory.isSupported('stripe')).toBe(false);
       expect(BillingProviderFactory.isSupported('paypal')).toBe(false);
       expect(BillingProviderFactory.isSupported('')).toBe(false);
       expect(BillingProviderFactory.isSupported(null)).toBe(false);
@@ -75,7 +72,7 @@ describe('Billing Provider Abstraction', () => {
 
     it('should list all supported providers', () => {
       const providers = BillingProviderFactory.getSupportedProviders();
-      expect(providers).toEqual(['polar', 'stripe']);
+      expect(providers).toEqual(['polar']);
     });
   });
 
@@ -287,67 +284,6 @@ describe('Billing Provider Abstraction', () => {
 
       const isValid = provider.verifyWebhookSignature(payload, almostCorrectSignature, secret);
       expect(isValid).toBe(false);
-    });
-  });
-
-  describe('StripeBillingProvider - Not Implemented', () => {
-    let provider;
-
-    beforeAll(() => {
-      provider = new StripeBillingProvider();
-    });
-
-    it('should throw not implemented error for getSubscription', async () => {
-      await expect(provider.getSubscription('customer-123'))
-        .rejects
-        .toThrow(/not yet implemented.*use BILLING_PROVIDER=polar/);
-    });
-
-    it('should throw not implemented error for getCustomer', async () => {
-      await expect(provider.getCustomer('customer-123'))
-        .rejects
-        .toThrow(/not yet implemented.*use BILLING_PROVIDER=polar/);
-    });
-
-    it('should throw not implemented error for createCustomerPortalSession', async () => {
-      await expect(provider.createCustomerPortalSession('customer-123', 'https://example.com'))
-        .rejects
-        .toThrow(/not yet implemented.*use BILLING_PROVIDER=polar/);
-    });
-
-    it('should throw not implemented error for createCheckoutSession', async () => {
-      await expect(provider.createCheckoutSession('product-123', 'https://example.com', 'test@example.com'))
-        .rejects
-        .toThrow(/not yet implemented.*use BILLING_PROVIDER=polar/);
-    });
-
-    it('should throw not implemented error for getProduct', async () => {
-      await expect(provider.getProduct('product-123'))
-        .rejects
-        .toThrow(/not yet implemented.*use BILLING_PROVIDER=polar/);
-    });
-
-    it('should throw not implemented error for listProducts', async () => {
-      await expect(provider.listProducts())
-        .rejects
-        .toThrow(/not yet implemented.*use BILLING_PROVIDER=polar/);
-    });
-
-    it('should throw not implemented error for cancelSubscription', async () => {
-      await expect(provider.cancelSubscription('subscription-123'))
-        .rejects
-        .toThrow(/not yet implemented.*use BILLING_PROVIDER=polar/);
-    });
-
-    it('should throw not implemented error for updateSubscription', async () => {
-      await expect(provider.updateSubscription('subscription-123', {}))
-        .rejects
-        .toThrow(/not yet implemented.*use BILLING_PROVIDER=polar/);
-    });
-
-    it('should throw not implemented error for verifyWebhookSignature', () => {
-      expect(() => provider.verifyWebhookSignature('payload', 'signature', 'secret'))
-        .toThrow(/not yet implemented.*use BILLING_PROVIDER=polar/);
     });
   });
 

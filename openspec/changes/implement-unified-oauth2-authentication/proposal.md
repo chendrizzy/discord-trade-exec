@@ -60,7 +60,7 @@ Implement a comprehensive OAuth2 authentication infrastructure that standardizes
 
 ### Out of Scope
 - OAuth2 for brokers that don't support it (Moomoo, Binance, Kraken via API keys)
-- OAuth2 for Discord/Stripe (existing implementations)
+- OAuth2 for Discord and Polar billing portal integrations are already in place (existing implementations)
 - Multi-user OAuth2 delegation (enterprise feature)
 - Custom OAuth2 scopes beyond trading + account read
 

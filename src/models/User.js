@@ -189,6 +189,11 @@ const userSchema = new mongoose.Schema(
           },
           // Token expiration timestamp
           expiresAt: Date,
+          // Initial connection timestamp
+          connectedAt: {
+            type: Date,
+            default: Date.now
+          },
           // OAuth2 scopes granted by user
           scopes: [String],
           // Token type (typically 'Bearer')
@@ -217,6 +222,11 @@ const userSchema = new mongoose.Schema(
           default: 0.02, // 2% of portfolio per trade
           min: 0.005,
           max: 0.1
+        },
+        fixedPositionSize: {
+          type: Number,
+          default: 1000,
+          min: 0
         },
         positionSizingMethod: {
           type: String,
@@ -378,6 +388,73 @@ const userSchema = new mongoose.Schema(
         type: Boolean,
         default: true
       }
+    },
+
+    preferences: {
+      notifications: {
+        discordEnabled: {
+          type: Boolean,
+          default: true
+        },
+        emailEnabled: {
+          type: Boolean,
+          default: false
+        },
+        notifyOnTrade: {
+          type: Boolean,
+          default: true
+        },
+        notifyOnProfit: {
+          type: Boolean,
+          default: true
+        },
+        notifyOnLoss: {
+          type: Boolean,
+          default: true
+        },
+        notifyOnDailyLimit: {
+          type: Boolean,
+          default: true
+        },
+        notifyOnPositionSize: {
+          type: Boolean,
+          default: false
+        },
+        dailyLossThreshold: {
+          type: Number,
+          default: 500
+        },
+        positionSizeThreshold: {
+          type: Number,
+          default: 1000
+        },
+        profitThreshold: {
+          type: Number,
+          default: 100
+        }
+      },
+      notificationHistory: [
+        {
+          id: String,
+          type: {
+            type: String,
+            default: 'test'
+          },
+          channel: {
+            type: String,
+            default: 'discord'
+          },
+          message: String,
+          sentAt: {
+            type: Date,
+            default: Date.now
+          },
+          status: {
+            type: String,
+            default: 'sent'
+          }
+        }
+      ]
     },
 
     // Multi-Factor Authentication (MFA) - Phase 6 Security Enhancement

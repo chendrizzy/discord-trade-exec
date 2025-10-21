@@ -85,8 +85,8 @@ router.post(
 
       // Create subscription object for cancellation
       const subscriptionObj = {
-        customer: subscription.stripeCustomerId,
-        id: subscription.stripeSubscriptionId
+        customer: subscription.polarCustomerId,
+        id: subscription.polarSubscriptionId
       };
 
       const result = await subscriptionManager.handleSubscriptionCanceled(subscriptionObj, reason, feedback, req);

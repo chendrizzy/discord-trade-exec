@@ -50,15 +50,18 @@ class MFAService {
 
     // Validate MFA_ENCRYPTION_KEY environment variable
     if (!process.env.MFA_ENCRYPTION_KEY) {
-      if (process.env.NODE_ENV === 'production') {
-        throw new Error('CRITICAL: MFA_ENCRYPTION_KEY environment variable required in production');
+      const fallbackHex = process.env.ENCRYPTION_KEY;
+
+      if (fallbackHex && /^[0-9a-f]{64}$/i.test(fallbackHex)) {
+        console.warn('[MFAService] MFA_ENCRYPTION_KEY not set. Falling back to ENCRYPTION_KEY (recommended to set dedicated key).');
+        this.encryptionKey = Buffer.from(fallbackHex, 'hex');
+      } else if (process.env.NODE_ENV === 'production') {
+        throw new Error('CRITICAL: MFA_ENCRYPTION_KEY environment variable required in production (or provide valid ENCRYPTION_KEY fallback).');
       } else {
-        console.warn('[MFAService] WARNING: MFA_ENCRYPTION_KEY not set. Using fallback key (NOT suitable for production)');
-        // Generate fallback key for development
+        console.warn('[MFAService] WARNING: MFA_ENCRYPTION_KEY not set. Using random in-memory key (NOT suitable for production).');
         this.encryptionKey = crypto.randomBytes(32);
       }
     } else {
-      // Validate key format (must be 32-byte hex string = 64 hex characters)
       if (!/^[0-9a-f]{64}$/i.test(process.env.MFA_ENCRYPTION_KEY)) {
         throw new Error('MFA_ENCRYPTION_KEY must be a 64-character hexadecimal string (32 bytes)');
       }

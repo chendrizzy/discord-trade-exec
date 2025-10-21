@@ -4,7 +4,7 @@ This file provides guidance to WARP (warp.dev) when working with code in this re
 
 ## Project Overview
 
-This is a Discord Trade Executor SaaS platform that automates cryptocurrency trading based on Discord signals. The system includes Discord bot integration, natural language processing for trading signals, multi-exchange trading execution, Stripe subscription billing, and automated marketing components.
+This is a Discord Trade Executor SaaS platform that automates cryptocurrency trading based on Discord signals. The system includes Discord bot integration, natural language processing for trading signals, multi-exchange trading execution, Polar.sh subscription billing (Merchant of Record), and automated marketing components.
 
 **Key Revenue Model:**
 - Basic Plan: $49/month (100 signals/day)
@@ -78,7 +78,7 @@ npm run deploy
 - Validates messages contain trading keywords before processing
 
 **Payment System (`src/subscription-manager.js`):**
-- Stripe integration for subscription billing
+- Polar.sh integration for subscription billing (Merchant of Record)
 - Webhook handling for subscription lifecycle events
 - Three-tier pricing structure with trial periods
 
@@ -107,9 +107,10 @@ npm run deploy
 - `BINANCE_API_KEY` / `BINANCE_SECRET` - Exchange API credentials
 - `NODE_ENV` - Controls sandbox/production mode for trading
 
-**Payment Processing:**
-- `STRIPE_SECRET_KEY` - Stripe secret key
-- `STRIPE_WEBHOOK_SECRET` - Webhook endpoint verification
+**Payment Processing (Polar.sh):**
+- `POLAR_ACCESS_TOKEN` - Polar API access token
+- `POLAR_ORGANIZATION_ID` - Polar organization identifier
+- `POLAR_WEBHOOK_SECRET` - Webhook signature verification secret
 
 **Database:**
 - `MONGODB_URI` - MongoDB connection string (defaults to localhost)
@@ -135,7 +136,7 @@ Copy `.env.example` to `.env` and populate with actual credentials.
    ./auto-setup.sh
    ```
    - Automatically creates Discord bot and retrieves token
-   - Sets up Stripe payments and webhooks
+   - Sets up Polar.sh billing and webhooks
    - Configures trading APIs (testnet mode)
    - Deploys MongoDB Atlas database
    - Configures marketing automation APIs
@@ -153,7 +154,7 @@ Copy `.env.example` to `.env` and populate with actual credentials.
 - `/` - API status and endpoint listing
 - `/health` - Health check with system metrics
 - `/dashboard` - Revenue dashboard UI
-- `/webhook/stripe` - Stripe subscription webhooks
+- `/webhook/polar` - Polar.sh subscription webhooks
 
 ### Trading Signal Format
 
@@ -204,7 +205,7 @@ Built-in safety features:
 
 ### Security Considerations
 - API keys stored in environment variables only
-- Webhook signature verification for Stripe events
+- Webhook signature verification for Polar.sh events
 - Sandbox mode enforcement for development trading
 
 ### Monitoring and Logging
@@ -230,4 +231,4 @@ Built-in safety features:
 - Configured for Railway deployment via `railway.toml`
 - Environment variables must be configured in deployment environment
 - MongoDB Atlas recommended for production database
-- Webhook endpoints must be publicly accessible for Stripe integration
+- Webhook endpoints must be publicly accessible for Polar.sh integration

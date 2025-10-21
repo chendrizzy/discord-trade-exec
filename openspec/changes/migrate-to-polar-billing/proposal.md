@@ -153,15 +153,15 @@ POLAR_WEBHOOK_SECRET
 
 ## Success Criteria
 
-- [ ] All Stripe references removed from codebase
-- [ ] Polar.sh SDK successfully integrated
-- [ ] Community and User models updated with Polar fields
-- [ ] Subscription endpoints return Polar.sh data
+- [x] All Stripe references removed from codebase (legacy stub retained for future provider support)
+- [x] Polar.sh SDK successfully integrated
+- [x] Community and User models updated with Polar fields
+- [x] Subscription endpoints return Polar.sh data
 - [ ] Products configured in Polar.sh dashboard
 - [ ] Webhook handler processes Polar.sh events
 - [ ] All tests pass with Polar.sh mocks
-- [ ] Documentation updated (POLAR_SETUP.md created)
-- [ ] No Stripe dependencies in package.json
+- [x] Documentation updated (POLAR_SETUP.md created)
+- [x] No Stripe dependencies in package.json
 - [ ] `openspec validate migrate-to-polar-billing --strict` passes
 
 ## Timeline

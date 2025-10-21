@@ -7,7 +7,7 @@
 
 **NEW!** Complete automation that configures ALL API keys automatically:
 ✅ Creates Discord bot and retrieves token  
-✅ Sets up Stripe payments and webhooks  
+✅ Sets up Polar.sh billing (Merchant of Record)  
 ✅ Configures Binance trading API (testnet)  
 ✅ Deploys MongoDB Atlas database  
 ✅ Sets up marketing automation  
@@ -33,7 +33,7 @@ No manual configuration needed! See `AUTOMATED-SETUP.md` for details.
 ✅ Automatic risk management
 ✅ Performance analytics
 ✅ Discord bot integration
-✅ Stripe subscription billing
+✅ Polar.sh subscription billing (global tax compliance)
 ✅ Beautiful dashboard
 🆕 **REAL-TIME WEBSOCKET UPDATES** (NEW!)
 ✅ Live portfolio updates
@@ -189,7 +189,7 @@ Sets up ALL API keys automatically! Takes 5-10 minutes total.
    - **Coinbase Pro** - API Key + Secret + Passphrase (see `docs/EXCHANGE-SETUP.md`)
    - **Kraken** - API Key + Secret (see `docs/EXCHANGE-SETUP.md`)
    - **Binance** - API Key + Secret (testnet available)
-3. **Stripe Keys** - For subscription billing
+3. **Polar.sh Access Token** - For subscription billing (Merchant of Record)
 4. **MongoDB URI** - Database for user management
 
 ## 🏗️ Project Structure
@@ -200,7 +200,7 @@ discord-trade-exec/
 │   ├── discord-bot.js      # Main Discord bot logic
 │   ├── trade-executor.js   # Trading execution engine
 │   ├── signal-parser.js    # Natural language processing
-│   ├── subscription-manager.js # Stripe billing
+│   ├── subscription-manager.js # Polar.sh billing + usage limits
 │   └── index.js           # Main application entry
 ├── public/
 │   └── dashboard.html     # Revenue dashboard UI
@@ -224,7 +224,7 @@ For developers and technical users:
 2. **NLP Processing:** Parses natural language to extract trade details
 3. **Risk Management:** Applies position sizing and stop-loss rules
 4. **Trade Execution:** Executes trades across multiple exchanges
-5. **User Billing:** Manages subscriptions via Stripe
+5. **User Billing:** Manages subscriptions via Polar.sh (automated tax compliance)
 6. **Analytics:** Tracks performance and user metrics
 7. **🆕 Real-Time Updates:** WebSocket connections for instant portfolio and trade updates
 8. **🆕 Automated Marketing:** Acquires customers 24/7 via social media, email, SEO

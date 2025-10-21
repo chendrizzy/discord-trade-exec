@@ -1,0 +1,6 @@
+- `./auto-setup.sh` fully provisions APIs, billing, and database.
+- `./quickstart.sh` performs manual setup flow and env scaffolding.
+- `npm start` runs the Discord bot and API in production mode.
+- `npm run dev` launches backend with nodemon; `npm run dev:dashboard` starts the Vite React dashboard.
+- `npm run build` / `npm run build:dashboard` create backend and UI bundles; `npm run preview:dashboard` serves built UI.
+- `npm test` executes Jest unit/integration suites; `npx playwright test` for e2e when needed.

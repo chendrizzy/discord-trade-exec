@@ -339,45 +339,39 @@ router.post('/members/:id/role', requireCommunityAdmin, async (req, res) => {
 
 **2.6 Billing and Subscription**
 - **Endpoint**: `GET /api/community/subscription`
-- **Current**: Mock Stripe data
-- **Needed**: Real Stripe API integration
+- **Current**: Billing provider abstraction wired to Polar mock data
+- **Needed**: Live Polar product IDs + webhook-driven status updates
 
 **Implementation**:
 ```javascript
-const StripeService = require('../../services/stripe');
+const BillingProviderFactory = require('../../services/billing/BillingProviderFactory');
 
 router.get('/subscription', requireCommunityAdmin, async (req, res) => {
   const community = await Community.findById(req.user.tenantId);
 
-  if (!community.stripeCustomerId) {
+  if (!community.subscription?.polarCustomerId) {
     return res.json({ tier: 'free', subscription: null });
   }
 
-  // Fetch from Stripe
-  const subscription = await StripeService.getSubscription(
-    community.stripeCustomerId
+  const billingProvider = BillingProviderFactory.createProvider();
+  const subscription = await billingProvider.getSubscription(
+    community.subscription.polarCustomerId
   );
 
   res.json({
-    tier: community.tier,
-    subscription: {
-      status: subscription.status,
-      currentPeriodEnd: subscription.current_period_end,
-      cancelAtPeriodEnd: subscription.cancel_at_period_end,
-      items: subscription.items.data
-    },
+    tier: community.subscription.tier,
+    subscription,
     usage: {
-      members: await User.countDocuments({ tenantId: community._id }),
-      signals: await Signal.countDocuments({ communityId: community._id }),
-      // Compare against tier limits
+      members: await User.countDocuments({ communityId: community._id }),
+      signals: await Signal.countDocuments({ communityId: community._id })
     }
   });
 });
 ```
 
 **Dependencies**:
-- Stripe API integration in `src/services/stripe.js`
-- Community model has `stripeCustomerId` field
+- Polar billing provider (`BillingProviderFactory` + `polar.js`)
+- Community subscription schema includes `polarCustomerId`
 - Tier limits defined in configuration
 
 ---

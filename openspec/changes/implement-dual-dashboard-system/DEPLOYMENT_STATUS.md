@@ -268,7 +268,7 @@ While the UI and API routes are complete and functional, the following require d
 - Top signal providers by performance
 - Member role changes with SecurityAudit logging
 - P&L aggregation with date range filters
-- Stripe subscription integration
+- Polar billing integration
 
 **Trader Dashboard**:
 - Personal P&L and execution metrics

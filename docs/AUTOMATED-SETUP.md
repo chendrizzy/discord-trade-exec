@@ -8,7 +8,7 @@ Your Discord Trade Executor includes a **fully automated setup system** that con
 
 ### ✅ Complete Service Setup
 - **Discord Bot Creation** - Creates application, bot, retrieves token
-- **Stripe Payment Processing** - Account setup, API keys, webhooks  
+- **Polar.sh Billing** - Account setup, access token, webhook secret  
 - **Binance Trading API** - Testnet API key creation with trading permissions
 - **MongoDB Atlas Database** - Free cluster deployment with user setup
 - **Marketing Automation** - Twitter, Reddit, email service configuration
@@ -52,15 +52,15 @@ See exactly how the automation works without creating real accounts.
 ```
 **Result**: `DISCORD_BOT_TOKEN` and invite URL saved automatically
 
-### 2. **Stripe Payment Setup**
+### 2. **Polar Billing Setup**
 ```
-💳 Creating Stripe account...
+💳 Creating Polar.sh account...
 💳 Verifying email automatically...
-💳 Retrieving test API keys...
-💳 Setting up webhook endpoint...
-✅ Stripe payments setup completed!
+💳 Generating access token & organization ID...
+💳 Configuring webhook endpoint...
+✅ Polar billing setup completed!
 ```
-**Result**: `STRIPE_SECRET_KEY` and webhook secret saved
+**Result**: `POLAR_ACCESS_TOKEN`, `POLAR_ORGANIZATION_ID`, and webhook secret saved
 
 ### 3. **Binance Trading API**
 ```
@@ -103,7 +103,7 @@ When you run `./auto-setup.sh`:
 2. **Select Services To Set Up**
    ```
    ✅ Discord Bot
-   ✅ Stripe Payments  
+   ✅ Polar Billing  
    ✅ Binance Trading (Testnet)
    ✅ MongoDB Database
    ☐ Marketing APIs (optional)
@@ -127,7 +127,7 @@ When you run `./auto-setup.sh`:
    
    Setup Results:
    ✅ Discord bot token saved
-   ✅ Stripe API key saved  
+   ✅ Polar billing credentials saved  
    ✅ MongoDB connection string saved
    ✅ Binance testnet API saved
    
@@ -169,9 +169,10 @@ DISCORD_BOT_TOKEN=MTA5Nz...jY4Mj.GW7...
 DISCORD_CLIENT_ID=109729...
 DISCORD_INVITE_URL=https://discord.gg/...
 
-# Stripe Payment Processing  
-STRIPE_SECRET_KEY=sk_test_51M...
-STRIPE_WEBHOOK_SECRET=whsec_...
+# Polar Billing (Merchant of Record)  
+POLAR_ACCESS_TOKEN=polar_at_...
+POLAR_ORGANIZATION_ID=org_...
+POLAR_WEBHOOK_SECRET=polar_wh_...
 
 # Binance Trading API (Testnet)
 BINANCE_TESTNET_API_KEY=MIIEvgI...
@@ -206,7 +207,7 @@ SENDGRID_API_KEY=...
 
 ### Currently Automated:
 - ✅ **Discord** - Bot creation, token retrieval, permissions
-- ✅ **Stripe** - Account setup, API keys, webhook configuration  
+- ✅ **Polar.sh** - Account setup, access token & webhook configuration  
 - ✅ **Binance** - Testnet API creation, trading permissions
 - ✅ **MongoDB Atlas** - Free cluster deployment, user creation
 - ✅ **Basic Marketing** - Twitter, Reddit, email service setup

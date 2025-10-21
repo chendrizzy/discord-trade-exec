@@ -155,7 +155,7 @@ The trader dashboard SHALL display the user's individual subscription tier, usag
 - Renewal date and payment method (masked)
 - Usage metrics (signals used vs. limit)
 - Upgrade options with feature comparison
-- Stripe customer portal link
+- Polar billing portal link
 **And** they should be able to upgrade inline
 **And** see immediate tier upgrade after payment
 

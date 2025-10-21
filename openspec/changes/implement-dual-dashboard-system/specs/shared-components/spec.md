@@ -96,7 +96,7 @@ The system SHALL provide a subscription card that displays tier, status, and usa
 - Member count vs. tier limit
 - Renewal date and payment status
 - Upgrade/downgrade options
-**And** provide a link to Stripe customer portal
+**And** provide a link to Polar billing portal
 
 #### Scenario: Display personal subscription
 **Given** a trader views their subscription

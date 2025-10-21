@@ -1,0 +1,3 @@
+- SaaS platform combining a Discord trading bot, Express API, and React dashboard to execute trades automatically across multiple brokers and exchanges.
+- Node.js/TypeScript backend with Discord bot, trade executor, and MongoDB; frontend is a Vite-powered React SPA under src/dashboard.
+- Integrates Stripe billing, WebSocket updates, automated marketing, and broker/exchange APIs for real-time trading orchestration.

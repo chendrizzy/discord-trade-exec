@@ -47,7 +47,7 @@ class OAuth2Service {
    * @returns {string} Authorization URL
    * @throws {Error} If broker not supported or not OAuth2-enabled
    */
-  generateAuthorizationURL(broker, userId, session) {
+  generateAuthorizationURL(broker, userId, session, options = {}) {
     if (!isOAuth2Broker(broker)) {
       throw new Error(`Broker '${broker}' does not support OAuth2 or is not enabled`);
     }
@@ -66,8 +66,19 @@ class OAuth2Service {
       state,
       broker,
       userId,
+      communityId: options.communityId,
+      ipAddress: options.ipAddress,
+      userAgent: options.userAgent,
       createdAt: Date.now()
     };
+
+    // Persist request metadata for audit logging
+    if (options.ipAddress) {
+      session.ipAddress = options.ipAddress;
+    }
+    if (options.userAgent) {
+      session.userAgent = options.userAgent;
+    }
 
     // Build authorization URL
     const authUrl = new URL(config.authorizationURL);
@@ -380,6 +391,7 @@ class OAuth2Service {
       // Update user document
       user.tradingConfig.oauthTokens.set(broker, {
         ...updatedTokens,
+        connectedAt: encryptedTokens.connectedAt || new Date(),
         isValid: true,
         lastRefreshError: null,
         lastRefreshAttempt: new Date()

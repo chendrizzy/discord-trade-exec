@@ -1,19 +1,33 @@
 // External dependencies
 const express = require('express');
-const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
-const subscriptionManager = require('./subscription-manager');
+
+// Internal services
+const BillingProviderFactory = require('./billing/BillingProviderFactory');
 
 class PaymentProcessor {
   constructor() {
     this.router = express.Router();
-    this.setupRoutes();
+    this.billingProvider = null;
+    this.providerType = 'polar';
+    this.productCache = null;
+    this.productCacheFetchedAt = 0;
 
-    // Pricing plans configuration
+    try {
+      this.billingProvider = BillingProviderFactory.createProvider();
+      this.providerType = BillingProviderFactory.getProviderType();
+    } catch (error) {
+      console.error(`[PaymentProcessor] Failed to initialize billing provider: ${error.message}`);
+    }
+
+    // Pricing plans configuration (shared across providers)
     this.plans = {
       basic: {
         name: 'Basic Bot',
         price: 49,
-        priceId: process.env.STRIPE_BASIC_PRICE_ID || 'price_basic_monthly',
+        trialDays: 7,
+        metadata: { type: 'community', tier: 'professional' },
+        polarEnvVar: 'POLAR_PRODUCT_BASIC',
+        polarProductId: process.env.POLAR_PRODUCT_BASIC,
         features: [
           '100 trading signals/day',
           'Discord bot integration',
@@ -25,7 +39,10 @@ class PaymentProcessor {
       pro: {
         name: 'Pro Trader',
         price: 99,
-        priceId: process.env.STRIPE_PRO_PRICE_ID || 'price_pro_monthly',
+        trialDays: 7,
+        metadata: { type: 'community', tier: 'enterprise' },
+        polarEnvVar: 'POLAR_PRODUCT_PRO',
+        polarProductId: process.env.POLAR_PRODUCT_PRO,
         features: [
           'Unlimited trading signals',
           'Multiple Discord servers',
@@ -38,7 +55,10 @@ class PaymentProcessor {
       premium: {
         name: 'Elite Trader',
         price: 299,
-        priceId: process.env.STRIPE_PREMIUM_PRICE_ID || 'price_premium_monthly',
+        trialDays: 14,
+        metadata: { type: 'community', tier: 'elite' },
+        polarEnvVar: 'POLAR_PRODUCT_PREMIUM',
+        polarProductId: process.env.POLAR_PRODUCT_PREMIUM,
         features: [
           'Everything in Pro',
           'Multiple broker support',
@@ -49,23 +69,40 @@ class PaymentProcessor {
         ]
       }
     };
+
+    this.setupRoutes();
+  }
+
+  ensureBillingProvider(res) {
+    if (this.billingProvider) {
+      return this.billingProvider;
+    }
+
+    const message = 'Billing provider not configured';
+    console.error(`[PaymentProcessor] ${message}`);
+
+    if (res) {
+      res.status(503).json({
+        error: message,
+        hint: 'Verify BILLING_PROVIDER configuration and related environment variables.'
+      });
+    }
+
+    return null;
   }
 
   setupRoutes() {
     // Checkout page
     this.router.get('/checkout', this.showCheckout.bind(this));
 
-    // Create Stripe checkout session
+    // Create checkout session (provider-agnostic)
     this.router.post('/create-checkout-session', this.createCheckoutSession.bind(this));
 
     // Success page
     this.router.get('/success', this.showSuccess.bind(this));
 
     // Cancel page
-    this.router.get('/cancel', this.showCancel.bind(this));
-
-    // Webhook for Stripe events
-    this.router.post('/webhook/stripe', express.raw({ type: 'application/json' }), this.handleStripeWebhook.bind(this));
+   this.router.get('/cancel', this.showCancel.bind(this));
 
     // Customer portal
     this.router.post('/create-portal-session', this.createPortalSession.bind(this));
@@ -79,6 +116,14 @@ class PaymentProcessor {
       return res.status(400).send('Invalid plan selected');
     }
 
+    const trialDays = selectedPlan.trialDays ?? 0;
+    const hasTrial = trialDays > 0;
+    const trialHeading = hasTrial ? `🎉 Start Your FREE ${trialDays}-Day Trial` : 'Secure Checkout';
+    const trialEndDate = hasTrial
+      ? new Date(Date.now() + trialDays * 24 * 60 * 60 * 1000).toLocaleDateString()
+      : null;
+    const buttonLabel = hasTrial ? '🚀 Start My FREE Trial' : '🚀 Complete Secure Checkout';
+
     // Render checkout page
     const checkoutHtml = `
         <!DOCTYPE html>
@@ -87,7 +132,6 @@ class PaymentProcessor {
             <meta charset="UTF-8">
             <meta name="viewport" content="width=device-width, initial-scale=1.0">
             <title>Checkout - ${selectedPlan.name}</title>
-            <script src="https://js.stripe.com/v3/"></script>
             <style>
                 * { margin: 0; padding: 0; box-sizing: border-box; }
                 body { 
@@ -172,13 +216,17 @@ class PaymentProcessor {
                 </div>
                 
                 <div class="trial-info">
-                    <strong>🎉 Start Your FREE 7-Day Trial</strong><br>
-                    No charges until ${new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toLocaleDateString()}.<br>
-                    Cancel anytime during trial - no questions asked.
+                    <strong>${trialHeading}</strong><br>
+                    ${
+                      hasTrial
+                        ? `No charges until ${trialEndDate}.<br>
+                    Cancel anytime during trial - no questions asked.`
+                        : 'Complete checkout to unlock full access instantly.'
+                    }
                 </div>
                 
                 <button class="checkout-button" onclick="createCheckoutSession('${plan}')">
-                    🚀 Start My FREE Trial
+                    ${buttonLabel}
                 </button>
                 
                 <div class="security-badges">
@@ -188,8 +236,6 @@ class PaymentProcessor {
             </div>
 
             <script>
-                const stripe = Stripe('${process.env.STRIPE_PUBLISHABLE_KEY || 'pk_test_your_key_here'}');
-                
                 async function createCheckoutSession(plan) {
                     try {
                         const response = await fetch('/create-checkout-session', {
@@ -206,15 +252,18 @@ class PaymentProcessor {
                             alert('Error: ' + session.error);
                             return;
                         }
-                        
-                        // Redirect to Stripe Checkout
-                        const result = await stripe.redirectToCheckout({
-                            sessionId: session.sessionId
-                        });
-                        
-                        if (result.error) {
-                            alert(result.error.message);
+
+                        if (session.checkoutUrl) {
+                            window.location.href = session.checkoutUrl;
+                            return;
                         }
+
+                        if (session.sessionId) {
+                            window.location.href = '/success?session_id=' + encodeURIComponent(session.sessionId);
+                            return;
+                        }
+
+                        alert('Checkout session created, but no redirect URL was returned.');
                     } catch (error) {
                         console.error('Error:', error);
                         alert('Something went wrong. Please try again.');
@@ -235,55 +284,119 @@ class PaymentProcessor {
       return res.status(400).json({ error: 'Invalid plan' });
     }
 
-    try {
-      // Create Stripe checkout session
-      const session = await stripe.checkout.sessions.create({
-        payment_method_types: ['card'],
-        line_items: [
-          {
-            price: selectedPlan.priceId,
-            quantity: 1
-          }
-        ],
-        mode: 'subscription',
-        success_url: `${req.protocol}://${req.get('host')}/success?session_id={CHECKOUT_SESSION_ID}`,
-        cancel_url: `${req.protocol}://${req.get('host')}/cancel`,
-        allow_promotion_codes: true,
-        subscription_data: {
-          trial_period_days: 7, // 7-day free trial
-          metadata: {
-            plan: plan,
-            source: 'discord-trading-bot'
-          }
-        },
-        metadata: {
-          plan: plan,
-          price: selectedPlan.price
-        }
-      });
+    const billingProvider = this.ensureBillingProvider(res);
+    if (!billingProvider) {
+      return;
+    }
 
-      res.json({ sessionId: session.id });
+    try {
+      const productId = await this.resolveProductId(plan);
+
+      if (!productId) {
+        return res.status(500).json({
+          error: 'Billing product not configured for selected plan',
+          hint: 'Set POLAR_PRODUCT_* environment variables or configure product metadata in Polar.sh'
+        });
+      }
+
+      const successUrl = `${req.protocol}://${req.get('host')}/success?plan=${plan}&provider=${this.providerType}`;
+      const customerEmail =
+        req.user?.notifications?.email ||
+        req.user?.email ||
+        req.body?.email ||
+        'demo@tradebotai.com';
+
+      const metadata = {
+        plan,
+        tier: selectedPlan.metadata?.tier,
+        type: selectedPlan.metadata?.type,
+        trialDays: selectedPlan.trialDays || 0,
+        source: 'discord-trade-exec'
+      };
+
+      const session = await billingProvider.createCheckoutSession(
+        productId,
+        successUrl,
+        customerEmail,
+        metadata
+      );
+
+      res.json({
+        checkoutUrl: session.url,
+        sessionId: session.id,
+        provider: this.providerType
+      });
     } catch (error) {
-      console.error('Stripe session creation error:', error);
+      console.error('[PaymentProcessor] Billing provider checkout error:', error);
       res.status(500).json({ error: 'Failed to create checkout session' });
     }
   }
 
-  async showSuccess(req, res) {
-    const { session_id } = req.query;
-
-    let customerInfo = {};
-    if (session_id) {
-      try {
-        const session = await stripe.checkout.sessions.retrieve(session_id);
-        customerInfo = {
-          customerEmail: session.customer_details?.email,
-          plan: session.metadata?.plan
-        };
-      } catch (error) {
-        console.error('Error retrieving session:', error);
-      }
+  async resolveProductId(planKey) {
+    const plan = this.plans[planKey];
+    if (!plan) {
+      return null;
     }
+
+    if (this.providerType === 'polar') {
+      if (plan.polarProductId) {
+        return plan.polarProductId;
+      }
+
+      if (plan.polarEnvVar && process.env[plan.polarEnvVar]) {
+        return process.env[plan.polarEnvVar];
+      }
+
+      const provider = this.ensureBillingProvider();
+      if (!provider || typeof provider.listProducts !== 'function') {
+        return null;
+      }
+
+      try {
+        const cacheExpired = Date.now() - this.productCacheFetchedAt > 5 * 60 * 1000;
+        if (!this.productCache || cacheExpired) {
+          this.productCache = await provider.listProducts();
+          this.productCacheFetchedAt = Date.now();
+        }
+
+        if (Array.isArray(this.productCache)) {
+          const match = this.productCache.find(product => {
+            const metadata = product.metadata || {};
+            return metadata.type === plan.metadata?.type && metadata.tier === plan.metadata?.tier;
+          });
+
+          if (match) {
+            return match.id;
+          }
+        }
+      } catch (error) {
+        console.error('[PaymentProcessor] Error loading billing products:', error);
+        return null;
+      }
+
+      return null;
+    }
+
+    return null;
+  }
+
+  async showSuccess(req, res) {
+    const { session_id, plan: planQuery } = req.query;
+
+    let customerInfo = {
+      customerEmail: null,
+      plan: planQuery || null
+    };
+
+    if (!customerInfo.plan && planQuery && this.plans[planQuery]) {
+      customerInfo.plan = planQuery;
+    }
+
+    const planDetails = customerInfo.plan && this.plans[customerInfo.plan]
+      ? this.plans[customerInfo.plan]
+      : null;
+    const trialDays = planDetails?.trialDays ?? 7;
+    const planName = planDetails?.name || 'TradeBotAI';
 
     const successHtml = `
         <!DOCTYPE html>
@@ -370,9 +483,9 @@ class PaymentProcessor {
         <body>
             <div class="success-container">
                 <div class="success-icon">🎉</div>
-                <div class="success-title">Welcome to TradeBotAI!</div>
+                <div class="success-title">Welcome to ${planName}!</div>
                 <div class="success-message">
-                    Your 7-day FREE trial has started successfully!<br>
+                    Your ${trialDays}-day FREE trial has started successfully!<br>
                     ${customerInfo.customerEmail ? `Confirmation sent to: ${customerInfo.customerEmail}` : ''}
                 </div>
                 
@@ -489,109 +602,27 @@ class PaymentProcessor {
     res.send(cancelHtml);
   }
 
-  async handleStripeWebhook(req, res) {
-    const sig = req.headers['stripe-signature'];
-    const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET;
-
-    let event;
-
-    try {
-      event = stripe.webhooks.constructEvent(req.body, sig, webhookSecret);
-    } catch (err) {
-      console.log(`Webhook signature verification failed.`, err.message);
-      return res.status(400).send(`Webhook Error: ${err.message}`);
-    }
-
-    // Handle the event
-    switch (event.type) {
-      case 'checkout.session.completed':
-        const session = event.data.object;
-        await this.handleSuccessfulPayment(session);
-        break;
-
-      case 'invoice.payment_succeeded':
-        const invoice = event.data.object;
-        await this.handleSubscriptionRenewal(invoice);
-        break;
-
-      case 'customer.subscription.deleted':
-        const subscription = event.data.object;
-        await this.handleSubscriptionCancellation(subscription);
-        break;
-
-      default:
-        console.log(`Unhandled event type ${event.type}`);
-    }
-
-    res.json({ received: true });
-  }
-
-  async handleSuccessfulPayment(session) {
-    console.log('💰 New subscription:', session);
-
-    // Handle subscription creation via SubscriptionManager
-    const result = await subscriptionManager.handleSubscriptionCreated(session);
-
-    if (result.success) {
-      // TODO: Send welcome email
-      // TODO: Add user to Discord server with proper role
-      console.log(`[PaymentProcessor] Successfully created subscription for user: ${result.user.id}`);
-    } else {
-      console.error(`[PaymentProcessor] Failed to create subscription:`, result.error);
-    }
-
-    return result;
-  }
-
-  async handleSubscriptionRenewal(invoice) {
-    console.log('🔄 Subscription renewed:', invoice);
-
-    // Handle subscription renewal via SubscriptionManager
-    const result = await subscriptionManager.handleSubscriptionRenewed(invoice);
-
-    if (result.success) {
-      // TODO: Send renewal confirmation email
-      console.log(
-        `[PaymentProcessor] Successfully renewed subscription for user: ${result.user.id} (renewal #${result.user.renewalCount})`
-      );
-    } else {
-      console.error(`[PaymentProcessor] Failed to renew subscription:`, result.error);
-    }
-
-    return result;
-  }
-
-  async handleSubscriptionCancellation(subscription) {
-    console.log('❌ Subscription cancelled:', subscription);
-
-    // Handle subscription cancellation via SubscriptionManager
-    const result = await subscriptionManager.handleSubscriptionCanceled(subscription, 'stripe_webhook');
-
-    if (result.success) {
-      // TODO: Send cancellation confirmation email
-      // TODO: Ask for feedback to understand churn reasons
-      console.log(
-        `[PaymentProcessor] Successfully canceled subscription for user: ${result.user.id} (${result.user.previousTier} -> ${result.user.newTier})`
-      );
-    } else {
-      console.error(`[PaymentProcessor] Failed to cancel subscription:`, result.error);
-    }
-
-    return result;
-  }
-
   async createPortalSession(req, res) {
     const { customer_id } = req.body;
 
+    if (!customer_id) {
+      return res.status(400).json({ error: 'customer_id is required' });
+    }
+
+    const billingProvider = this.ensureBillingProvider(res);
+    if (!billingProvider) {
+      return;
+    }
+
     try {
-      const portalSession = await stripe.billingPortal.sessions.create({
-        customer: customer_id,
-        return_url: `${req.protocol}://${req.get('host')}/dashboard`
-      });
+      const portalSession = await billingProvider.createCustomerPortalSession(
+        customer_id,
+        `${req.protocol}://${req.get('host')}/dashboard`
+      );
 
       res.json({ url: portalSession.url });
     } catch (error) {
-      console.error('Error creating portal session:', error);
+      console.error('[PaymentProcessor] Error creating portal session:', error);
       res.status(500).json({ error: 'Failed to create portal session' });
     }
   }

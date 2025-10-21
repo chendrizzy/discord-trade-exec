@@ -211,14 +211,25 @@ describe('Dual Dashboard Integration Tests', () => {
         .put('/api/trader/risk-profile')
         .set('Cookie', traderCookie)
         .send({
-          positionSizing: 'percentage',
-          percentagePerTrade: 2,
+          positionSizingMode: 'percentage',
+          positionSizePercent: 2,
           defaultStopLoss: 2,
-          defaultTakeProfit: 6
+          defaultTakeProfit: 6,
+          maxDailyLoss: 5,
+          maxOpenPositions: 5
         })
         .expect(200);
 
       expect(riskResponse.body.success).toBe(true);
+      expect(riskResponse.body.riskProfile.positionSizePercent).toBeCloseTo(2);
+
+      const riskGetResponse = await request(app)
+        .get('/api/trader/risk-profile')
+        .set('Cookie', traderCookie)
+        .expect(200);
+
+      expect(riskGetResponse.body.success).toBe(true);
+      expect(riskGetResponse.body.data.positionSizePercent).toBeCloseTo(2);
     });
 
     it('should enforce user scoping for trader data', async () => {
@@ -249,6 +260,52 @@ describe('Dual Dashboard Integration Tests', () => {
           trader2Overview.body.performance
         );
       }
+    });
+
+    it('should allow traders to manage notification preferences', async () => {
+      const initialResponse = await request(app)
+        .get('/api/trader/notifications')
+        .set('Cookie', traderCookie)
+        .expect(200);
+
+      expect(initialResponse.body.success).toBe(true);
+      expect(initialResponse.body.data.settings).toBeDefined();
+
+      const updateResponse = await request(app)
+        .put('/api/trader/notifications')
+        .set('Cookie', traderCookie)
+        .send({
+          discordEnabled: false,
+          emailEnabled: true,
+          notifyOnTrade: true,
+          notifyOnProfit: false,
+          notifyOnLoss: true,
+          notifyOnDailyLimit: true,
+          notifyOnPositionSize: true,
+          dailyLossThreshold: 400,
+          positionSizeThreshold: 1500,
+          profitThreshold: 200
+        })
+        .expect(200);
+
+      expect(updateResponse.body.success).toBe(true);
+      expect(updateResponse.body.preferences.emailEnabled).toBe(true);
+
+      const testNotification = await request(app)
+        .post('/api/trader/notifications/test')
+        .set('Cookie', traderCookie)
+        .send({ type: 'discord' })
+        .expect(200);
+
+      expect(testNotification.body.success).toBe(true);
+
+      const postUpdate = await request(app)
+        .get('/api/trader/notifications')
+        .set('Cookie', traderCookie)
+        .expect(200);
+
+      expect(postUpdate.body.success).toBe(true);
+      expect(postUpdate.body.data.history.length).toBeGreaterThan(0);
     });
   });
 

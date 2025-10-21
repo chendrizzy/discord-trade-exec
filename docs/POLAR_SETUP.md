@@ -24,6 +24,37 @@ This guide walks through setting up Polar.sh as the billing provider for the Dis
 
 ---
 
+## Verification & Tooling
+
+After configuring credentials, you can use the helper scripts bundled with the repository:
+
+```bash
+node scripts/polar/spot-check.js
+```
+
+* Confirms `POLAR_ACCESS_TOKEN` and `POLAR_ORGANIZATION_ID` are valid.
+* Lists the first few products returned by Polar for sanity checking.
+
+```bash
+node scripts/polar/create-products.js
+```
+
+* Creates the default community and trader plans outlined in this document.
+* Skips products that already exist (matched by name).
+* Requires the access token to have `products:write` scope.
+
+### Inspecting Webhook Traffic
+
+The application now stores a short in-memory history of Polar webhook events. You can review them at:
+
+```
+GET /webhook/polar/events?token=<POLAR_WEBHOOK_INSPECT_TOKEN>
+```
+
+Set `POLAR_WEBHOOK_INSPECT_TOKEN` in your environment to secure the endpoint.
+
+---
+
 ## Phase 1: Account Setup
 
 ### Step 1.1: Create Polar.sh Account
