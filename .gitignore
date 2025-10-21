@@ -21,6 +21,9 @@ Thumbs.db
 .browser-session/
 .playwright-mcp/
 
+# Documentation (local only)
+docs/
+
 # Logs
 *.log
 npm-debug.log*
