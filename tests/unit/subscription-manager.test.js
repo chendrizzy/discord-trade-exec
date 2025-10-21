@@ -258,7 +258,7 @@ describe('SubscriptionManager', () => {
       expect(analyticsEventService.trackSubscriptionCanceled).toHaveBeenCalledWith(
         mockUserId,
         {
-          tier: 'elite',
+          tier: 'enterprise',
           reason: 'switching_service',
           feedback: 'Moving to competitor'
         },
@@ -339,7 +339,7 @@ describe('SubscriptionManager', () => {
       expect(analyticsEventService.trackSubscriptionCreated).toHaveBeenCalledWith(
         mockUserId,
         {
-          tier: 'elite',
+          tier: 'enterprise',
           amount: 149,
           billingPeriod: 'monthly',
           trialDays: 0

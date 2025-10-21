@@ -70,11 +70,12 @@ describe('WebSocketServer (Modular)', () => {
       on: jest.fn()
     };
 
-    Redis.mockImplementation((url) => {
-      if (url === process.env.REDIS_URL) {
-        return mockRedisPubClient;
-      }
-      return mockRedisSubClient;
+    // Mock Redis to return different clients on successive calls
+    // Using a counter to alternate between pub and sub clients
+    let redisCallCount = 0;
+    Redis.mockImplementation(() => {
+      redisCallCount++;
+      return redisCallCount % 2 === 1 ? mockRedisPubClient : mockRedisSubClient;
     });
 
     // Mock Socket.io instance
@@ -114,33 +115,29 @@ describe('WebSocketServer (Modular)', () => {
     test('should create WebSocket server with default options', () => {
       wsServer = new WebSocketServer(mockHttpServer);
 
-      expect(Server).toHaveBeenCalledWith(
-        mockHttpServer,
-        expect.objectContaining({
-          cors: expect.objectContaining({
-            origin: expect.any(String),
-            methods: ['GET', 'POST'],
-            credentials: true
-          }),
-          transports: ['websocket', 'polling'],
-          pingTimeout: 60000,
-          pingInterval: 25000
-        })
-      );
+      // Socket.io server created in initialize(), not constructor
+      expect(wsServer.options).toEqual(expect.objectContaining({
+        cors: expect.objectContaining({
+          origin: expect.any(String),
+          methods: ['GET', 'POST'],
+          credentials: true
+        }),
+        transports: ['websocket', 'polling'],
+        pingTimeout: 60000,
+        pingInterval: 25000
+      }));
     });
 
     test('should use custom CORS origin from environment', () => {
       process.env.CORS_ORIGIN = 'https://example.com';
       wsServer = new WebSocketServer(mockHttpServer);
 
-      expect(Server).toHaveBeenCalledWith(
-        mockHttpServer,
-        expect.objectContaining({
-          cors: expect.objectContaining({
-            origin: 'https://example.com'
-          })
+      // Socket.io server created in initialize(), not constructor
+      expect(wsServer.options).toEqual(expect.objectContaining({
+        cors: expect.objectContaining({
+          origin: 'https://example.com'
         })
-      );
+      }));
     });
 
     test('should accept custom options', () => {
@@ -151,17 +148,15 @@ describe('WebSocketServer (Modular)', () => {
 
       wsServer = new WebSocketServer(mockHttpServer, customOptions);
 
-      expect(Server).toHaveBeenCalledWith(
-        mockHttpServer,
-        expect.objectContaining(customOptions)
-      );
+      // Socket.io server created in initialize(), not constructor
+      expect(wsServer.options).toEqual(expect.objectContaining(customOptions));
     });
 
     test('should initialize with empty state', () => {
       wsServer = new WebSocketServer(mockHttpServer);
 
       expect(wsServer.initialized).toBe(false);
-      expect(wsServer.io).toBe(mockIO);
+      expect(wsServer.io).toBeNull(); // Socket.io created in initialize(), not constructor
       expect(wsServer.redisClient).toBeNull();
       expect(wsServer.activeConnections).toBeInstanceOf(Map);
       expect(wsServer.eventHandlers).toBeInstanceOf(Map);
@@ -545,11 +540,17 @@ describe('WebSocketServer (Modular)', () => {
     });
 
     test('should handle shutdown errors gracefully', async () => {
+      // Use real timers for error handling test
+      jest.useRealTimers();
+
       mockIO.close.mockImplementation(() => {
         throw new Error('Close error');
       });
 
       await expect(wsServer.shutdown()).rejects.toThrow('Close error');
+
+      // Restore fake timers for subsequent tests
+      jest.useFakeTimers();
     });
   });
 
