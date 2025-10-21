@@ -86,11 +86,12 @@ describe('Configuration Validator', () => {
       expect(result.valid).toBe(true);
     });
 
-    test('should require at least one broker configuration', () => {
+    test('should allow empty broker configuration (OAuth in dashboard)', () => {
       const config = {};
 
       const result = validateConfig(config, brokerCredentialsSchema);
-      expect(result.valid).toBe(false);
+      // Empty broker config is now valid - users configure via OAuth dashboard
+      expect(result.valid).toBe(true);
     });
 
     test('should validate Moomoo default values', () => {
@@ -298,7 +299,7 @@ describe('Configuration Validator', () => {
       expect(result.valid).toBe(true);
     });
 
-    test('should require AWS configuration in production', () => {
+    test('should allow missing AWS in production (OAuth credentials only)', () => {
       const config = {
         nodeEnv: 'production',
         database: {
@@ -330,7 +331,8 @@ describe('Configuration Validator', () => {
       };
 
       const result = validateConfig(config, environmentSchema);
-      expect(result.valid).toBe(false);
+      // AWS is optional - only needed when encrypting credentials
+      expect(result.valid).toBe(true);
     });
 
     test('should allow missing AWS in development', () => {

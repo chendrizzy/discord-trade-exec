@@ -49,6 +49,7 @@ describe('OAuth2Service', () => {
     mockUser = {
       _id: mockUserId,
       tradingConfig: {
+        communityId: new mongoose.Types.ObjectId(),
         oauthTokens: new Map()
       },
       save: jest.fn().mockResolvedValue(true)
@@ -111,7 +112,7 @@ describe('OAuth2Service', () => {
 
       expect(mockSession.oauthState).toBeDefined();
       expect(mockSession.oauthState.state).toBeDefined();
-      expect(mockSession.oauthState.state.length).toBe(64); // 32 bytes hex = 64 chars
+      expect(mockSession.oauthState.state.length).toBe(128); // 64 bytes hex = 128 chars
       expect(mockSession.oauthState.broker).toBe('alpaca');
       expect(mockSession.oauthState.userId).toBe(mockUserId);
       expect(mockSession.oauthState.createdAt).toBeDefined();
@@ -203,10 +204,14 @@ describe('OAuth2Service', () => {
         state: mockState,
         broker: 'alpaca',
         userId: mockUserId,
+        communityId: mockUser.tradingConfig.communityId.toString(),
         createdAt: Date.now()
       };
 
       getProviderConfig.mockReturnValue(mockConfig);
+
+      // Mock User.findById to return our mock user
+      User.findById = jest.fn().mockResolvedValue(mockUser);
 
       // Mock successful token response
       axios.post.mockResolvedValue({
