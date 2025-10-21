@@ -41,7 +41,7 @@ const traderRoutes = require('./routes/api/trader');
 const metricsRoutes = require('./routes/api/metrics');
 const polarWebhookRoutes = require('./routes/webhook/polar');
 const DiscordTradeBot = require('./services/DiscordBot');
-const SubscriptionManager = require('./services/subscription-manager');
+const subscriptionManager = require('./services/subscription-manager'); // Singleton instance
 const MarketingAutomation = require('./services/MarketingAutomation');
 const PaymentProcessor = require('./services/PaymentProcessor');
 const TradingViewParser = require('./services/TradingViewParser');
@@ -165,14 +165,11 @@ try {
   console.error('❌ Failed to start Discord bot:', error);
 }
 
-// Initialize Subscription Manager
-let subscriptionManager;
+// Subscription Manager is already initialized as singleton (imported above)
 try {
-  subscriptionManager = new SubscriptionManager();
   console.log('💳 Subscription manager initialized successfully');
 } catch (error) {
   console.error('❌ Failed to initialize subscription manager:', error);
-  subscriptionManager = null;
 }
 
 // Initialize Marketing Automation
