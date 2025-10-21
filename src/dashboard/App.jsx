@@ -46,6 +46,10 @@ const CohortRetentionTable = lazy(() =>
 const BrokerManagement = lazy(() =>
   import('./components/BrokerManagement').then(mod => ({ default: mod.BrokerManagement }))
 );
+const PersonalSettings = lazy(() => import('./components/PersonalSettings').then(mod => ({ default: mod.PersonalSettings })));
+const RiskSettings = lazy(() => import('./components/RiskSettings').then(mod => ({ default: mod.RiskSettings })));
+const IntegrationSettings = lazy(() => import('./components/IntegrationSettings').then(mod => ({ default: mod.IntegrationSettings })));
+const BillingSettings = lazy(() => import('./components/BillingSettings').then(mod => ({ default: mod.BillingSettings })));
 
 function App() {
   const [user, setUser] = useState(null);
@@ -590,15 +594,53 @@ function App() {
                     </Suspense>
                   </div>
 
-                  <Card className="animate-fade-in" style={{ animationDelay: '0.2s' }}>
-                    <CardHeader>
-                      <CardTitle>Account Settings</CardTitle>
-                      <CardDescription>Manage your account preferences</CardDescription>
-                    </CardHeader>
-                    <CardContent>
-                      <p className="text-sm text-muted-foreground">Additional settings coming soon...</p>
-                    </CardContent>
-                  </Card>
+                  <div className="animate-fade-in" style={{ animationDelay: '0.2s' }}>
+                    <Suspense
+                      fallback={
+                        <div className="h-64 flex items-center justify-center text-sm text-muted-foreground">
+                          Loading personal settings...
+                        </div>
+                      }
+                    >
+                      <PersonalSettings />
+                    </Suspense>
+                  </div>
+
+                  <div className="animate-fade-in" style={{ animationDelay: '0.3s' }}>
+                    <Suspense
+                      fallback={
+                        <div className="h-64 flex items-center justify-center text-sm text-muted-foreground">
+                          Loading risk settings...
+                        </div>
+                      }
+                    >
+                      <RiskSettings />
+                    </Suspense>
+                  </div>
+
+                  <div className="animate-fade-in" style={{ animationDelay: '0.4s' }}>
+                    <Suspense
+                      fallback={
+                        <div className="h-64 flex items-center justify-center text-sm text-muted-foreground">
+                          Loading integration settings...
+                        </div>
+                      }
+                    >
+                      <IntegrationSettings />
+                    </Suspense>
+                  </div>
+
+                  <div className="animate-fade-in" style={{ animationDelay: '0.5s' }}>
+                    <Suspense
+                      fallback={
+                        <div className="h-64 flex items-center justify-center text-sm text-muted-foreground">
+                          Loading billing settings...
+                        </div>
+                      }
+                    >
+                      <BillingSettings />
+                    </Suspense>
+                  </div>
                 </div>
               )}
 
