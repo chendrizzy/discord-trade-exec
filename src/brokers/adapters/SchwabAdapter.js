@@ -30,14 +30,21 @@ class SchwabAdapter extends BrokerAdapter {
 
     this.marketDataURL = 'https://api.schwabapi.com/marketdata/v1';
 
-    // User ID for OAuth2 token retrieval
+    // OAuth credentials (for test and production modes)
+    this.clientId = credentials.appKey || null;
+    this.clientSecret = credentials.appSecret || null;
+    this.refreshToken = credentials.refreshToken || null;
+    this.accessToken = credentials.accessToken || null;
+
+    // Token expiry tracking
+    this.tokenExpiresAt = credentials.tokenExpiresAt || null;
+    this.refreshTokenExpiresAt = credentials.refreshTokenExpiresAt || null;
+
+    // User ID for OAuth2 token retrieval (production mode)
     this.userId = credentials.userId || null;
 
     // Account number (set after authentication)
     this.accountId = null;
-
-    // Access token (cached from OAuth2Service)
-    this.accessToken = null;
   }
 
   /**
@@ -66,31 +73,35 @@ class SchwabAdapter extends BrokerAdapter {
    * @returns {Promise<Object>} Token response
    */
   static async exchangeCodeForToken(code, clientId, clientSecret, redirectUri) {
-    const params = new URLSearchParams({
-      grant_type: 'authorization_code',
-      code,
-      client_id: clientId,
-      client_secret: clientSecret,
-      redirect_uri: redirectUri
-    });
+    try {
+      const params = new URLSearchParams({
+        grant_type: 'authorization_code',
+        code,
+        client_id: clientId,
+        client_secret: clientSecret,
+        redirect_uri: redirectUri
+      });
 
-    const response = await axios.post(
-      'https://api.schwabapi.com/v1/oauth/token',
-      params.toString(),
-      {
-        headers: {
-          'Content-Type': 'application/x-www-form-urlencoded'
+      const response = await axios.post(
+        'https://api.schwabapi.com/v1/oauth/token',
+        params.toString(),
+        {
+          headers: {
+            'Content-Type': 'application/x-www-form-urlencoded'
+          }
         }
-      }
-    );
+      );
 
-    return {
-      accessToken: response.data.access_token,
-      refreshToken: response.data.refresh_token,
-      tokenType: response.data.token_type,
-      expiresIn: response.data.expires_in,
-      scope: response.data.scope
-    };
+      return {
+        accessToken: response.data.access_token,
+        refreshToken: response.data.refresh_token,
+        tokenType: response.data.token_type,
+        expiresIn: response.data.expires_in,
+        scope: response.data.scope
+      };
+    } catch (error) {
+      throw new Error(`Failed to exchange code for token: ${error.message}`);
+    }
   }
 
   /**
@@ -99,6 +110,27 @@ class SchwabAdapter extends BrokerAdapter {
    */
   async authenticate() {
     try {
+      // Test mode: If accessToken is already set and valid, skip OAuth flow
+      if (this.accessToken) {
+        // Check expiry if tokenExpiresAt is set
+        if (this.tokenExpiresAt) {
+          if (Date.now() < this.tokenExpiresAt) {
+            this.isAuthenticated = true;
+            console.log('[SchwabAdapter] Using existing access token');
+            return true;
+          }
+          // Token expired, clear it and proceed to OAuth flow
+          console.log('[SchwabAdapter] Access token expired, clearing...');
+          this.accessToken = null;
+        } else {
+          // No expiry set, assume token is valid (test mode)
+          this.isAuthenticated = true;
+          console.log('[SchwabAdapter] Using existing access token (no expiry check)');
+          return true;
+        }
+      }
+
+      // Production mode: Require userId for OAuth2Service integration
       if (!this.userId) {
         throw new Error('User ID required for Schwab OAuth2 authentication');
       }
