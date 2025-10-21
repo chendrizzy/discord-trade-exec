@@ -46,10 +46,10 @@ const CohortRetentionTable = lazy(() =>
 const BrokerManagement = lazy(() =>
   import('./components/BrokerManagement').then(mod => ({ default: mod.BrokerManagement }))
 );
-const PersonalSettings = lazy(() => import('./components/PersonalSettings').then(mod => ({ default: mod.PersonalSettings })));
-const RiskSettings = lazy(() => import('./components/RiskSettings').then(mod => ({ default: mod.RiskSettings })));
-const IntegrationSettings = lazy(() => import('./components/IntegrationSettings').then(mod => ({ default: mod.IntegrationSettings })));
-const BillingSettings = lazy(() => import('./components/BillingSettings').then(mod => ({ default: mod.BillingSettings })));
+const PersonalSettings = lazy(() => import('./components/PersonalSettings'));
+const RiskSettings = lazy(() => import('./components/RiskSettings'));
+const IntegrationSettings = lazy(() => import('./components/IntegrationSettings'));
+const BillingSettings = lazy(() => import('./components/BillingSettings'));
 
 function App() {
   const [user, setUser] = useState(null);
