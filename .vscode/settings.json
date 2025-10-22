@@ -1,10 +1,15 @@
 {
-  "workbench.colorCustomizations": {
-    "statusBar.noFolderBackground": "#00a57d",
-    "statusBar.debuggingBackground": "#00a57d",
-    "statusBar.foreground": "#",
-    "statusBar.debuggingForeground": "#",
-    "minimap.background": "#11111111",
-    "scrollbar.shadow": "#11111111"
-  }
+  "chat.promptFilesRecommendations": {
+    "speckit.constitution": true,
+    "speckit.specify": true,
+    "speckit.plan": true,
+    "speckit.tasks": true,
+    "speckit.implement": true
+  },
+  "chat.tools.terminal.autoApprove": {
+    ".specify/scripts/bash/": true,
+    ".specify/scripts/powershell/": true
+  },
+  "workbench.colorTheme": "base16-eva-dim"
 }
+

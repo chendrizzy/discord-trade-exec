@@ -1,3 +1,4 @@
+/Users/justinchen/.bash_profile: line 30: /Users/justinchen/.claude/commands/awf/awf_aliases.sh: No such file or directory
 # Feature Specification: OpenSpec to Speckit Migration
 
 **Feature Branch**: `001-openspec-to-speckit-migration`
@@ -114,7 +115,7 @@ Community hosts monitor Polymarket whale wallets and anomalous trading patterns 
 
 ---
 
-### User Story 5 - Dual Dashboard System (Priority: P2) 🟡
+### User Story 5 - Dual Dashboard System (Priority: P2) 🔮
 
 The system automatically detects user role (community host vs. individual trader) and routes them to the appropriate dashboard with role-specific features and navigation.
 
@@ -129,17 +130,7 @@ The system automatically detects user role (community host vs. individual trader
 3. **Given** community host viewing member list, **When** clicks member name, **Then** modal shows member's subscription tier, trade stats, and broker connections
 4. **Given** trader following 3 signal providers, **When** viewing signal feed, **Then** only signals from followed providers displayed with filtering options
 
-**Status**: 🟡 STAGING READY (90% - 194/216 tasks complete in `openspec/changes/implement-dual-dashboard-system/tasks.md`)
-
-**Current State**:
-- ✅ Phase 1 routing + role detection fully implemented (48/48 tests passing)
-- 📦 Phases 2 & 3 dashboards scaffolded with UI fully in place but awaiting data wiring
-- ⚠️ Production blocker: Redis cache still using in-memory fallback (see `implement-production-redis-caching` tasks)
-
-**Next Steps**:
-- Integrate live data sources (MongoDB analytics, Discord API, broker health) into scaffolds
-- Provision production Redis instance and flip feature flags once caching online
-- Run staging validation covering host/trader flows before GA
+**Status**: 🔮 PROPOSED (0/216 tasks in OpenSpec: implement-dual-dashboard-system)
 
 **Planned Components**:
 - Community Dashboard: Overview, Signal Management, Member Management, Analytics, Billing, Integrations

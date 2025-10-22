@@ -1,0 +1,636 @@
+openapi: 3.0.3
+info:
+  title: Discord Trade Executor API
+  description: REST API for automated trade execution SaaS platform
+  version: 1.0.0
+  contact:
+    name: API Support
+    email: support@discord-trade-exec.com
+
+servers:
+  - url: https://discord-trade-exec.up.railway.app/api/v1
+    description: Production
+  - url: http://localhost:3000/api/v1
+    description: Local development
+
+security:
+  - sessionAuth: []
+
+paths:
+  /auth/discord:
+    get:
+      summary: Initiate Discord OAuth2 flow
+      tags: [Authentication]
+      security: []
+      description: Redirects to Discord authorization page with PKCE challenge
+      responses:
+        '302':
+          description: Redirect to Discord OAuth
+          headers:
+            Location:
+              schema:
+                type: string
+                example: https://discord.com/api/oauth2/authorize?client_id=...
+
+  /auth/discord/callback:
+    get:
+      summary: OAuth2 callback handler
+      tags: [Authentication]
+      security: []
+      parameters:
+        - name: code
+          in: query
+          required: true
+          schema:
+            type: string
+        - name: state
+          in: query
+          required: true
+          schema:
+            type: string
+      responses:
+        '302':
+          description: Redirect to dashboard with session cookie
+          headers:
+            Set-Cookie:
+              schema:
+                type: string
+                example: sessionId=abc123; HttpOnly; Secure; SameSite=Strict
+        '401':
+          description: Invalid authorization code or state mismatch
+
+  /auth/logout:
+    post:
+      summary: Logout user and destroy session
+      tags: [Authentication]
+      responses:
+        '200':
+          description: Logout successful
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: Logged out successfully
+
+  /brokers:
+    get:
+      summary: List user's broker connections
+      tags: [Brokers]
+      responses:
+        '200':
+          description: Broker connections list
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  brokers:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/BrokerConnection'
+    post:
+      summary: Add new broker connection
+      tags: [Brokers]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [brokerType, credentials]
+              properties:
+                brokerType:
+                  type: string
+                  enum: [alpaca, ibkr, schwab, coinbase, kraken, binance]
+                credentials:
+                  type: object
+                  description: Broker-specific credentials (varies by broker)
+      responses:
+        '201':
+          description: Broker connected successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BrokerConnection'
+        '400':
+          description: Invalid credentials or broker type
+        '409':
+          description: Broker already connected
+
+  /brokers/{brokerId}:
+    get:
+      summary: Get broker connection details
+      tags: [Brokers]
+      parameters:
+        - name: brokerId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Broker connection details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BrokerConnection'
+        '404':
+          description: Broker connection not found
+    put:
+      summary: Update broker credentials
+      tags: [Brokers]
+      parameters:
+        - name: brokerId
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                credentials:
+                  type: object
+      responses:
+        '200':
+          description: Credentials updated
+        '400':
+          description: Invalid credentials
+        '404':
+          description: Broker connection not found
+    delete:
+      summary: Disconnect broker
+      tags: [Brokers]
+      parameters:
+        - name: brokerId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '204':
+          description: Broker disconnected
+        '404':
+          description: Broker connection not found
+
+  /trades:
+    get:
+      summary: Get trade history
+      tags: [Trades]
+      parameters:
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 50
+            maximum: 200
+        - name: offset
+          in: query
+          schema:
+            type: integer
+            default: 0
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [pending, submitted, filled, partial_fill, rejected, cancelled]
+      responses:
+        '200':
+          description: Trade history
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  trades:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Trade'
+                  total:
+                    type: integer
+                  limit:
+                    type: integer
+                  offset:
+                    type: integer
+
+  /trades/buy:
+    post:
+      summary: Execute buy order
+      tags: [Trades]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TradeRequest'
+      responses:
+        '201':
+          description: Order submitted
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Trade'
+        '400':
+          description: Invalid request or risk validation failed
+        '429':
+          description: Rate limit exceeded
+
+  /trades/sell:
+    post:
+      summary: Execute sell order
+      tags: [Trades]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TradeRequest'
+      responses:
+        '201':
+          description: Order submitted
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Trade'
+        '400':
+          description: Invalid request or risk validation failed
+
+  /trades/{tradeId}:
+    get:
+      summary: Get trade details
+      tags: [Trades]
+      parameters:
+        - name: tradeId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Trade details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Trade'
+        '404':
+          description: Trade not found
+
+  /trades/{tradeId}/cancel:
+    post:
+      summary: Cancel pending order
+      tags: [Trades]
+      parameters:
+        - name: tradeId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Order cancelled
+        '400':
+          description: Order cannot be cancelled (already filled)
+        '404':
+          description: Trade not found
+
+  /portfolio:
+    get:
+      summary: Get portfolio summary
+      tags: [Portfolio]
+      responses:
+        '200':
+          description: Portfolio overview
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  totalValue:
+                    type: number
+                    format: double
+                  cashBalance:
+                    type: number
+                    format: double
+                  positions:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Position'
+
+  /portfolio/positions:
+    get:
+      summary: Get all positions
+      tags: [Portfolio]
+      parameters:
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [open, closed]
+            default: open
+      responses:
+        '200':
+          description: Positions list
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  positions:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Position'
+
+  /subscriptions:
+    get:
+      summary: Get current subscription
+      tags: [Subscriptions]
+      responses:
+        '200':
+          description: Subscription details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Subscription'
+    put:
+      summary: Update subscription (upgrade/downgrade)
+      tags: [Subscriptions]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [plan]
+              properties:
+                plan:
+                  type: string
+                  enum: [Basic, Pro, Premium]
+      responses:
+        '200':
+          description: Subscription updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Subscription'
+        '400':
+          description: Invalid plan or payment method required
+    delete:
+      summary: Cancel subscription
+      tags: [Subscriptions]
+      responses:
+        '200':
+          description: Subscription cancelled (access until period end)
+
+  /analytics/revenue:
+    get:
+      summary: Get revenue metrics (admin only)
+      tags: [Analytics]
+      responses:
+        '200':
+          description: Revenue dashboard data
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  mrr:
+                    type: number
+                    description: Monthly Recurring Revenue
+                  arr:
+                    type: number
+                    description: Annual Recurring Revenue
+                  growthRate:
+                    type: number
+                    description: Month-over-month growth percentage
+        '403':
+          description: Admin access required
+
+  /analytics/cohorts:
+    get:
+      summary: Get cohort retention analysis (admin only)
+      tags: [Analytics]
+      parameters:
+        - name: cohortMonth
+          in: query
+          schema:
+            type: string
+            format: date
+            example: '2024-01'
+      responses:
+        '200':
+          description: Cohort retention data
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  cohorts:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        month:
+                          type: string
+                        initialUsers:
+                          type: integer
+                        retentionRates:
+                          type: array
+                          items:
+                            type: number
+        '403':
+          description: Admin access required
+
+  /webhooks/tradingview:
+    post:
+      summary: TradingView webhook receiver
+      tags: [Webhooks]
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [ticker, action, quantity]
+              properties:
+                ticker:
+                  type: string
+                action:
+                  type: string
+                  enum: [buy, sell]
+                quantity:
+                  type: number
+                type:
+                  type: string
+                  enum: [market, limit]
+                  default: market
+                price:
+                  type: number
+      responses:
+        '200':
+          description: Webhook processed
+        '400':
+          description: Invalid webhook payload
+
+  /webhooks/billing:
+    post:
+      summary: Billing provider webhook (Polar.sh/Stripe)
+      tags: [Webhooks]
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              description: Provider-specific event payload
+      responses:
+        '200':
+          description: Webhook processed
+        '400':
+          description: Invalid signature or payload
+
+components:
+  securitySchemes:
+    sessionAuth:
+      type: apiKey
+      in: cookie
+      name: sessionId
+
+  schemas:
+    BrokerConnection:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        brokerType:
+          type: string
+          enum: [alpaca, ibkr, schwab, coinbase, kraken, binance]
+        isActive:
+          type: boolean
+        lastHealthCheck:
+          type: string
+          format: date-time
+        createdAt:
+          type: string
+          format: date-time
+
+    Trade:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        symbol:
+          type: string
+        quantity:
+          type: number
+        orderType:
+          type: string
+          enum: [market, limit, stop_loss, stop_limit, trailing_stop]
+        side:
+          type: string
+          enum: [buy, sell]
+        limitPrice:
+          type: number
+          nullable: true
+        stopPrice:
+          type: number
+          nullable: true
+        status:
+          type: string
+          enum: [pending, submitted, filled, partial_fill, rejected, cancelled]
+        submittedAt:
+          type: string
+          format: date-time
+          nullable: true
+        filledAt:
+          type: string
+          format: date-time
+          nullable: true
+        fillPrice:
+          type: number
+          nullable: true
+        brokerOrderId:
+          type: string
+          nullable: true
+        errorMessage:
+          type: string
+          nullable: true
+
+    TradeRequest:
+      type: object
+      required: [symbol, quantity, orderType]
+      properties:
+        symbol:
+          type: string
+          example: AAPL
+        quantity:
+          type: number
+          minimum: 0.0001
+        orderType:
+          type: string
+          enum: [market, limit, stop_loss, stop_limit, trailing_stop]
+        limitPrice:
+          type: number
+          description: Required for limit/stop_limit orders
+        stopPrice:
+          type: number
+          description: Required for stop_loss/stop_limit/trailing_stop orders
+        brokerConnectionId:
+          type: string
+          format: uuid
+          description: Optional - uses default broker if omitted
+
+    Position:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        symbol:
+          type: string
+        quantity:
+          type: number
+        averageEntryPrice:
+          type: number
+        currentPrice:
+          type: number
+        unrealizedPnL:
+          type: number
+        stopLossPrice:
+          type: number
+          nullable: true
+        openedAt:
+          type: string
+          format: date-time
+
+    Subscription:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        plan:
+          type: string
+          enum: [Free, Basic, Pro, Premium]
+        status:
+          type: string
+          enum: [active, past_due, cancelled, trial]
+        currentPeriodStart:
+          type: string
+          format: date-time
+        currentPeriodEnd:
+          type: string
+          format: date-time
+        cancelledAt:
+          type: string
+          format: date-time
+          nullable: true

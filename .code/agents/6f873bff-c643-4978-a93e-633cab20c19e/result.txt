@@ -1,0 +1,76 @@
+Here is a structured mapping of the status indicators for each OpenSpec change found in the document:
+
+```json
+{
+  "add-moomoo-ui-support": {
+    "status": "✅ Complete",
+    "progress": "100%",
+    "user_story": "US-8"
+  },
+  "add-polymarket-intelligence": {
+    "status": "⏳ In Progress",
+    "progress": "80% (Phase 1 complete; Phase 2-3 pending)",
+    "user_story": "US-4"
+  },
+  "implement-broker-integrations": {
+    "status": "⏳ In Progress",
+    "progress": "88.6% (62/70)",
+    "user_story": "US-2"
+  },
+  "implement-unified-oauth2-authentication": {
+    "status": "⚠️ Needs Hardening",
+    "progress": "85% (139/163)",
+    "user_story": "US-6"
+  },
+  "implement-crypto-exchanges": {
+    "status": "⏳ In Progress",
+    "progress": "68.75% (44/64)",
+    "user_story": "US-12"
+  },
+  "implement-analytics-platform": {
+    "status": "⏳ In Progress",
+    "progress": "69.4% (43/62)",
+    "user_story": "US-7"
+  },
+  "implement-realtime-infrastructure": {
+    "status": "⏳ In Progress",
+    "progress": "6.8% (10/148)",
+    "user_story": "US-3"
+  },
+  "implement-dual-dashboard-system": {
+    "status": "🟡 Staging Ready",
+    "progress": "90% (194/216)",
+    "user_story": "US-5"
+  },
+  "implement-production-redis-caching": {
+    "status": "⚠️ Blocked",
+    "progress": "100% (code)",
+    "user_story": "Support"
+  },
+  "migrate-to-railway": {
+    "status": "🔮 Proposed",
+    "progress": "0% (0/106)",
+    "user_story": "US-11"
+  },
+  "implement-analytics-advanced-features": {
+    "status": "🔮 Proposed",
+    "progress": "0% (0/85)",
+    "user_story": "US-9"
+  },
+  "implement-social-trading": {
+    "status": "🔮 Proposed",
+    "progress": "0% (no tasks)",
+    "user_story": "US-10"
+  },
+  "Baseline Trading": {
+    "status": "✅ Complete",
+    "progress": "100% (implicit)",
+    "user_story": "US-1"
+  },
+  "Full Platform Vision": {
+    "status": "🔮 Conceptual",
+    "progress": "N/A",
+    "user_story": "US-13"
+  }
+}
+```

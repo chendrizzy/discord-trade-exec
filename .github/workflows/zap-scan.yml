@@ -1,0 +1,215 @@
+name: OWASP ZAP Security Scan
+
+# T056: Automated OWASP ZAP scan workflow for US-009 (P1 - COMPLIANCE MANDATE)
+# Constitutional Principle I: Security-First requires OWASP Top 10 compliance
+# Manual trigger only - not a blocking CI step per specification
+
+on:
+  workflow_dispatch:
+    inputs:
+      target_url:
+        description: 'Target URL to scan (e.g., staging environment)'
+        required: true
+        default: 'https://discord-trade-exec-staging.up.railway.app'
+      scan_type:
+        description: 'Scan type: baseline or full'
+        required: true
+        default: 'baseline'
+        type: choice
+        options:
+          - baseline
+          - full
+      generate_reports:
+        description: 'Generate detailed reports (HTML, JSON, XML)'
+        required: false
+        default: true
+        type: boolean
+
+jobs:
+  zap-scan:
+    name: OWASP ZAP Security Scan
+    runs-on: ubuntu-latest
+
+    permissions:
+      contents: read
+      security-events: write
+      issues: write
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup scan parameters
+        id: scan-params
+        run: |
+          echo "target=${{ github.event.inputs.target_url }}" >> $GITHUB_OUTPUT
+          echo "scan_type=${{ github.event.inputs.scan_type }}" >> $GITHUB_OUTPUT
+          echo "timestamp=$(date +'%Y%m%d-%H%M%S')" >> $GITHUB_OUTPUT
+          echo "report_dir=zap-reports-$(date +'%Y%m%d-%H%M%S')" >> $GITHUB_OUTPUT
+
+      - name: Create reports directory
+        run: mkdir -p ${{ steps.scan-params.outputs.report_dir }}
+
+      - name: Run OWASP ZAP Baseline Scan
+        if: github.event.inputs.scan_type == 'baseline'
+        uses: zaproxy/action-baseline@v0.12.0
+        with:
+          target: ${{ steps.scan-params.outputs.target }}
+          rules_file_name: '.zap/rules.tsv'
+          cmd_options: '-a -j -l WARN -r zap-report.html -J zap-report.json -x zap-report.xml'
+          allow_issue_writing: true
+          fail_action: false
+
+      - name: Run OWASP ZAP Full Scan
+        if: github.event.inputs.scan_type == 'full'
+        uses: zaproxy/action-full-scan@v0.10.0
+        with:
+          target: ${{ steps.scan-params.outputs.target }}
+          rules_file_name: '.zap/rules.tsv'
+          cmd_options: '-a -j -l WARN -r zap-report.html -J zap-report.json -x zap-report.xml'
+          allow_issue_writing: true
+          fail_action: false
+
+      - name: Move reports to timestamped directory
+        if: github.event.inputs.generate_reports == true || github.event.inputs.generate_reports == 'true'
+        run: |
+          mv zap-report.html ${{ steps.scan-params.outputs.report_dir }}/ || true
+          mv zap-report.json ${{ steps.scan-params.outputs.report_dir }}/ || true
+          mv zap-report.xml ${{ steps.scan-params.outputs.report_dir }}/ || true
+
+      - name: Parse findings summary
+        id: findings
+        run: |
+          if [ -f "${{ steps.scan-params.outputs.report_dir }}/zap-report.json" ]; then
+            echo "Parsing ZAP JSON report..."
+            
+            # Extract counts from JSON report
+            critical=$(jq '[.site[].alerts[] | select(.riskcode == "3")] | length' ${{ steps.scan-params.outputs.report_dir }}/zap-report.json || echo "0")
+            high=$(jq '[.site[].alerts[] | select(.riskcode == "2")] | length' ${{ steps.scan-params.outputs.report_dir }}/zap-report.json || echo "0")
+            medium=$(jq '[.site[].alerts[] | select(.riskcode == "1")] | length' ${{ steps.scan-params.outputs.report_dir }}/zap-report.json || echo "0")
+            low=$(jq '[.site[].alerts[] | select(.riskcode == "0")] | length' ${{ steps.scan-params.outputs.report_dir }}/zap-report.json || echo "0")
+            
+            echo "critical=$critical" >> $GITHUB_OUTPUT
+            echo "high=$high" >> $GITHUB_OUTPUT
+            echo "medium=$medium" >> $GITHUB_OUTPUT
+            echo "low=$low" >> $GITHUB_OUTPUT
+            
+            echo "### Findings Summary" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "| Severity | Count |" >> $GITHUB_STEP_SUMMARY
+            echo "|----------|-------|" >> $GITHUB_STEP_SUMMARY
+            echo "| 🔴 Critical | $critical |" >> $GITHUB_STEP_SUMMARY
+            echo "| 🟠 High | $high |" >> $GITHUB_STEP_SUMMARY
+            echo "| 🟡 Medium | $medium |" >> $GITHUB_STEP_SUMMARY
+            echo "| 🟢 Low | $low |" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            
+            # Check compliance (FR-071: 0 Critical and 0 High findings)
+            if [ "$critical" -eq 0 ] && [ "$high" -eq 0 ]; then
+              echo "✅ **OWASP Compliance: PASSED** (0 Critical, 0 High findings)" >> $GITHUB_STEP_SUMMARY
+              echo "compliant=true" >> $GITHUB_OUTPUT
+            else
+              echo "❌ **OWASP Compliance: FAILED** ($critical Critical, $high High findings)" >> $GITHUB_STEP_SUMMARY
+              echo "compliant=false" >> $GITHUB_OUTPUT
+            fi
+          else
+            echo "⚠️ ZAP report not found" >> $GITHUB_STEP_SUMMARY
+            echo "compliant=unknown" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Create compliance badge
+        if: steps.findings.outputs.compliant == 'true'
+        run: |
+          echo "Creating compliance badge..."
+          curl -X POST https://img.shields.io/badge/OWASP-Compliant-brightgreen \
+            -o ${{ steps.scan-params.outputs.report_dir }}/compliance-badge.svg || true
+
+      - name: Upload ZAP reports as artifacts
+        if: github.event.inputs.generate_reports == true || github.event.inputs.generate_reports == 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: zap-security-reports-${{ steps.scan-params.outputs.timestamp }}
+          path: ${{ steps.scan-params.outputs.report_dir }}/
+          retention-days: 90
+
+      - name: Upload SARIF report to GitHub Security
+        if: always()
+        continue-on-error: true
+        run: |
+          # Convert XML to SARIF format if possible
+          if [ -f "${{ steps.scan-params.outputs.report_dir }}/zap-report.xml" ]; then
+            echo "Uploading security findings to GitHub Security tab..."
+            # Note: ZAP doesn't natively output SARIF, would need conversion tool
+            # For now, just log that manual review is needed
+            echo "⚠️ Manual review required: Download zap-report.html from artifacts" >> $GITHUB_STEP_SUMMARY
+          fi
+
+      - name: Comment on PR (if triggered from PR)
+        if: github.event_name == 'pull_request' && steps.findings.outputs.compliant != 'unknown'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const critical = '${{ steps.findings.outputs.critical }}';
+            const high = '${{ steps.findings.outputs.high }}';
+            const medium = '${{ steps.findings.outputs.medium }}';
+            const low = '${{ steps.findings.outputs.low }}';
+            const compliant = '${{ steps.findings.outputs.compliant }}';
+
+            const body = `## 🔒 OWASP ZAP Security Scan Results
+
+            **Target**: \`${{ steps.scan-params.outputs.target }}\`
+            **Scan Type**: \`${{ github.event.inputs.scan_type }}\`
+            **Timestamp**: \`${{ steps.scan-params.outputs.timestamp }}\`
+
+            ### Findings
+
+            | Severity | Count |
+            |----------|-------|
+            | 🔴 Critical | ${critical} |
+            | 🟠 High | ${high} |
+            | 🟡 Medium | ${medium} |
+            | 🟢 Low | ${low} |
+
+            ### Compliance Status (FR-071)
+
+            ${compliant === 'true' 
+              ? '✅ **PASSED**: 0 Critical and 0 High findings (meets deployment requirement)' 
+              : '❌ **FAILED**: Critical or High findings detected (deployment blocked)'}
+
+            ### Next Steps
+
+            ${compliant === 'false' 
+              ? '1. Review detailed findings in artifact: \`zap-security-reports-${{ steps.scan-params.outputs.timestamp }}\`\n2. Create GitHub issues for each Critical/High finding\n3. Remediate vulnerabilities\n4. Re-run ZAP scan to verify fixes'
+              : '1. Review Medium/Low findings for potential improvements\n2. Document accepted risks for remaining findings\n3. Proceed with deployment when ready'}
+
+            ---
+            *This scan is part of US-009 (OWASP Security Audit) - Constitutional Principle I: Security-First*`;
+
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: body
+            });
+
+      - name: Fail workflow if non-compliant
+        if: steps.findings.outputs.compliant == 'false'
+        run: |
+          echo "❌ OWASP Compliance check FAILED"
+          echo "Critical findings: ${{ steps.findings.outputs.critical }}"
+          echo "High findings: ${{ steps.findings.outputs.high }}"
+          echo ""
+          echo "FR-071 requires 0 Critical and 0 High findings before production deployment."
+          echo "Please remediate all Critical and High severity vulnerabilities."
+          exit 1
+
+      - name: Success message
+        if: steps.findings.outputs.compliant == 'true'
+        run: |
+          echo "✅ OWASP Compliance check PASSED"
+          echo "System meets FR-071 deployment requirements (0 Critical, 0 High findings)"
+          echo ""
+          echo "Medium findings: ${{ steps.findings.outputs.medium }}"
+          echo "Low findings: ${{ steps.findings.outputs.low }}"
+          echo ""
+          echo "Review Medium/Low findings and document accepted risks before deployment."

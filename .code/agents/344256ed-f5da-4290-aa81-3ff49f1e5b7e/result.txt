@@ -1,0 +1,27 @@
+Okay, I will inventory the `openspec/changes` directories, summarizing each proposal's status from the markdown files within. I will not modify any files.Okay, I have the directory list. I'll now read all markdown files within each of those directories to gather and summarize the requested information.
+Here is a summary of the OpenSpec change proposals and their current status:
+
+### OpenSpec Change Proposals Summary
+
+| Change ID | Status | Progress | Notes |
+| :--- | :--- | :--- | :--- |
+| `achieve-full-vision` | ✅ Complete | 100% | Master proposal that led to the creation of 5 other focused change proposals. |
+| `add-billing-provider-abstraction` | ✅ Complete | 100% | Implemented a billing provider abstraction to allow switching between services like Polar.sh and Stripe. |
+| `add-moomoo-ui-support` | ✅ Deployed | 100% | Full Moomoo broker connection support has been implemented and deployed. |
+| `add-polymarket-intelligence` | ⏳ In Progress | 33% | Phase 1 (Blockchain Data Ingestion) is complete. Work on the intelligence engine and integration is pending. |
+| `document-oauth2-architecture` | ✅ Complete | 100% | Comprehensive documentation for the Discord OAuth2 authentication system has been created. |
+| `document-websocket-infrastructure` | ✅ Complete | 100% | Comprehensive documentation for the WebSocket/Socket.io infrastructure has been created. |
+| `enhance-performance-monitoring` | ✅ Complete | 100% | A comprehensive Application Performance Monitoring (APM) and observability stack has been implemented. |
+| `implement-analytics-advanced-features`| 📝 Planned | 0% | Advanced analytics features (CAC tracking, retention campaigns, etc.) are planned but not yet implemented. |
+| `implement-analytics-platform` | ✅ Core Complete | 69% | The foundational analytics platform is built. Advanced features are pending. |
+| `implement-broker-integrations` | ✅ Dev Complete | 89% | IBKR and Schwab broker adapters are implemented and tested. Deployment is pending. |
+| `implement-crypto-exchanges` | ✅ Staging Ready | 100% | Coinbase Pro and Kraken adapters are code-complete, fully tested, and ready for staging deployment. |
+| `implement-dual-dashboard-system` | 🟡 Staging Ready | 90% | The UI is scaffolded but requires database integration. Blocked by a critical Redis caching issue. |
+| `implement-mfa-authentication` | ✅ Complete | 100% | Time-based One-Time Password (TOTP) multi-factor authentication has been implemented. |
+| `implement-production-redis-caching`| ⚠️ Blocked | 100% (code) | The Redis implementation is code-complete but is blocked pending user action to provision a Redis instance. |
+| `implement-realtime-infrastructure`| ⏳ In Progress | - | Implementation of the WebSocket server with Socket.io is in progress. |
+| `implement-social-trading` | 📝 Planned | 0% | A copy trading system, leaderboards, and competitions are planned for after P0/P1 features are complete. |
+| `implement-unified-oauth2-authentication`| ⚠️ Needs Hardening | 85% | The system is production-grade but a security audit found 8 vulnerabilities that need to be addressed. |
+| `migrate-to-polar-billing` | ✅ Complete | 100% | The billing system has been migrated from Stripe to Polar.sh. |
+| `migrate-to-railway` | 📝 Proposed | 0% | A proposal to migrate the primary deployment platform from Vercel to Railway. |
+| `update-polar-spec-docs` | ✅ Complete | 100% | All OpenSpec documents have been updated to reflect the move from Stripe to Polar billing. |

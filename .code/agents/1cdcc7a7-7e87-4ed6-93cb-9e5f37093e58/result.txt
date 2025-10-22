@@ -1,0 +1,1 @@
+Okay, I will make the requested edits to `specs/001-openspec-to-speckit-migration/spec.md` and output the diff. First, I need to read the file to understand its contents.
