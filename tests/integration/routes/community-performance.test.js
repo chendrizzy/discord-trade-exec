@@ -12,13 +12,29 @@
 
 const request = require('supertest');
 const mongoose = require('mongoose');
-const createApp = require('../../../src/app');
 const User = require('../../../src/models/User');
 const SignalProvider = require('../../../src/models/SignalProvider');
 const UserSignalSubscription = require('../../../src/models/UserSignalSubscription');
 const Signal = require('../../../src/models/Signal');
 
-// Create app with test-friendly options (skip payment processor, tradingview)
+// Global test user for mock middleware (must be prefixed with 'mock' for Jest)
+let mockTestUser = null;
+
+// Mock requireCommunityAdmin middleware before loading the app
+// We're testing database performance, not auth flow
+jest.mock('../../../src/middleware/requireCommunityAdmin', () => {
+  return (req, res, next) => {
+    if (!mockTestUser) {
+      return res.status(401).json({ error: 'Test user not set' });
+    }
+    req.user = mockTestUser;
+    req.isAuthenticated = () => true;
+    next();
+  };
+});
+
+// Now load the app with mocked middleware
+const createApp = require('../../../src/app');
 const app = createApp({
   skipPaymentProcessor: true,
   skipTradingView: true
@@ -40,6 +56,9 @@ describe('Community Top Providers Performance', () => {
       communityRole: 'admin',
       discriminator: '0001'
     });
+
+    // Set global test user for mocked middleware
+    mockTestUser = testUser;
 
     // Create 10 signal providers
     providers = await Promise.all(
@@ -116,7 +135,6 @@ describe('Community Top Providers Performance', () => {
     await UserSignalSubscription.deleteMany({ communityId: testCommunity });
     await Signal.deleteMany({ communityId: testCommunity });
   });
-
   describe('Query Performance', () => {
     it('should complete in <50ms p95 with 10 providers', async () => {
       const iterations = 20; // Run 20 times to get p95
@@ -125,18 +143,16 @@ describe('Community Top Providers Performance', () => {
       for (let i = 0; i < iterations; i++) {
         const startTime = Date.now();
 
-        const response = await request(app)
-          .get('/api/community/overview')
-          .set('Cookie', [`connect.sid=${testUser.sessionId}`])
-          .expect(200);
+        const response = await request(app).get('/api/community/overview').expect(200);
 
         const duration = Date.now() - startTime;
         durations.push(duration);
 
         // Verify response structure
-        expect(response.body).toHaveProperty('topProviders');
-        expect(Array.isArray(response.body.topProviders)).toBe(true);
-        expect(response.body.topProviders.length).toBeLessThanOrEqual(3);
+        expect(response.body).toHaveProperty('signals');
+        expect(response.body.signals).toHaveProperty('topProviders');
+        expect(Array.isArray(response.body.signals.topProviders)).toBe(true);
+        expect(response.body.signals.topProviders.length).toBeLessThanOrEqual(3);
       }
 
       // Calculate p95 (95th percentile)
@@ -159,10 +175,7 @@ describe('Community Top Providers Performance', () => {
         .catch(() => {});
 
       // Execute the query
-      await request(app)
-        .get('/api/community/overview')
-        .set('Cookie', [`connect.sid=${testUser.sessionId}`])
-        .expect(200);
+      await request(app).get('/api/community/overview').expect(200);
 
       // Count queries to SignalProvider, UserSignalSubscription, and Signal collections
       const profile = await db
@@ -187,12 +200,9 @@ describe('Community Top Providers Performance', () => {
     });
 
     it('should return same data as N+1 query implementation', async () => {
-      const response = await request(app)
-        .get('/api/community/overview')
-        .set('Cookie', [`connect.sid=${testUser.sessionId}`])
-        .expect(200);
+      const response = await request(app).get('/api/community/overview').expect(200);
 
-      const { topProviders } = response.body;
+      const { topProviders } = response.body.signals;
 
       // Verify top 3 providers (highest win rates)
       expect(topProviders).toHaveLength(3);
@@ -229,9 +239,12 @@ describe('Community Top Providers Performance', () => {
         Array.from({ length: 90 }, async (_, i) => {
           return await SignalProvider.create({
             communityId: testCommunity,
+            providerId: `provider-${i + 11}-${Date.now()}`,
+            type: 'discord_channel',
             name: `Provider ${i + 11}`,
             description: `Test provider ${i + 11}`,
             isActive: true,
+            verificationStatus: 'verified',
             performance: {
               winRate: 30 + (i % 70), // Varying win rates
               totalTrades: 100,
@@ -245,16 +258,13 @@ describe('Community Top Providers Performance', () => {
 
       const startTime = Date.now();
 
-      const response = await request(app)
-        .get('/api/community/overview')
-        .set('Cookie', [`connect.sid=${testUser.sessionId}`])
-        .expect(200);
+      const response = await request(app).get('/api/community/overview').expect(200);
 
       const duration = Date.now() - startTime;
 
       // Should still be fast even with 100 providers
       expect(duration).toBeLessThan(100); // <100ms even with 10x data
-      expect(response.body.topProviders).toHaveLength(3); // Still returns top 3
+      expect(response.body.signals.topProviders).toHaveLength(3); // Still returns top 3
 
       // Cleanup additional providers
       await SignalProvider.deleteMany({ _id: { $in: additionalProviders.map(p => p._id) } });
