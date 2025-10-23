@@ -14,7 +14,6 @@
 
 const { Polar } = require('@polar-sh/sdk');
 const logger = require('../utils/logger');
-const logger = require('../utils/logger');
 
 // Initialize Polar client
 const polarAccessToken = process.env.POLAR_ACCESS_TOKEN;

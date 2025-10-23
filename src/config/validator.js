@@ -1,7 +1,6 @@
 // External dependencies
 const Joi = require('joi');
 const logger = require('../utils/logger');
-const logger = require('../utils/logger');
 
 /**
  * Configuration Validator using Joi schemas

@@ -9,7 +9,6 @@ const bcrypt = require('bcrypt');
 // Internal dependencies
 const User = require('../models/User');
 const logger = require('../utils/logger');
-const logger = require('../utils/logger');
 
 /**
  * Multi-Factor Authentication (MFA) Service

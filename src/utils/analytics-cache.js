@@ -8,7 +8,6 @@
 const redis = require('redis');
 const { promisify } = require('util');
 const logger = require('../utils/logger');
-const logger = require('../utils/logger');
 
 class AnalyticsCache {
   constructor(options = {}) {

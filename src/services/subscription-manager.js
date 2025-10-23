@@ -2,7 +2,6 @@
 const User = require('../models/User');
 const analyticsEventService = require('./analytics/AnalyticsEventService');
 const logger = require('../utils/logger');
-const logger = require('../utils/logger');
 
 /**
  * SubscriptionManager Service

@@ -3,7 +3,6 @@ const { createAdapter } = require('@socket.io/redis-adapter');
 const Redis = require('ioredis');
 const socketIO = require('socket.io');
 const logger = require('../utils/logger');
-const logger = require('../utils/logger');
 
 /**
  * WebSocket Server for Real-Time Updates

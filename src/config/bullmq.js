@@ -1,7 +1,6 @@
 const { Queue, Worker } = require('bullmq');
 const Redis = require('ioredis');
 const logger = require('../utils/logger');
-const logger = require('../utils/logger');
 
 /**
  * BullMQ Configuration - Shared queue and worker factory

@@ -16,7 +16,6 @@ const axios = require('axios');
 const { getProviderConfig, isOAuth2Broker } = require('../config/oauth2Providers');
 const SecurityAudit = require('../models/SecurityAudit');
 const logger = require('../utils/logger');
-const logger = require('../utils/logger');
 
 // AES-256-GCM encryption algorithm
 const ALGORITHM = 'aes-256-gcm';

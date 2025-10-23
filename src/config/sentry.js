@@ -34,7 +34,6 @@
 const Sentry = require('@sentry/node');
 const { ProfilingIntegration } = require('@sentry/profiling-node');
 const logger = require('../utils/logger');
-const logger = require('../utils/logger');
 
 // Configuration
 const SENTRY_DSN = process.env.SENTRY_DSN;

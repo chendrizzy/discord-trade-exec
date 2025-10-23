@@ -18,7 +18,6 @@
 const BillingProvider = require('../BillingProvider');
 const { Polar } = require('@polar-sh/sdk');
 const logger = require('../../../utils/logger');
-const logger = require('../../../utils/logger');
 
 class PolarBillingProvider extends BillingProvider {
   constructor() {

@@ -4,6 +4,8 @@
  * Implements fail-fast pattern to catch configuration issues early
  */
 
+const logger = require('./logger');
+
 /**
  * Required environment variables by environment
  */

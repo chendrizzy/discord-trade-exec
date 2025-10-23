@@ -6,7 +6,6 @@ const anomalyBatchProcessor = require('./workers/anomalyBatch');
 const analysisProcessor = require('./workers/analysis');
 const alertsProcessor = require('./workers/alerts');
 const logger = require('../utils/logger');
-const logger = require('../utils/logger');
 
 /**
  * JobOrchestrator - Central BullMQ worker management

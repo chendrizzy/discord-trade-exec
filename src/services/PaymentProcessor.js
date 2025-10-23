@@ -4,7 +4,6 @@ const express = require('express');
 // Internal services
 const BillingProviderFactory = require('./billing/BillingProviderFactory');
 const logger = require('../utils/logger');
-const logger = require('../utils/logger');
 
 class PaymentProcessor {
   constructor() {

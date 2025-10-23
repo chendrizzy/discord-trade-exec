@@ -4,7 +4,6 @@ const crypto = require('crypto');
 // External dependencies
 const { KMSClient, EncryptCommand, DecryptCommand, GenerateDataKeyCommand } = require('@aws-sdk/client-kms');
 const logger = require('../utils/logger');
-const logger = require('../utils/logger');
 
 /**
  * AWS KMS Encryption Service

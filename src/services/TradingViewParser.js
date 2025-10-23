@@ -1,7 +1,6 @@
 // Node.js built-in modules
 const crypto = require('crypto');
 const logger = require('../utils/logger');
-const logger = require('../utils/logger');
 
 class TradingViewParser {
   constructor() {

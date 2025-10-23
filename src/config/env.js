@@ -9,6 +9,8 @@
  * Constitutional Principle I: Security-First - Prevents insecure configuration
  */
 
+const logger = require('../utils/logger');
+
 const requiredEnvVars = {
   // Core Application
   NODE_ENV: { required: true, default: 'development', values: ['development', 'production', 'test', 'staging'] },

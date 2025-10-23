@@ -8,8 +8,6 @@ const User = require('../models/User');
 // Analytics
 const analyticsEventService = require('../services/analytics/AnalyticsEventService');
 const logger = require('../utils/logger');
-const logger = require('../utils/logger');
-const logger = require('../utils/logger');
 
 
 // Configure passport Discord strategy

@@ -7,7 +7,6 @@ const ccxt = require('ccxt');
 // Internal utilities and services
 const { BrokerFactory } = require('../brokers');
 const logger = require('../utils/logger');
-const logger = require('../utils/logger');
 
 /**
  * Unified Trade Executor supporting both stock brokers (via BrokerFactory) and crypto exchanges (via CCXT)

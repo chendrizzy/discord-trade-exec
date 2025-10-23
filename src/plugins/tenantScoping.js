@@ -1,7 +1,6 @@
 // Internal utilities and services
 const { getTenantContext } = require('../middleware/tenantAuth');
 const logger = require('../utils/logger');
-const logger = require('../utils/logger');
 
 /**
  * Tenant Scoping Mongoose Plugin

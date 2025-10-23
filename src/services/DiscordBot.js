@@ -8,7 +8,6 @@ const TradeExecutor = require('./TradeExecutor');
 // Models and types
 const User = require('../models/User');
 const logger = require('../utils/logger');
-const logger = require('../utils/logger');
 
 class DiscordTradeBot {
   constructor() {

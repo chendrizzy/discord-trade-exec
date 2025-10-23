@@ -432,21 +432,26 @@ app.get('*', (req, res) => {
 });
 
 // Connect to MongoDB
-mongoose
-  .connect(process.env.MONGODB_URI || 'mongodb://localhost:27017/trade-executor')
-  .then(() => {
-    logger.info('✅ MongoDB connected');
+if (mongoose.connection.readyState === 0) {
+  // Only connect if not already connected (e.g., by test setup)
+  mongoose
+    .connect(process.env.MONGODB_URI || 'mongodb://localhost:27017/trade-executor')
+    .then(() => {
+      logger.info('✅ MongoDB connected');
 
-    // Initialize OAuth2 token refresh cron jobs after DB connection
-    try {
-      const { startTokenRefreshJobs } = require('./jobs/tokenRefreshJob');
-      startTokenRefreshJobs();
-      logger.info('✅ OAuth2 token refresh jobs initialized');
-    } catch (error) {
-      logger.error('❌ Failed to initialize token refresh jobs:', { error: error.message, stack: error.stack });
-    }
-  })
-  .catch(err => console.error('❌ MongoDB connection error:', err));
+      // Initialize OAuth2 token refresh cron jobs after DB connection
+      try {
+        const { startTokenRefreshJobs } = require('./jobs/tokenRefreshJob');
+        startTokenRefreshJobs();
+        logger.info('✅ OAuth2 token refresh jobs initialized');
+      } catch (error) {
+        logger.error('❌ Failed to initialize token refresh jobs:', { error: error.message, stack: error.stack });
+      }
+    })
+    .catch(err => logger.error('❌ MongoDB connection error:', { error: err.message, stack: err.stack }));
+} else {
+  logger.info('✅ MongoDB already connected (test environment)');
+}
 
 // Start the server
 const server = app.listen(PORT, () => {

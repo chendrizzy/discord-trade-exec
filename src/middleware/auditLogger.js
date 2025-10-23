@@ -4,7 +4,6 @@ const { getTenantContext } = require('./tenantAuth');
 // Models and types
 const SecurityAudit = require('../models/SecurityAudit');
 const logger = require('../utils/logger');
-const logger = require('../utils/logger');
 
 // Risk level classification
 const RISK_LEVELS = {

@@ -13,7 +13,6 @@ const oauth2Service = require('../services/OAuth2Service');
 const OAUTH2_PROVIDERS = require('../config/oauth2Providers');
 const TokenRefreshMetrics = require('../services/analytics/TokenRefreshMetrics');
 const logger = require('../utils/logger');
-const logger = require('../utils/logger');
 
 // Retry configuration for exponential backoff
 const RETRY_CONFIG = {

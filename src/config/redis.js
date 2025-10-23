@@ -15,7 +15,6 @@
 const Redis = require('ioredis');
 const { getConfig, isDevelopment } = require('./env');
 const logger = require('../utils/logger');
-const logger = require('../utils/logger');
 
 let redisClient = null;
 let isPubSubMode = false;

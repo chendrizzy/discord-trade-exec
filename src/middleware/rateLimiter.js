@@ -3,7 +3,6 @@ const rateLimit = require('express-rate-limit');
 const { ipKeyGenerator } = require('express-rate-limit');
 const Redis = require('ioredis');
 const logger = require('../utils/logger');
-const logger = require('../utils/logger');
 
 // Redis client for distributed rate limiting (optional, falls back to in-memory)
 let redisClient = null;

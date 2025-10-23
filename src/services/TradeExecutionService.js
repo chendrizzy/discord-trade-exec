@@ -4,7 +4,6 @@ const User = require('../models/User');
 const analyticsEventService = require('./analytics/AnalyticsEventService');
 const { BrokerFactory } = require('../brokers');
 const logger = require('../utils/logger');
-const logger = require('../utils/logger');
 
 /**
  * TradeExecutionService

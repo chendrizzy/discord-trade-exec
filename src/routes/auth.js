@@ -6,7 +6,6 @@ const { passport, ensureAuthenticated } = require('../middleware/auth');
 const { authLimiter } = require('../middleware/rateLimiter');
 const { sendUnauthorized, sendError } = require('../utils/api-response');
 const logger = require('../utils/logger');
-const logger = require('../utils/logger');
 
 // Initiate Discord OAuth2 login
 router.get('/discord', authLimiter, passport.authenticate('discord'));

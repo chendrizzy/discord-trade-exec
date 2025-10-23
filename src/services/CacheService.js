@@ -21,7 +21,6 @@
 const Redis = require('ioredis');
 const NodeCache = require('node-cache');
 const logger = require('../utils/logger');
-const logger = require('../utils/logger');
 
 class CacheService {
   constructor() {

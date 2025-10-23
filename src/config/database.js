@@ -15,7 +15,6 @@
 const mongoose = require('mongoose');
 const { getConfig } = require('./env');
 const logger = require('../utils/logger');
-const logger = require('../utils/logger');
 
 let isConnected = false;
 let connectionAttempts = 0;
