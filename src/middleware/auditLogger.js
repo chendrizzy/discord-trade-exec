@@ -3,6 +3,8 @@ const { getTenantContext } = require('./tenantAuth');
 
 // Models and types
 const SecurityAudit = require('../models/SecurityAudit');
+const logger = require('../utils/logger');
+const logger = require('../utils/logger');
 
 // Risk level classification
 const RISK_LEVELS = {
@@ -120,7 +122,7 @@ const auditLog = (action, resourceType, options = {}) => {
 
       // Log asynchronously (non-blocking)
       SecurityAudit.log(auditData).catch(error => {
-        console.error('[AuditLogger] Failed to log audit event:', error);
+        logger.error('[AuditLogger] Failed to log audit event:', { error: error.message, stack: error.stack });
       });
 
       // Call original method

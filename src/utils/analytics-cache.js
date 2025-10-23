@@ -7,6 +7,8 @@
 
 const redis = require('redis');
 const { promisify } = require('util');
+const logger = require('../utils/logger');
+const logger = require('../utils/logger');
 
 class AnalyticsCache {
   constructor(options = {}) {
@@ -36,7 +38,7 @@ class AnalyticsCache {
     };
 
     if (!this.enabled) {
-      console.warn('Redis caching disabled - no REDIS_URL configured');
+      logger.warn('Redis caching disabled - no REDIS_URL configured');
       return;
     }
 
@@ -59,7 +61,7 @@ class AnalyticsCache {
       });
 
       this.client.on('connect', () => {
-        console.log('Redis cache connected');
+        logger.info('Redis cache connected');
       });
 
       // Connect to Redis
@@ -68,7 +70,7 @@ class AnalyticsCache {
         this.enabled = false;
       });
     } catch (error) {
-      console.error('Failed to initialize Redis client:', error);
+      logger.error('Failed to initialize Redis client:', { error: error.message, stack: error.stack });
       this.enabled = false;
     }
   }
@@ -107,7 +109,7 @@ class AnalyticsCache {
 
       return null;
     } catch (error) {
-      console.error('Cache get error:', error);
+      logger.error('Cache get error:', { error: error.message, stack: error.stack });
       return null; // Fail gracefully
     }
   }
@@ -133,7 +135,7 @@ class AnalyticsCache {
       await this.client.setEx(key, cacheTTL, cacheData);
       return true;
     } catch (error) {
-      console.error('Cache set error:', error);
+      logger.error('Cache set error:', { error: error.message, stack: error.stack });
       return false;
     }
   }
@@ -159,7 +161,7 @@ class AnalyticsCache {
       await this.client.del(keys);
       return keys.length;
     } catch (error) {
-      console.error('Cache invalidate error:', error);
+      logger.error('Cache invalidate error:', { error: error.message, stack: error.stack });
       return 0;
     }
   }
@@ -184,7 +186,7 @@ class AnalyticsCache {
       await this.client.del(keys);
       return keys.length;
     } catch (error) {
-      console.error('Cache invalidate all error:', error);
+      logger.error('Cache invalidate all error:', { error: error.message, stack: error.stack });
       return 0;
     }
   }
@@ -243,7 +245,7 @@ class AnalyticsCache {
 
       return stats;
     } catch (error) {
-      console.error('Failed to get cache stats:', error);
+      logger.error('Failed to get cache stats:', { error: error.message, stack: error.stack });
       return {
         enabled: this.enabled,
         connected: false,
@@ -301,7 +303,7 @@ class AnalyticsCache {
 
       return results;
     } catch (error) {
-      console.error('Cache warming error:', error);
+      logger.error('Cache warming error:', { error: error.message, stack: error.stack });
       return {
         warmed: results.warmed,
         failed: results.failed + 1,

@@ -5,6 +5,7 @@ const Alpaca = require('@alpacahq/alpaca-trade-api');
 const BrokerAdapter = require('../BrokerAdapter');
 const oauth2Service = require('../../services/OAuth2Service');
 const User = require('../../models/User');
+const logger = require('../../utils/logger');
 
 /**
  * Alpaca Stock Broker Adapter
@@ -79,9 +80,9 @@ class AlpacaAdapter extends BrokerAdapter {
             // Decrypt access token
             accessToken = oauth2Service.decryptToken(encryptedTokens.accessToken);
 
-            console.log('[AlpacaAdapter] Using OAuth2 access token from user profile');
+            logger.info('[AlpacaAdapter] Using OAuth2 access token from user profile');
           } else {
-            console.warn('[AlpacaAdapter] OAuth2 tokens marked invalid, falling back to API key if available');
+            logger.warn('[AlpacaAdapter] OAuth2 tokens marked invalid, falling back to API key if available');
           }
         }
       }

@@ -10,6 +10,7 @@ const blockchainProvider = require('./BlockchainProvider');
 const analysisPipeline = require('./AnalysisPipeline');
 const jobOrchestrator = require('../../jobs');
 const polygonConfig = require('../../config/polygon');
+const logger = require('../../utils/logger');
 
 class PolymarketService {
   constructor() {
@@ -28,7 +29,7 @@ class PolymarketService {
    * Initialize all components
    */
   async initialize() {
-    console.log('[PolymarketService] Initializing...');
+    logger.info('[PolymarketService] Initializing...');
 
     // Test blockchain connection
     const connectionTest = await blockchainProvider.testConnection();
@@ -45,7 +46,7 @@ class PolymarketService {
     // Start provider health checks
     blockchainProvider.startHealthChecks();
 
-    console.log('[PolymarketService] Initialization complete');
+    logger.info('[PolymarketService] Initialization complete');
   }
 
   /**
@@ -76,7 +77,7 @@ class PolymarketService {
    */
   async start() {
     if (this.isRunning) {
-      console.warn('[PolymarketService] Already running');
+      logger.warn('[PolymarketService] Already running');
       return;
     }
 
@@ -84,7 +85,7 @@ class PolymarketService {
       await this.initialize();
     }
 
-    console.log('[PolymarketService] Starting event monitoring...');
+    logger.info('[PolymarketService] Starting event monitoring...');
 
     await this.eventListener.startListening();
 
@@ -94,9 +95,9 @@ class PolymarketService {
     this.isRunning = true;
     this.startTime = new Date();
 
-    console.log('[PolymarketService] Service started successfully');
-    console.log('[PolymarketService] Monitoring Polymarket CTF Exchange events in real-time');
-    console.log('[PolymarketService] Intelligence analysis active');
+    logger.info('[PolymarketService] Service started successfully');
+    logger.info('[PolymarketService] Monitoring Polymarket CTF Exchange events in real-time');
+    logger.info('[PolymarketService] Intelligence analysis active');
   }
 
   /**
@@ -107,7 +108,7 @@ class PolymarketService {
       return;
     }
 
-    console.log('[PolymarketService] Stopping...');
+    logger.info('[PolymarketService] Stopping...');
 
     await this.eventListener.stopListening();
     blockchainProvider.stopHealthChecks();
@@ -117,7 +118,7 @@ class PolymarketService {
 
     this.isRunning = false;
 
-    console.log('[PolymarketService] Service stopped');
+    logger.info('[PolymarketService] Service stopped');
   }
 
   /**
@@ -149,7 +150,7 @@ class PolymarketService {
     // Process in batch
     const result = await transactionProcessor.processBatch(allEvents);
 
-    console.log('[PolymarketService] Backfill complete:');
+    logger.info('[PolymarketService] Backfill complete:');
     console.log(`  Total events: ${result.total}`);
     console.log(`  Saved: ${result.saved}`);
     console.log(`  Duplicates: ${result.duplicates}`);

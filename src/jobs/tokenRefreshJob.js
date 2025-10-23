@@ -12,6 +12,8 @@ const User = require('../models/User');
 const oauth2Service = require('../services/OAuth2Service');
 const OAUTH2_PROVIDERS = require('../config/oauth2Providers');
 const TokenRefreshMetrics = require('../services/analytics/TokenRefreshMetrics');
+const logger = require('../utils/logger');
+const logger = require('../utils/logger');
 
 // Retry configuration for exponential backoff
 const RETRY_CONFIG = {
@@ -198,7 +200,7 @@ async function refreshExpiringTokens(expiryWindowHours, brokerFilter = null) {
 
     return metrics;
   } catch (error) {
-    console.error('[TokenRefreshJob] Error during token refresh cycle:', error);
+    logger.error('[TokenRefreshJob] Error during token refresh cycle:', { error: error.message, stack: error.stack });
     return metrics;
   }
 }
@@ -208,7 +210,7 @@ async function refreshExpiringTokens(expiryWindowHours, brokerFilter = null) {
  * Cron pattern: '0 * * * *' = At minute 0 of every hour
  */
 const hourlyRefreshJob = cron.schedule('0 * * * *', async () => {
-  console.log('[TokenRefreshJob] Starting hourly token refresh cycle (24-hour window)');
+  logger.info('[TokenRefreshJob] Starting hourly token refresh cycle (24-hour window)');
   await refreshExpiringTokens(24);
 }, {
   scheduled: false,
@@ -220,7 +222,7 @@ const hourlyRefreshJob = cron.schedule('0 * * * *', async () => {
  * Cron pattern: '*\/15 * * * *' = Every 15 minutes
  */
 const tdAmeritradeRefreshJob = cron.schedule('*/15 * * * *', async () => {
-  console.log('[TokenRefreshJob] Starting TD Ameritrade 15-minute token refresh cycle (20-minute window)');
+  logger.info('[TokenRefreshJob] Starting TD Ameritrade 15-minute token refresh cycle (20-minute window)');
   await refreshExpiringTokens(20 / 60, 'tdameritrade'); // 20 minutes = 0.33 hours
 }, {
   scheduled: false,
@@ -231,27 +233,27 @@ const tdAmeritradeRefreshJob = cron.schedule('*/15 * * * *', async () => {
  * Start all token refresh cron jobs
  */
 function startTokenRefreshJobs() {
-  console.log('[TokenRefreshJob] Starting OAuth2 token refresh cron jobs...');
+  logger.info('[TokenRefreshJob] Starting OAuth2 token refresh cron jobs...');
 
   hourlyRefreshJob.start();
-  console.log('[TokenRefreshJob] ✅ Hourly refresh job started (24-hour window, all brokers)');
+  logger.info('[TokenRefreshJob] ✅ Hourly refresh job started (24-hour window, all brokers)');
 
   tdAmeritradeRefreshJob.start();
-  console.log('[TokenRefreshJob] ✅ TD Ameritrade 15-minute refresh job started (20-minute window)');
+  logger.info('[TokenRefreshJob] ✅ TD Ameritrade 15-minute refresh job started (20-minute window)');
 
-  console.log('[TokenRefreshJob] All token refresh jobs running');
+  logger.info('[TokenRefreshJob] All token refresh jobs running');
 }
 
 /**
  * Stop all token refresh cron jobs
  */
 function stopTokenRefreshJobs() {
-  console.log('[TokenRefreshJob] Stopping OAuth2 token refresh cron jobs...');
+  logger.info('[TokenRefreshJob] Stopping OAuth2 token refresh cron jobs...');
 
   hourlyRefreshJob.stop();
   tdAmeritradeRefreshJob.stop();
 
-  console.log('[TokenRefreshJob] All token refresh jobs stopped');
+  logger.info('[TokenRefreshJob] All token refresh jobs stopped');
 }
 
 /**

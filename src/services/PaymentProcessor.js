@@ -3,6 +3,8 @@ const express = require('express');
 
 // Internal services
 const BillingProviderFactory = require('./billing/BillingProviderFactory');
+const logger = require('../utils/logger');
+const logger = require('../utils/logger');
 
 class PaymentProcessor {
   constructor() {
@@ -265,7 +267,7 @@ class PaymentProcessor {
 
                         alert('Checkout session created, but no redirect URL was returned.');
                     } catch (error) {
-                        console.error('Error:', error);
+                        logger.error('Error:', { error: error.message, stack: error.stack });
                         alert('Something went wrong. Please try again.');
                     }
                 }
@@ -327,7 +329,7 @@ class PaymentProcessor {
         provider: this.providerType
       });
     } catch (error) {
-      console.error('[PaymentProcessor] Billing provider checkout error:', error);
+      logger.error('[PaymentProcessor] Billing provider checkout error:', { error: error.message, stack: error.stack });
       res.status(500).json({ error: 'Failed to create checkout session' });
     }
   }
@@ -370,7 +372,7 @@ class PaymentProcessor {
           }
         }
       } catch (error) {
-        console.error('[PaymentProcessor] Error loading billing products:', error);
+        logger.error('[PaymentProcessor] Error loading billing products:', { error: error.message, stack: error.stack });
         return null;
       }
 
@@ -622,7 +624,7 @@ class PaymentProcessor {
 
       res.json({ url: portalSession.url });
     } catch (error) {
-      console.error('[PaymentProcessor] Error creating portal session:', error);
+      logger.error('[PaymentProcessor] Error creating portal session:', { error: error.message, stack: error.stack });
       res.status(500).json({ error: 'Failed to create portal session' });
     }
   }

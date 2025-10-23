@@ -22,6 +22,7 @@ const BillingProviderFactory = require('../../services/billing/BillingProviderFa
 const Community = require('../../models/Community');
 const User = require('../../models/User');
 const SecurityAudit = require('../../models/SecurityAudit');
+const logger = require('../../utils/logger');
 
 const WEBHOOK_EVENT_LIMIT = parseInt(process.env.POLAR_WEBHOOK_EVENT_LIMIT || '50', 10);
 const webhookEvents = [];
@@ -40,7 +41,7 @@ router.post('/', express.raw({ type: 'application/json' }), async (req, res) => 
     const webhookSecret = process.env.POLAR_WEBHOOK_SECRET;
 
     if (!signature) {
-      console.error('[Polar Webhook] Missing signature header');
+      logger.error('[Polar Webhook] Missing signature header');
       return res.status(401).json({ error: 'Missing signature' });
     }
 
@@ -49,7 +50,7 @@ router.post('/', express.raw({ type: 'application/json' }), async (req, res) => 
     const isValid = billingProvider.verifyWebhookSignature(rawBody, signature, webhookSecret);
 
     if (!isValid) {
-      console.error('[Polar Webhook] Invalid signature');
+      logger.error('[Polar Webhook] Invalid signature');
       await SecurityAudit.log({
         action: 'webhook.signature_failed',
         resourceType: 'Webhook',
@@ -114,7 +115,7 @@ router.post('/', express.raw({ type: 'application/json' }), async (req, res) => 
     // Acknowledge receipt
     res.json({ received: true, eventType });
   } catch (error) {
-    console.error('[Polar Webhook] Error processing webhook:', error);
+    logger.error('[Polar Webhook] Error processing webhook:', { error: error.message, stack: error.stack });
     res.status(500).json({ error: 'Webhook processing failed' });
   }
 });

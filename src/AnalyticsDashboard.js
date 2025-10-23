@@ -4,6 +4,7 @@ const express = require('express');
 // Internal utilities and services
 const performanceTracker = require('./PerformanceTracker');
 const rateLimiter = require('./RateLimiter');
+const logger = require('utils/logger');
 
 class AnalyticsDashboard {
   constructor() {
@@ -93,10 +94,10 @@ class AnalyticsDashboard {
       }
     });
 
-    console.log('\u2713 Analytics dashboard routes configured');
-    console.log('  - Dashboard UI: http://localhost:3000/dashboard');
-    console.log('  - Metrics API: http://localhost:3000/api/metrics');
-    console.log('  - Health API: http://localhost:3000/api/health');
+    logger.info('\u2713 Analytics dashboard routes configured');
+    logger.info('  - Dashboard UI: http://localhost:3000/dashboard');
+    logger.info('  - Metrics API: http://localhost:3000/api/metrics');
+    logger.info('  - Health API: http://localhost:3000/api/health');
   }
 
   /**
@@ -383,7 +384,7 @@ class AnalyticsDashboard {
                 document.getElementById('last-updated').textContent = new Date().toLocaleString();
                 
             } catch (error) {
-                console.error('Dashboard error:', error);
+                logger.error('Dashboard error:', { error: error.message, stack: error.stack });
                 errorEl.textContent = 'Failed to load dashboard data: ' + error.message;
                 errorEl.style.display = 'block';
             } finally {

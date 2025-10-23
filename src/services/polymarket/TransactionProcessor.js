@@ -7,6 +7,7 @@
 const PolymarketTransaction = require('../../models/PolymarketTransaction');
 const PolymarketWallet = require('../../models/PolymarketWallet');
 const PolymarketMarket = require('../../models/PolymarketMarket');
+const logger = require('../../utils/logger');
 
 class TransactionProcessor {
   constructor() {
@@ -98,7 +99,7 @@ class TransactionProcessor {
         transaction
       };
     } catch (error) {
-      console.error('[TransactionProcessor] Error processing event:', error);
+      logger.error('[TransactionProcessor] Error processing event:', { error: error.message, stack: error.stack });
       this.stats.errors++;
       return {
         success: false,

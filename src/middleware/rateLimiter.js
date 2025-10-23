@@ -2,6 +2,8 @@
 const rateLimit = require('express-rate-limit');
 const { ipKeyGenerator } = require('express-rate-limit');
 const Redis = require('ioredis');
+const logger = require('../utils/logger');
+const logger = require('../utils/logger');
 
 // Redis client for distributed rate limiting (optional, falls back to in-memory)
 let redisClient = null;
@@ -17,15 +19,15 @@ if (process.env.NODE_ENV === 'production' && process.env.REDIS_URL) {
 
     redisClient.on('error', err => {
       console.error('Redis rate limiter error:', err.message);
-      console.log('⚠️  Falling back to in-memory rate limiting');
+      logger.info('⚠️  Falling back to in-memory rate limiting');
     });
 
     redisClient.on('connect', () => {
-      console.log('✅ Redis rate limiter connected');
+      logger.info('✅ Redis rate limiter connected');
     });
   } catch (error) {
     console.error('Failed to initialize Redis rate limiter:', error.message);
-    console.log('⚠️  Using in-memory rate limiting');
+    logger.info('⚠️  Using in-memory rate limiting');
   }
 }
 

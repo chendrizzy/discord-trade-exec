@@ -1,5 +1,6 @@
 // External dependencies
 const AnalyticsEvent = require('../../models/AnalyticsEvent');
+const logger = require('../../utils/logger');
 
 /**
  * Analytics Event Service
@@ -100,7 +101,7 @@ class AnalyticsEventService {
         return { success: true, buffered: true, bufferSize: this.eventBuffer.length };
       }
     } catch (error) {
-      console.error('Analytics event tracking error:', error);
+      logger.error('Analytics event tracking error:', { error: error.message, stack: error.stack });
       // Don't throw - analytics failures shouldn't break application flow
       return { success: false, error: error.message };
     }
@@ -121,7 +122,7 @@ class AnalyticsEventService {
       await AnalyticsEvent.insertMany(eventsToFlush, { ordered: false });
       return { flushed: eventsToFlush.length };
     } catch (error) {
-      console.error('Analytics event flush error:', error);
+      logger.error('Analytics event flush error:', { error: error.message, stack: error.stack });
       // Re-buffer failed events
       this.eventBuffer.push(...eventsToFlush);
       throw error;
@@ -139,9 +140,9 @@ class AnalyticsEventService {
 
     try {
       await this.flush();
-      console.log('Analytics event service shut down gracefully');
+      logger.info('Analytics event service shut down gracefully');
     } catch (error) {
-      console.error('Error during analytics service shutdown:', error);
+      logger.error('Error during analytics service shutdown:', { error: error.message, stack: error.stack });
     }
   }
 

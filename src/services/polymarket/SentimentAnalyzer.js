@@ -1,5 +1,6 @@
 const PolymarketTransaction = require('../../models/PolymarketTransaction');
 const cacheManager = require('./CacheManager');
+const logger = require('../../utils/logger');
 
 /**
  * SentimentAnalyzer - Real-time market sentiment analysis for Polymarket
@@ -366,7 +367,7 @@ class SentimentAnalyzer {
   async clearCache() {
     await cacheManager.flush('sentiment:*');
     await cacheManager.flush('baseline:*');
-    console.log('[SentimentAnalyzer] Cache cleared');
+    logger.info('[SentimentAnalyzer] Cache cleared');
   }
 }
 

@@ -1,5 +1,6 @@
 // Internal utilities and services
 const AlpacaAdapter = require('../AlpacaAdapter');
+const logger = require('../../../utils/logger');
 
 /**
  * AlpacaAdapter Integration Tests
@@ -24,8 +25,8 @@ describe('AlpacaAdapter', () => {
   beforeAll(() => {
     // Ensure credentials are available
     if (!process.env.ALPACA_PAPER_KEY || !process.env.ALPACA_PAPER_SECRET) {
-      console.warn('⚠️  Alpaca paper trading credentials not found.');
-      console.warn('Set ALPACA_PAPER_KEY and ALPACA_PAPER_SECRET to run tests.');
+      logger.warn('⚠️  Alpaca paper trading credentials not found.');
+      logger.warn('Set ALPACA_PAPER_KEY and ALPACA_PAPER_SECRET to run tests.');
     }
 
     // Initialize adapter with paper trading credentials

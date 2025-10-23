@@ -5,6 +5,7 @@ const { IBApi, Contract, Order } = require('@stoqey/ib');
 const BrokerAdapter = require('../BrokerAdapter');
 const oauth2Service = require('../../services/OAuth2Service');
 const User = require('../../models/User');
+const logger = require('../../utils/logger');
 
 /**
  * Interactive Brokers (IBKR) API Adapter
@@ -100,7 +101,7 @@ class IBKRAdapter extends BrokerAdapter {
             // Check if access token is expired
             const now = new Date();
             if (now >= encryptedTokens.expiresAt) {
-              console.log('[IBKRAdapter] Access token expired, refreshing...');
+              logger.info('[IBKRAdapter] Access token expired, refreshing...');
               const refreshedTokens = await oauth2Service.refreshAccessToken('ibkr', this.userId);
               this.accessToken = refreshedTokens.accessToken;
             } else {
@@ -109,9 +110,9 @@ class IBKRAdapter extends BrokerAdapter {
             }
 
             useOAuth2 = true;
-            console.log('[IBKRAdapter] Using OAuth2 access token from user profile');
+            logger.info('[IBKRAdapter] Using OAuth2 access token from user profile');
           } else {
-            console.warn('[IBKRAdapter] OAuth2 tokens marked invalid, falling back to TWS/IB Gateway if available');
+            logger.warn('[IBKRAdapter] OAuth2 tokens marked invalid, falling back to TWS/IB Gateway if available');
           }
         }
       }
@@ -121,7 +122,7 @@ class IBKRAdapter extends BrokerAdapter {
         // For now, mark as authenticated with access token cached
         // Actual API calls will use this.accessToken in Authorization header
         this.isAuthenticated = true;
-        console.log('[IBKRAdapter] OAuth2 authentication successful (stub)');
+        logger.info('[IBKRAdapter] OAuth2 authentication successful (stub)');
         return true;
       } else {
         // Fall back to TWS/IB Gateway authentication (legacy)
@@ -142,7 +143,7 @@ class IBKRAdapter extends BrokerAdapter {
 
           this.ib.on('connected', () => {
             clearTimeout(timeout);
-            console.log('[IBKRAdapter] Connected to TWS/IB Gateway');
+            logger.info('[IBKRAdapter] Connected to TWS/IB Gateway');
           });
 
           this.ib.on('nextValidId', orderId => {
@@ -164,7 +165,7 @@ class IBKRAdapter extends BrokerAdapter {
           });
 
           this.ib.on('disconnected', () => {
-            console.log('[IBKRAdapter] Disconnected from TWS/IB Gateway');
+            logger.info('[IBKRAdapter] Disconnected from TWS/IB Gateway');
             this.connectionReady = false;
             this.isAuthenticated = false;
           });
@@ -690,7 +691,7 @@ class IBKRAdapter extends BrokerAdapter {
    */
   async disconnect() {
     if (this.ib) {
-      console.log('[IBKRAdapter] Disconnecting from TWS/IB Gateway');
+      logger.info('[IBKRAdapter] Disconnecting from TWS/IB Gateway');
       this.ib.disconnect();
       this.ib = null;
       this.connectionReady = false;

@@ -1,6 +1,7 @@
 const PolymarketAlert = require('../../models/PolymarketAlert');
 const AlertFormatter = require('./AlertFormatter');
 const cacheManager = require('./CacheManager');
+const logger = require('../../utils/logger');
 
 /**
  * DiscordAlertService - Discord webhook delivery with rate limiting and deduplication
@@ -30,8 +31,8 @@ class DiscordAlertService {
     this.rateLimit = parseInt(process.env.POLYMARKET_ALERT_RATE_LIMIT || '10', 10);
 
     if (!this.webhookUrl) {
-      console.warn('[Discord] No webhook URL configured - alerts will not be sent');
-      console.warn('[Discord] Set DISCORD_POLYMARKET_ALERTS_WEBHOOK to enable alerts');
+      logger.warn('[Discord] No webhook URL configured - alerts will not be sent');
+      logger.warn('[Discord] Set DISCORD_POLYMARKET_ALERTS_WEBHOOK to enable alerts');
     }
 
     DiscordAlertService.instance = this;
@@ -44,7 +45,7 @@ class DiscordAlertService {
    */
   async sendAlert(alert) {
     if (!this.webhookUrl) {
-      console.log('[Discord] Alert skipped - no webhook configured');
+      logger.info('[Discord] Alert skipped - no webhook configured');
       return { skipped: true, reason: 'no_webhook' };
     }
 
@@ -52,7 +53,7 @@ class DiscordAlertService {
       // Step 1: Check rate limit (10/min)
       const rateLimitOk = await this.checkRateLimit();
       if (!rateLimitOk) {
-        console.warn('[Discord] Rate limit exceeded, alert queued');
+        logger.warn('[Discord] Rate limit exceeded, alert queued');
         return { queued: true, reason: 'rate_limit' };
       }
 
@@ -248,7 +249,7 @@ class DiscordAlertService {
    */
   async testWebhook() {
     if (!this.webhookUrl) {
-      console.error('[Discord] No webhook URL configured');
+      logger.error('[Discord] No webhook URL configured');
       return false;
     }
 
@@ -270,7 +271,7 @@ class DiscordAlertService {
         throw new Error(`HTTP ${response.status}`);
       }
 
-      console.log('[Discord] Webhook test successful');
+      logger.info('[Discord] Webhook test successful');
       return true;
     } catch (err) {
       console.error('[Discord] Webhook test failed:', err.message);
@@ -284,7 +285,7 @@ class DiscordAlertService {
   async clearDedupCache() {
     await cacheManager.flush('alert:dedup:*');
     this.memoryDedup.clear();
-    console.log('[Discord] Deduplication cache cleared');
+    logger.info('[Discord] Deduplication cache cleared');
   }
 
   /**

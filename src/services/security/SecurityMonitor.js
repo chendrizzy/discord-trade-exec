@@ -5,6 +5,7 @@ const { getTenantContext } = require('../../middleware/tenantAuth');
 const Community = require('../../models/Community');
 const SecurityAudit = require('../../models/SecurityAudit');
 const User = require('../../models/User');
+const logger = require('../../utils/logger');
 
 /**
  * SecurityMonitor Service
@@ -319,7 +320,7 @@ class SecurityMonitor {
 
       return results;
     } catch (error) {
-      console.error('[SecurityMonitor] Security scan failed:', error);
+      logger.error('[SecurityMonitor] Security scan failed:', { error: error.message, stack: error.stack });
       throw error;
     }
   }
@@ -386,7 +387,7 @@ class SecurityMonitor {
 
       console.log(`[SecurityMonitor] User suspended: ${userId} (Reason: ${reason})`);
     } catch (error) {
-      console.error('[SecurityMonitor] Failed to suspend user:', error);
+      logger.error('[SecurityMonitor] Failed to suspend user:', { error: error.message, stack: error.stack });
       throw error;
     }
   }
@@ -426,7 +427,7 @@ class SecurityMonitor {
 
       console.log(`[SecurityMonitor] User cooldown applied: ${userId} (${durationMinutes}m)`);
     } catch (error) {
-      console.error('[SecurityMonitor] Failed to apply cooldown:', error);
+      logger.error('[SecurityMonitor] Failed to apply cooldown:', { error: error.message, stack: error.stack });
     }
   }
 
@@ -480,7 +481,7 @@ class SecurityMonitor {
           timestamp: new Date()
         });
       } catch (error) {
-        console.error('[SecurityMonitor] Failed to log alert to database:', error);
+        logger.error('[SecurityMonitor] Failed to log alert to database:', { error: error.message, stack: error.stack });
       }
     }
 
@@ -568,7 +569,7 @@ class SecurityMonitor {
         timestamp: new Date()
       };
     } catch (error) {
-      console.error('[SecurityMonitor] Failed to generate dashboard:', error);
+      logger.error('[SecurityMonitor] Failed to generate dashboard:', { error: error.message, stack: error.stack });
       throw error;
     }
   }

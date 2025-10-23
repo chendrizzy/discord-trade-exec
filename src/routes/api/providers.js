@@ -9,6 +9,7 @@ const { apiLimiter } = require('../../middleware/rateLimiter');
 const SignalProvider = require('../../models/SignalProvider');
 const BaseRepository = require('../../repositories/BaseRepository');
 const { sendSuccess, sendError, sendValidationError, sendNotFound } = require('../../utils/api-response');
+const logger = require('../../utils/logger');
 
 // Init repository
 const providerRepository = new BaseRepository(SignalProvider);
@@ -81,7 +82,7 @@ router.get('/', async (req, res) => {
       }))
     });
   } catch (error) {
-    console.error('Error fetching providers:', error);
+    logger.error('Error fetching providers:', { error: error.message, stack: error.stack });
     return sendError(res, 'Failed to fetch signal providers');
   }
 });
@@ -117,7 +118,7 @@ router.get('/:providerId', async (req, res) => {
       }
     });
   } catch (error) {
-    console.error('Error fetching provider:', error);
+    logger.error('Error fetching provider:', { error: error.message, stack: error.stack });
     return sendError(res, 'Failed to fetch provider details');
   }
 });
@@ -166,7 +167,7 @@ router.post(
         message: `Subscribed to ${provider.name} successfully`
       });
     } catch (error) {
-      console.error('Error subscribing to provider:', error);
+      logger.error('Error subscribing to provider:', { error: error.message, stack: error.stack });
       return sendError(res, 'Failed to subscribe to provider');
     }
   }
@@ -204,7 +205,7 @@ router.post(
         message: `Unsubscribed from ${provider.name} successfully`
       });
     } catch (error) {
-      console.error('Error unsubscribing from provider:', error);
+      logger.error('Error unsubscribing from provider:', { error: error.message, stack: error.stack });
       return sendError(res, 'Failed to unsubscribe from provider');
     }
   }
@@ -246,7 +247,7 @@ router.post(
         rating: provider.rating.toFixed(1)
       });
     } catch (error) {
-      console.error('Error adding review:', error);
+      logger.error('Error adding review:', { error: error.message, stack: error.stack });
       return sendError(res, 'Failed to add review');
     }
   }
@@ -284,7 +285,7 @@ router.get(
         })
       });
     } catch (error) {
-      console.error('Error fetching subscriptions:', error);
+      logger.error('Error fetching subscriptions:', { error: error.message, stack: error.stack });
       return sendError(res, 'Failed to fetch subscriptions');
     }
   }
@@ -325,7 +326,7 @@ router.put(
         provider: req.user.tradingConfig.signalProviders[providerIndex]
       });
     } catch (error) {
-      console.error('Error updating provider settings:', error);
+      logger.error('Error updating provider settings:', { error: error.message, stack: error.stack });
       return sendError(res, 'Failed to update provider settings');
     }
   }

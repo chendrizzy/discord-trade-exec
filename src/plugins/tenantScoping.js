@@ -1,5 +1,7 @@
 // Internal utilities and services
 const { getTenantContext } = require('../middleware/tenantAuth');
+const logger = require('../utils/logger');
+const logger = require('../utils/logger');
 
 /**
  * Tenant Scoping Mongoose Plugin
@@ -42,7 +44,7 @@ const tenantScopingPlugin = (schema, options = {}) => {
     } catch (error) {
       // No tenant context = allow query (for seeds, migrations, background jobs)
       // In production, you may want to throw error instead for stricter security
-      console.warn('[TenantScoping] No tenant context available. Query will not be tenant-scoped.');
+      logger.warn('[TenantScoping] No tenant context available. Query will not be tenant-scoped.');
       return {};
     }
   };
@@ -271,7 +273,7 @@ const applyTenantScope = (conditions = {}) => {
       communityId
     };
   } catch (error) {
-    console.warn('[TenantScoping] No tenant context for manual scoping');
+    logger.warn('[TenantScoping] No tenant context for manual scoping');
     return conditions;
   }
 };

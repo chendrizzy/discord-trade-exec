@@ -19,6 +19,19 @@ Follow-up TODOs: None
 
 ## Core Principles
 
+### 0. Excellence & Anti-Complacency Mandate (NON-NEGOTIABLE)
+
+All development work MUST adhere to these fundamental principles:
+
+- **Optimal Efficacy**: Always aim for the most effective solution that delivers maximum value with minimal technical debt
+- **Performance Priority**: Performance optimization is a first-class concern, not an afterthought. Measure, profile, and optimize critical paths
+- **Zero Complacency**: Never accept "good enough" when excellence is achievable. Challenge assumptions, seek better approaches
+- **No Shortcuts**: Quick fixes, placeholder implementations, and "we'll refactor later" code are prohibited in critical paths
+- **Test Quality Over Speed**: Passing tests mean nothing if they don't test the right things. Comprehensive, meaningful tests trump fast test completion
+- **Implementation Depth**: Shallow implementations that satisfy acceptance criteria but lack robustness are unacceptable
+
+**Rationale**: Complacency and shortcuts in financial systems lead to catastrophic failures. Users trust this platform with real money. Every implementation must reflect that gravity. Speed without quality is recklessness. This principle establishes excellence as the baseline, not the aspiration.
+
 ### I. Security-First Development (NON-NEGOTIABLE)
 
 All features MUST prioritize security before functionality. This means:

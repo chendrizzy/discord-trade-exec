@@ -7,6 +7,8 @@ const TradeExecutor = require('./TradeExecutor');
 
 // Models and types
 const User = require('../models/User');
+const logger = require('../utils/logger');
+const logger = require('../utils/logger');
 
 class DiscordTradeBot {
   constructor() {
@@ -25,7 +27,7 @@ class DiscordTradeBot {
     });
 
     this.client.on('error', error => {
-      console.error('Discord client error:', error);
+      logger.error('Discord client error:', { error: error.message, stack: error.stack });
     });
 
     this.client.on('messageCreate', async message => {
@@ -73,7 +75,7 @@ class DiscordTradeBot {
           .setFooter({ text: `Trial ends ${user.subscription.trialEndsAt.toLocaleDateString()}` });
 
         await message.author.send({ embeds: [welcomeEmbed] }).catch(() => {
-          console.log('Unable to DM user - DMs may be disabled');
+          logger.info('Unable to DM user - DMs may be disabled');
         });
       }
 
@@ -163,7 +165,7 @@ class DiscordTradeBot {
         await this.executeTradeForUser(signal, user, message);
       }
     } catch (error) {
-      console.error('Trade signal handling error:', error);
+      logger.error('Trade signal handling error:', { error: error.message, stack: error.stack });
       const errorEmbed = new EmbedBuilder()
         .setTitle('❌ Error Processing Signal')
         .setDescription('An error occurred while processing your trade signal')
@@ -223,7 +225,7 @@ class DiscordTradeBot {
         });
       }
     } catch (error) {
-      console.error('Trade execution error:', error);
+      logger.error('Trade execution error:', { error: error.message, stack: error.stack });
       throw error;
     }
   }
@@ -252,9 +254,9 @@ class DiscordTradeBot {
 
       try {
         await this.client.application.commands.set(commands);
-        console.log('✅ Slash commands registered');
+        logger.info('✅ Slash commands registered');
       } catch (error) {
-        console.error('Failed to register slash commands:', error);
+        logger.error('Failed to register slash commands:', { error: error.message, stack: error.stack });
       }
     });
 
@@ -278,7 +280,7 @@ class DiscordTradeBot {
             break;
         }
       } catch (error) {
-        console.error('Slash command error:', error);
+        logger.error('Slash command error:', { error: error.message, stack: error.stack });
         await interaction.reply({
           content: 'An error occurred processing your command',
           ephemeral: true

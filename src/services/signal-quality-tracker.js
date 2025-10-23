@@ -12,6 +12,7 @@
 
 // Models and types
 const Trade = require('../models/Trade');
+const logger = require('../utils/logger');
 
 /**
  * Quality tier definitions
@@ -342,7 +343,7 @@ async function getProviderStats(providerId) {
       recentPerformance
     };
   } catch (error) {
-    console.error('Error calculating provider stats:', error);
+    logger.error('Error calculating provider stats:', { error: error.message, stack: error.stack });
     throw error;
   }
 }
@@ -513,7 +514,7 @@ async function analyzeSignalQuality(signal, options = {}) {
       analysisVersion: '1.0'
     };
   } catch (error) {
-    console.error('Error analyzing signal quality:', error);
+    logger.error('Error analyzing signal quality:', { error: error.message, stack: error.stack });
     throw error;
   }
 }
@@ -629,7 +630,7 @@ async function getProviderLeaderboard(options = {}) {
 
     return leaderboard;
   } catch (error) {
-    console.error('Error generating provider leaderboard:', error);
+    logger.error('Error generating provider leaderboard:', { error: error.message, stack: error.stack });
     throw error;
   }
 }

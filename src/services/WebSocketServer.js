@@ -2,6 +2,8 @@
 const { createAdapter } = require('@socket.io/redis-adapter');
 const Redis = require('ioredis');
 const socketIO = require('socket.io');
+const logger = require('../utils/logger');
+const logger = require('../utils/logger');
 
 /**
  * WebSocket Server for Real-Time Updates
@@ -48,7 +50,7 @@ class WebSocketServer {
     this.setupEventHandlers();
     this.setupConnectionTracking();
 
-    console.log('✅ WebSocket server initialized');
+    logger.info('✅ WebSocket server initialized');
   }
 
   /**
@@ -70,10 +72,10 @@ class WebSocketServer {
       pubClient.on('error', err => console.error('Redis Pub Error:', err));
       subClient.on('error', err => console.error('Redis Sub Error:', err));
 
-      console.log('✅ WebSocket Redis adapter configured for horizontal scaling');
+      logger.info('✅ WebSocket Redis adapter configured for horizontal scaling');
     } catch (error) {
       console.error('❌ Redis adapter setup failed:', error.message);
-      console.log('⚠️  WebSocket will run in single-instance mode');
+      logger.info('⚠️  WebSocket will run in single-instance mode');
     }
   }
 
@@ -110,7 +112,7 @@ class WebSocketServer {
 
         next();
       } catch (error) {
-        console.error('WebSocket auth error:', error);
+        logger.error('WebSocket auth error:', { error: error.message, stack: error.stack });
         next(new Error('Authentication failed'));
       }
     });
@@ -367,7 +369,7 @@ class WebSocketServer {
    */
   emitPortfolioUpdate(userId, portfolio) {
     if (!userId || !portfolio) {
-      console.warn('Invalid portfolio update: missing userId or portfolio data');
+      logger.warn('Invalid portfolio update: missing userId or portfolio data');
       return;
     }
 
@@ -397,7 +399,7 @@ class WebSocketServer {
    */
   emitTradeNotification(userId, trade) {
     if (!userId || !trade) {
-      console.warn('Invalid trade notification: missing userId or trade data');
+      logger.warn('Invalid trade notification: missing userId or trade data');
       return;
     }
 
@@ -431,7 +433,7 @@ class WebSocketServer {
    */
   emitTradeFailure(userId, error) {
     if (!userId || !error) {
-      console.warn('Invalid trade failure: missing userId or error data');
+      logger.warn('Invalid trade failure: missing userId or error data');
       return;
     }
 
@@ -458,7 +460,7 @@ class WebSocketServer {
    */
   emitSignalQuality(userId, tradeId, quality) {
     if (!userId || !tradeId || !quality) {
-      console.warn('Invalid signal quality: missing userId, tradeId, or quality data');
+      logger.warn('Invalid signal quality: missing userId, tradeId, or quality data');
       return;
     }
 
@@ -486,7 +488,7 @@ class WebSocketServer {
    */
   emitQuoteUpdate(symbol, quote) {
     if (!symbol || !quote) {
-      console.warn('Invalid quote update: missing symbol or quote data');
+      logger.warn('Invalid quote update: missing symbol or quote data');
       return;
     }
 
@@ -668,7 +670,7 @@ class WebSocketServer {
    * Gracefully close the WebSocket server
    */
   async close() {
-    console.log('Closing WebSocket server...');
+    logger.info('Closing WebSocket server...');
 
     // Clean up intervals and timers
     this.cleanup();
@@ -685,7 +687,7 @@ class WebSocketServer {
     // Close all connections
     this.io.close();
 
-    console.log('✅ WebSocket server closed');
+    logger.info('✅ WebSocket server closed');
   }
 }
 

@@ -4,6 +4,7 @@ const DiscordStrategy = require('passport-discord').Strategy;
 
 // Models and types
 const User = require('../models/User');
+const logger = require('../utils/logger');
 
 // Serialize user for session
 passport.serializeUser((user, done) => {
@@ -77,7 +78,7 @@ passport.use(
 
         return done(null, user);
       } catch (error) {
-        console.error('Discord authentication error:', error);
+        logger.error('Discord authentication error:', { error: error.message, stack: error.stack });
         return done(error, null);
       }
     }

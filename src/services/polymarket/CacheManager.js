@@ -1,4 +1,5 @@
 const redis = require('redis');
+const logger = require('../../utils/logger');
 
 /**
  * CacheManager - Shared Redis caching wrapper for Polymarket intelligence
@@ -25,8 +26,8 @@ class CacheManager {
     this.maxMemoryCacheSize = parseInt(process.env.POLYMARKET_CACHE_MAX_MEMORY || '1000', 10);
 
     if (!this.enabled) {
-      console.warn('[CacheManager] Redis disabled - using in-memory fallback');
-      console.warn('[CacheManager] Set REDIS_URL or REDIS_ENABLED=true to enable Redis');
+      logger.warn('[CacheManager] Redis disabled - using in-memory fallback');
+      logger.warn('[CacheManager] Set REDIS_URL or REDIS_ENABLED=true to enable Redis');
       CacheManager.instance = this;
       return;
     }
@@ -37,7 +38,7 @@ class CacheManager {
       socket: {
         reconnectStrategy: (retries) => {
           if (retries > 10) {
-            console.error('[CacheManager] Redis reconnection failed after 10 attempts');
+            logger.error('[CacheManager] Redis reconnection failed after 10 attempts');
             return new Error('Redis reconnection limit exceeded');
           }
           return Math.min(retries * 100, 3000);
@@ -52,11 +53,11 @@ class CacheManager {
     });
 
     this.client.on('connect', () => {
-      console.log('[CacheManager] Redis connected');
+      logger.info('[CacheManager] Redis connected');
     });
 
     this.client.on('ready', () => {
-      console.log('[CacheManager] Redis ready');
+      logger.info('[CacheManager] Redis ready');
     });
 
     // Connect to Redis
@@ -269,7 +270,7 @@ class CacheManager {
   async close() {
     if (this.client?.isReady) {
       await this.client.quit();
-      console.log('[CacheManager] Redis connection closed');
+      logger.info('[CacheManager] Redis connection closed');
     }
   }
 }

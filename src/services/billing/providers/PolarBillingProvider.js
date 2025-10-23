@@ -17,6 +17,8 @@
 
 const BillingProvider = require('../BillingProvider');
 const { Polar } = require('@polar-sh/sdk');
+const logger = require('../../../utils/logger');
+const logger = require('../../../utils/logger');
 
 class PolarBillingProvider extends BillingProvider {
   constructor() {
@@ -30,10 +32,10 @@ class PolarBillingProvider extends BillingProvider {
       this.client = new Polar({
         accessToken: this.accessToken
       });
-      console.log('[PolarBillingProvider] Initialized with access token');
+      logger.info('[PolarBillingProvider] Initialized with access token');
     } else {
       this.client = null;
-      console.warn('[PolarBillingProvider] POLAR_ACCESS_TOKEN not configured - using mock data');
+      logger.warn('[PolarBillingProvider] POLAR_ACCESS_TOKEN not configured - using mock data');
     }
   }
 
@@ -44,7 +46,7 @@ class PolarBillingProvider extends BillingProvider {
    */
   async getSubscription(customerId) {
     if (!this.client || !customerId) {
-      console.log('[PolarBillingProvider] Returning mock subscription (Polar not configured)');
+      logger.info('[PolarBillingProvider] Returning mock subscription (Polar not configured)');
       return this._getMockSubscription(customerId);
     }
 
@@ -77,7 +79,7 @@ class PolarBillingProvider extends BillingProvider {
    */
   async getCustomer(customerId) {
     if (!this.client || !customerId) {
-      console.log('[PolarBillingProvider] Returning mock customer');
+      logger.info('[PolarBillingProvider] Returning mock customer');
       return {
         id: customerId,
         email: 'mock@example.com',
@@ -203,7 +205,7 @@ class PolarBillingProvider extends BillingProvider {
    */
   async listProducts() {
     if (!this.client || !this.organizationId) {
-      console.log('[PolarBillingProvider] Returning mock products');
+      logger.info('[PolarBillingProvider] Returning mock products');
       return [
         this._getMockProduct('550e8400-mock-4000-b000-product1', 'Professional Plan - Monthly', 'professional', 9900),
         this._getMockProduct('550e8400-mock-4000-b000-product2', 'Enterprise Plan - Monthly', 'enterprise', 29900)
@@ -285,7 +287,7 @@ class PolarBillingProvider extends BillingProvider {
    */
   verifyWebhookSignature(payload, signature, secret) {
     if (!secret) {
-      console.warn('[PolarBillingProvider] POLAR_WEBHOOK_SECRET not configured - skipping signature verification');
+      logger.warn('[PolarBillingProvider] POLAR_WEBHOOK_SECRET not configured - skipping signature verification');
       return true; // Allow in development
     }
 

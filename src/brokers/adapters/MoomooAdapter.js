@@ -1,5 +1,6 @@
 // Internal utilities and services
 const BrokerAdapter = require('../BrokerAdapter');
+const logger = require('../../utils/logger');
 
 // Moomoo API loaded dynamically (ES Module)
 let MoomooAPI = null;
@@ -61,16 +62,16 @@ class MoomooAdapter extends BrokerAdapter {
     try {
       // Dynamically load moomoo-api with CommonJS require to avoid ES/CJS module isolation
       if (!MoomooAPI) {
-        console.log('[MoomooAdapter] Loading moomoo-api package...');
+        logger.info('[MoomooAdapter] Loading moomoo-api package...');
 
         try {
           // Attempt CommonJS require to avoid ES/CJS module mixing
           // This prevents protobuf instance isolation between the global scope and moomoo-api's internal proto.js
           const moomooPackage = require('moomoo-api');
           MoomooAPI = moomooPackage.default || moomooPackage;
-          console.log('[MoomooAdapter] Loaded moomoo-api via require() - avoiding module isolation');
+          logger.info('[MoomooAdapter] Loaded moomoo-api via require() - avoiding module isolation');
         } catch (requireError) {
-          console.log('[MoomooAdapter] require() failed, trying dynamic import...');
+          logger.info('[MoomooAdapter] require() failed, trying dynamic import...');
           console.log('[MoomooAdapter] Error:', requireError.message);
 
           // Fallback to dynamic import with protobuf initialization
@@ -89,7 +90,7 @@ class MoomooAdapter extends BrokerAdapter {
 
           const moomooModule = await import('moomoo-api');
           MoomooAPI = moomooModule.default;
-          console.log('[MoomooAdapter] Loaded moomoo-api via import() - protobuf initialized');
+          logger.info('[MoomooAdapter] Loaded moomoo-api via import() - protobuf initialized');
         }
       }
 
@@ -107,7 +108,7 @@ class MoomooAdapter extends BrokerAdapter {
         this.moomoo.onlogin = (ret, msg) => {
           clearTimeout(timeout);
           if (ret === 0) {
-            console.log('[MoomooAdapter] Connected to OpenD Gateway');
+            logger.info('[MoomooAdapter] Connected to OpenD Gateway');
             resolve();
           } else {
             reject(new Error(`Connection failed: ${msg}`));
@@ -609,7 +610,7 @@ class MoomooAdapter extends BrokerAdapter {
    */
   async disconnect() {
     if (this.moomoo) {
-      console.log('[MoomooAdapter] Disconnecting from OpenD Gateway');
+      logger.info('[MoomooAdapter] Disconnecting from OpenD Gateway');
       this.moomoo.stop();
       this.moomoo = null;
       this.connectionReady = false;

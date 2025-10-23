@@ -34,13 +34,13 @@ export function useWebSocket({ sessionID, userId, autoConnect = true } = {}) {
    */
   const connect = useCallback(() => {
     if (socketRef.current?.connected) {
-      console.log('WebSocket already connected');
+      logger.info('WebSocket already connected');
       return;
     }
 
     // Don't connect without authentication
     if (!sessionID) {
-      console.warn('Cannot connect WebSocket: No session ID provided');
+      logger.warn('Cannot connect WebSocket: No session ID provided');
       setError('Authentication required');
       return;
     }
@@ -89,11 +89,11 @@ export function useWebSocket({ sessionID, userId, autoConnect = true } = {}) {
         // Handle different disconnect reasons
         if (reason === 'io server disconnect') {
           // Server initiated disconnect - reconnect manually
-          console.log('Server disconnected client, attempting reconnect...');
+          logger.info('Server disconnected client, attempting reconnect...');
           setTimeout(() => socket.connect(), 1000);
         } else if (reason === 'transport close' || reason === 'ping timeout') {
           // Network issues - socket.io will auto-reconnect
-          console.log('Network issue detected, auto-reconnecting...');
+          logger.info('Network issue detected, auto-reconnecting...');
         }
       });
 
@@ -116,7 +116,7 @@ export function useWebSocket({ sessionID, userId, autoConnect = true } = {}) {
       // Reconnection failed
       socket.on('reconnect_failed', () => {
         if (!mountedRef.current) return;
-        console.error('❌ Reconnection failed after maximum attempts');
+        logger.error('❌ Reconnection failed after maximum attempts');
         setError('Connection failed. Please refresh the page.');
       });
 
@@ -145,7 +145,7 @@ export function useWebSocket({ sessionID, userId, autoConnect = true } = {}) {
    */
   const disconnect = useCallback(() => {
     if (socketRef.current) {
-      console.log('Disconnecting WebSocket...');
+      logger.info('Disconnecting WebSocket...');
       socketRef.current.disconnect();
       socketRef.current = null;
       setConnected(false);
@@ -196,7 +196,7 @@ export function useWebSocket({ sessionID, userId, autoConnect = true } = {}) {
    */
   const subscribeToPortfolio = useCallback(() => {
     if (!socketRef.current?.connected) {
-      console.warn('Cannot subscribe to portfolio: Socket not connected');
+      logger.warn('Cannot subscribe to portfolio: Socket not connected');
       return;
     }
     emit('subscribe:portfolio');
@@ -207,7 +207,7 @@ export function useWebSocket({ sessionID, userId, autoConnect = true } = {}) {
    */
   const subscribeToTrades = useCallback(() => {
     if (!socketRef.current?.connected) {
-      console.warn('Cannot subscribe to trades: Socket not connected');
+      logger.warn('Cannot subscribe to trades: Socket not connected');
       return;
     }
     emit('subscribe:trades');
@@ -220,7 +220,7 @@ export function useWebSocket({ sessionID, userId, autoConnect = true } = {}) {
   const subscribeToWatchlist = useCallback(
     symbols => {
       if (!socketRef.current?.connected) {
-        console.warn('Cannot subscribe to watchlist: Socket not connected');
+        logger.warn('Cannot subscribe to watchlist: Socket not connected');
         return;
       }
       emit('subscribe:watchlist', symbols);
@@ -235,7 +235,7 @@ export function useWebSocket({ sessionID, userId, autoConnect = true } = {}) {
   const unsubscribeFromWatchlist = useCallback(
     symbols => {
       if (!socketRef.current?.connected) {
-        console.warn('Cannot unsubscribe from watchlist: Socket not connected');
+        logger.warn('Cannot unsubscribe from watchlist: Socket not connected');
         return;
       }
       emit('unsubscribe:watchlist', symbols);

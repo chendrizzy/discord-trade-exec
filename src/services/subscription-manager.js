@@ -1,6 +1,8 @@
 // External dependencies
 const User = require('../models/User');
 const analyticsEventService = require('./analytics/AnalyticsEventService');
+const logger = require('../utils/logger');
+const logger = require('../utils/logger');
 
 /**
  * SubscriptionManager Service
@@ -108,7 +110,7 @@ class SubscriptionManager {
         }
       };
     } catch (error) {
-      console.error('[SubscriptionManager] Error creating subscription:', error);
+      logger.error('[SubscriptionManager] Error creating subscription:', { error: error.message, stack: error.stack });
       return { success: false, error: error.message };
     }
   }
@@ -169,7 +171,7 @@ class SubscriptionManager {
         }
       };
     } catch (error) {
-      console.error('[SubscriptionManager] Error renewing subscription:', error);
+      logger.error('[SubscriptionManager] Error renewing subscription:', { error: error.message, stack: error.stack });
       return { success: false, error: error.message };
     }
   }
@@ -239,7 +241,7 @@ class SubscriptionManager {
         }
       };
     } catch (error) {
-      console.error('[SubscriptionManager] Error canceling subscription:', error);
+      logger.error('[SubscriptionManager] Error canceling subscription:', { error: error.message, stack: error.stack });
       return { success: false, error: error.message };
     }
   }
@@ -277,7 +279,7 @@ class SubscriptionManager {
         }
       };
     } catch (error) {
-      console.error('[SubscriptionManager] Error handling payment failure:', error);
+      logger.error('[SubscriptionManager] Error handling payment failure:', { error: error.message, stack: error.stack });
       return { success: false, error: error.message };
     }
   }
@@ -337,7 +339,7 @@ class SubscriptionManager {
         }
       };
     } catch (error) {
-      console.error('[SubscriptionManager] Error upgrading subscription:', error);
+      logger.error('[SubscriptionManager] Error upgrading subscription:', { error: error.message, stack: error.stack });
       return { success: false, error: error.message };
     }
   }
@@ -379,7 +381,7 @@ class SubscriptionManager {
         }
       };
     } catch (error) {
-      console.error('[SubscriptionManager] Error getting subscription status:', error);
+      logger.error('[SubscriptionManager] Error getting subscription status:', { error: error.message, stack: error.stack });
       return { success: false, error: error.message };
     }
   }

@@ -4,6 +4,7 @@ const ccxt = require('ccxt');
 // Internal utilities and services
 const BrokerAdapter = require('../BrokerAdapter');
 const { withTimeout } = require('../../utils/promise-timeout');
+const logger = require('../../utils/logger');
 
 /**
  * Kraken Adapter using CCXT
@@ -36,7 +37,7 @@ class KrakenAdapter extends BrokerAdapter {
 
     // Note: Kraken doesn't have a public testnet/sandbox
     if (options.isTestnet) {
-      console.warn('⚠️  Kraken does not support testnet/sandbox mode');
+      logger.warn('⚠️  Kraken does not support testnet/sandbox mode');
     }
 
     // Supported trading pairs
@@ -67,7 +68,7 @@ class KrakenAdapter extends BrokerAdapter {
       const balance = await withTimeout(this.exchange.fetchBalance(), 30000);
 
       this.isAuthenticated = true;
-      console.log('✅ Kraken authenticated successfully');
+      logger.info('✅ Kraken authenticated successfully');
       return true;
     } catch (error) {
       console.error('❌ Kraken authentication failed:', error.message);

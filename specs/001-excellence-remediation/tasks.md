@@ -1,0 +1,973 @@
+# Task Breakdown: Excellence Remediation & Technical Debt Elimination
+
+**Feature ID**: 001-excellence-remediation  
+**Total Tasks**: 92  
+**Estimated Effort**: 120 hours  
+**TDD Approach**: Applied to US1-US3 (critical paths)
+
+---
+
+## Task Organization
+
+### Legend
+- **[P]** = Parallelizable (can work simultaneously with other [P] tasks)
+- **[TDD]** = Test-first development required
+- **Depends**: Prerequisites that must be completed first
+
+---
+
+## US1: Structured Logging Infrastructure (20 tasks, 16 hours)
+
+### US1-T01: Create Logger Singleton [TDD]
+**File**: src/utils/logger.js  
+**Effort**: 1h  
+**Description**: Create Winston logger singleton with JSON formatting, correlation IDs, log levels  
+**Acceptance**:
+- Winston configured with console + file transports
+- JSON format with timestamp, level, message, correlationId, metadata
+- Log levels: error, warn, info, debug (debug disabled in production)
+- Async logging (non-blocking)
+
+**Test First**:
+```javascript
+// tests/unit/utils/logger.test.js
+describe('Logger', () => {
+  it('should include correlation ID in all logs');
+  it('should redact sensitive fields');
+  it('should write to file transport');
+  it('should use async logging');
+});
+```
+
+---
+
+### US1-T02: Create Log Sanitizer [TDD] [P]
+**File**: src/utils/log-sanitizer.js  
+**Effort**: 1h  
+**Description**: Redact sensitive data (passwords, tokens, SSNs, credit cards) from logs  
+**Acceptance**:
+- Redacts: password, token, apiKey, secret, ssn, creditCard fields
+- Preserves structure (doesn't remove keys, replaces values with "[REDACTED]")
+- Handles nested objects and arrays
+
+**Test First**:
+```javascript
+// tests/unit/utils/log-sanitizer.test.js
+describe('LogSanitizer', () => {
+  it('should redact password fields');
+  it('should redact API tokens');
+  it('should handle nested objects');
+  it('should preserve object structure');
+});
+```
+
+---
+
+### US1-T03: Create Correlation ID Middleware [TDD] [P]
+**File**: src/utils/correlation.js  
+**Effort**: 1h  
+**Description**: Async local storage for request correlation IDs  
+**Depends**: None  
+**Acceptance**:
+- Generate UUID v4 for each request
+- Store in async local storage
+- Include in all log entries
+- Return in response headers (X-Correlation-ID)
+
+**Test First**:
+```javascript
+// tests/unit/utils/correlation.test.js
+describe('Correlation', () => {
+  it('should generate unique ID per request');
+  it('should store ID in async context');
+  it('should include ID in response headers');
+});
+```
+
+---
+
+### US1-T04: Create Request Logging Middleware [TDD]
+**File**: src/middleware/logging.js  
+**Effort**: 1h  
+**Depends**: US1-T01, US1-T03  
+**Acceptance**:
+- Log all incoming requests (method, path, query, headers)
+- Log all responses (status, duration, size)
+- Include correlation ID
+- Exclude sensitive headers (Authorization, Cookie)
+
+**Test First**:
+```javascript
+// tests/integration/middleware/logging.test.js
+describe('Logging Middleware', () => {
+  it('should log request details');
+  it('should log response status');
+  it('should include correlation ID');
+  it('should redact sensitive headers');
+});
+```
+
+---
+
+### US1-T05: Replace console.log in routes/api/auth.js [P]
+**File**: src/routes/api/auth.js  
+**Effort**: 30min  
+**Depends**: US1-T01  
+**Acceptance**:
+- 45 console.log/error/warn → logger.info/error/warn
+- Context preserved in metadata object
+- Errors include stack trace in metadata
+
+---
+
+### US1-T06: Replace console.log in routes/api/community.js [P]
+**File**: src/routes/api/community.js  
+**Effort**: 15min  
+**Depends**: US1-T01  
+**Acceptance**:
+- 8 console.log/error → logger.info/error
+- Performance metrics logged at debug level
+
+---
+
+### US1-T07: Replace console.log in routes/api/analytics.js [P]
+**File**: src/routes/api/analytics.js  
+**Effort**: 20min  
+**Depends**: US1-T01  
+**Acceptance**:
+- 13 console.log/error → logger.info/error
+
+---
+
+### US1-T08: Replace console.log in services/TradeExecutionService.js [P]
+**File**: src/services/TradeExecutionService.js  
+**Effort**: 15min  
+**Depends**: US1-T01  
+**Acceptance**:
+- 8 console.error → logger.error with trade metadata
+
+---
+
+### US1-T09: Replace console.log in services/RiskManagementService.js [P]
+**File**: src/services/RiskManagementService.js  
+**Effort**: 15min  
+**Depends**: US1-T01  
+**Acceptance**:
+- All console calls → logger with risk event metadata
+
+---
+
+### US1-T10-T15: Replace console.log in remaining routes [P]
+**Files**: src/routes/api/[providers, exchanges, trader, portfolio, trades, admin, billing].js  
+**Effort**: 3h total (6 files × 30min each)  
+**Depends**: US1-T01  
+**Acceptance**:
+- 40+ remaining console.log → logger
+- Verified with grep search (0 results)
+
+---
+
+### US1-T16: Update Error Handler Middleware
+**File**: src/middleware/errorHandler.js  
+**Effort**: 30min  
+**Depends**: US1-T01, US1-T02  
+**Acceptance**:
+- All errors logged with logger.error
+- Stack traces sanitized in responses
+- Correlation ID included in error logs
+
+---
+
+### US1-T17: Configure Log Rotation
+**File**: src/utils/logger.js  
+**Effort**: 30min  
+**Depends**: US1-T01  
+**Acceptance**:
+- Daily log rotation
+- Keep 30 days of logs
+- Max file size: 100MB
+- Compressed old logs
+
+---
+
+### US1-T18: Add Logger to Express App
+**File**: src/index.js  
+**Effort**: 15min  
+**Depends**: US1-T01, US1-T03, US1-T04  
+**Acceptance**:
+- Correlation middleware registered first
+- Logging middleware registered second
+- All routes use logger
+
+---
+
+### US1-T19: Verify Zero Console.log in src/
+**Effort**: 15min  
+**Depends**: US1-T05 through US1-T15  
+**Acceptance**:
+- Run: `grep -r "console\.log\|console\.error\|console\.warn" src/`
+- Result: 0 matches
+- Document in completion report
+
+---
+
+### US1-T20: Update CI/CD to Fail on console.log
+**File**: .github/workflows/test.yml (or equivalent)  
+**Effort**: 30min  
+**Depends**: US1-T19  
+**Acceptance**:
+- Add lint rule to detect console.log
+- CI fails if console.log found in src/
+- Allow console in tests/
+
+---
+
+## US2: Database Query Optimization (15 tasks, 12 hours)
+
+### US2-T01: Create Database Indexes [TDD]
+**File**: migrations/add-performance-indexes.js  
+**Effort**: 2h  
+**Description**: Create 9 compound indexes for query optimization  
+**Acceptance**:
+- Users: subscription.status + tier + createdAt
+- Trades: tenantId + status + timestamp
+- SignalProviders: communityId + isActive + stats.winRate
+- All indexes created with `{ background: true }`
+- Index creation monitored (no replica lag)
+
+**Test First**:
+```javascript
+// tests/integration/database/indexes.test.js
+describe('Database Indexes', () => {
+  it('should have Users subscription index');
+  it('should have Trades tenantId index');
+  it('should have SignalProviders community index');
+  it('should improve query performance >10x');
+});
+```
+
+---
+
+### US2-T02: Optimize community.js Top Providers Query [TDD]
+**File**: src/routes/api/community.js (lines 74-96)  
+**Effort**: 2h  
+**Depends**: US2-T01  
+**Acceptance**:
+- Replace N+1 pattern with single aggregation pipeline
+- Use $lookup to join UserSignalSubscription counts
+- Use $lookup to join Signal counts
+- Query time: <50ms p95 (from ~300ms)
+
+**Test First**:
+```javascript
+// tests/integration/routes/community-performance.test.js
+describe('Community Top Providers', () => {
+  it('should complete in <50ms with 100 providers');
+  it('should return same data as N+1 query');
+  it('should execute only 1 database query');
+});
+```
+
+**Before** (N+1 pattern):
+```javascript
+const topProvidersWithFollowers = await Promise.all(
+  topProviders.map(async provider => {
+    const followers = await UserSignalSubscription.countDocuments({...}); // Query 1
+    const signalsToday = await Signal.countDocuments({...});              // Query 2
+    return { ...provider.toObject(), followers, signalsToday };
+  })
+);
+// 3 providers × 2 queries = 6 additional round trips
+```
+
+**After** (aggregation pipeline):
+```javascript
+const topProvidersWithFollowers = await SignalProvider.aggregate([
+  { $match: { communityId: ObjectId(communityId), isActive: true } },
+  { $sort: { 'stats.winRate': -1 } },
+  { $limit: 10 },
+  {
+    $lookup: {
+      from: 'usersignalsubscriptions',
+      localField: '_id',
+      foreignField: 'signalProviderId',
+      as: 'subscriptions'
+    }
+  },
+  {
+    $lookup: {
+      from: 'signals',
+      let: { providerId: '$_id' },
+      pipeline: [
+        {
+          $match: {
+            $expr: {
+              $and: [
+                { $eq: ['$signalProviderId', '$$providerId'] },
+                { $gte: ['$timestamp', dayStart] }
+              ]
+            }
+          }
+        },
+        { $count: 'count' }
+      ],
+      as: 'todaySignals'
+    }
+  },
+  {
+    $project: {
+      name: 1,
+      stats: 1,
+      followers: { $size: '$subscriptions' },
+      signalsToday: { $arrayElemAt: ['$todaySignals.count', 0] }
+    }
+  }
+]);
+// Single query: 1 round trip
+```
+
+---
+
+### US2-T03: Optimize community.js Overview Query [P]
+**File**: src/routes/api/community.js (lines 50-70)  
+**Effort**: 2h  
+**Depends**: US2-T01  
+**Acceptance**:
+- Combine 8 sequential queries into 1 aggregation
+- Query time: <100ms p95 (from ~500ms)
+
+---
+
+### US2-T04: Optimize trader.js Analytics Query [P]
+**File**: src/routes/api/trader.js  
+**Effort**: 1h  
+**Depends**: US2-T01  
+**Acceptance**:
+- Sequential Trade queries → parallel Promise.all
+- Query time: <80ms p95
+
+---
+
+### US2-T05: Enable MongoDB Slow Query Profiling
+**File**: src/database/connection.js  
+**Effort**: 1h  
+**Acceptance**:
+- Enable profiling level 1 (slow queries only)
+- Threshold: 100ms
+- Log slow queries to Winston
+- Alert if >10 slow queries/hour
+
+---
+
+### US2-T06: Create Query Performance Tests
+**File**: tests/integration/performance/query-benchmarks.test.js  
+**Effort**: 2h  
+**Depends**: US2-T02, US2-T03, US2-T04  
+**Acceptance**:
+- Benchmark all optimized queries
+- Assert <50ms p95 for single-entity queries
+- Assert <200ms p95 for aggregations
+- Compare before/after performance
+
+---
+
+### US2-T07-T10: Document Query Patterns [P]
+**File**: docs/QUERY_OPTIMIZATION_GUIDE.md  
+**Effort**: 2h  
+**Acceptance**:
+- Document aggregation pipeline patterns
+- Explain index usage
+- Provide before/after examples
+- Include performance benchmarks
+
+---
+
+## US3: Test Coverage Excellence (30 tasks, 40 hours)
+
+### US3-T01: Fix MFA Encryption in Existing Tests [TDD]
+**File**: tests/integration/routes/auth.test.js  
+**Effort**: 3h  
+**Depends**: None  
+**Acceptance**:
+- Replace all plaintext MFA secrets with MFAService.encryptSecret()
+- 48 existing tests pass
+- No test uses plaintext mfaSecret
+
+**Before**:
+```javascript
+const user = await User.create({
+  email: 'test@example.com',
+  mfaSecret: 'plaintext-secret'  // WRONG
+});
+```
+
+**After**:
+```javascript
+const MFAService = require('../../../src/services/MFAService');
+const user = await User.create({
+  email: 'test@example.com',
+  mfaSecret: await MFAService.encryptSecret('plaintext-secret')  // CORRECT
+});
+```
+
+---
+
+### US3-T02: Add OAuth Callback Error Tests [TDD] [P]
+**File**: tests/integration/routes/auth-oauth-errors.test.js  
+**Effort**: 2h  
+**Depends**: US3-T01  
+**Acceptance**:
+- Test missing code parameter (400)
+- Test invalid state parameter (400)
+- Test expired state (400)
+- Test broker API down (503)
+- Test duplicate user creation (409)
+- 20 new tests, all passing
+
+---
+
+### US3-T03: Add Session Expiry Tests [TDD] [P]
+**File**: tests/integration/routes/auth-session.test.js  
+**Effort**: 1h  
+**Depends**: US3-T01  
+**Acceptance**:
+- Test expired JWT (401)
+- Test revoked session (401)
+- Test session refresh (200)
+- Test concurrent session limits (409)
+- 10 new tests, all passing
+
+---
+
+### US3-T04: Add CSRF Protection Tests [TDD] [P]
+**File**: tests/integration/routes/auth-csrf.test.js  
+**Effort**: 1h  
+**Depends**: US3-T01  
+**Acceptance**:
+- Test missing CSRF token (403)
+- Test invalid CSRF token (403)
+- Test CSRF token rotation (200)
+- 5 new tests, all passing
+
+---
+
+### US3-T05: Run Auth Routes Coverage
+**Effort**: 15min  
+**Depends**: US3-T01, US3-T02, US3-T03, US3-T04  
+**Acceptance**:
+- `npm run test:coverage -- routes/api/auth.js`
+- Line coverage: 100%
+- Branch coverage: 100%
+- Function coverage: 100%
+
+---
+
+### US3-T06: Create Auth Middleware Tests [TDD]
+**File**: tests/integration/middleware/auth.test.js  
+**Effort**: 3h  
+**Description**: Test all authentication middleware edge cases  
+**Acceptance**:
+- Test JWT verification failures (10 tests)
+- Test session validation (10 tests)
+- Test RBAC edge cases (10 tests)
+- Test WebSocket auth (5 tests)
+- 35 new tests, all passing
+
+---
+
+### US3-T07: Run Auth Middleware Coverage
+**Effort**: 15min  
+**Depends**: US3-T06  
+**Acceptance**:
+- `npm run test:coverage -- middleware/auth.js`
+- Line coverage: 100%
+
+---
+
+### US3-T08: Create Billing Provider Tests [TDD]
+**File**: tests/integration/services/PolarBillingProvider.test.js  
+**Effort**: 4h  
+**Description**: Test webhook validation, payment state transitions, subscription lifecycle  
+**Acceptance**:
+- Test webhook signature validation (15 tests)
+- Test payment state transitions (20 tests)
+- Test subscription lifecycle (15 tests)
+- 50 new tests, all passing
+
+---
+
+### US3-T09: Run Billing Coverage
+**Effort**: 15min  
+**Depends**: US3-T08  
+**Acceptance**:
+- `npm run test:coverage -- services/PolarBillingProvider.js`
+- Line coverage: 100%
+
+---
+
+### US3-T10: Create Risk Management Tests [TDD]
+**File**: tests/integration/services/RiskManagementService.test.js  
+**Effort**: 2h  
+**Description**: Test risk aggregation edge cases, circuit breaker notifications  
+**Acceptance**:
+- Test risk aggregation (10 tests)
+- Test circuit breaker (5 tests)
+- 15 new tests, all passing
+
+---
+
+### US3-T11: Run Risk Coverage
+**Effort**: 15min  
+**Depends**: US3-T10  
+**Acceptance**:
+- `npm run test:coverage -- services/RiskManagementService.js`
+- Line coverage: 100%
+
+---
+
+### US3-T12: Update .c8rc.json Thresholds
+**File**: .c8rc.json  
+**Effort**: 15min  
+**Depends**: US3-T05, US3-T07, US3-T09, US3-T11  
+**Acceptance**:
+- Set lines: 100, functions: 100, branches: 100 for auth/billing/risk modules
+- CI/CD fails if coverage drops below thresholds
+
+---
+
+### US3-T13-T30: Additional Test Coverage Tasks [P]
+**Effort**: 20h  
+**Description**: Cover remaining modules (exchanges, providers, portfolio, analytics)  
+**Acceptance**:
+- Each module: 100% coverage
+- All edge cases tested
+
+---
+
+## US4: Production-Grade Error Handling (10 tasks, 8 hours)
+
+### US4-T01: Update Error Handler Middleware [TDD]
+**File**: src/middleware/errorHandler.js  
+**Effort**: 2h  
+**Acceptance**:
+- Sanitize all stack traces (never return to client)
+- Return generic error messages to users
+- Log full error details with correlation ID
+- Include error codes enum
+
+**Test First**:
+```javascript
+// tests/integration/middleware/errorHandler.test.js
+describe('Error Handler', () => {
+  it('should never return stack traces');
+  it('should log full error details');
+  it('should include correlation ID');
+  it('should use error codes');
+});
+```
+
+---
+
+### US4-T02: Create ErrorCodes Enum
+**File**: src/constants/ErrorCodes.js  
+**Effort**: 1h  
+**Acceptance**:
+- Define 50+ error codes (AUTH_INVALID_TOKEN, BILLING_PAYMENT_FAILED, etc.)
+- Map to HTTP status codes
+- Include user-friendly messages
+
+---
+
+### US4-T03: Add Retry Logic for Transient Failures
+**File**: src/utils/retry.js  
+**Effort**: 2h  
+**Acceptance**:
+- Exponential backoff (1s, 2s, 4s, 8s)
+- Max retries: 3
+- Only retry on network errors (ECONNRESET, ETIMEDOUT)
+- Never retry on 4xx errors
+
+---
+
+### US4-T04-T08: Update All Route Error Handlers [P]
+**Files**: src/routes/api/*.js  
+**Effort**: 2h  
+**Depends**: US4-T01, US4-T02  
+**Acceptance**:
+- All catch blocks use ErrorCodes
+- All errors logged with context
+- No stack traces in responses
+
+---
+
+### US4-T09: Add Critical Error Discord Notifications
+**File**: src/utils/discord-alerts.js  
+**Effort**: 30min  
+**Acceptance**:
+- Send Discord webhook on 5xx errors
+- Include correlation ID, endpoint, error code
+- Rate limit: 1 alert per endpoint per 5 minutes
+
+---
+
+### US4-T10: Test Error Sanitization
+**File**: tests/integration/errors/sanitization.test.js  
+**Effort**: 30min  
+**Depends**: US4-T01  
+**Acceptance**:
+- Test 500 error response (no stack trace)
+- Test 400 error response (validation details)
+- Test correlation ID in logs
+
+---
+
+## US5: Development Mock Elimination (6 tasks, 4 hours)
+
+### US5-T01: Guard PolarBillingProvider Mocks
+**File**: src/services/PolarBillingProvider.js  
+**Effort**: 1h  
+**Acceptance**:
+- _getMockSubscription() only callable if BILLING_PROVIDER=mock
+- Throw error in production if mock method called
+- Add env validation
+
+---
+
+### US5-T02: Guard Broker Sandbox Mocks
+**Files**: src/adapters/*.js  
+**Effort**: 1h  
+**Acceptance**:
+- Sandbox mode only if NODE_ENV=development
+- Production throws error if sandbox enabled
+
+---
+
+### US5-T03: Add Environment Validation
+**File**: src/utils/env-validator.js  
+**Effort**: 1h  
+**Acceptance**:
+- Validate required env vars on startup
+- Fail fast if production misconfigured
+- Check: NODE_ENV, BILLING_PROVIDER, DATABASE_URL
+
+---
+
+### US5-T04: Create Health Check for Mock Detection
+**File**: src/routes/health.js  
+**Effort**: 30min  
+**Depends**: US5-T01, US5-T02  
+**Acceptance**:
+- /health endpoint checks for active mocks
+- Returns 500 if mocks detected in production
+- Include mock detection in CI/CD
+
+---
+
+### US5-T05: Test Mock Guards
+**File**: tests/unit/utils/env-validator.test.js  
+**Effort**: 30min  
+**Depends**: US5-T03  
+**Acceptance**:
+- Test production fails with BILLING_PROVIDER=mock
+- Test development allows mocks
+
+---
+
+### US5-T06: Update Deployment Scripts
+**File**: deploy-railway.sh  
+**Effort**: 30min  
+**Depends**: US5-T04  
+**Acceptance**:
+- Add env validation to deployment
+- Fail deployment if health check detects mocks
+
+---
+
+## US6: Performance Monitoring & Alerting (12 tasks, 10 hours)
+
+### US6-T01: Create Performance Tracking Middleware [TDD]
+**File**: src/middleware/performance-tracker.js  
+**Effort**: 2h  
+**Acceptance**:
+- Track response time for all requests
+- Store p50/p95/p99 in memory (1-hour window)
+- Expose /api/metrics/performance endpoint
+- Alert if p95 >200ms for 5 minutes
+
+**Test First**:
+```javascript
+// tests/integration/middleware/performance-tracker.test.js
+describe('Performance Tracker', () => {
+  it('should track response times');
+  it('should calculate p95 correctly');
+  it('should expose metrics endpoint');
+  it('should alert on slow responses');
+});
+```
+
+---
+
+### US6-T02: Instrument All API Routes
+**Files**: src/routes/api/*.js  
+**Effort**: 2h  
+**Depends**: US6-T01  
+**Acceptance**:
+- Performance middleware registered on all routes
+- Metrics tagged by endpoint, method, status code
+
+---
+
+### US6-T03: Integrate QueryPatternLogger
+**File**: src/utils/analytics-query-logger.js  
+**Effort**: 1h  
+**Acceptance**:
+- Log all database queries >100ms
+- Include query pattern, execution time, collection
+- Alert if >10 slow queries/hour
+
+---
+
+### US6-T04: Configure Slow Query Alerts
+**File**: src/utils/alerts.js  
+**Effort**: 1h  
+**Depends**: US6-T03  
+**Acceptance**:
+- Alert if query >2000ms avg
+- Include query pattern and recommendation
+- Send to Slack #alerts channel
+
+---
+
+### US6-T05: Create Performance Dashboard Endpoint
+**File**: src/routes/api/metrics.js  
+**Effort**: 2h  
+**Depends**: US6-T01, US6-T03  
+**Acceptance**:
+- GET /api/metrics/performance returns p50/p95/p99
+- GET /api/metrics/queries returns slow query stats
+- Protected by admin auth
+
+---
+
+### US6-T06-T10: Set Up Grafana/Railway Monitoring [P]
+**Effort**: 2h  
+**Depends**: US6-T05  
+**Acceptance**:
+- Expose metrics in Prometheus format
+- Create Grafana dashboard
+- Configure Railway monitoring
+
+---
+
+### US6-T11: Test Alert Triggering
+**File**: tests/integration/monitoring/alerts.test.js  
+**Effort**: 1h  
+**Depends**: US6-T01, US6-T04  
+**Acceptance**:
+- Simulate slow response (trigger alert)
+- Simulate slow query (trigger alert)
+- Verify alert delivery
+
+---
+
+### US6-T12: Document Monitoring Setup
+**File**: docs/MONITORING_GUIDE.md  
+**Effort**: 1h  
+**Acceptance**:
+- Explain metrics endpoints
+- Show alert configuration
+- Provide troubleshooting guide
+
+---
+
+## US7: Security Validation Completeness (9 tasks, 8 hours)
+
+### US7-T01: Audit All Routes for Validation
+**Effort**: 2h  
+**Description**: Identify routes missing Joi/Zod validation  
+**Acceptance**:
+- List all routes in routes/api/*.js
+- Check each for validation middleware
+- Document gaps (estimate: 15 routes missing validation)
+
+---
+
+### US7-T02: Create Validation Schemas [P]
+**Files**: src/validators/*.js  
+**Effort**: 3h  
+**Depends**: US7-T01  
+**Acceptance**:
+- Joi schemas for all identified routes
+- Validate: body, query, params
+- Include custom validators (broker account ID format)
+
+---
+
+### US7-T03: Add Validation Middleware to Routes
+**Files**: src/routes/api/*.js  
+**Effort**: 2h  
+**Depends**: US7-T02  
+**Acceptance**:
+- Apply validation middleware to all routes
+- Return 400 with detailed validation errors
+- Log validation failures
+
+---
+
+### US7-T04: Test Validation Coverage [TDD]
+**File**: tests/integration/validation/coverage.test.js  
+**Effort**: 1h  
+**Depends**: US7-T03  
+**Acceptance**:
+- Test each route with invalid input (400)
+- Test each route with missing required fields (400)
+- Test each route with valid input (200)
+
+---
+
+### US7-T05: Add Prototype Pollution Prevention
+**File**: src/middleware/validation.js  
+**Effort**: 30min  
+**Acceptance**:
+- Reject requests with __proto__, constructor, prototype keys
+- Return 400 with security error
+
+---
+
+### US7-T06: Test Prototype Pollution Prevention
+**File**: tests/integration/security/prototype-pollution.test.js  
+**Effort**: 30min  
+**Depends**: US7-T05  
+**Acceptance**:
+- Test __proto__ in body (400)
+- Test constructor in query (400)
+
+---
+
+### US7-T07: Run OWASP ZAP Scan
+**Effort**: 1h  
+**Depends**: US7-T03  
+**Acceptance**:
+- Run automated scan
+- Fix all high/critical vulnerabilities
+- Document results
+
+---
+
+### US7-T08: Update CI/CD Security Checks
+**File**: .github/workflows/security.yml  
+**Effort**: 30min  
+**Depends**: US7-T07  
+**Acceptance**:
+- Run OWASP ZAP in CI
+- Fail if high/critical vulnerabilities
+- Run npm audit
+
+---
+
+### US7-T09: Document Security Validation
+**File**: docs/SECURITY_VALIDATION.md  
+**Effort**: 30min  
+**Acceptance**:
+- List all validated routes
+- Explain validation rules
+- Provide examples
+
+---
+
+## Dependency Graph
+
+```
+US1 (Logging):
+  US1-T01 → US1-T04, US1-T05..T15, US1-T16
+  US1-T02 → US1-T16
+  US1-T03 → US1-T04
+  US1-T04 → US1-T18
+  US1-T05..T15 → US1-T19
+  US1-T19 → US1-T20
+
+US2 (Performance):
+  US2-T01 → US2-T02, US2-T03, US2-T04
+  US2-T02, US2-T03, US2-T04 → US2-T06
+
+US3 (Tests):
+  US3-T01 → US3-T02, US3-T03, US3-T04
+  US3-T01..T04 → US3-T05
+  US3-T06 → US3-T07
+  US3-T08 → US3-T09
+  US3-T10 → US3-T11
+  US3-T05, T07, T09, T11 → US3-T12
+
+US4 (Errors):
+  US4-T01, US4-T02 → US4-T04..T08
+  US4-T01 → US4-T10
+
+US5 (Mocks):
+  US5-T01, US5-T02 → US5-T04
+  US5-T03 → US5-T05
+  US5-T04 → US5-T06
+
+US6 (Monitoring):
+  US6-T01 → US6-T02, US6-T05, US6-T11
+  US6-T03 → US6-T04, US6-T05
+  US6-T05 → US6-T06..T10
+  US6-T01, US6-T04 → US6-T11
+
+US7 (Validation):
+  US7-T01 → US7-T02
+  US7-T02 → US7-T03
+  US7-T03 → US7-T04, US7-T07
+  US7-T05 → US7-T06
+  US7-T07 → US7-T08
+```
+
+---
+
+## Execution Order
+
+### Week 1 (US1 + US4)
+**Day 1**: US1-T01, T02, T03 (logger, sanitizer, correlation)  
+**Day 2**: US1-T04, T05, T06, T07 (logging middleware, replace console.log)  
+**Day 3**: US1-T08..T15 (finish console.log replacement)  
+**Day 4**: US1-T16..T20 (error handler, rotation, CI/CD)  
+**Day 5**: US4-T01..T05 (error handling, ErrorCodes, retry logic)
+
+### Week 2 (US2 + US6)
+**Day 1**: US2-T01, T02 (indexes, community query optimization)  
+**Day 2**: US2-T03, T04, T05 (more query optimization)  
+**Day 3**: US2-T06, T07..T10 (performance tests, docs)  
+**Day 4**: US6-T01, T02, T03 (performance tracking middleware)  
+**Day 5**: US6-T04..T12 (alerts, dashboard, monitoring)
+
+### Week 3 (US3)
+**Day 1**: US3-T01 (fix MFA encryption - critical blocker)  
+**Day 2**: US3-T02, T03, T04, T05 (OAuth, session, CSRF tests)  
+**Day 3**: US3-T06, T07 (auth middleware tests)  
+**Day 4**: US3-T08, T09 (billing tests)  
+**Day 5**: US3-T10, T11, T12 (risk tests, coverage thresholds)
+
+### Week 4 (US5 + US7)
+**Day 1**: US4-T06..T10 (finish error handling)  
+**Day 2**: US5-T01..T06 (mock elimination)  
+**Day 3**: US7-T01, T02, T03 (validation audit + schemas)  
+**Day 4**: US7-T04..T09 (validation tests, OWASP, CI/CD)  
+**Day 5**: US3-T13..T30 (remaining test coverage)
+
+---
+
+## Task Summary
+
+| User Story       | Tasks  | Effort   | Priority |
+| ---------------- | ------ | -------- | -------- |
+| US1: Logging     | 20     | 16h      | P0       |
+| US2: Performance | 15     | 12h      | P0       |
+| US3: Tests       | 30     | 40h      | P0       |
+| US4: Errors      | 10     | 8h       | P1       |
+| US5: Mocks       | 6      | 4h       | P1       |
+| US6: Monitoring  | 12     | 10h      | P1       |
+| US7: Validation  | 9      | 8h       | P0       |
+| **TOTAL**        | **92** | **120h** | -        |
+
+---
+
+**Next Step**: Begin implementation with US1-T01 (Create Logger Singleton)

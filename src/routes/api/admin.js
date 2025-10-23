@@ -10,6 +10,7 @@ const { extractTenantMiddleware, ownerOnly } = require('../../middleware/tenantA
 const { auditLog } = require('../../middleware/auditLogger');
 const { apiLimiter } = require('../../middleware/rateLimiter');
 const BaseRepository = require('../../repositories/BaseRepository');
+const logger = require('../../utils/logger');
 
 // Apply rate limiting and tenant auth to all routes
 router.use(apiLimiter);
@@ -249,7 +250,7 @@ router.get('/stats', ownerOnly, auditLog('admin.dashboard_view', 'Community'), a
       timestamp: now.toISOString()
     });
   } catch (error) {
-    console.error('Admin stats API error:', error);
+    logger.error('Admin stats API error:', { error: error.message, stack: error.stack });
     res.status(500).json({
       success: false,
       error: 'Failed to fetch admin statistics',
@@ -315,7 +316,7 @@ router.get('/users', ownerOnly, auditLog('admin.user_list', 'User'), async (req,
       }
     });
   } catch (error) {
-    console.error('Admin users list API error:', error);
+    logger.error('Admin users list API error:', { error: error.message, stack: error.stack });
     res.status(500).json({
       success: false,
       error: 'Failed to fetch users',
@@ -376,7 +377,7 @@ router.patch(
         message: `User ${user.discordUsername} role updated to ${communityRole}`
       });
     } catch (error) {
-      console.error('Admin toggle API error:', error);
+      logger.error('Admin toggle API error:', { error: error.message, stack: error.stack });
       res.status(500).json({
         success: false,
         error: 'Failed to update admin status',

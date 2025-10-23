@@ -13,6 +13,8 @@
  */
 
 const { Polar } = require('@polar-sh/sdk');
+const logger = require('../utils/logger');
+const logger = require('../utils/logger');
 
 // Initialize Polar client
 const polarAccessToken = process.env.POLAR_ACCESS_TOKEN;
@@ -26,7 +28,7 @@ if (polarAccessToken) {
   });
   console.log('[Polar] Initialized with access token:', polarAccessToken.substring(0, 12) + '...');
 } else {
-  console.warn('[Polar] POLAR_ACCESS_TOKEN not configured - using mock data');
+  logger.warn('[Polar] POLAR_ACCESS_TOKEN not configured - using mock data');
 }
 
 /**
@@ -36,7 +38,7 @@ if (polarAccessToken) {
  */
 const getCommunitySubscription = async (customerId) => {
   if (!polar || !customerId) {
-    console.log('[Polar] Returning mock data (Polar not configured or no customer ID)');
+    logger.info('[Polar] Returning mock data (Polar not configured or no customer ID)');
     return {
       id: '550e8400-mock-4000-b000-subscription1',
       customerId,
@@ -123,7 +125,7 @@ const getUserSubscription = async (customerId) => {
  */
 const getCustomer = async (customerId) => {
   if (!polar || !customerId) {
-    console.log('[Polar] Returning mock customer data');
+    logger.info('[Polar] Returning mock customer data');
     return {
       id: customerId,
       email: 'mock@example.com',
@@ -227,7 +229,7 @@ const createCheckoutSession = async (productId, successUrl, customerEmail, metad
  */
 const verifyWebhookSignature = (payload, signature, secret) => {
   if (!secret) {
-    console.warn('[Polar] POLAR_WEBHOOK_SECRET not configured - skipping signature verification');
+    logger.warn('[Polar] POLAR_WEBHOOK_SECRET not configured - skipping signature verification');
     return true; // Allow in development
   }
 
@@ -255,7 +257,7 @@ const verifyWebhookSignature = (payload, signature, secret) => {
  */
 const getProduct = async (productId) => {
   if (!polar) {
-    console.log('[Polar] Returning mock product');
+    logger.info('[Polar] Returning mock product');
     return {
       id: productId,
       name: 'Professional Plan - Monthly',
@@ -285,7 +287,7 @@ const getProduct = async (productId) => {
  */
 const listProducts = async () => {
   if (!polar || !polarOrganizationId) {
-    console.log('[Polar] Returning mock products');
+    logger.info('[Polar] Returning mock products');
     return [
       {
         id: '550e8400-mock-4000-b000-product1',

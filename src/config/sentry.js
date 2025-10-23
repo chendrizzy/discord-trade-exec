@@ -33,6 +33,8 @@
 
 const Sentry = require('@sentry/node');
 const { ProfilingIntegration } = require('@sentry/profiling-node');
+const logger = require('../utils/logger');
+const logger = require('../utils/logger');
 
 // Configuration
 const SENTRY_DSN = process.env.SENTRY_DSN;
@@ -57,7 +59,7 @@ function initSentry(app) {
   }
 
   if (!SENTRY_DSN) {
-    console.warn('[Sentry] SENTRY_DSN environment variable not set. Error tracking disabled.');
+    logger.warn('[Sentry] SENTRY_DSN environment variable not set. Error tracking disabled.');
     return;
   }
 
@@ -194,7 +196,7 @@ function initSentry(app) {
     console.log(`[Sentry] Sample Rate: ${SAMPLE_RATE * 100}%`);
     console.log(`[Sentry] Traces Sample Rate: ${TRACES_SAMPLE_RATE * 100}%`);
   } catch (error) {
-    console.error('[Sentry] Initialization failed:', error);
+    logger.error('[Sentry] Initialization failed:', { error: error.message, stack: error.stack });
   }
 }
 
@@ -258,7 +260,7 @@ function sentryErrorHandler() {
  */
 function captureException(error, context = {}) {
   if (!ENABLED) {
-    console.error('[Sentry] (disabled) Exception:', error);
+    logger.error('[Sentry] (disabled) Exception:', { error: error.message, stack: error.stack });
     return null;
   }
 
@@ -402,7 +404,7 @@ async function close(timeout = 2000) {
   try {
     return await Sentry.close(timeout);
   } catch (error) {
-    console.error('[Sentry] Close error:', error);
+    logger.error('[Sentry] Close error:', { error: error.message, stack: error.stack });
     return false;
   }
 }

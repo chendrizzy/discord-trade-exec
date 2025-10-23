@@ -5,6 +5,7 @@ const axios = require('axios');
 const BrokerAdapter = require('../BrokerAdapter');
 const oauth2Service = require('../../services/OAuth2Service');
 const User = require('../../models/User');
+const logger = require('../../utils/logger');
 
 /**
  * Charles Schwab Stock Broker Adapter
@@ -116,23 +117,23 @@ class SchwabAdapter extends BrokerAdapter {
         if (this.tokenExpiresAt) {
           if (Date.now() < this.tokenExpiresAt) {
             this.isAuthenticated = true;
-            console.log('[SchwabAdapter] Using existing access token');
+            logger.info('[SchwabAdapter] Using existing access token');
             return true;
           }
           // Token expired, clear it and proceed to refresh
-          console.log('[SchwabAdapter] Access token expired, clearing...');
+          logger.info('[SchwabAdapter] Access token expired, clearing...');
           this.accessToken = null;
         } else {
           // No expiry set, assume token is valid (test mode)
           this.isAuthenticated = true;
-          console.log('[SchwabAdapter] Using existing access token (no expiry check)');
+          logger.info('[SchwabAdapter] Using existing access token (no expiry check)');
           return true;
         }
       }
 
       // Test mode token refresh: Use credentials directly if no userId
       if (!this.userId && this.refreshToken && this.clientId && this.clientSecret) {
-        console.log('[SchwabAdapter] Test mode: refreshing access token with refreshToken...');
+        logger.info('[SchwabAdapter] Test mode: refreshing access token with refreshToken...');
 
         if (!this.refreshToken) {
           throw new Error('No valid tokens available');
@@ -162,7 +163,7 @@ class SchwabAdapter extends BrokerAdapter {
         this.refreshTokenExpiresAt = Date.now() + (response.data.refresh_token_expires_in * 1000);
         this.isAuthenticated = true;
 
-        console.log('[SchwabAdapter] Test mode token refresh successful');
+        logger.info('[SchwabAdapter] Test mode token refresh successful');
         return true;
       }
 
@@ -187,7 +188,7 @@ class SchwabAdapter extends BrokerAdapter {
       // Check if access token is expired
       const now = new Date();
       if (now >= encryptedTokens.expiresAt) {
-        console.log('[SchwabAdapter] Access token expired, refreshing...');
+        logger.info('[SchwabAdapter] Access token expired, refreshing...');
 
         // OAuth2Service handles token refresh automatically
         const refreshedTokens = await oauth2Service.refreshAccessToken('schwab', this.userId);
@@ -200,7 +201,7 @@ class SchwabAdapter extends BrokerAdapter {
       }
 
       this.isAuthenticated = true;
-      console.log('[SchwabAdapter] OAuth2 authentication successful');
+      logger.info('[SchwabAdapter] OAuth2 authentication successful');
 
       return true;
     } catch (error) {

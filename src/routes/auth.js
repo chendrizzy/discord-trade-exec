@@ -5,6 +5,8 @@ const router = express.Router();
 const { passport, ensureAuthenticated } = require('../middleware/auth');
 const { authLimiter } = require('../middleware/rateLimiter');
 const { sendUnauthorized, sendError } = require('../utils/api-response');
+const logger = require('../utils/logger');
+const logger = require('../utils/logger');
 
 // Initiate Discord OAuth2 login
 router.get('/discord', authLimiter, passport.authenticate('discord'));
@@ -14,7 +16,7 @@ router.get('/discord/callback', authLimiter, (req, res, next) => {
   passport.authenticate('discord', (err, user, info) => {
     // Log detailed error information for debugging
     if (err) {
-      console.error('❌ Discord OAuth Error Details:');
+      logger.error('❌ Discord OAuth Error Details:');
       console.error('Error type:', err.constructor.name);
       console.error('Error message:', err.message);
       console.error('Error stack:', err.stack);

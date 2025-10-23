@@ -38,7 +38,7 @@ describe('BrokerConfigWizard - Moomoo E2E Flow', () => {
       console.log('[TEST] Fetch called with URL:', url);
 
       if (url === '/api/brokers') {
-        console.log('[TEST] Returning brokers mock data');
+        logger.info('[TEST] Returning brokers mock data');
         return Promise.resolve({
           ok: true,
           json: () => Promise.resolve({
@@ -121,7 +121,7 @@ describe('BrokerConfigWizard - Moomoo E2E Flow', () => {
       }
 
       if (url === '/api/brokers/moomoo') {
-        console.log('[TEST] Returning Moomoo broker info');
+        logger.info('[TEST] Returning Moomoo broker info');
         return Promise.resolve({
           ok: true,
           json: () => Promise.resolve({
@@ -158,7 +158,7 @@ describe('BrokerConfigWizard - Moomoo E2E Flow', () => {
       }
 
       if (url === '/api/brokers/test') {
-        console.log('[TEST] Returning test connection mock data');
+        logger.info('[TEST] Returning test connection mock data');
         return Promise.resolve({
           ok: true,
           json: () => Promise.resolve({
@@ -171,7 +171,7 @@ describe('BrokerConfigWizard - Moomoo E2E Flow', () => {
       }
 
       if (url === '/api/brokers/configure') {
-        console.log('[TEST] Returning save configuration mock data');
+        logger.info('[TEST] Returning save configuration mock data');
         return Promise.resolve({
           ok: true,
           json: () => Promise.resolve({

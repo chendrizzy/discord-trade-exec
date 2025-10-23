@@ -3,6 +3,8 @@ const Trade = require('../models/Trade');
 const User = require('../models/User');
 const analyticsEventService = require('./analytics/AnalyticsEventService');
 const { BrokerFactory } = require('../brokers');
+const logger = require('../utils/logger');
+const logger = require('../utils/logger');
 
 /**
  * TradeExecutionService
@@ -122,7 +124,7 @@ class TradeExecutionService {
         }
       };
     } catch (error) {
-      console.error('[TradeExecutionService] Error executing trade:', error);
+      logger.error('[TradeExecutionService] Error executing trade:', { error: error.message, stack: error.stack });
       return { success: false, error: error.message };
     }
   }
@@ -203,7 +205,7 @@ class TradeExecutionService {
         }
       };
     } catch (error) {
-      console.error('[TradeExecutionService] Error closing trade:', error);
+      logger.error('[TradeExecutionService] Error closing trade:', { error: error.message, stack: error.stack });
       return { success: false, error: error.message };
     }
   }
@@ -235,7 +237,7 @@ class TradeExecutionService {
         }))
       };
     } catch (error) {
-      console.error('[TradeExecutionService] Error getting active trades:', error);
+      logger.error('[TradeExecutionService] Error getting active trades:', { error: error.message, stack: error.stack });
       return { success: false, error: error.message };
     }
   }
@@ -281,7 +283,7 @@ class TradeExecutionService {
         summary
       };
     } catch (error) {
-      console.error('[TradeExecutionService] Error getting trade history:', error);
+      logger.error('[TradeExecutionService] Error getting trade history:', { error: error.message, stack: error.stack });
       return { success: false, error: error.message };
     }
   }
@@ -327,7 +329,7 @@ class TradeExecutionService {
         }
       };
     } catch (error) {
-      console.error('[TradeExecutionService] Error cancelling trade:', error);
+      logger.error('[TradeExecutionService] Error cancelling trade:', { error: error.message, stack: error.stack });
       return { success: false, error: error.message };
     }
   }

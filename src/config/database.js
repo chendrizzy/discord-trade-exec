@@ -14,6 +14,8 @@
 
 const mongoose = require('mongoose');
 const { getConfig } = require('./env');
+const logger = require('../utils/logger');
+const logger = require('../utils/logger');
 
 let isConnected = false;
 let connectionAttempts = 0;
@@ -48,7 +50,7 @@ async function connect() {
   const config = getConfig();
 
   if (isConnected) {
-    console.log('📊 MongoDB already connected');
+    logger.info('📊 MongoDB already connected');
     return mongoose.connection;
   }
 
@@ -62,7 +64,7 @@ async function connect() {
     isConnected = true;
     connectionAttempts = 0; // Reset on successful connection
 
-    console.log('✅ MongoDB connected successfully');
+    logger.info('✅ MongoDB connected successfully');
     console.log(`   - Database: ${mongoose.connection.name}`);
     console.log(`   - Host: ${mongoose.connection.host}`);
 
@@ -80,7 +82,7 @@ async function connect() {
       await new Promise(resolve => setTimeout(resolve, delay));
       return connect(); // Recursive retry
     } else {
-      console.error('❌ Max connection retries exceeded. Exiting...');
+      logger.error('❌ Max connection retries exceeded. Exiting...');
       throw new Error('Failed to connect to MongoDB after maximum retries');
     }
   }
@@ -96,12 +98,12 @@ function setupEventListeners() {
   });
 
   mongoose.connection.on('disconnected', () => {
-    console.warn('⚠️  MongoDB disconnected');
+    logger.warn('⚠️  MongoDB disconnected');
     isConnected = false;
 
     // Attempt to reconnect
     if (!mongoose.connection.readyState) {
-      console.log('📊 Attempting to reconnect to MongoDB...');
+      logger.info('📊 Attempting to reconnect to MongoDB...');
       connect().catch(err => {
         console.error('❌ Reconnection failed:', err.message);
       });
@@ -109,7 +111,7 @@ function setupEventListeners() {
   });
 
   mongoose.connection.on('reconnected', () => {
-    console.log('✅ MongoDB reconnected');
+    logger.info('✅ MongoDB reconnected');
     isConnected = true;
   });
 
@@ -130,9 +132,9 @@ async function disconnect() {
   try {
     await mongoose.connection.close();
     isConnected = false;
-    console.log('✅ MongoDB connection closed gracefully');
+    logger.info('✅ MongoDB connection closed gracefully');
   } catch (error) {
-    console.error('❌ Error closing MongoDB connection:', error);
+    logger.error('❌ Error closing MongoDB connection:', { error: error.message, stack: error.stack });
     throw error;
   }
 }
@@ -141,7 +143,7 @@ async function disconnect() {
  * Graceful shutdown handler
  */
 async function gracefulShutdown() {
-  console.log('\n📊 Received shutdown signal, closing MongoDB connection...');
+  logger.info('\n📊 Received shutdown signal, closing MongoDB connection...');
   await disconnect();
   process.exit(0);
 }

@@ -12,6 +12,7 @@ const requireTrader = require('../../middleware/requireTrader');
 const { overviewLimiter, analyticsLimiter, tradesLimiter, dashboardLimiter } = require('../../middleware/rateLimiter');
 const redis = require('../../services/redis');
 const BillingProviderFactory = require('../../services/billing/BillingProviderFactory');
+const logger = require('../../utils/logger');
 
 // Apply trader authorization to all routes
 router.use(requireTrader);
@@ -246,7 +247,7 @@ router.get('/overview', overviewLimiter, async (req, res) => {
 
     res.json(overview);
   } catch (error) {
-    console.error('[Trader API] Error fetching overview:', error);
+    logger.error('[Trader API] Error fetching overview:', { error: error.message, stack: error.stack });
     res.status(500).json({ error: 'Failed to fetch trader overview' });
   }
 });
@@ -425,7 +426,7 @@ router.get('/signals', dashboardLimiter, async (req, res) => {
 
     res.json({ providers: filteredProviders });
   } catch (error) {
-    console.error('[Trader API] Error fetching signal providers:', error);
+    logger.error('[Trader API] Error fetching signal providers:', { error: error.message, stack: error.stack });
     res.status(500).json({ error: 'Failed to fetch signal providers' });
   }
 });
@@ -532,7 +533,7 @@ router.post('/signals/:id/follow', async (req, res) => {
       });
     }
   } catch (error) {
-    console.error('[Trader API] Error updating signal subscription:', error);
+    logger.error('[Trader API] Error updating signal subscription:', { error: error.message, stack: error.stack });
 
     // Handle duplicate key errors (shouldn't happen with findOne first, but defensive)
     if (error.code === 11000) {
@@ -635,7 +636,7 @@ router.get('/trades', tradesLimiter, async (req, res) => {
       }
     });
   } catch (error) {
-    console.error('[Trader API] Error fetching trades:', error);
+    logger.error('[Trader API] Error fetching trades:', { error: error.message, stack: error.stack });
     res.status(500).json({ error: 'Failed to fetch trades' });
   }
 });
@@ -757,7 +758,7 @@ router.get('/analytics/performance', analyticsLimiter, async (req, res) => {
 
     res.json(data);
   } catch (error) {
-    console.error('[Trader API] Error fetching analytics:', error);
+    logger.error('[Trader API] Error fetching analytics:', { error: error.message, stack: error.stack });
     res.status(500).json({ error: 'Failed to fetch analytics' });
   }
 });
@@ -800,7 +801,7 @@ router.get('/risk-profile', dashboardLimiter, async (req, res) => {
       data: response
     });
   } catch (error) {
-    console.error('[Trader API] Error fetching risk profile:', error);
+    logger.error('[Trader API] Error fetching risk profile:', { error: error.message, stack: error.stack });
     res.status(500).json({ error: 'Failed to fetch risk profile' });
   }
 });
@@ -951,7 +952,7 @@ router.put('/risk-profile', dashboardLimiter, async (req, res) => {
       }
     });
   } catch (error) {
-    console.error('[Trader API] Error updating risk profile:', error);
+    logger.error('[Trader API] Error updating risk profile:', { error: error.message, stack: error.stack });
 
     // Handle Mongoose validation errors
     if (error.name === 'ValidationError') {
@@ -1018,7 +1019,7 @@ router.get('/notifications', dashboardLimiter, async (req, res) => {
       }
     });
   } catch (error) {
-    console.error('[Trader API] Error fetching notification preferences:', error);
+    logger.error('[Trader API] Error fetching notification preferences:', { error: error.message, stack: error.stack });
     res.status(500).json({ error: 'Failed to fetch notification preferences' });
   }
 });
@@ -1100,7 +1101,7 @@ router.put('/notifications', dashboardLimiter, async (req, res) => {
       preferences: updatedUser.preferences.notifications
     });
   } catch (error) {
-    console.error('[Trader API] Error updating notification preferences:', error);
+    logger.error('[Trader API] Error updating notification preferences:', { error: error.message, stack: error.stack });
 
     // Handle Mongoose validation errors
     if (error.name === 'ValidationError') {
@@ -1149,7 +1150,7 @@ router.post('/notifications/test', dashboardLimiter, async (req, res) => {
       notification: historyEntry
     });
   } catch (error) {
-    console.error('[Trader API] Error sending test notification:', error);
+    logger.error('[Trader API] Error sending test notification:', { error: error.message, stack: error.stack });
     res.status(500).json({ error: 'Failed to send test notification' });
   }
 });
@@ -1184,7 +1185,7 @@ router.get('/subscription', dashboardLimiter, async (req, res) => {
 
     res.json(subscription);
   } catch (error) {
-    console.error('[Trader API] Error fetching subscription:', error);
+    logger.error('[Trader API] Error fetching subscription:', { error: error.message, stack: error.stack });
     res.status(500).json({ error: 'Failed to fetch subscription information' });
   }
 });

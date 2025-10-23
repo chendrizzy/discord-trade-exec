@@ -2,6 +2,8 @@
 const User = require('../models/User');
 const SignalProvider = require('../models/SignalProvider');
 const analyticsEventService = require('./analytics/AnalyticsEventService');
+const logger = require('../utils/logger');
+const logger = require('../utils/logger');
 
 /**
  * SignalSubscriptionService
@@ -88,7 +90,7 @@ class SignalSubscriptionService {
         }
       };
     } catch (error) {
-      console.error('[SignalSubscriptionService] Error subscribing to provider:', error);
+      logger.error('[SignalSubscriptionService] Error subscribing to provider:', { error: error.message, stack: error.stack });
       return { success: false, error: error.message };
     }
   }
@@ -135,7 +137,7 @@ class SignalSubscriptionService {
         message: `Unsubscribed from ${provider.name}`
       };
     } catch (error) {
-      console.error('[SignalSubscriptionService] Error unsubscribing from provider:', error);
+      logger.error('[SignalSubscriptionService] Error unsubscribing from provider:', { error: error.message, stack: error.stack });
       return { success: false, error: error.message };
     }
   }
@@ -184,7 +186,7 @@ class SignalSubscriptionService {
         }
       };
     } catch (error) {
-      console.error('[SignalSubscriptionService] Error updating subscription settings:', error);
+      logger.error('[SignalSubscriptionService] Error updating subscription settings:', { error: error.message, stack: error.stack });
       return { success: false, error: error.message };
     }
   }
@@ -233,7 +235,7 @@ class SignalSubscriptionService {
         subscriptions: subscriptionsWithDetails
       };
     } catch (error) {
-      console.error('[SignalSubscriptionService] Error getting user subscriptions:', error);
+      logger.error('[SignalSubscriptionService] Error getting user subscriptions:', { error: error.message, stack: error.stack });
       return { success: false, error: error.message };
     }
   }
@@ -296,7 +298,7 @@ class SignalSubscriptionService {
         }))
       };
     } catch (error) {
-      console.error('[SignalSubscriptionService] Error getting available providers:', error);
+      logger.error('[SignalSubscriptionService] Error getting available providers:', { error: error.message, stack: error.stack });
       return { success: false, error: error.message };
     }
   }

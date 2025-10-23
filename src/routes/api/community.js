@@ -11,6 +11,7 @@ const requireCommunityAdmin = require('../../middleware/requireCommunityAdmin');
 const { overviewLimiter, analyticsLimiter, dashboardLimiter } = require('../../middleware/rateLimiter');
 const redis = require('../../services/redis');
 const discord = require('../../services/discord');
+const logger = require('../../utils/logger');
 
 // Apply community admin authorization to all routes
 router.use(requireCommunityAdmin);
@@ -214,7 +215,7 @@ router.get('/overview', overviewLimiter, async (req, res) => {
 
     res.json(overview);
   } catch (error) {
-    console.error('[Community API] Error fetching overview:', error);
+    logger.error('[Community API] Error fetching overview:', { error: error.message, stack: error.stack });
     res.status(500).json({ error: 'Failed to fetch community overview' });
   }
 });
@@ -322,7 +323,7 @@ router.get('/members', dashboardLimiter, async (req, res) => {
       }
     });
   } catch (error) {
-    console.error('[Community API] Error fetching members:', error);
+    logger.error('[Community API] Error fetching members:', { error: error.message, stack: error.stack });
     res.status(500).json({ error: 'Failed to fetch members' });
   }
 });
@@ -448,7 +449,7 @@ router.post('/members/:id/role', dashboardLimiter, async (req, res) => {
       }
     });
   } catch (error) {
-    console.error('[Community API] Error updating member role:', error);
+    logger.error('[Community API] Error updating member role:', { error: error.message, stack: error.stack });
     res.status(500).json({ error: 'Failed to update member role' });
   }
 });
@@ -526,7 +527,7 @@ router.get('/signals', dashboardLimiter, async (req, res) => {
 
     res.json({ providers: providersWithStats });
   } catch (error) {
-    console.error('[Community API] Error fetching signal providers:', error);
+    logger.error('[Community API] Error fetching signal providers:', { error: error.message, stack: error.stack });
     res.status(500).json({ error: 'Failed to fetch signal providers' });
   }
 });
@@ -577,7 +578,7 @@ router.put('/signals/:id', async (req, res) => {
 
     await provider.save();
 
-    console.log(`[Community API] Provider updated: ${id} in community ${tenantId}`);
+    logger.info('Provider updated: ' + id + ' in community ' + tenantId + '');
 
     res.json({
       success: true,
@@ -590,7 +591,7 @@ router.put('/signals/:id', async (req, res) => {
       }
     });
   } catch (error) {
-    console.error('[Community API] Error updating signal provider:', error);
+    logger.error('[Community API] Error updating signal provider:', { error: error.message, stack: error.stack });
     res.status(500).json({ error: 'Failed to update signal provider' });
   }
 });
@@ -709,7 +710,7 @@ router.get('/analytics/performance', analyticsLimiter, async (req, res) => {
 
     res.json(data);
   } catch (error) {
-    console.error('[Community API] Error fetching analytics:', error);
+    logger.error('[Community API] Error fetching analytics:', { error: error.message, stack: error.stack });
     res.status(500).json({ error: 'Failed to fetch analytics' });
   }
 });
@@ -837,7 +838,7 @@ router.get('/subscription', dashboardLimiter, async (req, res) => {
       }
     });
   } catch (error) {
-    console.error('[Community API] Error fetching subscription:', error);
+    logger.error('[Community API] Error fetching subscription:', { error: error.message, stack: error.stack });
 
     // Handle Polar-specific errors
     if (error.message?.includes('Polar')) {

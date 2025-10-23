@@ -107,14 +107,14 @@ function validateEnv() {
 
   // Fail fast if errors exist
   if (errors.length > 0) {
-    console.error('❌ Environment validation failed:');
+    logger.error('❌ Environment validation failed:');
     errors.forEach(err => console.error(`   - ${err}`));
     throw new Error(`Environment validation failed with ${errors.length} error(s)`);
   }
 
   // Log successful validation (hide sensitive values)
   if (process.env.NODE_ENV !== 'test') {
-    console.log('✅ Environment validation passed');
+    logger.info('✅ Environment validation passed');
     console.log(`   - Environment: ${config.NODE_ENV}`);
     console.log(`   - Port: ${config.PORT}`);
     console.log(`   - WebSocket: ${config.ENABLE_WEBSOCKET ? 'Enabled' : 'Disabled'}`);

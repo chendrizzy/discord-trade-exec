@@ -4,6 +4,7 @@ const ccxt = require('ccxt');
 // Internal utilities and services
 const BrokerAdapter = require('../BrokerAdapter');
 const { withTimeout } = require('../../utils/promise-timeout');
+const logger = require('../../utils/logger');
 
 /**
  * Coinbase Pro (Advanced Trade) Adapter using CCXT
@@ -39,7 +40,7 @@ class CoinbaseProAdapter extends BrokerAdapter {
 
     // Note: Coinbase sandbox mode not supported in CCXT
     if (options.isTestnet) {
-      console.warn('⚠️  Coinbase does not support testnet/sandbox mode in CCXT');
+      logger.warn('⚠️  Coinbase does not support testnet/sandbox mode in CCXT');
     }
 
     this.exchange = new ccxt.coinbase(exchangeOptions);

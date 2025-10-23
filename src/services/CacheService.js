@@ -20,6 +20,8 @@
 
 const Redis = require('ioredis');
 const NodeCache = require('node-cache');
+const logger = require('../utils/logger');
+const logger = require('../utils/logger');
 
 class CacheService {
   constructor() {
@@ -65,7 +67,7 @@ class CacheService {
 
         this.redisClient.on('connect', () => {
           this.cacheType = 'redis';
-          console.log('✅ CacheService: Redis cache initialized');
+          logger.info('✅ CacheService: Redis cache initialized');
         });
 
         this.redisClient.on('error', err => {
@@ -74,7 +76,7 @@ class CacheService {
         });
 
         this.redisClient.on('close', () => {
-          console.warn('⚠️  CacheService: Redis connection closed');
+          logger.warn('⚠️  CacheService: Redis connection closed');
           this.fallbackToMemory();
         });
 
@@ -111,7 +113,7 @@ class CacheService {
       deleteOnExpire: true
     });
 
-    console.log('⚠️  CacheService: Using in-memory cache (Redis unavailable)');
+    logger.info('⚠️  CacheService: Using in-memory cache (Redis unavailable)');
   }
 
   /**
@@ -238,7 +240,7 @@ class CacheService {
         this.memoryCache.flushAll();
       }
 
-      console.log('CacheService: Cache cleared');
+      logger.info('CacheService: Cache cleared');
       return true;
     } catch (error) {
       console.error('CacheService: Error clearing cache:', error.message);
@@ -370,12 +372,12 @@ class CacheService {
     try {
       if (this.redisClient) {
         await this.redisClient.quit();
-        console.log('✅ CacheService: Redis connection closed');
+        logger.info('✅ CacheService: Redis connection closed');
       }
 
       if (this.memoryCache) {
         this.memoryCache.close();
-        console.log('✅ CacheService: Memory cache closed');
+        logger.info('✅ CacheService: Memory cache closed');
       }
     } catch (error) {
       console.error('CacheService: Error closing cache:', error.message);

@@ -12,6 +12,7 @@ const { validate, Schemas } = require('../../middleware/validation');
 const BaseRepository = require('../../repositories/BaseRepository');
 const { sendSuccess, sendError, sendValidationError, sendNotFound } = require('../../utils/api-response');
 const tradeExecutionService = require('../../services/TradeExecutionService');
+const logger = require('../../utils/logger');
 
 // Apply rate limiting to all routes
 router.use(apiLimiter);
@@ -129,7 +130,7 @@ router.get(
         }
       });
     } catch (error) {
-      console.error('Trade history API error:', error);
+      logger.error('Trade history API error:', { error: error.message, stack: error.stack });
       return sendError(res, 'Failed to fetch trade history', 500, { message: error.message });
     }
   }
@@ -162,7 +163,7 @@ router.get('/:tradeId', extractTenantMiddleware, auditLog('trade.view', 'Trade')
       data: trade
     });
   } catch (error) {
-    console.error('Trade detail API error:', error);
+    logger.error('Trade detail API error:', { error: error.message, stack: error.stack });
     return sendError(res, 'Failed to fetch trade details', 500, { message: error.message });
   }
 });
@@ -194,7 +195,7 @@ router.get('/stats/summary', extractTenantMiddleware, auditLog('trade.stats', 'T
       }
     });
   } catch (error) {
-    console.error('Trade stats API error:', error);
+    logger.error('Trade stats API error:', { error: error.message, stack: error.stack });
     return sendError(res, 'Failed to fetch trade statistics', 500, { message: error.message });
   }
 });
@@ -248,7 +249,7 @@ router.post(
 
       return sendSuccess(res, result.trade, 'Trade executed successfully');
     } catch (error) {
-      console.error('[Trade Execution API] Error executing trade:', error);
+      logger.error('[Trade Execution API] Error executing trade:', { error: error.message, stack: error.stack });
       return sendError(res, 'Failed to execute trade', 500, { message: error.message });
     }
   }
@@ -281,7 +282,7 @@ router.post(
         `Trade closed with ${result.trade.profitLoss >= 0 ? 'profit' : 'loss'}: $${Math.abs(result.trade.profitLoss).toFixed(2)}`
       );
     } catch (error) {
-      console.error('[Trade Execution API] Error closing trade:', error);
+      logger.error('[Trade Execution API] Error closing trade:', { error: error.message, stack: error.stack });
       return sendError(res, 'Failed to close trade', 500, { message: error.message });
     }
   }
@@ -308,7 +309,7 @@ router.delete(
 
       return sendSuccess(res, result.trade, 'Trade cancelled successfully');
     } catch (error) {
-      console.error('[Trade Execution API] Error cancelling trade:', error);
+      logger.error('[Trade Execution API] Error cancelling trade:', { error: error.message, stack: error.stack });
       return sendError(res, 'Failed to cancel trade', 500, { message: error.message });
     }
   }
@@ -331,7 +332,7 @@ router.get('/active', extractTenantMiddleware, auditLog('trade.view_active', 'Tr
 
     return sendSuccess(res, result.trades, `${result.trades.length} active trade(s) found`);
   } catch (error) {
-    console.error('[Trade Execution API] Error fetching active trades:', error);
+    logger.error('[Trade Execution API] Error fetching active trades:', { error: error.message, stack: error.stack });
     return sendError(res, 'Failed to fetch active trades', 500, { message: error.message });
   }
 });
@@ -367,7 +368,7 @@ router.get('/history', extractTenantMiddleware, auditLog('trade.view_history', '
       `Trade history retrieved (${result.trades.length} trades)`
     );
   } catch (error) {
-    console.error('[Trade Execution API] Error fetching trade history:', error);
+    logger.error('[Trade Execution API] Error fetching trade history:', { error: error.message, stack: error.stack });
     return sendError(res, 'Failed to fetch trade history', 500, { message: error.message });
   }
 });

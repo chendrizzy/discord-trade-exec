@@ -51,6 +51,8 @@ const { createAuthMiddleware } = require('./services/websocket/middleware/auth')
 const { createRateLimitMiddleware } = require('./services/websocket/middleware/rateLimiter');
 const { createEventHandlers } = require('./services/websocket/handlers');
 const { createEmitters } = require('./services/websocket/emitters');
+const logger = require('utils/logger');
+const logger = require('utils/logger');
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -60,7 +62,7 @@ app.set('trust proxy', 1);
 
 // Add global error handlers
 process.on('uncaughtException', error => {
-  console.error('Uncaught Exception:', error);
+  logger.error('Uncaught Exception:', { error: error.message, stack: error.stack });
   // Don't exit process, keep running
 });
 
@@ -70,7 +72,7 @@ process.on('unhandledRejection', (reason, promise) => {
 });
 
 process.on('SIGTERM', async () => {
-  console.log('Received SIGTERM, shutting down gracefully...');
+  logger.info('Received SIGTERM, shutting down gracefully...');
   if (webSocketServer) {
     await webSocketServer.shutdown();
   }
@@ -78,7 +80,7 @@ process.on('SIGTERM', async () => {
 });
 
 process.on('SIGINT', async () => {
-  console.log('Received SIGINT, shutting down gracefully...');
+  logger.info('Received SIGINT, shutting down gracefully...');
   if (webSocketServer) {
     await webSocketServer.shutdown();
   }
@@ -160,16 +162,16 @@ let bot;
 try {
   bot = new DiscordTradeBot();
   bot.start();
-  console.log('🤖 Discord bot initialized successfully');
+  logger.info('🤖 Discord bot initialized successfully');
 } catch (error) {
-  console.error('❌ Failed to start Discord bot:', error);
+  logger.error('❌ Failed to start Discord bot:', { error: error.message, stack: error.stack });
 }
 
 // Subscription Manager is already initialized as singleton (imported above)
 try {
-  console.log('💳 Subscription manager initialized successfully');
+  logger.info('💳 Subscription manager initialized successfully');
 } catch (error) {
-  console.error('❌ Failed to initialize subscription manager:', error);
+  logger.error('❌ Failed to initialize subscription manager:', { error: error.message, stack: error.stack });
 }
 
 // Initialize Marketing Automation
@@ -177,9 +179,9 @@ let marketingAutomation;
 try {
   marketingAutomation = new MarketingAutomation();
   marketingAutomation.start();
-  console.log('📈 Marketing automation initialized successfully');
+  logger.info('📈 Marketing automation initialized successfully');
 } catch (error) {
-  console.error('❌ Failed to start marketing automation:', error);
+  logger.error('❌ Failed to start marketing automation:', { error: error.message, stack: error.stack });
 }
 
 // Initialize Payment Processor
@@ -187,9 +189,9 @@ let paymentProcessor;
 try {
   paymentProcessor = new PaymentProcessor();
   app.use('/', paymentProcessor.getRouter());
-  console.log('💳 Payment processor initialized successfully');
+  logger.info('💳 Payment processor initialized successfully');
 } catch (error) {
-  console.error('❌ Failed to initialize payment processor:', error);
+  logger.error('❌ Failed to initialize payment processor:', { error: error.message, stack: error.stack });
 }
 
 // Initialize TradingView Parser and Trade Executor
@@ -199,9 +201,9 @@ let webSocketServer; // Declare here for access in shutdown handlers
 try {
   tradingViewParser = new TradingViewParser();
   tradeExecutor = new TradeExecutor();
-  console.log('📊 TradingView integration initialized successfully');
+  logger.info('📊 TradingView integration initialized successfully');
 } catch (error) {
-  console.error('❌ Failed to initialize TradingView integration:', error);
+  logger.error('❌ Failed to initialize TradingView integration:', { error: error.message, stack: error.stack });
 }
 
 // Mount authentication routes
@@ -232,7 +234,7 @@ app.use('/webhook/polar', polarWebhookRoutes);
 // TradingView webhook endpoint
 app.post('/webhook/tradingview', express.raw({ type: 'application/json' }), async (req, res) => {
   try {
-    console.log('📈 TradingView webhook received');
+    logger.info('📈 TradingView webhook received');
 
     // Verify webhook signature if secret is configured
     if (process.env.TRADINGVIEW_WEBHOOK_SECRET) {
@@ -244,7 +246,7 @@ app.post('/webhook/tradingview', express.raw({ type: 'application/json' }), asyn
       );
 
       if (!isValid) {
-        console.warn('⚠️ Invalid TradingView webhook signature');
+        logger.warn('⚠️ Invalid TradingView webhook signature');
         return res.status(401).json({ error: 'Invalid signature' });
       }
     }
@@ -259,7 +261,7 @@ app.post('/webhook/tradingview', express.raw({ type: 'application/json' }), asyn
     const signal = tradingViewParser.parseWebhook(bodyString);
 
     if (!signal) {
-      console.warn('⚠️ Failed to parse TradingView webhook payload');
+      logger.warn('⚠️ Failed to parse TradingView webhook payload');
       return res.status(400).json({ error: 'Invalid webhook payload' });
     }
 
@@ -291,7 +293,7 @@ app.post('/webhook/tradingview', express.raw({ type: 'application/json' }), asyn
       });
     }
   } catch (error) {
-    console.error('❌ TradingView webhook error:', error);
+    logger.error('❌ TradingView webhook error:', { error: error.message, stack: error.stack });
     res.status(500).json({ error: 'Internal server error', message: error.message });
   }
 });
@@ -428,15 +430,15 @@ app.get('*', (req, res) => {
 mongoose
   .connect(process.env.MONGODB_URI || 'mongodb://localhost:27017/trade-executor')
   .then(() => {
-    console.log('✅ MongoDB connected');
+    logger.info('✅ MongoDB connected');
 
     // Initialize OAuth2 token refresh cron jobs after DB connection
     try {
       const { startTokenRefreshJobs } = require('./jobs/tokenRefreshJob');
       startTokenRefreshJobs();
-      console.log('✅ OAuth2 token refresh jobs initialized');
+      logger.info('✅ OAuth2 token refresh jobs initialized');
     } catch (error) {
-      console.error('❌ Failed to initialize token refresh jobs:', error);
+      logger.error('❌ Failed to initialize token refresh jobs:', { error: error.message, stack: error.stack });
     }
   })
   .catch(err => console.error('❌ MongoDB connection error:', err));
@@ -454,7 +456,7 @@ const server = app.listen(PORT, () => {
 // Initialize WebSocket Server for real-time updates
 (async () => {
   try {
-    console.log('🔌 Initializing WebSocket server...');
+    logger.info('🔌 Initializing WebSocket server...');
 
     // Create WebSocket server instance
     webSocketServer = new WebSocketServer(server, {
@@ -485,7 +487,7 @@ const server = app.listen(PORT, () => {
       webSocketServer.registerEventHandler(event, handler);
     });
 
-    console.log('✅ WebSocket event handlers registered');
+    logger.info('✅ WebSocket event handlers registered');
 
     // Connect TradeExecutor events to WebSocket emitters
     if (tradeExecutor) {
@@ -517,7 +519,7 @@ const server = app.listen(PORT, () => {
             });
           }
         } catch (error) {
-          console.error('Failed to analyze signal quality for WebSocket emission:', error);
+          logger.error('Failed to analyze signal quality for WebSocket emission:', { error: error.message, stack: error.stack });
         }
       });
 
@@ -547,7 +549,7 @@ const server = app.listen(PORT, () => {
             emitters.emitPortfolioUpdate(data.userId, portfolio);
           }
         } catch (error) {
-          console.error('Error fetching portfolio for WebSocket update:', error);
+          logger.error('Error fetching portfolio for WebSocket update:', { error: error.message, stack: error.stack });
         }
       });
 
@@ -564,18 +566,18 @@ const server = app.listen(PORT, () => {
         });
       });
 
-      console.log('✅ TradeExecutor event listeners connected to WebSocket emitters');
+      logger.info('✅ TradeExecutor event listeners connected to WebSocket emitters');
     }
 
-    console.log('✅ WebSocket server initialization complete');
+    logger.info('✅ WebSocket server initialization complete');
   } catch (error) {
-    console.error('❌ Failed to initialize WebSocket server:', error);
+    logger.error('❌ Failed to initialize WebSocket server:', { error: error.message, stack: error.stack });
   }
 })();
 
 // Handle server errors
 server.on('error', error => {
-  console.error('Server error:', error);
+  logger.error('Server error:', { error: error.message, stack: error.stack });
 });
 
 // Keep the process alive
@@ -583,7 +585,7 @@ setInterval(() => {
   console.log(`💓 Heartbeat - ${new Date().toISOString()} - Uptime: ${Math.floor(process.uptime())}s`);
 }, 30000); // Every 30 seconds
 
-console.log('🔄 Application initialization complete');
+logger.info('🔄 Application initialization complete');
 
 // Export app for testing
 module.exports = app;

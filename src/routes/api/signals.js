@@ -18,6 +18,7 @@ const { validate } = require('../../middleware/validation');
 const signalQualityTracker = require('../../services/signal-quality-tracker');
 const BaseRepository = require('../../repositories/BaseRepository');
 const { sendSuccess, sendError, sendNotFound } = require('../../utils/api-response');
+const logger = require('../../utils/logger');
 
 // Apply rate limiting to all signal quality routes
 router.use(apiLimiter);
@@ -59,7 +60,7 @@ router.get(
 
       res.json({ success: true, data: qualityAnalysis });
     } catch (error) {
-      console.error('Error fetching signal quality:', error);
+      logger.error('Error fetching signal quality:', { error: error.message, stack: error.stack });
       return sendError(res, 'Failed to analyze signal quality', 500, { message: error.message });
     }
   }
@@ -97,7 +98,7 @@ router.post(
 
       res.json({ success: true, data: qualityAnalysis, message: 'Signal quality updated successfully' });
     } catch (error) {
-      console.error('Error updating signal quality:', error);
+      logger.error('Error updating signal quality:', { error: error.message, stack: error.stack });
       return sendError(res, 'Failed to update signal quality', 500, { message: error.message });
     }
   }
@@ -140,7 +141,7 @@ router.get(
         }
       });
     } catch (error) {
-      console.error('Error fetching provider leaderboard:', error);
+      logger.error('Error fetching provider leaderboard:', { error: error.message, stack: error.stack });
       return sendError(res, 'Failed to generate provider leaderboard', 500, { message: error.message });
     }
   }

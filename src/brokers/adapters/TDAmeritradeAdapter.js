@@ -5,6 +5,7 @@ const axios = require('axios');
 const BrokerAdapter = require('../BrokerAdapter');
 const oauth2Service = require('../../services/OAuth2Service');
 const User = require('../../models/User');
+const logger = require('../../utils/logger');
 
 /**
  * TD Ameritrade Stock Broker Adapter
@@ -87,7 +88,7 @@ class TDAmeritradeAdapter extends BrokerAdapter {
       // Check if access token is expired (30-minute expiry)
       const now = new Date();
       if (now >= encryptedTokens.expiresAt) {
-        console.log('[TDAmeritradeAdapter] Access token expired, refreshing...');
+        logger.info('[TDAmeritradeAdapter] Access token expired, refreshing...');
         const refreshedTokens = await oauth2Service.refreshAccessToken('tdameritrade', this.userId);
         this.accessToken = refreshedTokens.accessToken;
       } else {
@@ -103,7 +104,7 @@ class TDAmeritradeAdapter extends BrokerAdapter {
       }
 
       this.isAuthenticated = true;
-      console.log('[TDAmeritradeAdapter] OAuth2 authentication successful');
+      logger.info('[TDAmeritradeAdapter] OAuth2 authentication successful');
       return true;
     } catch (error) {
       console.error('[TDAmeritradeAdapter] Authentication failed:', error.message);
@@ -130,7 +131,7 @@ class TDAmeritradeAdapter extends BrokerAdapter {
       const now = new Date();
 
       if (now >= encryptedTokens.expiresAt) {
-        console.log('[TDAmeritradeAdapter] Token expired before API call, refreshing...');
+        logger.info('[TDAmeritradeAdapter] Token expired before API call, refreshing...');
         const refreshedTokens = await oauth2Service.refreshAccessToken('tdameritrade', this.userId);
         this.accessToken = refreshedTokens.accessToken;
       }

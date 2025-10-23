@@ -1,6 +1,7 @@
 // Internal utilities and services
 const { getTenantContext } = require('../middleware/tenantAuth');
 const { getEncryptionService } = require('../services/encryption');
+const logger = require('../utils/logger');
 
 class BaseRepository {
   constructor(model) {
@@ -18,7 +19,7 @@ class BaseRepository {
       if (options.populate) query = query.populate(options.populate);
       return await query.exec();
     } catch (error) {
-      console.error('[BaseRepository] findAll error:', error);
+      logger.error('[BaseRepository] findAll error:', { error: error.message, stack: error.stack });
       throw new Error('Failed to fetch documents');
     }
   }
@@ -30,7 +31,7 @@ class BaseRepository {
       if (options.populate) query = query.populate(options.populate);
       return await query.exec();
     } catch (error) {
-      console.error('[BaseRepository] findOne error:', error);
+      logger.error('[BaseRepository] findOne error:', { error: error.message, stack: error.stack });
       throw new Error('Failed to fetch document');
     }
   }
@@ -44,7 +45,7 @@ class BaseRepository {
       const document = new this.model(data);
       return await document.save();
     } catch (error) {
-      console.error('[BaseRepository] create error:', error);
+      logger.error('[BaseRepository] create error:', { error: error.message, stack: error.stack });
       if (error.code === 11000) {
         throw new Error('Duplicate document. This record already exists.');
       }
@@ -60,7 +61,7 @@ class BaseRepository {
       await document.save();
       return document;
     } catch (error) {
-      console.error('[BaseRepository] update error:', error);
+      logger.error('[BaseRepository] update error:', { error: error.message, stack: error.stack });
       if (error.name === 'TenantIsolationError') throw error;
       throw new Error('Failed to update document');
     }
@@ -71,7 +72,7 @@ class BaseRepository {
       const result = await this.model.updateMany(filter, updates);
       return { matchedCount: result.matchedCount, modifiedCount: result.modifiedCount };
     } catch (error) {
-      console.error('[BaseRepository] updateMany error:', error);
+      logger.error('[BaseRepository] updateMany error:', { error: error.message, stack: error.stack });
       throw new Error('Failed to update documents');
     }
   }
@@ -83,7 +84,7 @@ class BaseRepository {
       await document.deleteOne();
       return document;
     } catch (error) {
-      console.error('[BaseRepository] delete error:', error);
+      logger.error('[BaseRepository] delete error:', { error: error.message, stack: error.stack });
       throw new Error('Failed to delete document');
     }
   }
@@ -93,7 +94,7 @@ class BaseRepository {
       const result = await this.model.deleteMany(filter);
       return { deletedCount: result.deletedCount };
     } catch (error) {
-      console.error('[BaseRepository] deleteMany error:', error);
+      logger.error('[BaseRepository] deleteMany error:', { error: error.message, stack: error.stack });
       throw new Error('Failed to delete documents');
     }
   }
@@ -102,7 +103,7 @@ class BaseRepository {
     try {
       return await this.model.countDocuments(filter);
     } catch (error) {
-      console.error('[BaseRepository] count error:', error);
+      logger.error('[BaseRepository] count error:', { error: error.message, stack: error.stack });
       throw new Error('Failed to count documents');
     }
   }
@@ -112,7 +113,7 @@ class BaseRepository {
       const count = await this.model.countDocuments(filter).limit(1);
       return count > 0;
     } catch (error) {
-      console.error('[BaseRepository] exists error:', error);
+      logger.error('[BaseRepository] exists error:', { error: error.message, stack: error.stack });
       throw new Error('Failed to check document existence');
     }
   }
@@ -123,7 +124,7 @@ class BaseRepository {
       const [docs, total] = await Promise.all([this.findAll(filter, { ...options, skip, limit }), this.count(filter)]);
       return { docs, total, page, pages: Math.ceil(total / limit), limit };
     } catch (error) {
-      console.error('[BaseRepository] paginate error:', error);
+      logger.error('[BaseRepository] paginate error:', { error: error.message, stack: error.stack });
       throw new Error('Failed to paginate documents');
     }
   }
@@ -132,7 +133,7 @@ class BaseRepository {
     try {
       return await this.model.aggregate(pipeline).exec();
     } catch (error) {
-      console.error('[BaseRepository] aggregate error:', error);
+      logger.error('[BaseRepository] aggregate error:', { error: error.message, stack: error.stack });
       throw new Error('Failed to run aggregation');
     }
   }
@@ -146,7 +147,7 @@ class BaseRepository {
       return result;
     } catch (error) {
       await session.abortTransaction();
-      console.error('[BaseRepository] transaction error:', error);
+      logger.error('[BaseRepository] transaction error:', { error: error.message, stack: error.stack });
       throw error;
     } finally {
       session.endSession();
@@ -164,7 +165,7 @@ class BaseRepository {
       }
       return encrypted;
     } catch (error) {
-      console.error('[BaseRepository] encryptFields error:', error);
+      logger.error('[BaseRepository] encryptFields error:', { error: error.message, stack: error.stack });
       throw new Error('Failed to encrypt sensitive fields');
     }
   }
@@ -180,7 +181,7 @@ class BaseRepository {
       }
       return decrypted;
     } catch (error) {
-      console.error('[BaseRepository] decryptFields error:', error);
+      logger.error('[BaseRepository] decryptFields error:', { error: error.message, stack: error.stack });
       throw new Error('Failed to decrypt sensitive fields');
     }
   }
@@ -197,7 +198,7 @@ class BaseRepository {
     try {
       return await this.model.insertMany(dataArray);
     } catch (error) {
-      console.error('[BaseRepository] bulkCreate error:', error);
+      logger.error('[BaseRepository] bulkCreate error:', { error: error.message, stack: error.stack });
       if (error.code === 11000) {
         throw new Error('Duplicate documents. Some records already exist.');
       }

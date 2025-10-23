@@ -1,5 +1,7 @@
 // Node.js built-in modules
 const crypto = require('crypto');
+const logger = require('../utils/logger');
+const logger = require('../utils/logger');
 
 class TradingViewParser {
   constructor() {
@@ -54,7 +56,7 @@ class TradingViewParser {
 
       return signal;
     } catch (error) {
-      console.error('Error parsing TradingView webhook:', error);
+      logger.error('Error parsing TradingView webhook:', { error: error.message, stack: error.stack });
       return null;
     }
   }
@@ -275,7 +277,7 @@ class TradingViewParser {
 
       return crypto.timingSafeEqual(Buffer.from(cleanSignature, 'hex'), Buffer.from(expectedSignature, 'hex'));
     } catch (error) {
-      console.error('Error verifying webhook signature:', error);
+      logger.error('Error verifying webhook signature:', { error: error.message, stack: error.stack });
       return false;
     }
   }

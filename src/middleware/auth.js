@@ -7,6 +7,10 @@ const User = require('../models/User');
 
 // Analytics
 const analyticsEventService = require('../services/analytics/AnalyticsEventService');
+const logger = require('../utils/logger');
+const logger = require('../utils/logger');
+const logger = require('../utils/logger');
+
 
 // Configure passport Discord strategy
 const discordStrategy = new DiscordStrategy(
@@ -73,14 +77,14 @@ const discordStrategy = new DiscordStrategy(
 // Override parseErrorResponse to log raw Discord API response
 const originalParseError = discordStrategy.parseErrorResponse;
 discordStrategy.parseErrorResponse = function (body, status) {
-  console.error('🔍 Raw Discord API Response:');
+  logger.error('🔍 Raw Discord API Response:');
   console.error('Status Code:', status);
   console.error('Response Body (raw):', body);
   try {
     const parsed = JSON.parse(body);
     console.error('Response Body (parsed):', JSON.stringify(parsed, null, 2));
   } catch (e) {
-    console.error('Failed to parse response as JSON');
+    logger.error('Failed to parse response as JSON');
   }
 
   // Call original implementation

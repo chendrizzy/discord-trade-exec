@@ -1,6 +1,7 @@
 const PolymarketWallet = require('../../models/PolymarketWallet');
 const PolymarketTransaction = require('../../models/PolymarketTransaction');
 const cacheManager = require('./CacheManager');
+const logger = require('../../utils/logger');
 
 /**
  * WhaleDetector - Service for identifying and tracking high-value Polymarket wallets
@@ -32,7 +33,7 @@ class WhaleDetector {
     const { batchSize = 1000, onProgress } = options;
     const startTime = Date.now();
 
-    console.log('[WhaleDetector] Starting whale update batch');
+    logger.info('[WhaleDetector] Starting whale update batch');
 
     try {
       // Get all wallets flagged as whales
@@ -124,7 +125,7 @@ class WhaleDetector {
    * @returns {Promise<Object>} Update results
    */
   async updateWhaleWinRates() {
-    console.log('[WhaleDetector] Updating whale win rates');
+    logger.info('[WhaleDetector] Updating whale win rates');
 
     try {
       const whales = await PolymarketWallet.find({ isWhale: true })
@@ -241,7 +242,7 @@ class WhaleDetector {
       }
 
       if (!walletDoc) {
-        console.warn('[WhaleDetector] Wallet not found');
+        logger.warn('[WhaleDetector] Wallet not found');
         return false;
       }
 
@@ -281,7 +282,7 @@ class WhaleDetector {
    */
   async clearCache() {
     await cacheManager.flush('whale:*');
-    console.log('[WhaleDetector] Cache cleared');
+    logger.info('[WhaleDetector] Cache cleared');
   }
 }
 

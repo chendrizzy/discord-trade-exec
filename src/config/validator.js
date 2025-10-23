@@ -1,5 +1,7 @@
 // External dependencies
 const Joi = require('joi');
+const logger = require('../utils/logger');
+const logger = require('../utils/logger');
 
 /**
  * Configuration Validator using Joi schemas
@@ -291,7 +293,7 @@ function loadAndValidateConfig(exitOnError = process.env.NODE_ENV === 'productio
   const result = validateConfig(config, environmentSchema);
 
   if (!result.valid) {
-    console.error('❌ Configuration Validation Failed:');
+    logger.error('❌ Configuration Validation Failed:');
     console.error('');
     result.errors.forEach(error => {
       console.error(`  • ${error.field}: ${error.message}`);
@@ -299,21 +301,21 @@ function loadAndValidateConfig(exitOnError = process.env.NODE_ENV === 'productio
     console.error('');
 
     if (exitOnError) {
-      console.error('💥 Cannot start application with invalid configuration');
+      logger.error('💥 Cannot start application with invalid configuration');
       process.exit(1);
     } else {
-      console.warn('⚠️  Continuing with invalid configuration (development mode)');
+      logger.warn('⚠️  Continuing with invalid configuration (development mode)');
       return config;
     }
   }
 
-  console.log('✅ Configuration validated successfully');
+  logger.info('✅ Configuration validated successfully');
 
   // Warn if no brokers are configured
   const hasBrokers = config.brokers && Object.keys(config.brokers).length > 0;
   if (!hasBrokers) {
-    console.warn('⚠️  No brokers configured via environment variables');
-    console.warn('⚠️  Users will need to configure brokers via OAuth dashboard');
+    logger.warn('⚠️  No brokers configured via environment variables');
+    logger.warn('⚠️  Users will need to configure brokers via OAuth dashboard');
   }
 
   return result.config;

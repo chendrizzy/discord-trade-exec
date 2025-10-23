@@ -4,6 +4,7 @@
  */
 
 const AnalyticsEvent = require('../../models/AnalyticsEvent');
+const logger = require('../../utils/logger');
 
 class TokenRefreshMetrics {
   /**
@@ -35,7 +36,7 @@ class TokenRefreshMetrics {
       });
 
       await event.save();
-      console.log('[TokenRefreshMetrics] Refresh cycle logged to analytics');
+      logger.info('[TokenRefreshMetrics] Refresh cycle logged to analytics');
 
       return event;
     } catch (error) {

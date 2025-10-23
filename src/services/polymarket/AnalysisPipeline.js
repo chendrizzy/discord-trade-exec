@@ -4,6 +4,7 @@ const whaleDetector = require('./WhaleDetector');
 const sentimentAnalyzer = require('./SentimentAnalyzer');
 const anomalyDetector = require('./AnomalyDetector');
 const discordAlertService = require('./DiscordAlertService');
+const logger = require('../../utils/logger');
 
 /**
  * AnalysisPipeline - Main orchestrator coordinating all intelligence services
@@ -92,7 +93,7 @@ class AnalysisPipeline {
       };
     } catch (error) {
       this.stats.errors++;
-      console.error('[Pipeline] Processing error:', error);
+      logger.error('[Pipeline] Processing error:', { error: error.message, stack: error.stack });
 
       // Graceful degradation - don't throw
       return {
@@ -336,7 +337,7 @@ class AnalysisPipeline {
       avgProcessingTime: 0,
       totalProcessingTime: 0
     };
-    console.log('[Pipeline] Stats reset');
+    logger.info('[Pipeline] Stats reset');
   }
 }
 

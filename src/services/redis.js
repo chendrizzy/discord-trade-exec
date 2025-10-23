@@ -8,6 +8,8 @@
  */
 
 const redis = require('redis');
+const logger = require('../utils/logger');
+const logger = require('../utils/logger');
 
 // Cache mode tracking
 let cacheMode = 'initializing';
@@ -21,7 +23,7 @@ const initializeRedis = async () => {
   const redisUrl = process.env.REDIS_URL;
 
   if (!redisUrl) {
-    console.warn('[Redis] REDIS_URL not configured - using in-memory fallback');
+    logger.warn('[Redis] REDIS_URL not configured - using in-memory fallback');
     cacheMode = 'memory';
     return;
   }
@@ -33,7 +35,7 @@ const initializeRedis = async () => {
         connectTimeout: 5000,
         reconnectStrategy: (retries) => {
           if (retries > 10) {
-            console.error('[Redis] Max reconnection attempts reached - falling back to memory cache');
+            logger.error('[Redis] Max reconnection attempts reached - falling back to memory cache');
             cacheMode = 'memory';
             return new Error('Max reconnection attempts');
           }
@@ -45,26 +47,26 @@ const initializeRedis = async () => {
     client.on('error', (err) => {
       console.error('[Redis] Connection error:', err.message);
       if (cacheMode === 'redis') {
-        console.warn('[Redis] Falling back to memory cache due to error');
+        logger.warn('[Redis] Falling back to memory cache due to error');
         cacheMode = 'memory';
       }
     });
 
     client.on('connect', () => {
-      console.log('[Redis] Connected successfully');
+      logger.info('[Redis] Connected successfully');
       cacheMode = 'redis';
     });
 
     client.on('reconnecting', () => {
-      console.log('[Redis] Reconnecting...');
+      logger.info('[Redis] Reconnecting...');
     });
 
     await client.connect();
-    console.log('[Redis] Initialization complete - using distributed Redis cache');
+    logger.info('[Redis] Initialization complete - using distributed Redis cache');
     cacheMode = 'redis';
   } catch (err) {
     console.error('[Redis] Failed to initialize:', err.message);
-    console.warn('[Redis] Falling back to in-memory cache');
+    logger.warn('[Redis] Falling back to in-memory cache');
     cacheMode = 'memory';
     client = null;
   }
@@ -86,7 +88,7 @@ const get = async (key) => {
       return null;
     } catch (err) {
       console.error(`[Redis] GET error for key ${key}:`, err.message);
-      console.warn('[Redis] Falling back to memory cache');
+      logger.warn('[Redis] Falling back to memory cache');
       cacheMode = 'memory';
     }
   }
@@ -119,7 +121,7 @@ const set = async (key, value, ttlSeconds = 300) => {
       return;
     } catch (err) {
       console.error(`[Redis] SET error for key ${key}:`, err.message);
-      console.warn('[Redis] Falling back to memory cache');
+      logger.warn('[Redis] Falling back to memory cache');
       cacheMode = 'memory';
     }
   }
@@ -292,7 +294,7 @@ const clear = async () => {
   if (cacheMode === 'redis' && client) {
     try {
       await client.flushDb();
-      console.log('[Cache:Redis] CLEARED all keys');
+      logger.info('[Cache:Redis] CLEARED all keys');
       return;
     } catch (err) {
       console.error('[Redis] CLEAR error:', err.message);
@@ -300,7 +302,7 @@ const clear = async () => {
   }
 
   memoryCache.clear();
-  console.log('[Cache:Memory] CLEARED all keys');
+  logger.info('[Cache:Memory] CLEARED all keys');
 };
 
 /**
@@ -316,7 +318,7 @@ const getMode = () => cacheMode;
 const close = async () => {
   if (client && client.isReady) {
     await client.quit();
-    console.log('[Redis] Connection closed gracefully');
+    logger.info('[Redis] Connection closed gracefully');
   }
 };
 

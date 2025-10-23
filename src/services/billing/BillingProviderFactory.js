@@ -20,6 +20,7 @@
  */
 
 const PolarBillingProvider = require('./providers/PolarBillingProvider');
+const logger = require('../../utils/logger');
 class BillingProviderFactory {
   /**
    * Create billing provider instance based on environment configuration
@@ -31,7 +32,7 @@ class BillingProviderFactory {
 
     switch (providerType) {
       case 'polar':
-        console.log('[BillingProviderFactory] Creating Polar.sh billing provider');
+        logger.info('[BillingProviderFactory] Creating Polar.sh billing provider');
         return new PolarBillingProvider();
 
       default:

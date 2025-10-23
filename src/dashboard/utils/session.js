@@ -26,7 +26,7 @@ export function getSessionID() {
   const sessionCookie = cookies['connect.sid'];
 
   if (!sessionCookie) {
-    console.warn('No session cookie found');
+    logger.warn('No session cookie found');
     return null;
   }
 
@@ -43,10 +43,10 @@ export function getSessionID() {
     }
 
     // Fallback: use the entire cookie value if format doesn't match
-    console.warn('Session cookie format unexpected, using full value');
+    logger.warn('Session cookie format unexpected, using full value');
     return decoded;
   } catch (error) {
-    console.error('Failed to parse session cookie:', error);
+    logger.error('Failed to parse session cookie:', { error: error.message, stack: error.stack });
     return null;
   }
 }

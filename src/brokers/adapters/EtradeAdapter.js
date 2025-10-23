@@ -5,6 +5,7 @@ const axios = require('axios');
 const BrokerAdapter = require('../BrokerAdapter');
 const oauth2Service = require('../../services/OAuth2Service');
 const User = require('../../models/User');
+const logger = require('../../utils/logger');
 
 /**
  * E*TRADE Stock Broker Adapter
@@ -105,7 +106,7 @@ class EtradeAdapter extends BrokerAdapter {
       // Check if access token is expired (2-hour expiry)
       const now = new Date();
       if (now >= encryptedTokens.expiresAt) {
-        console.log('[EtradeAdapter] Access token expired, renewing...');
+        logger.info('[EtradeAdapter] Access token expired, renewing...');
 
         // TODO: Implement token renewal via /oauth/renew_access_token
         // E*TRADE uses renewal instead of refresh - requires OAuth 1.0a signature
@@ -135,7 +136,7 @@ class EtradeAdapter extends BrokerAdapter {
       }
 
       this.isAuthenticated = true;
-      console.log('[EtradeAdapter] OAuth 1.0a authentication successful');
+      logger.info('[EtradeAdapter] OAuth 1.0a authentication successful');
       return true;
     } catch (error) {
       console.error('[EtradeAdapter] Authentication failed:', error.message);
@@ -181,7 +182,7 @@ class EtradeAdapter extends BrokerAdapter {
       const now = new Date();
 
       if (now >= encryptedTokens.expiresAt) {
-        console.log('[EtradeAdapter] Token expired before API call, renewal required');
+        logger.info('[EtradeAdapter] Token expired before API call, renewal required');
         throw new Error('E*TRADE token expired. Token renewal not yet implemented. Please re-authorize.');
       }
     }

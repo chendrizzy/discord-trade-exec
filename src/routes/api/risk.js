@@ -4,6 +4,7 @@ const express = require('express');
 const router = express.Router();
 const { ensureAuthenticated } = require('../../middleware/auth');
 const { apiLimiter } = require('../../middleware/rateLimiter');
+const logger = require('../../utils/logger');
 
 // Apply rate limiting
 router.use(apiLimiter);
@@ -43,7 +44,7 @@ router.get('/settings', ensureAuthenticated, async (req, res) => {
       }
     });
   } catch (error) {
-    console.error('Error fetching risk settings:', error);
+    logger.error('Error fetching risk settings:', { error: error.message, stack: error.stack });
     res.status(500).json({
       success: false,
       error: 'Failed to fetch risk settings'
@@ -168,7 +169,7 @@ router.put('/settings', ensureAuthenticated, async (req, res) => {
       settings: riskSettings
     });
   } catch (error) {
-    console.error('Error updating risk settings:', error);
+    logger.error('Error updating risk settings:', { error: error.message, stack: error.stack });
     res.status(500).json({
       success: false,
       error: 'Failed to update risk settings'
@@ -203,7 +204,7 @@ router.post('/calculate-position', ensureAuthenticated, async (req, res) => {
       }
     });
   } catch (error) {
-    console.error('Error calculating position size:', error);
+    logger.error('Error calculating position size:', { error: error.message, stack: error.stack });
     res.status(500).json({
       success: false,
       error: 'Failed to calculate position size'
@@ -229,7 +230,7 @@ router.get('/daily-loss', ensureAuthenticated, async (req, res) => {
       }
     });
   } catch (error) {
-    console.error('Error checking daily loss:', error);
+    logger.error('Error checking daily loss:', { error: error.message, stack: error.stack });
     res.status(500).json({
       success: false,
       error: 'Failed to check daily loss'
@@ -249,7 +250,7 @@ router.post('/daily-loss/reset', ensureAuthenticated, async (req, res) => {
       message: 'Daily loss counter reset successfully'
     });
   } catch (error) {
-    console.error('Error resetting daily loss:', error);
+    logger.error('Error resetting daily loss:', { error: error.message, stack: error.stack });
     res.status(500).json({
       success: false,
       error: 'Failed to reset daily loss'

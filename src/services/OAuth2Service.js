@@ -15,6 +15,8 @@ const crypto = require('crypto');
 const axios = require('axios');
 const { getProviderConfig, isOAuth2Broker } = require('../config/oauth2Providers');
 const SecurityAudit = require('../models/SecurityAudit');
+const logger = require('../utils/logger');
+const logger = require('../utils/logger');
 
 // AES-256-GCM encryption algorithm
 const ALGORITHM = 'aes-256-gcm';
@@ -103,7 +105,7 @@ class OAuth2Service {
   validateState(callbackState, session) {
     // Check state exists in session
     if (!session.oauthState) {
-      console.warn('[OAuth2Service] State validation failed: Session state not found');
+      logger.warn('[OAuth2Service] State validation failed: Session state not found');
 
       // Audit log: CSRF validation failed (CRITICAL)
       SecurityAudit.log({
@@ -125,7 +127,7 @@ class OAuth2Service {
 
     // Validate state equality
     if (state !== callbackState) {
-      console.warn('[OAuth2Service] State validation failed: State mismatch (possible CSRF attack)');
+      logger.warn('[OAuth2Service] State validation failed: State mismatch (possible CSRF attack)');
 
       // Audit log: CSRF validation failed (CRITICAL)
       SecurityAudit.log({

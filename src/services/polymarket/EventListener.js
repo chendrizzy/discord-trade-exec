@@ -9,6 +9,7 @@ const { ethers } = require('ethers');
 const blockchainProvider = require('./BlockchainProvider');
 const polygonConfig = require('../../config/polygon');
 const CTFExchangeABI = require('./abi/CTFExchangeABI.json');
+const logger = require('../../utils/logger');
 
 class EventListener {
   constructor() {
@@ -41,7 +42,7 @@ class EventListener {
    */
   async initialize() {
     try {
-      console.log('[EventListener] Initializing WebSocket connection...');
+      logger.info('[EventListener] Initializing WebSocket connection...');
 
       // Get WebSocket provider
       this.wsProvider = await blockchainProvider.getWebSocketProvider();
@@ -56,10 +57,10 @@ class EventListener {
       // Set up provider event handlers
       this._setupProviderHandlers();
 
-      console.log('[EventListener] Initialization complete');
+      logger.info('[EventListener] Initialization complete');
       console.log(`[EventListener] Contract: ${polygonConfig.contracts.ctfExchange}`);
     } catch (error) {
-      console.error('[EventListener] Initialization failed:', error);
+      logger.error('[EventListener] Initialization failed:', { error: error.message, stack: error.stack });
       throw error;
     }
   }
@@ -69,7 +70,7 @@ class EventListener {
    */
   _setupProviderHandlers() {
     this.wsProvider.on('error', (error) => {
-      console.error('[EventListener] WebSocket error:', error);
+      logger.error('[EventListener] WebSocket error:', { error: error.message, stack: error.stack });
       this.stats.errors++;
       this._attemptReconnect();
     });
@@ -84,7 +85,7 @@ class EventListener {
     // Optional: ping/keepalive
     this.wsProvider.on('network', (newNetwork, oldNetwork) => {
       if (oldNetwork) {
-        console.log('[EventListener] Network changed, reconnecting...');
+        logger.info('[EventListener] Network changed, reconnecting...');
         this._attemptReconnect();
       }
     });
@@ -95,7 +96,7 @@ class EventListener {
    */
   async startListening() {
     if (this.isListening) {
-      console.warn('[EventListener] Already listening to events');
+      logger.warn('[EventListener] Already listening to events');
       return;
     }
 
@@ -103,7 +104,7 @@ class EventListener {
       await this.initialize();
     }
 
-    console.log('[EventListener] Starting event listeners...');
+    logger.info('[EventListener] Starting event listeners...');
 
     // Subscribe to all CTF Exchange events
     this.contract.on('OrderFilled', async (...args) => {
@@ -129,12 +130,12 @@ class EventListener {
     this.isListening = true;
     this.reconnectAttempts = 0;
 
-    console.log('[EventListener] Now listening to events:');
-    console.log('  - OrderFilled');
-    console.log('  - OrdersMatched');
-    console.log('  - OrderCancelled');
-    console.log('  - FeeCharged');
-    console.log('  - TokenRegistered');
+    logger.info('[EventListener] Now listening to events:');
+    logger.info('  - OrderFilled');
+    logger.info('  - OrdersMatched');
+    logger.info('  - OrderCancelled');
+    logger.info('  - FeeCharged');
+    logger.info('  - TokenRegistered');
   }
 
   /**
@@ -145,7 +146,7 @@ class EventListener {
       return;
     }
 
-    console.log('[EventListener] Stopping event listeners...');
+    logger.info('[EventListener] Stopping event listeners...');
 
     // Remove all listeners
     this.contract.removeAllListeners();
@@ -157,7 +158,7 @@ class EventListener {
     }
 
     this.isListening = false;
-    console.log('[EventListener] Event listeners stopped');
+    logger.info('[EventListener] Event listeners stopped');
   }
 
   /**
@@ -217,7 +218,7 @@ class EventListener {
 
       console.log(`[EventListener] OrderFilled: ${eventData.maker.slice(0, 8)}... bet $${eventData.makerAmountFilled}`);
     } catch (error) {
-      console.error('[EventListener] Error handling OrderFilled:', error);
+      logger.error('[EventListener] Error handling OrderFilled:', { error: error.message, stack: error.stack });
       this.stats.errors++;
     }
   }
@@ -248,7 +249,7 @@ class EventListener {
 
       console.log(`[EventListener] OrdersMatched: $${eventData.makerAmountFilled}`);
     } catch (error) {
-      console.error('[EventListener] Error handling OrdersMatched:', error);
+      logger.error('[EventListener] Error handling OrdersMatched:', { error: error.message, stack: error.stack });
       this.stats.errors++;
     }
   }
@@ -274,7 +275,7 @@ class EventListener {
 
       console.log(`[EventListener] OrderCancelled: ${eventData.orderHash}`);
     } catch (error) {
-      console.error('[EventListener] Error handling OrderCancelled:', error);
+      logger.error('[EventListener] Error handling OrderCancelled:', { error: error.message, stack: error.stack });
       this.stats.errors++;
     }
   }
@@ -302,7 +303,7 @@ class EventListener {
 
       console.log(`[EventListener] FeeCharged: $${eventData.amount} to ${eventData.receiver.slice(0, 8)}...`);
     } catch (error) {
-      console.error('[EventListener] Error handling FeeCharged:', error);
+      logger.error('[EventListener] Error handling FeeCharged:', { error: error.message, stack: error.stack });
       this.stats.errors++;
     }
   }
@@ -330,7 +331,7 @@ class EventListener {
 
       console.log(`[EventListener] TokenRegistered: condition ${eventData.conditionId}`);
     } catch (error) {
-      console.error('[EventListener] Error handling TokenRegistered:', error);
+      logger.error('[EventListener] Error handling TokenRegistered:', { error: error.message, stack: error.stack });
       this.stats.errors++;
     }
   }
@@ -353,7 +354,7 @@ class EventListener {
    */
   async _attemptReconnect() {
     if (this.reconnectAttempts >= this.maxReconnectAttempts) {
-      console.error('[EventListener] Max reconnection attempts reached');
+      logger.error('[EventListener] Max reconnection attempts reached');
       this.isListening = false;
       return;
     }
@@ -378,9 +379,9 @@ class EventListener {
       await this.initialize();
       await this.startListening();
 
-      console.log('[EventListener] Reconnection successful');
+      logger.info('[EventListener] Reconnection successful');
     } catch (error) {
-      console.error('[EventListener] Reconnection failed:', error);
+      logger.error('[EventListener] Reconnection failed:', { error: error.message, stack: error.stack });
       await this._attemptReconnect();
     }
   }

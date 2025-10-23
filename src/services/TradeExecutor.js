@@ -6,6 +6,8 @@ const ccxt = require('ccxt');
 
 // Internal utilities and services
 const { BrokerFactory } = require('../brokers');
+const logger = require('../utils/logger');
+const logger = require('../utils/logger');
 
 /**
  * Unified Trade Executor supporting both stock brokers (via BrokerFactory) and crypto exchanges (via CCXT)
@@ -202,7 +204,7 @@ class TradeExecutor extends EventEmitter {
     try {
       // DEMO MODE: Simulate trades without calling exchange/broker
       if (process.env.DEMO_MODE === 'true') {
-        console.log('🎭 DEMO MODE: Simulating trade execution');
+        logger.info('🎭 DEMO MODE: Simulating trade execution');
         return {
           success: true,
           orderId: `DEMO-${Date.now()}`,
@@ -313,7 +315,7 @@ class TradeExecutor extends EventEmitter {
 
       return tradeResult;
     } catch (error) {
-      console.error('Trade execution error:', error);
+      logger.error('Trade execution error:', { error: error.message, stack: error.stack });
 
       // Emit trade:failed event for real-time error notifications
       this.emit('trade:failed', {
@@ -552,7 +554,7 @@ class TradeExecutor extends EventEmitter {
       await user.recordDailyLoss(riskAmount);
       console.log(`📈 Risk exposure tracked: ${(riskAmount * 100).toFixed(2)}%`);
     } catch (error) {
-      console.error('Error tracking trade result:', error);
+      logger.error('Error tracking trade result:', { error: error.message, stack: error.stack });
     }
   }
 
@@ -580,7 +582,7 @@ class TradeExecutor extends EventEmitter {
         };
       }
     } catch (error) {
-      console.error('Error fetching balance:', error);
+      logger.error('Error fetching balance:', { error: error.message, stack: error.stack });
       // Return demo balance on error
       return { total: 10000, free: 10000, used: 0 };
     }
@@ -635,7 +637,7 @@ class TradeExecutor extends EventEmitter {
 
       return allPositions;
     } catch (error) {
-      console.error('Error fetching open positions:', error);
+      logger.error('Error fetching open positions:', { error: error.message, stack: error.stack });
       return [];
     }
   }
@@ -696,7 +698,7 @@ class TradeExecutor extends EventEmitter {
 
       return result;
     } catch (error) {
-      console.error('Error closing position:', error);
+      logger.error('Error closing position:', { error: error.message, stack: error.stack });
       return { success: false, reason: error.message };
     }
   }

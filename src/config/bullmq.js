@@ -1,5 +1,7 @@
 const { Queue, Worker } = require('bullmq');
 const Redis = require('ioredis');
+const logger = require('../utils/logger');
+const logger = require('../utils/logger');
 
 /**
  * BullMQ Configuration - Shared queue and worker factory
@@ -11,9 +13,9 @@ class BullMQConfig {
     this.enabled = !!process.env.REDIS_URL;
 
     if (!this.enabled) {
-      console.warn('[BullMQ] Disabled - no REDIS_URL configured');
-      console.warn('[BullMQ] Background jobs will not run in this mode');
-      console.warn('[BullMQ] Real-time analysis will still function normally');
+      logger.warn('[BullMQ] Disabled - no REDIS_URL configured');
+      logger.warn('[BullMQ] Background jobs will not run in this mode');
+      logger.warn('[BullMQ] Real-time analysis will still function normally');
       return;
     }
 
@@ -23,7 +25,7 @@ class BullMQConfig {
       enableReadyCheck: false,
       retryStrategy: (times) => {
         if (times > 10) {
-          console.error('[BullMQ] Redis connection failed after 10 retries');
+          logger.error('[BullMQ] Redis connection failed after 10 retries');
           return null;
         }
         return Math.min(times * 100, 3000);
@@ -35,7 +37,7 @@ class BullMQConfig {
     });
 
     this.connection.on('connect', () => {
-      console.log('[BullMQ] Redis connected');
+      logger.info('[BullMQ] Redis connected');
     });
 
     // Default job options
@@ -109,7 +111,7 @@ class BullMQConfig {
   async close() {
     if (this.connection) {
       await this.connection.quit();
-      console.log('[BullMQ] Redis connection closed');
+      logger.info('[BullMQ] Redis connection closed');
     }
   }
 

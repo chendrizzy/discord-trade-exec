@@ -14,6 +14,8 @@
 
 const Redis = require('ioredis');
 const { getConfig, isDevelopment } = require('./env');
+const logger = require('../utils/logger');
+const logger = require('../utils/logger');
 
 let redisClient = null;
 let isPubSubMode = false;
@@ -43,16 +45,16 @@ async function connect(enablePubSub = false) {
 
   // Skip Redis in test environment unless explicitly required
   if (process.env.NODE_ENV === 'test' && !process.env.REDIS_URL) {
-    console.log('⚠️  Redis skipped in test environment');
+    logger.info('⚠️  Redis skipped in test environment');
     return null;
   }
 
   // If Redis URL not provided, use in-memory fallback for development
   if (!config.REDIS_URL) {
     if (isDevelopment()) {
-      console.warn('⚠️  REDIS_URL not configured - using in-memory fallback for sessions/cache');
-      console.warn('   - WebSocket horizontal scaling disabled');
-      console.warn('   - Set REDIS_URL in .env for production-like testing');
+      logger.warn('⚠️  REDIS_URL not configured - using in-memory fallback for sessions/cache');
+      logger.warn('   - WebSocket horizontal scaling disabled');
+      logger.warn('   - Set REDIS_URL in .env for production-like testing');
       return null;
     } else {
       throw new Error('REDIS_URL is required in production environment');
@@ -71,7 +73,7 @@ async function connect(enablePubSub = false) {
     // Connect
     await redisClient.connect();
 
-    console.log('✅ Redis connected successfully');
+    logger.info('✅ Redis connected successfully');
     console.log(`   - Host: ${redisClient.options.host}`);
     console.log(`   - Port: ${redisClient.options.port}`);
     console.log(`   - Mode: ${enablePubSub ? 'Pub/Sub' : 'Standard'}`);
@@ -84,7 +86,7 @@ async function connect(enablePubSub = false) {
     console.error('❌ Redis connection failed:', error.message);
 
     if (isDevelopment()) {
-      console.warn('⚠️  Falling back to in-memory storage for development');
+      logger.warn('⚠️  Falling back to in-memory storage for development');
       redisClient = null;
       return null;
     } else {
@@ -104,19 +106,19 @@ function setupEventListeners() {
   });
 
   redisClient.on('connect', () => {
-    console.log('✅ Redis connected');
+    logger.info('✅ Redis connected');
   });
 
   redisClient.on('reconnecting', () => {
-    console.log('⚠️  Redis reconnecting...');
+    logger.info('⚠️  Redis reconnecting...');
   });
 
   redisClient.on('close', () => {
-    console.warn('⚠️  Redis connection closed');
+    logger.warn('⚠️  Redis connection closed');
   });
 
   redisClient.on('ready', () => {
-    console.log('✅ Redis ready');
+    logger.info('✅ Redis ready');
   });
 
   // Graceful shutdown handlers
@@ -136,9 +138,9 @@ async function disconnect() {
   try {
     await redisClient.quit();
     redisClient = null;
-    console.log('✅ Redis connection closed gracefully');
+    logger.info('✅ Redis connection closed gracefully');
   } catch (error) {
-    console.error('❌ Error closing Redis connection:', error);
+    logger.error('❌ Error closing Redis connection:', { error: error.message, stack: error.stack });
     // Force disconnect if graceful quit fails
     if (redisClient) {
       redisClient.disconnect();
@@ -151,7 +153,7 @@ async function disconnect() {
  * Graceful shutdown handler
  */
 async function gracefulShutdown() {
-  console.log('\n📦 Closing Redis connection...');
+  logger.info('\n📦 Closing Redis connection...');
   await disconnect();
 }
 
@@ -231,7 +233,7 @@ async function createPubSubClient() {
     });
 
     await pubSubClient.connect();
-    console.log('✅ Redis pub/sub client created');
+    logger.info('✅ Redis pub/sub client created');
 
     return pubSubClient;
   } catch (error) {

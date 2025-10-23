@@ -13,6 +13,7 @@
  */
 
 const { getClient, isAvailable } = require('../../config/redis');
+const logger = require('../../utils/logger');
 
 /**
  * Token Bucket Rate Limiter
@@ -36,7 +37,7 @@ class RateLimiter {
     // In-memory fallback for development
     if (!this.useRedis) {
       this.buckets = new Map();
-      console.warn('⚠️  Rate limiter using in-memory storage (not suitable for production)');
+      logger.warn('⚠️  Rate limiter using in-memory storage (not suitable for production)');
     }
   }
 
@@ -126,7 +127,7 @@ class RateLimiter {
         retryAfter: result[0] === 0 ? Math.ceil((result[2] - now) / 1000) : 0
       };
     } catch (error) {
-      console.error('Rate limiter Redis error:', error);
+      logger.error('Rate limiter Redis error:', { error: error.message, stack: error.stack });
       // Allow on error (fail open)
       return {
         allowed: true,
@@ -268,7 +269,7 @@ class RateLimiter {
 
         next();
       } catch (error) {
-        console.error('Rate limiter middleware error:', error);
+        logger.error('Rate limiter middleware error:', { error: error.message, stack: error.stack });
         // Fail open on error
         next();
       }

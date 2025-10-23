@@ -427,7 +427,7 @@ class RateLimiter {
    */
   updateConfig(newConfig) {
     this.config = { ...this.config, ...newConfig };
-    console.log('✓ Rate limiter configuration updated');
+    logger.info('✓ Rate limiter configuration updated');
   }
 
   /**
@@ -443,7 +443,7 @@ class RateLimiter {
       count: 0,
       firstRequest: null
     };
-    console.log('✓ Rate limiter data reset');
+    logger.info('✓ Rate limiter data reset');
   }
 
   /**

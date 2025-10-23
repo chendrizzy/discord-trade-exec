@@ -1,5 +1,7 @@
 // External dependencies
 const axios = require('axios');
+const logger = require('../utils/logger');
+const logger = require('../utils/logger');
 
 class MarketingAutomation {
   constructor() {
@@ -282,7 +284,7 @@ Join 15,000+ profitable traders today.
 
   // Initialize automated marketing system
   start() {
-    console.log('🚀 Starting automated marketing system...');
+    logger.info('🚀 Starting automated marketing system...');
 
     // Post to social media every 4 hours
     setInterval(() => this.autoPostSocialMedia(), 4 * 60 * 60 * 1000);
@@ -299,8 +301,8 @@ Join 15,000+ profitable traders today.
     // Generate SEO content weekly
     setInterval(() => this.generateSEOContent(), 7 * 24 * 60 * 60 * 1000);
 
-    console.log('✅ Automated marketing system active!');
-    console.log('📈 Customer acquisition running 24/7');
+    logger.info('✅ Automated marketing system active!');
+    logger.info('📈 Customer acquisition running 24/7');
   }
 
   // Helper methods
@@ -332,16 +334,16 @@ Join 15,000+ profitable traders today.
     console.log('📱 Posted to Twitter:', content.slice(0, 50) + '...');
   }
   async postToDiscordCommunities(content) {
-    console.log('💬 Posted to Discord communities');
+    logger.info('💬 Posted to Discord communities');
   }
   async postToReddit(content) {
-    console.log('📋 Posted to Reddit communities');
+    logger.info('📋 Posted to Reddit communities');
   }
   async sendEmailToSegment(users, content) {
     console.log(`📧 Sent email to ${users} users`);
   }
   async payReferralCommission(referral) {
-    console.log('💰 Paid referral commission');
+    logger.info('💰 Paid referral commission');
   }
   async sendReferralNotification(referrer) {
     console.log(`📨 Sent referral notification to ${referrer}`);
@@ -353,13 +355,13 @@ Join 15,000+ profitable traders today.
     console.log(`🤝 Engaging with community: ${community.name} (${community.members} members)`);
   }
   async crossPostContent(post) {
-    console.log('🔄 Cross-posting content to all platforms');
+    logger.info('🔄 Cross-posting content to all platforms');
   }
   async boostAdSpend(postId, performance) {
     console.log(`💸 Boosting ad spend for post ${postId} (performance: ${performance})`);
   }
   async notifyAffiliates(post) {
-    console.log('📢 Notifying affiliate team about viral content');
+    logger.info('📢 Notifying affiliate team about viral content');
   }
 }
 

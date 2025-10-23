@@ -8,6 +8,8 @@ const bcrypt = require('bcrypt');
 
 // Internal dependencies
 const User = require('../models/User');
+const logger = require('../utils/logger');
+const logger = require('../utils/logger');
 
 /**
  * Multi-Factor Authentication (MFA) Service
@@ -53,12 +55,12 @@ class MFAService {
       const fallbackHex = process.env.ENCRYPTION_KEY;
 
       if (fallbackHex && /^[0-9a-f]{64}$/i.test(fallbackHex)) {
-        console.warn('[MFAService] MFA_ENCRYPTION_KEY not set. Falling back to ENCRYPTION_KEY (recommended to set dedicated key).');
+        logger.warn('[MFAService] MFA_ENCRYPTION_KEY not set. Falling back to ENCRYPTION_KEY (recommended to set dedicated key).');
         this.encryptionKey = Buffer.from(fallbackHex, 'hex');
       } else if (process.env.NODE_ENV === 'production') {
         throw new Error('CRITICAL: MFA_ENCRYPTION_KEY environment variable required in production (or provide valid ENCRYPTION_KEY fallback).');
       } else {
-        console.warn('[MFAService] WARNING: MFA_ENCRYPTION_KEY not set. Using random in-memory key (NOT suitable for production).');
+        logger.warn('[MFAService] WARNING: MFA_ENCRYPTION_KEY not set. Using random in-memory key (NOT suitable for production).');
         this.encryptionKey = crypto.randomBytes(32);
       }
     } else {
@@ -608,7 +610,7 @@ class MFAService {
 
       return decrypted.toString('utf8');
     } catch (error) {
-      console.error('[MFAService] Secret decryption failed:', error);
+      logger.error('[MFAService] Secret decryption failed:', { error: error.message, stack: error.stack });
       throw new Error('Failed to decrypt MFA secret. Data may be corrupted or tampered.');
     }
   }

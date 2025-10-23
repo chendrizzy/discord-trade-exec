@@ -12,6 +12,7 @@ if (typeof ensureAdmin !== 'function') {
 }
 const { apiLimiter } = require('../../middleware/rateLimiter');
 const performanceTracker = require('../../PerformanceTracker');
+const logger = require('../../utils/logger');
 
 // Apply rate limiting to all routes
 router.use(apiLimiter);
@@ -26,7 +27,7 @@ router.get('/', ensureAuthenticated, (req, res) => {
     const metrics = performanceTracker.getMetrics();
     res.json(metrics);
   } catch (error) {
-    console.error('Error fetching metrics:', error);
+    logger.error('Error fetching metrics:', { error: error.message, stack: error.stack });
     res.status(500).json({ error: 'Failed to fetch metrics' });
   }
 });
@@ -42,7 +43,7 @@ router.get('/health', (req, res) => {
     const statusCode = health.status === 'critical' ? 503 : 200;
     res.status(statusCode).json(health);
   } catch (error) {
-    console.error('Error fetching health status:', error);
+    logger.error('Error fetching health status:', { error: error.message, stack: error.stack });
     res.status(500).json({
       status: 'critical',
       error: 'Failed to check health status',
@@ -61,7 +62,7 @@ router.get('/webhooks', ensureAuthenticated, (req, res) => {
     const metrics = performanceTracker.getMetrics();
     res.json(metrics.webhooks);
   } catch (error) {
-    console.error('Error fetching webhook metrics:', error);
+    logger.error('Error fetching webhook metrics:', { error: error.message, stack: error.stack });
     res.status(500).json({ error: 'Failed to fetch webhook metrics' });
   }
 });
@@ -76,7 +77,7 @@ router.get('/trades', ensureAuthenticated, (req, res) => {
     const metrics = performanceTracker.getMetrics();
     res.json(metrics.trades);
   } catch (error) {
-    console.error('Error fetching trade metrics:', error);
+    logger.error('Error fetching trade metrics:', { error: error.message, stack: error.stack });
     res.status(500).json({ error: 'Failed to fetch trade metrics' });
   }
 });
@@ -91,7 +92,7 @@ router.get('/database', ensureAuthenticated, (req, res) => {
     const metrics = performanceTracker.getMetrics();
     res.json(metrics.database);
   } catch (error) {
-    console.error('Error fetching database metrics:', error);
+    logger.error('Error fetching database metrics:', { error: error.message, stack: error.stack });
     res.status(500).json({ error: 'Failed to fetch database metrics' });
   }
 });
@@ -106,7 +107,7 @@ router.get('/api', ensureAuthenticated, (req, res) => {
     const metrics = performanceTracker.getMetrics();
     res.json(metrics.api);
   } catch (error) {
-    console.error('Error fetching API metrics:', error);
+    logger.error('Error fetching API metrics:', { error: error.message, stack: error.stack });
     res.status(500).json({ error: 'Failed to fetch API metrics' });
   }
 });
@@ -121,7 +122,7 @@ router.get('/mfa', ensureAuthenticated, (req, res) => {
     const metrics = performanceTracker.getMetrics();
     res.json(metrics.mfa);
   } catch (error) {
-    console.error('Error fetching MFA metrics:', error);
+    logger.error('Error fetching MFA metrics:', { error: error.message, stack: error.stack });
     res.status(500).json({ error: 'Failed to fetch MFA metrics' });
   }
 });
@@ -136,7 +137,7 @@ router.get('/system', ensureAuthenticated, (req, res) => {
     const metrics = performanceTracker.getMetrics();
     res.json(metrics.system);
   } catch (error) {
-    console.error('Error fetching system metrics:', error);
+    logger.error('Error fetching system metrics:', { error: error.message, stack: error.stack });
     res.status(500).json({ error: 'Failed to fetch system metrics' });
   }
 });
@@ -151,7 +152,7 @@ router.get('/rate-limiting', ensureAuthenticated, (req, res) => {
     const metrics = performanceTracker.getMetrics();
     res.json(metrics.rateLimiting);
   } catch (error) {
-    console.error('Error fetching rate limiting metrics:', error);
+    logger.error('Error fetching rate limiting metrics:', { error: error.message, stack: error.stack });
     res.status(500).json({ error: 'Failed to fetch rate limiting metrics' });
   }
 });
@@ -175,7 +176,7 @@ router.get('/custom/:name', ensureAuthenticated, (req, res) => {
       res.status(404).json({ error: `Custom metric '${metricName}' not found` });
     }
   } catch (error) {
-    console.error('Error fetching custom metric:', error);
+    logger.error('Error fetching custom metric:', { error: error.message, stack: error.stack });
     res.status(500).json({ error: 'Failed to fetch custom metric' });
   }
 });
@@ -203,7 +204,7 @@ router.post('/custom', ensureAuthenticated, (req, res) => {
       message: `Custom metric '${name}' recorded with value ${value}`
     });
   } catch (error) {
-    console.error('Error recording custom metric:', error);
+    logger.error('Error recording custom metric:', { error: error.message, stack: error.stack });
     res.status(500).json({ error: 'Failed to record custom metric' });
   }
 });
@@ -221,7 +222,7 @@ router.post('/reset', ensureAdmin, (req, res) => {
       message: 'All metrics have been reset'
     });
   } catch (error) {
-    console.error('Error resetting metrics:', error);
+    logger.error('Error resetting metrics:', { error: error.message, stack: error.stack });
     res.status(500).json({ error: 'Failed to reset metrics' });
   }
 });
@@ -282,7 +283,7 @@ router.get('/export', ensureAuthenticated, (req, res) => {
     res.setHeader('Content-Type', 'text/plain');
     res.send(prometheusMetrics);
   } catch (error) {
-    console.error('Error exporting metrics:', error);
+    logger.error('Error exporting metrics:', { error: error.message, stack: error.stack });
     res.status(500).json({ error: 'Failed to export metrics' });
   }
 });

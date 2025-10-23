@@ -5,6 +5,8 @@ const whaleUpdatesProcessor = require('./workers/whaleUpdates');
 const anomalyBatchProcessor = require('./workers/anomalyBatch');
 const analysisProcessor = require('./workers/analysis');
 const alertsProcessor = require('./workers/alerts');
+const logger = require('../utils/logger');
+const logger = require('../utils/logger');
 
 /**
  * JobOrchestrator - Central BullMQ worker management
@@ -26,12 +28,12 @@ class JobOrchestrator {
    */
   async start() {
     if (!bullmqConfig.enabled) {
-      console.warn('[Jobs] BullMQ disabled - background jobs will not run');
-      console.warn('[Jobs] Real-time analysis will continue normally');
+      logger.warn('[Jobs] BullMQ disabled - background jobs will not run');
+      logger.warn('[Jobs] Real-time analysis will continue normally');
       return;
     }
 
-    console.log('[Jobs] Starting workers...');
+    logger.info('[Jobs] Starting workers...');
 
     try {
       // Create workers
@@ -72,7 +74,7 @@ class JobOrchestrator {
       // Schedule recurring jobs
       await this.scheduleRecurringJobs();
 
-      console.log('[Jobs] All workers started successfully');
+      logger.info('[Jobs] All workers started successfully');
     } catch (err) {
       console.error('[Jobs] Worker startup error:', err);
       throw err;
@@ -110,11 +112,11 @@ class JobOrchestrator {
    */
   async scheduleRecurringJobs() {
     if (!this.queues.whaleUpdates || !this.queues.anomalyBatch) {
-      console.warn('[Jobs] Queues not available - recurring jobs not scheduled');
+      logger.warn('[Jobs] Queues not available - recurring jobs not scheduled');
       return;
     }
 
-    console.log('[Jobs] Scheduling recurring jobs...');
+    logger.info('[Jobs] Scheduling recurring jobs...');
 
     try {
       // Hourly whale updates
@@ -148,8 +150,8 @@ class JobOrchestrator {
         }
       );
 
-      console.log('[Jobs] Recurring jobs scheduled:');
-      console.log('  - Whale updates: Hourly (0 * * * *)');
+      logger.info('[Jobs] Recurring jobs scheduled:');
+      logger.info('  - Whale updates: Hourly (0 * * * *)');
       console.log(`  - Anomaly batch: Every ${anomalyInterval / 1000}s`);
     } catch (err) {
       console.error('[Jobs] Schedule recurring jobs error:', err);
@@ -163,7 +165,7 @@ class JobOrchestrator {
    */
   async queueAnalysis(transactionId) {
     if (!this.queues.analysis) {
-      console.warn('[Jobs] Analysis queue not available');
+      logger.warn('[Jobs] Analysis queue not available');
       return null;
     }
 
@@ -178,7 +180,7 @@ class JobOrchestrator {
    */
   async queueAlert(alertId) {
     if (!this.queues.alerts) {
-      console.warn('[Jobs] Alerts queue not available');
+      logger.warn('[Jobs] Alerts queue not available');
       return null;
     }
 
@@ -191,7 +193,7 @@ class JobOrchestrator {
    * Stop all workers gracefully
    */
   async stop() {
-    console.log('[Jobs] Stopping workers...');
+    logger.info('[Jobs] Stopping workers...');
 
     try {
       // Close all workers
@@ -208,7 +210,7 @@ class JobOrchestrator {
           .map(q => q.close())
       );
 
-      console.log('[Jobs] All workers stopped');
+      logger.info('[Jobs] All workers stopped');
     } catch (err) {
       console.error('[Jobs] Worker shutdown error:', err);
       throw err;

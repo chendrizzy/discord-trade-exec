@@ -6,6 +6,7 @@ const { ensureAuthenticated } = require('../../middleware/auth');
 const { apiLimiter } = require('../../middleware/rateLimiter');
 const ccxt = require('ccxt');
 const Trade = require('../../models/Trade');
+const logger = require('../../utils/logger');
 
 // Apply rate limiting
 router.use(apiLimiter);
@@ -75,7 +76,7 @@ router.get('/', ensureAuthenticated, async (req, res) => {
 
     res.json(responseData);
   } catch (error) {
-    console.error('Portfolio API error:', error);
+    logger.error('Portfolio API error:', { error: error.message, stack: error.stack });
     res.status(500).json({
       success: false,
       error: 'Failed to fetch portfolio data',
@@ -96,7 +97,7 @@ async function calculateTotalPortfolioValue(user) {
       // Initialize CCXT exchange
       const ExchangeClass = ccxt[exchangeConfig.name];
       if (!ExchangeClass) {
-        console.warn(`Exchange ${exchangeConfig.name} not supported by CCXT`);
+        logger.warn('Exchange ' + exchangeConfig.name + ' not supported by CCXT');
         continue;
       }
 
@@ -231,7 +232,7 @@ router.post('/refresh', ensureAuthenticated, async (req, res) => {
       message: 'Portfolio cache cleared. Next request will fetch fresh data.'
     });
   } catch (error) {
-    console.error('Portfolio refresh error:', error);
+    logger.error('Portfolio refresh error:', { error: error.message, stack: error.stack });
     res.status(500).json({
       success: false,
       error: 'Failed to refresh portfolio'

@@ -3,6 +3,8 @@ const crypto = require('crypto');
 
 // External dependencies
 const { KMSClient, EncryptCommand, DecryptCommand, GenerateDataKeyCommand } = require('@aws-sdk/client-kms');
+const logger = require('../utils/logger');
+const logger = require('../utils/logger');
 
 /**
  * AWS KMS Encryption Service
@@ -56,7 +58,7 @@ class EncryptionService {
       } else {
         // WARN in development - allow local testing with fallback encryption
         console.warn(`[EncryptionService] WARNING: ${errorMsg}`);
-        console.warn('[EncryptionService] Using fallback local encryption (NOT suitable for production)');
+        logger.warn('[EncryptionService] Using fallback local encryption (NOT suitable for production)');
       }
     }
 
@@ -125,7 +127,7 @@ class EncryptionService {
       // Return plaintext DEK (for immediate use)
       return Buffer.from(response.Plaintext);
     } catch (error) {
-      console.error('[Encryption] Failed to generate DEK:', error);
+      logger.error('[Encryption] Failed to generate DEK:', { error: error.message, stack: error.stack });
       throw new Error('Failed to generate encryption key. Check AWS KMS configuration.');
     }
   }
@@ -150,7 +152,7 @@ class EncryptionService {
 
     // No DEK yet - generate one
     if (!community.encryptedDEK) {
-      console.log('[Encryption] No DEK found for community, generating...');
+      logger.info('[Encryption] No DEK found for community, generating...');
       return await this.generateDEK(community);
     }
 
@@ -181,7 +183,7 @@ class EncryptionService {
 
       return dek;
     } catch (error) {
-      console.error('[Encryption] Failed to decrypt DEK:', error);
+      logger.error('[Encryption] Failed to decrypt DEK:', { error: error.message, stack: error.stack });
       throw new Error('Failed to decrypt community encryption key.');
     }
   }
@@ -302,7 +304,7 @@ class EncryptionService {
       // Parse JSON
       return JSON.parse(decrypted.toString('utf8'));
     } catch (error) {
-      console.error('[Encryption] Decryption failed:', error);
+      logger.error('[Encryption] Decryption failed:', { error: error.message, stack: error.stack });
       throw new Error('Failed to decrypt credential. Data may be corrupted or tampered.');
     }
   }
@@ -369,7 +371,7 @@ class EncryptionService {
 
       return decrypted.toString('utf8');
     } catch (error) {
-      console.error('[Encryption] Field decryption failed:', error);
+      logger.error('[Encryption] Field decryption failed:', { error: error.message, stack: error.stack });
       throw new Error('Failed to decrypt field.');
     }
   }
@@ -402,7 +404,7 @@ class EncryptionService {
 
       return hash;
     } catch (error) {
-      console.error('[Encryption] Password hashing failed:', error);
+      logger.error('[Encryption] Password hashing failed:', { error: error.message, stack: error.stack });
       throw new Error('Failed to hash password');
     }
   }
@@ -422,7 +424,7 @@ class EncryptionService {
     try {
       return await argon2.verify(hash, password);
     } catch (error) {
-      console.error('[Encryption] Password verification failed:', error);
+      logger.error('[Encryption] Password verification failed:', { error: error.message, stack: error.stack });
       return false;
     }
   }
@@ -454,7 +456,7 @@ class EncryptionService {
    */
   clearCache() {
     this.dekCache.clear();
-    console.log('[Encryption] DEK cache cleared');
+    logger.info('[Encryption] DEK cache cleared');
   }
 
   /**

@@ -4,6 +4,8 @@ const jwt = require('jsonwebtoken');
 
 // Models and types
 const Community = require('../models/Community');
+const logger = require('../utils/logger');
+
 
 // AsyncLocalStorage for request-scoped tenant context
 const tenantContext = new AsyncLocalStorage();
@@ -58,7 +60,7 @@ const extractTenantMiddleware = async (req, res, next) => {
     // 2. Verify JWT and extract claims
     const jwtSecret = process.env.JWT_SECRET;
     if (!jwtSecret) {
-      console.error('[TenantAuth] CRITICAL: JWT_SECRET not configured');
+      logger.error('[TenantAuth] CRITICAL: JWT_SECRET not configured');
       return res.status(500).json({
         success: false,
         error: 'Authentication service misconfigured',
@@ -163,7 +165,7 @@ const extractTenantMiddleware = async (req, res, next) => {
       next();
     });
   } catch (error) {
-    console.error('[TenantAuth] Unexpected error:', error);
+    logger.error('[TenantAuth] Unexpected error:', { error: error.message, stack: error.stack });
     return res.status(500).json({
       success: false,
       error: 'Internal authentication error',
@@ -268,7 +270,7 @@ const checkTenantPermission = permission => {
 
       next();
     } catch (error) {
-      console.error('[TenantAuth] Permission check error:', error);
+      logger.error('[TenantAuth] Permission check error:', { error: error.message, stack: error.stack });
       return res.status(500).json({
         success: false,
         error: 'Permission validation failed',
@@ -315,7 +317,7 @@ const adminOnly = async (req, res, next) => {
 
     next();
   } catch (error) {
-    console.error('[TenantAuth] Admin check error:', error);
+    logger.error('[TenantAuth] Admin check error:', { error: error.message, stack: error.stack });
     return res.status(500).json({
       success: false,
       error: 'Admin validation failed',
@@ -361,7 +363,7 @@ const ownerOnly = async (req, res, next) => {
 
     next();
   } catch (error) {
-    console.error('[TenantAuth] Owner check error:', error);
+    logger.error('[TenantAuth] Owner check error:', { error: error.message, stack: error.stack });
     return res.status(500).json({
       success: false,
       error: 'Owner validation failed',

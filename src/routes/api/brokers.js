@@ -19,6 +19,7 @@ const analyticsEventService = require('../../services/analytics/AnalyticsEventSe
 // Middleware
 const { checkBrokerAccess, requirePremiumBroker, checkBrokerLimit } = require('../../middleware/premiumGating');
 const { checkBrokerRateLimit } = require('../../middleware/rateLimiter');
+const logger = require('../../utils/logger');
 
 /**
  * Middleware to ensure user is authenticated
@@ -136,7 +137,7 @@ router.get('/', ensureAuthenticated, (req, res) => {
       stats: BrokerFactory.getStats()
     });
   } catch (error) {
-    console.error('[BrokerAPI] Error listing brokers:', error);
+    logger.error('[BrokerAPI] Error listing brokers:', { error: error.message, stack: error.stack });
     return sendError(res, error.message);
   }
 });
@@ -175,7 +176,7 @@ router.get('/:brokerKey', ensureAuthenticated, (req, res) => {
       }
     });
   } catch (error) {
-    console.error('[BrokerAPI] Error fetching broker info:', error);
+    logger.error('[BrokerAPI] Error fetching broker info:', { error: error.message, stack: error.stack });
     return sendError(res, error.message);
   }
 });
@@ -222,7 +223,7 @@ router.post('/test', ensureAuthenticated, async (req, res) => {
       balance: result.balance
     });
   } catch (error) {
-    console.error('[BrokerAPI] Error testing connection:', error);
+    logger.error('[BrokerAPI] Error testing connection:', { error: error.message, stack: error.stack });
     return sendError(res, 'Connection test failed. Please check your credentials and try again.', 500, {
       details: error.message
     });
@@ -262,7 +263,7 @@ router.post('/test/:brokerKey', ensureAuthenticated, checkBrokerRateLimit(), asy
         brokerConfig.credentials
       );
     } catch (error) {
-      console.error('[BrokerAPI] Failed to decrypt credentials:', error);
+      logger.error('[BrokerAPI] Failed to decrypt credentials:', { error: error.message, stack: error.stack });
       return sendError(res, 'Failed to decrypt credentials', 500, {
         message: 'Decryption service error. Please check AWS KMS configuration.'
       });
@@ -303,7 +304,7 @@ router.post('/test/:brokerKey', ensureAuthenticated, checkBrokerRateLimit(), asy
       balance: result.balance
     });
   } catch (error) {
-    console.error('[BrokerAPI] Error testing configured broker:', error);
+    logger.error('[BrokerAPI] Error testing configured broker:', { error: error.message, stack: error.stack });
     return sendError(res, 'Connection test failed. Please try again.', 500, {
       details: error.message
     });
@@ -365,7 +366,7 @@ router.post('/configure', ensureAuthenticated, requirePremiumBroker, checkBroker
     try {
       encryptedCredentials = await encryptionService.encryptCredential(user.communityId.toString(), credentials);
     } catch (error) {
-      console.error('[BrokerAPI] Failed to encrypt credentials:', error);
+      logger.error('[BrokerAPI] Failed to encrypt credentials:', { error: error.message, stack: error.stack });
       return sendError(res, 'Failed to encrypt credentials', 500, {
         message: 'Encryption service error. Please check AWS KMS configuration.'
       });
@@ -408,7 +409,7 @@ router.post('/configure', ensureAuthenticated, requirePremiumBroker, checkBroker
       }
     });
   } catch (error) {
-    console.error('[BrokerAPI] Error saving configuration:', error);
+    logger.error('[BrokerAPI] Error saving configuration:', { error: error.message, stack: error.stack });
     return sendError(res, error.message);
   }
 });
@@ -459,7 +460,7 @@ router.get('/user/configured', ensureAuthenticated, async (req, res) => {
       brokers: brokersWithInfo
     });
   } catch (error) {
-    console.error('[BrokerAPI] Error fetching configured brokers:', error);
+    logger.error('[BrokerAPI] Error fetching configured brokers:', { error: error.message, stack: error.stack });
     return sendError(res, error.message);
   }
 });
@@ -498,7 +499,7 @@ router.delete('/user/:brokerKey', ensureAuthenticated, async (req, res) => {
       message: `${brokerInfo?.name || brokerKey} disconnected successfully`
     });
   } catch (error) {
-    console.error('[BrokerAPI] Error removing broker config:', error);
+    logger.error('[BrokerAPI] Error removing broker config:', { error: error.message, stack: error.stack });
     return sendError(res, error.message);
   }
 });
@@ -551,7 +552,7 @@ router.post('/compare', ensureAuthenticated, async (req, res) => {
       comparison
     });
   } catch (error) {
-    console.error('[BrokerAPI] Error comparing fees:', error);
+    logger.error('[BrokerAPI] Error comparing fees:', { error: error.message, stack: error.stack });
     return sendError(res, error.message);
   }
 });
@@ -591,7 +592,7 @@ router.post('/recommend', ensureAuthenticated, (req, res) => {
       }
     });
   } catch (error) {
-    console.error('[BrokerAPI] Error getting recommendation:', error);
+    logger.error('[BrokerAPI] Error getting recommendation:', { error: error.message, stack: error.stack });
     return sendError(res, error.message);
   }
 });

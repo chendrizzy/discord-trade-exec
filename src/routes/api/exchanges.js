@@ -9,6 +9,7 @@ const { encrypt, decrypt } = require('../../middleware/encryption');
 const User = require('../../models/User');
 const { sendSuccess, sendError, sendValidationError, sendNotFound } = require('../../utils/api-response');
 const cacheService = require('../../services/CacheService');
+const logger = require('../../utils/logger');
 
 // Apply general API rate limiting
 router.use(apiLimiter);
@@ -149,7 +150,7 @@ router.get('/', ensureAuthenticated, async (req, res) => {
       exchanges
     });
   } catch (error) {
-    console.error('Error fetching exchanges:', error);
+    logger.error('Error fetching exchanges:', { error: error.message, stack: error.stack });
     return sendError(res, 'Failed to fetch exchanges');
   }
 });
@@ -221,7 +222,7 @@ router.post('/', ensureAuthenticated, async (req, res) => {
       }
     });
   } catch (error) {
-    console.error('Error adding exchange:', error);
+    logger.error('Error adding exchange:', { error: error.message, stack: error.stack });
     return sendError(res, 'Failed to add exchange', 500, { details: error.message });
   }
 });
@@ -252,7 +253,7 @@ router.delete('/:id', ensureAuthenticated, async (req, res) => {
       message: `${exchangeName} removed successfully`
     });
   } catch (error) {
-    console.error('Error removing exchange:', error);
+    logger.error('Error removing exchange:', { error: error.message, stack: error.stack });
     return sendError(res, 'Failed to remove exchange');
   }
 });
@@ -305,7 +306,7 @@ router.post('/:id/validate', ensureAuthenticated, async (req, res) => {
       }
     });
   } catch (error) {
-    console.error('Error validating exchange:', error);
+    logger.error('Error validating exchange:', { error: error.message, stack: error.stack });
     return sendError(res, 'Failed to validate exchange', 500, { details: error.message });
   }
 });
@@ -335,7 +336,7 @@ router.patch('/:id/toggle', ensureAuthenticated, async (req, res) => {
       isActive: exchange.isActive
     });
   } catch (error) {
-    console.error('Error toggling exchange:', error);
+    logger.error('Error toggling exchange:', { error: error.message, stack: error.stack });
     return sendError(res, 'Failed to toggle exchange');
   }
 });
@@ -402,7 +403,7 @@ router.post('/cache-invalidate', ensureAuthenticated, async (req, res) => {
       timestamp: new Date().toISOString()
     });
   } catch (error) {
-    console.error('Error invalidating cache:', error);
+    logger.error('Error invalidating cache:', { error: error.message, stack: error.stack });
     return sendError(res, 'Failed to invalidate cache', 500, { details: error.message });
   }
 });
@@ -606,7 +607,7 @@ router.get('/compare-fees', ensureAuthenticated, exchangeApiLimiter, async (req,
       errors: errors.length > 0 ? errors : undefined
     });
   } catch (error) {
-    console.error('Error comparing exchange fees:', error);
+    logger.error('Error comparing exchange fees:', { error: error.message, stack: error.stack });
     return sendError(res, 'Failed to compare exchange fees', 500, { details: error.message });
   }
 });

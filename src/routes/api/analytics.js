@@ -1,6 +1,7 @@
 // External dependencies
 const express = require('express');
 const router = express.Router();
+const logger = require('../../utils/logger');
 
 // Internal utilities and services
 const { getRevenueMetricsInstance } = require('../../services/analytics/RevenueMetrics');
@@ -63,7 +64,10 @@ router.get('/revenue', requireAdmin, async (req, res) => {
     });
   } catch (error) {
     metricsTracker.recordError(tracker, error);
-    console.error('Error fetching revenue metrics:', error);
+    logger.error('Error fetching slow queries', {
+      error: error.message,
+      stack: error.stack
+    });
     res.status(500).json({
       success: false,
       error: 'Failed to fetch revenue metrics',
@@ -87,7 +91,7 @@ router.get('/mrr', requireAdmin, async (req, res) => {
       cached: result.fromCache
     });
   } catch (error) {
-    console.error('Error fetching MRR:', error);
+    logger.error('Error fetching MRR', { error: error.message, stack: error.stack });
     res.status(500).json({
       success: false,
       error: 'Failed to fetch MRR',
@@ -109,7 +113,7 @@ router.get('/arr', requireAdmin, async (req, res) => {
       data: arr
     });
   } catch (error) {
-    console.error('Error fetching ARR:', error);
+    logger.error('Error fetching ARR', { error: error.message, stack: error.stack });
     res.status(500).json({
       success: false,
       error: 'Failed to fetch ARR',
@@ -133,7 +137,7 @@ router.get('/ltv', requireAdmin, async (req, res) => {
       cached: result.fromCache
     });
   } catch (error) {
-    console.error('Error fetching LTV:', error);
+    logger.error('Error fetching LTV', { error: error.message, stack: error.stack });
     res.status(500).json({
       success: false,
       error: 'Failed to fetch LTV',
@@ -164,7 +168,7 @@ router.get('/churn', requireAdmin, async (req, res) => {
       data: churn
     });
   } catch (error) {
-    console.error('Error fetching churn rate:', error);
+    logger.error('Error fetching churn rate', { error: error.message, stack: error.stack });
     res.status(500).json({
       success: false,
       error: 'Failed to fetch churn rate',
@@ -198,7 +202,7 @@ router.get('/churn-risks', requireAdmin, async (req, res) => {
       }
     });
   } catch (error) {
-    console.error('Error fetching churn risks:', error);
+    logger.error('Error fetching churn risks', { error: error.message, stack: error.stack });
     res.status(500).json({
       success: false,
       error: 'Failed to fetch churn risks',
@@ -240,7 +244,7 @@ router.post('/churn-risk/calculate', requireAdmin, async (req, res) => {
       data: riskAnalysis
     });
   } catch (error) {
-    console.error('Error calculating churn risk:', error);
+    logger.error('Error calculating churn risk', { error: error.message, stack: error.stack });
     res.status(500).json({
       success: false,
       error: 'Failed to calculate churn risk',
@@ -335,7 +339,7 @@ router.get('/dashboard', requireAdmin, async (req, res) => {
       }
     });
   } catch (error) {
-    console.error('Error fetching dashboard metrics:', error);
+    logger.error('Error fetching dashboard metrics', { error: error.message, stack: error.stack });
     res.status(500).json({
       success: false,
       error: 'Failed to fetch dashboard metrics',
@@ -364,7 +368,7 @@ router.get('/cohorts/retention', requireAdmin, async (req, res) => {
       data: retentionTable
     });
   } catch (error) {
-    console.error('Error generating cohort retention table:', error);
+    logger.error('Error generating cohort retention table', { error: error.message, stack: error.stack });
     res.status(500).json({
       success: false,
       error: 'Failed to generate retention table',
@@ -395,7 +399,7 @@ router.get('/cohorts/:cohortId', requireAdmin, async (req, res) => {
       data: analysis
     });
   } catch (error) {
-    console.error('Error analyzing cohort:', error);
+    logger.error('Error analyzing cohort', { error: error.message, stack: error.stack });
     res.status(500).json({
       success: false,
       error: 'Failed to analyze cohort',
@@ -426,7 +430,7 @@ router.post('/cohorts/compare', requireAdmin, async (req, res) => {
       data: comparison
     });
   } catch (error) {
-    console.error('Error comparing cohorts:', error);
+    logger.error('Error comparing cohorts', { error: error.message, stack: error.stack });
     res.status(500).json({
       success: false,
       error: 'Failed to compare cohorts',
@@ -457,7 +461,7 @@ router.get('/metrics', requireAdmin, async (req, res) => {
       data: metrics
     });
   } catch (error) {
-    console.error('Error fetching analytics metrics:', error);
+    logger.error('Error fetching analytics metrics', { error: error.message, stack: error.stack });
     res.status(500).json({
       success: false,
       error: 'Failed to fetch analytics metrics',
@@ -483,7 +487,7 @@ router.get('/metrics/slow-queries', requireAdmin, async (req, res) => {
       }
     });
   } catch (error) {
-    console.error('Error fetching slow queries:', error);
+    logger.error('Error fetching slow queries', { error: error.message, stack: error.stack });
     res.status(500).json({
       success: false,
       error: 'Failed to fetch slow queries',
@@ -555,7 +559,7 @@ router.get('/health', requireAdmin, async (req, res) => {
       data: health
     });
   } catch (error) {
-    console.error('Error checking analytics health:', error);
+    logger.error('Error checking analytics health', { error: error.message, stack: error.stack });
     res.status(500).json({
       success: false,
       error: 'Failed to check analytics health',
@@ -587,7 +591,7 @@ router.get('/alerts', requireAdmin, async (req, res) => {
       data: alerts
     });
   } catch (error) {
-    console.error('Error fetching alerts:', error);
+    logger.error('Error fetching alerts', { error: error.message, stack: error.stack });
     res.status(500).json({
       success: false,
       error: 'Failed to fetch alerts',
@@ -620,7 +624,7 @@ router.get('/query-patterns', requireAdmin, async (req, res) => {
       }
     });
   } catch (error) {
-    console.error('Error fetching query patterns:', error);
+    logger.error('Error fetching query patterns', { error: error.message, stack: error.stack });
     res.status(500).json({
       success: false,
       error: 'Failed to fetch query patterns',
@@ -642,7 +646,7 @@ router.get('/optimization-report', requireAdmin, async (req, res) => {
       data: report
     });
   } catch (error) {
-    console.error('Error generating optimization report:', error);
+    logger.error('Error generating optimization report', { error: error.message, stack: error.stack });
     res.status(500).json({
       success: false,
       error: 'Failed to generate optimization report',

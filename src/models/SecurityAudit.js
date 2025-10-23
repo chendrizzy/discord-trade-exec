@@ -1,5 +1,6 @@
 // External dependencies
 const mongoose = require('mongoose');
+const logger = require('../utils/logger');
 
 const securityAuditSchema = new mongoose.Schema(
   {
@@ -222,7 +223,7 @@ securityAuditSchema.statics.log = async function (data) {
     await audit.save();
     return audit;
   } catch (error) {
-    console.error('[SecurityAudit] Failed to log event:', error);
+    logger.error('[SecurityAudit] Failed to log event:', { error: error.message, stack: error.stack });
     // Don't throw - audit logging failure shouldn't break application
     return null;
   }

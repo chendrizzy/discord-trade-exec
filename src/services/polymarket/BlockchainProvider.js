@@ -7,6 +7,7 @@
 
 const { ethers } = require('ethers');
 const polygonConfig = require('../../config/polygon');
+const logger = require('../../utils/logger');
 
 class BlockchainProvider {
   constructor() {
@@ -212,7 +213,7 @@ class BlockchainProvider {
     const interval = polygonConfig.providers.healthCheckInterval;
 
     this.healthCheckInterval = setInterval(async () => {
-      console.log('[BlockchainProvider] Running scheduled health check...');
+      logger.info('[BlockchainProvider] Running scheduled health check...');
       await this._checkProviderHealth(this.activeProvider);
     }, interval);
 
@@ -226,7 +227,7 @@ class BlockchainProvider {
     if (this.healthCheckInterval) {
       clearInterval(this.healthCheckInterval);
       this.healthCheckInterval = null;
-      console.log('[BlockchainProvider] Health checks stopped');
+      logger.info('[BlockchainProvider] Health checks stopped');
     }
   }
 
@@ -253,14 +254,14 @@ class BlockchainProvider {
    */
   async testConnection() {
     try {
-      console.log('[BlockchainProvider] Testing connection...');
+      logger.info('[BlockchainProvider] Testing connection...');
 
       const provider = await this.getProvider();
       const network = await provider.getNetwork();
       const blockNumber = await provider.getBlockNumber();
       const balance = await provider.getBalance('0x0000000000000000000000000000000000000000');
 
-      console.log('[BlockchainProvider] Connection test successful:');
+      logger.info('[BlockchainProvider] Connection test successful:');
       console.log(`  Network: ${network.name} (chainId: ${network.chainId})`);
       console.log(`  Current Block: ${blockNumber}`);
       console.log(`  Provider: ${this.activeProvider.name}`);
@@ -273,7 +274,7 @@ class BlockchainProvider {
         provider: this.activeProvider.name
       };
     } catch (error) {
-      console.error('[BlockchainProvider] Connection test failed:', error);
+      logger.error('[BlockchainProvider] Connection test failed:', { error: error.message, stack: error.stack });
       return {
         success: false,
         error: error.message

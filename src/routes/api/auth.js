@@ -14,6 +14,7 @@ const { ensureAuthenticated } = require('../../middleware/auth');
 const { getMFAService } = require('../../services/MFAService');
 const User = require('../../models/User');
 const { BrokerFactory } = require('../../brokers');
+const logger = require('../../utils/logger');
 
 // Initialize MFA service
 const mfaService = getMFAService();
@@ -41,25 +42,29 @@ router.get('/broker/:broker/authorize', ensureAuthenticated, (req, res) => {
     }
 
     // Generate authorization URL
-    const authorizationURL = oauth2Service.generateAuthorizationURL(
-      broker,
-      req.user.id,
-      req.session,
-      {
-        communityId: req.user.communityId ? req.user.communityId.toString() : null,
-        ipAddress: req.ip,
-        userAgent: req.get('user-agent')
-      }
-    );
+    const authorizationURL = oauth2Service.generateAuthorizationURL(broker, req.user.id, req.session, {
+      communityId: req.user.communityId ? req.user.communityId.toString() : null,
+      ipAddress: req.ip,
+      userAgent: req.get('user-agent')
+    });
 
-    console.log(`[AuthRoutes] Authorization URL generated | broker: ${broker} | userId: ${req.user.id}`);
+    logger.info('OAuth2 authorization URL generated', {
+      broker,
+      userId: req.user.id,
+      communityId: req.user.communityId
+    });
 
     res.json({
       success: true,
       authorizationURL
     });
   } catch (error) {
-    console.error('[AuthRoutes] Authorization URL generation failed:', error);
+    logger.error('Authorization URL generation failed', {
+      broker: req.params.broker,
+      userId: req.user.id,
+      error: error.message,
+      stack: error.stack
+    });
     res.status(500).json({
       success: false,
       error: error.message
@@ -89,69 +94,75 @@ router.get('/brokers/status', ensureAuthenticated, async (req, res) => {
     const enabledBrokers = getEnabledProviders();
     const now = Date.now();
 
-    const brokers = enabledBrokers.map(brokerKey => {
-      const config = getProviderConfig(brokerKey);
-      if (!config) {
-        return null;
-      }
-
-      const brokerInfo = BrokerFactory.getBrokerInfo(brokerKey) || {};
-
-      let storedTokens;
-      if (user.tradingConfig?.oauthTokens?.get) {
-        storedTokens = user.tradingConfig.oauthTokens.get(brokerKey);
-      } else if (user.tradingConfig?.oauthTokens) {
-        storedTokens = user.tradingConfig.oauthTokens[brokerKey];
-      }
-
-      let expiresAt = storedTokens?.expiresAt ? new Date(storedTokens.expiresAt) : null;
-      const connectedAt = storedTokens?.connectedAt ? new Date(storedTokens.connectedAt) : null;
-      const lastRefreshAttempt = storedTokens?.lastRefreshAttempt ? new Date(storedTokens.lastRefreshAttempt) : null;
-
-      let status = 'disconnected';
-      if (storedTokens) {
-        if (storedTokens.isValid === false) {
-          status = 'revoked';
-        } else if (expiresAt && expiresAt.getTime() <= now) {
-          status = 'expired';
-        } else if (expiresAt && expiresAt.getTime() - now <= 60 * 60 * 1000) {
-          status = 'expiring';
-        } else {
-          status = 'connected';
+    const brokers = enabledBrokers
+      .map(brokerKey => {
+        const config = getProviderConfig(brokerKey);
+        if (!config) {
+          return null;
         }
-      }
 
-      const expiresInSeconds = expiresAt ? Math.max(0, Math.floor((expiresAt.getTime() - now) / 1000)) : null;
+        const brokerInfo = BrokerFactory.getBrokerInfo(brokerKey) || {};
 
-      return {
-        key: brokerKey,
-        name: brokerInfo.name || brokerKey,
-        type: brokerInfo.type || 'stock',
-        authMethods: brokerInfo.authMethods || ['oauth'],
-        websiteUrl: brokerInfo.websiteUrl,
-        docsUrl: brokerInfo.docsUrl,
-        features: brokerInfo.features || [],
-        status,
-        isValid: storedTokens?.isValid !== false,
-        connectedAt: connectedAt ? connectedAt.toISOString() : null,
-        expiresAt: expiresAt ? expiresAt.toISOString() : null,
-        expiresInSeconds,
-        tokenType: storedTokens?.tokenType || config?.tokenType || 'Bearer',
-        scopes: storedTokens?.scopes || config?.scopes || [],
-        lastRefreshAttempt: lastRefreshAttempt ? lastRefreshAttempt.toISOString() : null,
-        lastRefreshError: storedTokens?.lastRefreshError || null,
-        supportsManualRefresh: !!config?.tokenURL,
-        supportsRefreshTokenRotation: !!config?.supportsRefreshTokenRotation,
-        tokenExpiryMs: config?.tokenExpiry || null
-      };
-    }).filter(Boolean);
+        let storedTokens;
+        if (user.tradingConfig?.oauthTokens?.get) {
+          storedTokens = user.tradingConfig.oauthTokens.get(brokerKey);
+        } else if (user.tradingConfig?.oauthTokens) {
+          storedTokens = user.tradingConfig.oauthTokens[brokerKey];
+        }
+
+        let expiresAt = storedTokens?.expiresAt ? new Date(storedTokens.expiresAt) : null;
+        const connectedAt = storedTokens?.connectedAt ? new Date(storedTokens.connectedAt) : null;
+        const lastRefreshAttempt = storedTokens?.lastRefreshAttempt ? new Date(storedTokens.lastRefreshAttempt) : null;
+
+        let status = 'disconnected';
+        if (storedTokens) {
+          if (storedTokens.isValid === false) {
+            status = 'revoked';
+          } else if (expiresAt && expiresAt.getTime() <= now) {
+            status = 'expired';
+          } else if (expiresAt && expiresAt.getTime() - now <= 60 * 60 * 1000) {
+            status = 'expiring';
+          } else {
+            status = 'connected';
+          }
+        }
+
+        const expiresInSeconds = expiresAt ? Math.max(0, Math.floor((expiresAt.getTime() - now) / 1000)) : null;
+
+        return {
+          key: brokerKey,
+          name: brokerInfo.name || brokerKey,
+          type: brokerInfo.type || 'stock',
+          authMethods: brokerInfo.authMethods || ['oauth'],
+          websiteUrl: brokerInfo.websiteUrl,
+          docsUrl: brokerInfo.docsUrl,
+          features: brokerInfo.features || [],
+          status,
+          isValid: storedTokens?.isValid !== false,
+          connectedAt: connectedAt ? connectedAt.toISOString() : null,
+          expiresAt: expiresAt ? expiresAt.toISOString() : null,
+          expiresInSeconds,
+          tokenType: storedTokens?.tokenType || config?.tokenType || 'Bearer',
+          scopes: storedTokens?.scopes || config?.scopes || [],
+          lastRefreshAttempt: lastRefreshAttempt ? lastRefreshAttempt.toISOString() : null,
+          lastRefreshError: storedTokens?.lastRefreshError || null,
+          supportsManualRefresh: !!config?.tokenURL,
+          supportsRefreshTokenRotation: !!config?.supportsRefreshTokenRotation,
+          tokenExpiryMs: config?.tokenExpiry || null
+        };
+      })
+      .filter(Boolean);
 
     res.json({
       success: true,
       brokers
     });
   } catch (error) {
-    console.error('[AuthRoutes] Failed to fetch OAuth2 broker status:', error);
+    logger.error('Failed to fetch OAuth2 broker status', {
+      userId: req.user.id,
+      error: error.message,
+      stack: error.stack
+    });
     res.status(500).json({
       success: false,
       error: error.message
@@ -177,7 +188,12 @@ router.get('/callback', async (req, res) => {
 
     // Handle authorization denial or error
     if (error) {
-      console.warn(`[AuthRoutes] OAuth2 authorization error: ${error} - ${error_description}`);
+      logger.warn('OAuth2 authorization error', {
+        error,
+        error_description,
+        state,
+        ip: req.ip
+      });
 
       const errorMessages = {
         access_denied: 'Authorization cancelled. You can try connecting again anytime.',
@@ -199,10 +215,16 @@ router.get('/callback', async (req, res) => {
     const validation = oauth2Service.validateState(state, req.session);
 
     if (!validation.valid) {
-      console.error(`[AuthRoutes] State validation failed: ${validation.error}`);
-      return res.redirect(`/dashboard?oauth_error=${encodeURIComponent('Authorization session invalid. Please try connecting again.')}`);
+      logger.error('State validation failed', {
+        error: validation.error,
+        state,
+        ip: req.ip,
+        userAgent: req.get('user-agent')
+      });
+      return res.redirect(
+        `/dashboard?oauth_error=${encodeURIComponent('Authorization session invalid. Please try connecting again.')}`
+      );
     }
-
     const { broker, userId } = validation;
 
     // Exchange code for tokens
@@ -234,12 +256,21 @@ router.get('/callback', async (req, res) => {
 
     await user.save();
 
-    console.log(`[AuthRoutes] OAuth2 connection successful | broker: ${broker} | userId: ${userId}`);
+    logger.info('OAuth2 connection successful', {
+      broker,
+      userId,
+      communityId: user.communityId
+    });
 
     // Redirect to dashboard with success message
     res.redirect(`/dashboard?connection=success&broker=${broker}`);
   } catch (error) {
-    console.error('[AuthRoutes] OAuth2 callback failed:', error);
+    logger.error('OAuth2 callback failed', {
+      error: error.message,
+      stack: error.stack,
+      state: req.query.state,
+      ip: req.ip
+    });
     res.redirect(`/dashboard?oauth_error=${encodeURIComponent(error.message)}`);
   }
 });
@@ -270,11 +301,20 @@ router.post('/callback', async (req, res) => {
     const validation = oauth2Service.validateState(state, req.session);
 
     if (!validation.valid) {
-      console.error(`[AuthRoutes] State validation failed: ${validation.error}`);
+      logger.error('State validation failed (POST)', {
+        error: validation.error,
+        state,
+        ip: req.ip,
+        userAgent: req.get('user-agent')
+      });
 
       // Security event: possible CSRF attack
       if (validation.error.includes('CSRF')) {
-        console.error(`[AuthRoutes] SECURITY: Possible CSRF attack detected | IP: ${req.ip}`);
+        logger.error('SECURITY: Possible CSRF attack detected', {
+          ip: req.ip,
+          userAgent: req.get('user-agent'),
+          state
+        });
       }
 
       return res.status(403).json({
@@ -315,7 +355,11 @@ router.post('/callback', async (req, res) => {
 
     await user.save();
 
-    console.log(`[AuthRoutes] OAuth2 connection successful (POST) | broker: ${broker} | userId: ${userId}`);
+    logger.info('OAuth2 connection successful (POST)', {
+      broker,
+      userId,
+      communityId: user.communityId
+    });
 
     res.json({
       success: true,
@@ -323,7 +367,13 @@ router.post('/callback', async (req, res) => {
       message: `${broker.toUpperCase()} connected successfully`
     });
   } catch (error) {
-    console.error('[AuthRoutes] OAuth2 callback failed (POST):', error);
+    logger.error('OAuth2 callback failed (POST)', {
+      error: error.message,
+      stack: error.stack,
+      code: req.body.code ? 'present' : 'missing',
+      state: req.body.state,
+      ip: req.ip
+    });
     res.status(500).json({
       success: false,
       error: error.message
@@ -361,14 +411,22 @@ router.delete('/brokers/:broker/oauth', ensureAuthenticated, async (req, res) =>
     user.tradingConfig.oauthTokens.delete(broker);
     await user.save();
 
-    console.log(`[AuthRoutes] OAuth2 tokens revoked | broker: ${broker} | userId: ${userId}`);
+    logger.info('OAuth2 tokens revoked', {
+      broker,
+      userId
+    });
 
     res.json({
       success: true,
       message: `${broker.toUpperCase()} OAuth2 connection removed successfully`
     });
   } catch (error) {
-    console.error('[AuthRoutes] OAuth2 token revocation failed:', error);
+    logger.error('OAuth2 token revocation failed', {
+      broker: req.params.broker,
+      userId: req.user.id,
+      error: error.message,
+      stack: error.stack
+    });
     res.status(500).json({
       success: false,
       error: error.message
@@ -402,7 +460,11 @@ router.post('/brokers/:broker/oauth/refresh', ensureAuthenticated, async (req, r
     // Refresh tokens
     const tokens = await oauth2Service.refreshAccessToken(broker, userId);
 
-    console.log(`[AuthRoutes] Manual OAuth2 token refresh successful | broker: ${broker} | userId: ${userId}`);
+    logger.info('Manual OAuth2 token refresh successful', {
+      broker,
+      userId,
+      expiresAt: tokens.expiresAt
+    });
 
     res.json({
       success: true,
@@ -410,7 +472,12 @@ router.post('/brokers/:broker/oauth/refresh', ensureAuthenticated, async (req, r
       expiresAt: tokens.expiresAt
     });
   } catch (error) {
-    console.error('[AuthRoutes] Manual OAuth2 token refresh failed:', error);
+    logger.error('Manual OAuth2 token refresh failed', {
+      broker: req.params.broker,
+      userId: req.user.id,
+      error: error.message,
+      stack: error.stack
+    });
     res.status(500).json({
       success: false,
       error: error.message
@@ -438,14 +505,22 @@ router.post('/mfa/setup', ensureAuthenticated, async (req, res) => {
 
     const setup = await mfaService.generateSecret(userId);
 
-    console.log(`[MFA] Setup initiated for user ${req.user.discordUsername} (${userId})`);
+    logger.info('MFA setup initiated', {
+      userId,
+      username: req.user.discordUsername
+    });
 
     res.json({
       success: true,
       ...setup
     });
   } catch (error) {
-    console.error('[MFA] Setup failed:', error);
+    logger.error('MFA setup failed', {
+      userId: req.user._id,
+      username: req.user.discordUsername,
+      error: error.message,
+      stack: error.stack
+    });
 
     if (error.message.includes('already enabled')) {
       return res.status(400).json({
@@ -491,14 +566,23 @@ router.post('/mfa/enable', ensureAuthenticated, async (req, res) => {
 
     const result = await mfaService.enableMFA(userId, token);
 
-    console.log(`[MFA] MFA enabled successfully for user ${req.user.discordUsername} (${userId})`);
+    logger.info('MFA enabled successfully', {
+      userId,
+      username: req.user.discordUsername,
+      backupCodesGenerated: result.backupCodes?.length || 0
+    });
 
     res.json({
       success: true,
       ...result
     });
   } catch (error) {
-    console.error('[MFA] Enable failed:', error);
+    logger.error('MFA enable failed', {
+      userId: req.user._id,
+      username: req.user.discordUsername,
+      error: error.message,
+      stack: error.stack
+    });
 
     if (error.message.includes('Invalid TOTP token')) {
       return res.status(400).json({
@@ -565,14 +649,22 @@ router.post('/mfa/disable', ensureAuthenticated, async (req, res) => {
       req.session.mfaVerified = false;
     }
 
-    console.log(`[MFA] MFA disabled for user ${req.user.discordUsername} (${userId})`);
+    logger.info('MFA disabled', {
+      userId,
+      username: req.user.discordUsername
+    });
 
     res.json({
       success: true,
       ...result
     });
   } catch (error) {
-    console.error('[MFA] Disable failed:', error);
+    logger.error('MFA disable failed', {
+      userId: req.user._id,
+      username: req.user.discordUsername,
+      error: error.message,
+      stack: error.stack
+    });
 
     if (error.message.includes('Invalid TOTP token')) {
       return res.status(400).json({
@@ -634,14 +726,23 @@ router.post('/mfa/backup-codes/regenerate', ensureAuthenticated, async (req, res
 
     const result = await mfaService.regenerateBackupCodes(userId, token);
 
-    console.log(`[MFA] Backup codes regenerated for user ${req.user.discordUsername} (${userId})`);
+    logger.info('Backup codes regenerated', {
+      userId,
+      username: req.user.discordUsername,
+      newCodesCount: result.backupCodes?.length || 0
+    });
 
     res.json({
       success: true,
       ...result
     });
   } catch (error) {
-    console.error('[MFA] Backup code regeneration failed:', error);
+    logger.error('Backup code regeneration failed', {
+      userId: req.user._id,
+      username: req.user.discordUsername,
+      error: error.message,
+      stack: error.stack
+    });
 
     if (error.message.includes('Invalid TOTP token')) {
       return res.status(400).json({
@@ -694,7 +795,12 @@ router.get('/mfa/status', ensureAuthenticated, async (req, res) => {
       ...status
     });
   } catch (error) {
-    console.error('[MFA] Status check failed:', error);
+    logger.error('MFA status check failed', {
+      userId: req.user._id,
+      username: req.user.discordUsername,
+      error: error.message,
+      stack: error.stack
+    });
 
     res.status(500).json({
       success: false,
@@ -765,7 +871,12 @@ router.post('/mfa/verify', ensureAuthenticated, async (req, res) => {
     }
 
     if (!isValid) {
-      console.warn(`[MFA] Verification failed for user ${req.user.discordUsername} (${userId})`);
+      logger.warn('MFA verification failed', {
+        userId,
+        username: req.user.discordUsername,
+        tokenType,
+        ip: req.ip
+      });
 
       return res.status(400).json({
         success: false,
@@ -777,7 +888,12 @@ router.post('/mfa/verify', ensureAuthenticated, async (req, res) => {
     // Mark MFA as verified in session
     req.session.mfaVerified = true;
 
-    console.log(`[MFA] Verification successful for user ${req.user.discordUsername} (${userId}) using ${tokenType}`);
+    logger.info('MFA verification successful', {
+      userId,
+      username: req.user.discordUsername,
+      tokenType,
+      ip: req.ip
+    });
 
     res.json({
       success: true,
@@ -786,7 +902,12 @@ router.post('/mfa/verify', ensureAuthenticated, async (req, res) => {
       type: tokenType
     });
   } catch (error) {
-    console.error('[MFA] Verification failed:', error);
+    logger.error('MFA verification failed', {
+      userId: req.user._id,
+      username: req.user.discordUsername,
+      error: error.message,
+      stack: error.stack
+    });
 
     if (error.message.includes('Rate limit exceeded')) {
       return res.status(429).json({

@@ -1,254 +1,221 @@
-# Discord Trade Executor - Automated Trading Bot SaaS
+# Documentation Index
 
-## 🤖 ZERO CONFIGURATION SETUP
-```bash
-./auto-setup.sh
-```
+**Last Updated**: October 23, 2025
 
-**NEW!** Complete automation that configures ALL API keys automatically:
-✅ Creates Discord bot and retrieves token  
-✅ Sets up Polar.sh billing (Merchant of Record)  
-✅ Configures Binance trading API (testnet)  
-✅ Deploys MongoDB Atlas database  
-✅ Sets up marketing automation  
+This directory contains all project documentation organized by type and purpose.
 
-No manual configuration needed! See `AUTOMATED-SETUP.md` for details.
-
-## 🚀 Alternative: Manual Setup
-```bash
-./quickstart.sh
-```
-
-📖 **Full Documentation:** See [specs/003-discord-trade-executor-main/quickstart.md](specs/003-discord-trade-executor-main/quickstart.md) for detailed setup instructions, local development guide, and test broker configurations.
-
-## 💰 Revenue Model
-
-- **Basic Plan:** $49/month - 100 signals/day
-- **Pro Plan:** $99/month - Unlimited signals  
-- **Premium Plan:** $299/month - Multiple brokers + Priority execution
-
-## 🎯 Features
-
-✅ Millisecond trade execution
-✅ Natural language signal parsing
-✅ Multi-broker support
-✅ Automatic risk management
-✅ Performance analytics
-✅ Discord bot integration
-✅ Polar.sh subscription billing (global tax compliance)
-✅ Beautiful dashboard
-🆕 **REAL-TIME WEBSOCKET UPDATES** (NEW!)
-✅ Live portfolio updates
-✅ Instant trade notifications
-✅ Real-time market quotes
-✅ Horizontal scaling support (1000+ concurrent connections)
-🆕 **AUTOMATED MARKETING**
-✅ 24/7 social media automation
-✅ Viral content detection & amplification
-✅ Email marketing sequences
-✅ SEO content generation
-✅ Community outreach automation
-✅ Referral program management
-
-## 💱 Crypto Exchange Support
-
-### Supported Exchanges
-- **Coinbase Pro** (Advanced Trade API) - 0.5% maker/taker fees
-- **Kraken** - 0.16% maker / 0.26% taker fees
-- **Additional exchanges** (Binance, Bybit, OKX) - Coming soon
-
-### Fee Comparison Tool
-Compare trading fees across your connected exchanges in real-time:
-- ✅ Automatic fee calculation for any symbol/quantity
-- ✅ Smart recommendations for cheapest exchange
-- ✅ Calculate savings vs most expensive option
-- ✅ Live price data from all exchanges
-- ✅ One-click comparison in dashboard
-
-**Example**: Trading 0.5 BTC on Kraken vs Coinbase Pro can save you **$60** per trade (48% savings)!
-
-### Supported Assets (Launch)
-| Asset | Coinbase Pro | Kraken | Status |
-|-------|--------------|--------|--------|
-| BTC   | ✅ | ✅ | Live |
-| ETH   | ✅ | ✅ | Live |
-| SOL   | ✅ | ✅ | Live |
-| ADA   | ✅ | ✅ | Live |
-| DOT   | ✅ | ✅ | Live |
-| MATIC | ✅ | ✅ | Live |
-| LINK  | ✅ | ✅ | Live |
-| UNI   | ✅ | ✅ | Live |
-| AVAX  | ✅ | ✅ | Live |
-| ATOM  | ✅ | ✅ | Live |
-
-**Total**: 10 major cryptocurrencies at launch, expanding to 50+ based on user demand.
-
-## 📈 Multi-Broker Support
-
-Execute trades across multiple stock brokers and crypto exchanges from a single platform.
-
-### Supported Stock Brokers
-
-| Broker | Tier Required | Auth Method | Markets | Commission |
-|--------|--------------|-------------|---------|------------|
-| **Alpaca** | Free+ | API Key | US Stocks, ETFs | $0 |
-| **Interactive Brokers** | Premium | TWS/Gateway | Global (150+ countries) | $0.0035/share |
-| **Charles Schwab** | Premium | OAuth2 | US Stocks, Options | $0 |
-
-### Key Features
-
-✅ **Unified Interface** - Manage all brokers from one dashboard
-✅ **Smart Routing** - Compare fees and choose best execution venue
-✅ **Rate Limiting** - Automatic request throttling per broker
-✅ **Paper Trading** - Test strategies risk-free (Alpaca, IBKR)
-✅ **Secure Storage** - AES-256-GCM encryption + AWS KMS
-✅ **Auto-Reconnect** - Resilient connection management
-
-### Getting Started
-
-1. **Free Tier** - Start with Alpaca (no subscription required)
-2. **Premium Tier** - Unlock IBKR & Schwab ($299/month)
-3. **Setup Guide** - Complete instructions at [docs/BROKER-SETUP.md](docs/BROKER-SETUP.md)
-
-### Broker Selection Guide
-
-**Choose Alpaca for:**
-- Zero commission trades
-- Paper trading practice
-- US stocks and ETFs
-- Simple API integration
-
-**Choose IBKR for:**
-- Global market access (150+ countries)
-- Options, futures, forex
-- Professional-grade platform
-- Advanced order types
-
-**Choose Schwab for:**
-- Integrated research tools
-- Commission-free trades
-- US market focus
-- Established brand trust
-
-**See full comparison:** [docs/BROKER-SETUP.md#broker-feature-comparison](docs/BROKER-SETUP.md#broker-feature-comparison)
-
-## 📈 Projected Revenue
-With current market demand:
-
-- **100 users** = $4,900/month
-- **500 users** = $24,500/month  
-- **1000 users** = $49,000/month
-
-## 🔧 Zero Maintenance Required
-
-- Auto-scaling infrastructure
-- Automated error recovery  
-- Self-updating security
-- Automated backups
-- **Automated customer acquisition**
-- **24/7 marketing campaigns**
-- **Self-optimizing content**
-
-## 🚀 Quick Start
-
-### Option 1: 🤖 Fully Automated (Recommended)
-```bash
-./auto-setup.sh
-```
-Sets up ALL API keys automatically! Takes 5-10 minutes total.
-
-### Option 2: Manual Configuration  
-1. **Run the quickstart script:**
-   ```bash
-   ./quickstart.sh
-   ```
-
-2. **Configure your environment:**
-   ```bash
-   cp .env.example .env
-   # Add your API keys to .env
-   ```
-
-3. **Start the application:**
-   ```bash
-   npm start
-   ```
-
-4. **Visit your dashboard:**
-   ```
-   http://localhost:3000/dashboard
-   ```
-
-5. **🆕 Configure automated marketing (optional):**
-   - See `MARKETING-SETUP.md` for full automation
-   - Add Twitter/Reddit API keys for social media automation
-   - System runs with minimal config
-
-## 📋 Required API Keys
-
-1. **Discord Bot Token** - Create at https://discord.com/developers/applications
-2. **Crypto Exchange APIs** (Choose one or more):
-   - **Coinbase Pro** - API Key + Secret + Passphrase (see `docs/EXCHANGE-SETUP.md`)
-   - **Kraken** - API Key + Secret (see `docs/EXCHANGE-SETUP.md`)
-   - **Binance** - API Key + Secret (testnet available)
-3. **Polar.sh Access Token** - For subscription billing (Merchant of Record)
-4. **MongoDB URI** - Database for user management
-
-## 🏗️ Project Structure
+## 📁 Directory Structure
 
 ```
-discord-trade-exec/
-├── src/
-│   ├── discord-bot.js      # Main Discord bot logic
-│   ├── trade-executor.js   # Trading execution engine
-│   ├── signal-parser.js    # Natural language processing
-│   ├── subscription-manager.js # Polar.sh billing + usage limits
-│   └── index.js           # Main application entry
-├── public/
-│   └── dashboard.html     # Revenue dashboard UI
-├── package.json           # Dependencies
-├── .env.example          # Environment template
-└── quickstart.sh         # One-command deployment
+docs/
+├── README.md              # This file - documentation index
+├── guides/                # Setup, integration, and process guides
+├── plans/                 # Planning documents and roadmaps
+├── reports/               # Project reports
+│   ├── summaries/        # Feature and change summaries
+│   ├── analysis/         # Technical analysis and research
+│   └── status/           # Project status and progress reports
+├── diagrams/             # Visual aids and architecture diagrams
+├── deployment/           # Deployment processes and checklists
+├── api/                  # API documentation
+├── architecture/         # Architecture documentation
+├── billing/              # Billing system documentation
+├── oauth2/               # OAuth2 implementation docs
+├── security/             # Security documentation
+├── websocket/            # WebSocket implementation docs
+└── archive/              # Archived/deprecated documentation
 ```
 
-## 📚 Technical Documentation
+## 📖 Guides
 
-For developers and technical users:
+**Setup & Configuration:**
+- [Automated Setup](guides/AUTOMATED-SETUP.md)
+- [Broker Setup](guides/BROKER-SETUP.md)
+- [Broker Test Accounts Setup](guides/BROKER_TEST_ACCOUNTS_SETUP.md)
+- [Exchange Setup](guides/EXCHANGE-SETUP.md)
+- [IBKR Setup Guide](guides/IBKR_SETUP_GUIDE.md)
+- [Quick Setup - All Brokers](guides/QUICK_SETUP_ALL_BROKERS.md)
+- [OAuth2 Setup](guides/OAUTH2_SETUP.md)
+- [Polar Setup](guides/POLAR_SETUP.md)
+- [Polar Products Config](guides/POLAR_PRODUCTS_CONFIG.md)
+- [Marketing Setup](guides/MARKETING-SETUP.md)
 
-- **[WebSocket Real-Time Guide](docs/WEBSOCKET-GUIDE.md)** - Complete guide for real-time portfolio updates, trade notifications, and live market quotes
-- **[Railway Redis Setup](docs/railway-redis-setup.md)** - Production horizontal scaling configuration
-- **[Automated Setup Guide](AUTOMATED-SETUP.md)** - Zero-configuration deployment automation
-- **[Marketing Automation](MARKETING-SETUP.md)** - 24/7 customer acquisition system
+**Integration & Implementation:**
+- [API Integration Guide](guides/API_INTEGRATION_GUIDE.md)
+- [Analytics API](guides/ANALYTICS_API.md)
+- [Analytics Dashboard Guide](guides/ANALYTICS_DASHBOARD_GUIDE.md)
+- [Event Tracking Integration](guides/EVENT_TRACKING_INTEGRATION.md)
+- [MFA Implementation](guides/MFA_IMPLEMENTATION.md)
+- [Dashboard Setup Guide](guides/DASHBOARD_SETUP_GUIDE.md)
 
-## 💡 How It Works
+**Monitoring & Performance:**
+- [Performance Monitoring](guides/PERFORMANCE_MONITORING.md)
+- [WebSocket Guide](guides/WEBSOCKET-GUIDE.md)
+- [WebSocket Performance Metrics](guides/WEBSOCKET-PERFORMANCE-METRICS.md)
+- [WebSocket Manual Testing](guides/WEBSOCKET-MANUAL-TESTING.md)
 
-1. **Signal Detection:** Bot monitors Discord channels for trading signals
-2. **NLP Processing:** Parses natural language to extract trade details
-3. **Risk Management:** Applies position sizing and stop-loss rules
-4. **Trade Execution:** Executes trades across multiple exchanges
-5. **User Billing:** Manages subscriptions via Polar.sh (automated tax compliance)
-6. **Analytics:** Tracks performance and user metrics
-7. **🆕 Real-Time Updates:** WebSocket connections for instant portfolio and trade updates
-8. **🆕 Automated Marketing:** Acquires customers 24/7 via social media, email, SEO
+**Troubleshooting:**
+- [Moomoo OpenD Troubleshooting](guides/MOOMOO_OPEND_TROUBLESHOOTING.md)
+- [Moomoo Support Request](guides/MOOMOO_SUPPORT_REQUEST.md)
+- [Cohort Analysis Guide](guides/COHORT_ANALYSIS_GUIDE.md)
 
-## 📞 Support
+## Plans
 
-The system is completely automated. Users can self-serve through the dashboard.
+Strategic planning and roadmaps:
 
-## 🎯 Market Opportunity
+- [Broker Integration Roadmap](plans/BROKER_INTEGRATION_ROADMAP.md) - Broker integration strategy and timeline
+- [Coverage Improvement Plan](plans/COVERAGE_IMPROVEMENT_PLAN.md) - Test coverage improvement strategy
+- [Implementation Plan](plans/IMPLEMENTATION_PLAN.md) - Overall implementation strategy
+- [Implementation Roadmap](plans/IMPLEMENTATION_ROADMAP.md) - Detailed implementation roadmap
+- [Phase 2 Plan](plans/PHASE_2_PLAN.md) - Phase 2 implementation plan
+- [QA Broker Testing Plan](plans/QA_BROKER_TESTING_PLAN.md) - Broker testing strategy
+- [Week 1-2 Parallel Execution Plan](plans/WEEK_1-2_PARALLEL_EXECUTION_PLAN.md) - Parallel workstream strategy
+- [Week 3 Deployment Plan](plans/WEEK_3_DEPLOYMENT_PLAN.md) - Week 3 deployment strategy
+- [Week 3 Deployment Readiness](plans/WEEK_3_DEPLOYMENT_READINESS.md) - Week 3 readiness assessment
+- [Week 3 Track B Deployment Strategy](plans/WEEK3_TRACKB_DEPLOYMENT_STRATEGY.md) - Track B deployment approach
+- [Week 3 Track B Test Strategy](plans/WEEK3_TRACKB_TEST_STRATEGY.md) - Track B testing approach
 
-- **Discord trading communities:** 2M+ active traders
-- **Average willingness to pay:** $50-300/month for automation
-- **Market size:** $500M+ addressable market
-- **Competition:** Limited high-quality solutions
+## Reports
 
-## 📊 Revenue Timeline
+### Summaries
 
-- **Week 1:** First subscribers (7-day free trials)
-- **Month 1:** $2,450/month revenue (50 users)
-- **Month 6:** $24,500/month revenue (500 users)
-- **Month 12:** $49,000+/month revenue (1000+ users)
+Feature completions and implementation summaries:
+
+- [Broker Integration Summary](reports/summaries/BROKER_INTEGRATION_SUMMARY.md) - OAuth2 broker integration completion
+- [Completion Report](reports/summaries/COMPLETION_REPORT.md) - Overall project completion status
+- [Dashboard Fix Summary](reports/summaries/DASHBOARD_FIX_SUMMARY.md) - Dashboard UI improvements
+- [Deployment Blockers Complete](reports/summaries/DEPLOYMENT_BLOCKERS_COMPLETE.md) - Resolution of deployment blockers
+- [Deployment Ready Summary](reports/summaries/DEPLOYMENT_READY_SUMMARY.md) - Deployment readiness assessment
+- [Deployment Summary](reports/summaries/DEPLOYMENT_SUMMARY.md) - Deployment milestones and outcomes
+- [Documentation Reorganization](reports/summaries/DOCUMENTATION_REORGANIZATION_2025-10-23.md) - Documentation structure improvements
+- [Dual Dashboard Deployment](reports/summaries/DUAL_DASHBOARD_DEPLOYMENT.md) - Multi-dashboard deployment approach
+- [Implementation Complete T045-T046-T049](reports/summaries/IMPLEMENTATION_COMPLETE_T045_T046_T049.md) - Task completion report
+- [Implementation Summary](reports/summaries/implementation-summary.md) - General implementation progress
+- [Phase 1 Summary](reports/summaries/PHASE_1_SUMMARY.md) - Phase 1 completion report
+- [Phase 1 WebSocket Complete](reports/summaries/PHASE_1_WEBSOCKET_COMPLETE.md) - WebSocket implementation completion
+- [Phase 3 Completion Report](reports/summaries/PHASE_3_COMPLETION_REPORT.md) - Phase 3 milestone completion
+- [Phase 3 Testing Complete](reports/summaries/PHASE_3_TESTING_COMPLETE_SUMMARY.md) - Phase 3 testing outcomes
+- [Session Summary](reports/summaries/SESSION_SUMMARY.md) - Development session summary
+- [SpecKit Implementation Report](reports/summaries/SPECKIT_IMPLEMENTATION_REPORT.md) - SpecKit workflow implementation
+- [Standardization Report](reports/summaries/STANDARDIZATION_REPORT.md) - Code standardization efforts
+- [Testing Ready Summary](reports/summaries/TESTING_READY_SUMMARY.md) - Testing infrastructure readiness
+- [US-008 JWT WebSocket Auth Complete](reports/summaries/US-008_JWT_WEBSOCKET_AUTH_COMPLETE.md) - User story completion
+- [Week 2 Complete](reports/summaries/WEEK_2_COMPLETE.md) - Week 2 milestone completion
+- [Week 3 Complete](reports/summaries/WEEK_3_COMPLETE.md) - Week 3 milestone completion
+- [Week 3 Deployment Success](reports/summaries/WEEK_3_DEPLOYMENT_SUCCESS.md) - Week 3 deployment outcomes
+- [Week 3 Track B Deployment Success](reports/summaries/WEEK_3_TRACKB_DEPLOYMENT_SUCCESS.md) - Track B deployment outcomes
+- [Week 3 Track B Deployment Summary](reports/summaries/WEEK3_TRACKB_DEPLOYMENT_SUMMARY.md) - Track B deployment details
+
+### Analysis
+
+Technical research and architectural analysis:
+
+- [API Signal Quality](reports/analysis/API-SIGNAL-QUALITY.md) - API signal quality assessment
+- [Churn Prediction Algorithm](reports/analysis/CHURN_PREDICTION_ALGORITHM.md) - User churn prediction model
+- [Component Inventory](reports/analysis/COMPONENT_INVENTORY.md) - System component catalog
+- [Comprehensive Testing Report](reports/analysis/COMPREHENSIVE_TESTING_REPORT.md) - Full testing analysis
+- [CSS Sidebar Fix Analysis](reports/analysis/CSS_SIDEBAR_FIX_ANALYSIS.md) - CSS sidebar issue resolution
+- [Database Queries](reports/analysis/DATABASE_QUERIES.md) - Database query analysis and optimization
+- [Mobile Nav Fix Report](reports/analysis/MOBILE_NAV_FIX_REPORT.md) - Mobile navigation improvements
+- [Multi-Tenant Security Architecture](reports/analysis/MULTI_TENANT_SECURITY_ARCHITECTURE.md) - Multi-tenancy security design
+- [OpenSpec Consolidated Review](reports/analysis/OPENSPEC_CONSOLIDATED_REVIEW.md) - OpenSpec implementation review
+- [OpenSpec Status Analysis](reports/analysis/OPENSPEC_STATUS_ANALYSIS.md) - OpenSpec integration status
+- [Performance Infrastructure Assessment](reports/analysis/PERFORMANCE_INFRASTRUCTURE_ASSESSMENT.md) - Performance evaluation
+- [Pricing Recommendations](reports/analysis/PRICING_RECOMMENDATIONS.md) - Pricing strategy recommendations
+- [Pricing Research Specification](reports/analysis/PRICING_RESEARCH_SPECIFICATION.md) - Detailed pricing research
+- [Security Audit](reports/analysis/SECURITY_AUDIT.md) - Security vulnerability assessment
+- [Security Audit Checklist](reports/analysis/SECURITY_AUDIT_CHECKLIST.md) - Security audit procedures
+- [Specification Analysis Report](reports/analysis/SPECIFICATION_ANALYSIS_REPORT.md) - Project specification analysis
+- [Subscription Architecture](reports/analysis/SUBSCRIPTION_ARCHITECTURE.md) - Subscription system design
+- [Technical Debt](reports/analysis/TECH-DEBT.md) - Technical debt inventory
+- [Unit Economics](reports/analysis/UNIT_ECONOMICS.md) - Business unit economics analysis
+- [UX Research and Design Recommendations](reports/analysis/UX_RESEARCH_AND_DESIGN_RECOMMENDATIONS.md) - UX improvements
+
+### Status
+
+Project progress and test status:
+
+- [Broker Integration Status](reports/status/BROKER_INTEGRATION_STATUS.md) - Broker connection implementation status
+- [Broker Testing Bug Report](reports/status/BROKER_TESTING_BUG_REPORT.md) - Broker testing issues
+- [Dashboard UI Testing Status](reports/status/DASHBOARD_UI_TESTING_STATUS.md) - Dashboard UI test coverage
+- [E2E Test Status](reports/status/E2E_TEST_STATUS.md) - End-to-end test progress
+- [Final Test Status](reports/status/FINAL_TEST_STATUS.md) - Final testing status before deployment
+- [Implementation Status](reports/status/IMPLEMENTATION_STATUS.md) - Current implementation progress
+- [Phase 1.5 Features](reports/status/PHASE-1.5-FEATURES.md) - Phase 1.5 feature tracking
+- [Phase 3.8 Monitoring Report](reports/status/PHASE-3.8-MONITORING-REPORT.md) - Phase 3.8 monitoring status
+- [Phase 3.8 Monitoring](reports/status/PHASE_3.8_MONITORING.md) - Monitoring implementation status
+- [Project Completion Requirements](reports/status/PROJECT_COMPLETION_REQUIREMENTS.md) - Outstanding requirements
+- [QA Immediate Next Steps](reports/status/QA_IMMEDIATE_NEXT_STEPS.md) - QA action items
+- [SC-025 Test Coverage Progress](reports/status/SC-025_TEST_COVERAGE_PROGRESS.md) - Test coverage tracking
+- [Test Automation Assessment](reports/status/TEST_AUTOMATION_ASSESSMENT.md) - Test automation evaluation
+- [Test Report](reports/status/TEST_REPORT.md) - Comprehensive test report
+- [Test Results 2025-10-13](reports/status/TEST-RESULTS-2025-10-13.md) - Historical test results
+- [Test Results Summary](reports/status/TEST_RESULTS_SUMMARY.md) - Test results overview
+
+## Deployment
+
+Deployment processes and checklists:
+
+- [Deploy Now](deployment/DEPLOY-NOW.md) - Quick deployment guide
+- [Deployment](deployment/DEPLOYMENT.md) - Deployment procedures
+- [Deployment Checklist](deployment/DEPLOYMENT_CHECKLIST.md) - General deployment checklist
+- [Final Deployment Checklist](deployment/FINAL_DEPLOYMENT_CHECKLIST.md) - Final pre-deployment verification
+- [Pre-Deployment Checklist](deployment/PRE-DEPLOYMENT-CHECKLIST.md) - Pre-deployment verification
+- [Railway Deployment Fix](deployment/RAILWAY_DEPLOYMENT_FIX.md) - Railway-specific deployment issues
+- [Railway Quick Start](deployment/RAILWAY_QUICK_START.md) - Railway deployment quick start
+- [Week 3 Track B Deployment Checklist](deployment/WEEK3_TRACKB_DEPLOYMENT_CHECKLIST.md) - Track B deployment checklist
+
+## 🎨 Diagrams
+
+Architecture diagrams, flowcharts, and visual aids are stored in the `diagrams/` directory.
+
+## Archive
+
+Historical and deprecated documentation:
+
+- [Claude Session Notes](archive/CLAUDE.md) - Historical AI assistant session logs
+- [Warp Session Notes](archive/WARP.md) - Historical AI assistant session logs
+- Previous versions of documentation
+- Deprecated guides and specifications
+- Historical project records
 
 ---
 
-Built with ❤️ for passive income generation
+## Documentation Standards
+
+All documentation follows these standards:
+
+- **Clear titles and dates**: Every document has version date
+- **Actionable insights**: Focus on implementation details
+- **Visual aids**: Diagrams for complex concepts
+- **Cross-references**: Links to related documentation
+- **Consistent formatting**: Markdown with proper structure
+- **Regular updates**: Reflect current codebase state
+
+## Contributing to Documentation
+
+When adding new documentation:
+
+1. **Choose the right location**:
+   - Setup/how-to → `guides/`
+   - Future plans → `plans/`
+   - Completion reports → `reports/summaries/`
+   - Research/analysis → `reports/analysis/`
+   - Progress updates → `reports/status/`
+   - Deployment procedures → `deployment/`
+
+2. **Include metadata**:
+   - Title, date, version
+   - Author(s) if applicable
+   - Related documents
+
+3. **Follow naming conventions**:
+   - UPPERCASE_WITH_UNDERSCORES.md or
+   - lowercase-with-hyphens.md
+   - Consistent within each directory
+
+4. **Update this index** after adding new documentation
+
+---
+
+**For questions about documentation organization, refer to [AGENTS.md](../AGENTS.md) in the root directory.**

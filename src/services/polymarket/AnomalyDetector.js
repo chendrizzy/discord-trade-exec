@@ -1,5 +1,6 @@
 const PolymarketTransaction = require('../../models/PolymarketTransaction');
 const PolymarketAlert = require('../../models/PolymarketAlert');
+const logger = require('../../utils/logger');
 
 /**
  * AnomalyDetector - Hybrid smart triggering for market manipulation detection
