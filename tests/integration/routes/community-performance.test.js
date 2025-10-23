@@ -12,11 +12,17 @@
 
 const request = require('supertest');
 const mongoose = require('mongoose');
-const app = require('../../../src/index');
+const createApp = require('../../../src/app');
 const User = require('../../../src/models/User');
 const SignalProvider = require('../../../src/models/SignalProvider');
 const UserSignalSubscription = require('../../../src/models/UserSignalSubscription');
 const Signal = require('../../../src/models/Signal');
+
+// Create app with test-friendly options (skip payment processor, tradingview)
+const app = createApp({
+  skipPaymentProcessor: true,
+  skipTradingView: true
+});
 
 describe('Community Top Providers Performance', () => {
   let testUser;
@@ -26,12 +32,12 @@ describe('Community Top Providers Performance', () => {
   beforeAll(async () => {
     // Create test community and user
     testCommunity = new mongoose.Types.ObjectId();
-    
+
     testUser = await User.create({
       discordId: 'test-user-' + Date.now(),
+      discordUsername: 'PerformanceTestUser',
       communityId: testCommunity,
       communityRole: 'admin',
-      username: 'Performance Test User',
       discriminator: '0001'
     });
 
@@ -40,15 +46,18 @@ describe('Community Top Providers Performance', () => {
       Array.from({ length: 10 }, async (_, i) => {
         return await SignalProvider.create({
           communityId: testCommunity,
+          providerId: `provider-${i + 1}-${Date.now()}`,
+          type: 'discord_channel',
           name: `Provider ${i + 1}`,
           description: `Test provider ${i + 1}`,
           isActive: true,
+          verificationStatus: 'verified',
           performance: {
-            winRate: 50 + (i * 5), // 50%, 55%, 60%, ..., 95%
-            totalTrades: 100 + (i * 10),
-            profitLoss: 1000 + (i * 100),
-            avgReturn: 2 + (i * 0.5),
-            netProfit: 5000 + (i * 500)
+            winRate: 50 + i * 5, // 50%, 55%, 60%, ..., 95%
+            totalTrades: 100 + i * 10,
+            profitLoss: 1000 + i * 100,
+            avgReturn: 2 + i * 0.5,
+            netProfit: 5000 + i * 500
           }
         });
       })
@@ -61,8 +70,8 @@ describe('Community Top Providers Performance', () => {
         Array.from({ length: followerCount }, async (_, j) => {
           const follower = await User.create({
             discordId: `follower-${i}-${j}-${Date.now()}`,
+            discordUsername: `Follower${i}_${j}`,
             communityId: testCommunity,
-            username: `Follower ${i}-${j}`,
             discriminator: `000${j}`.slice(-4)
           });
 
@@ -88,7 +97,9 @@ describe('Community Top Providers Performance', () => {
             communityId: testCommunity,
             providerId: providers[i]._id,
             symbol: 'AAPL',
+            side: 'BUY',
             action: 'BUY',
+            entryPrice: 150 + j,
             price: 150 + j,
             timestamp: new Date(),
             createdAt: new Date()
@@ -113,7 +124,7 @@ describe('Community Top Providers Performance', () => {
 
       for (let i = 0; i < iterations; i++) {
         const startTime = Date.now();
-        
+
         const response = await request(app)
           .get('/api/community/overview')
           .set('Cookie', [`connect.sid=${testUser.sessionId}`])
@@ -142,8 +153,11 @@ describe('Community Top Providers Performance', () => {
       await db.command({ profile: 2 }); // Profile all operations
 
       // Clear profile collection
-      await db.collection('system.profile').drop().catch(() => {});
-      
+      await db
+        .collection('system.profile')
+        .drop()
+        .catch(() => {});
+
       // Execute the query
       await request(app)
         .get('/api/community/overview')
@@ -151,7 +165,8 @@ describe('Community Top Providers Performance', () => {
         .expect(200);
 
       // Count queries to SignalProvider, UserSignalSubscription, and Signal collections
-      const profile = await db.collection('system.profile')
+      const profile = await db
+        .collection('system.profile')
         .find({
           ns: {
             $in: [
@@ -181,7 +196,7 @@ describe('Community Top Providers Performance', () => {
 
       // Verify top 3 providers (highest win rates)
       expect(topProviders).toHaveLength(3);
-      
+
       // Should be sorted by win rate descending
       expect(topProviders[0].winRate).toBeGreaterThanOrEqual(topProviders[1].winRate);
       expect(topProviders[1].winRate).toBeGreaterThanOrEqual(topProviders[2].winRate);
@@ -193,7 +208,7 @@ describe('Community Top Providers Performance', () => {
         expect(provider).toHaveProperty('signalsToday');
         expect(provider).toHaveProperty('winRate');
         expect(provider).toHaveProperty('followers');
-        
+
         expect(typeof provider.signalsToday).toBe('number');
         expect(typeof provider.winRate).toBe('number');
         expect(typeof provider.followers).toBe('number');
@@ -202,7 +217,7 @@ describe('Community Top Providers Performance', () => {
       // Verify follower counts match (top provider should have most followers)
       const topProvider = providers.find(p => p._id.toString() === topProviders[0].id);
       const expectedFollowers = (providers.indexOf(topProvider) + 1) * 5;
-      
+
       expect(topProviders[0].followers).toBe(expectedFollowers);
     });
   });
@@ -229,7 +244,7 @@ describe('Community Top Providers Performance', () => {
       );
 
       const startTime = Date.now();
-      
+
       const response = await request(app)
         .get('/api/community/overview')
         .set('Cookie', [`connect.sid=${testUser.sessionId}`])

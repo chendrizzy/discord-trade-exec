@@ -8,67 +8,31 @@ const config = loadAndValidateConfig();
 const { validateEnvironment } = require('./utils/env-validation');
 validateEnvironment();
 
-// Node.js built-in modules
-const path = require('path');
-
 // External dependencies
-const express = require('express');
-const session = require('express-session');
-const MongoStore = require('connect-mongo');
 const mongoose = require('mongoose');
-const helmet = require('helmet');
-const cors = require('cors');
 
 // Internal utilities and services
-const { passport } = require('./middleware/auth');
-const authRoutes = require('./routes/auth');
-const dashboardRoutes = require('./routes/dashboard');
-const riskRoutes = require('./routes/api/risk');
-const providerRoutes = require('./routes/api/providers');
-const exchangeRoutes = require('./routes/api/exchanges');
-const portfolioRoutes = require('./routes/api/portfolio');
-const tradesRoutes = require('./routes/api/trades');
-const adminRoutes = require('./routes/api/admin');
-const brokerRoutes = require('./routes/api/brokers');
-const brokerOAuthRoutes = require('./routes/api/broker-oauth');
-const oauth2AuthRoutes = require('./routes/api/auth'); // Unified OAuth2 authentication
-const signalsRoutes = require('./routes/api/signals');
-const analyticsRoutes = require('./routes/api/analytics');
-const subscriptionRoutes = require('./routes/api/subscriptions');
-const signalSubscriptionRoutes = require('./routes/api/signal-subscriptions');
-const communityRoutes = require('./routes/api/community');
-const traderRoutes = require('./routes/api/trader');
-const metricsRoutes = require('./routes/api/metrics');
-const polarWebhookRoutes = require('./routes/webhook/polar');
-const DiscordTradeBot = require('./services/DiscordBot');
-const subscriptionManager = require('./services/subscription-manager'); // Singleton instance
-const MarketingAutomation = require('./services/MarketingAutomation');
-const PaymentProcessor = require('./services/PaymentProcessor');
-const TradingViewParser = require('./services/TradingViewParser');
-const TradeExecutor = require('./services/TradeExecutor');
-const WebSocketServer = require('./services/websocket/WebSocketServer');
-const { createAuthMiddleware } = require('./services/websocket/middleware/auth');
-const { createRateLimitMiddleware } = require('./services/websocket/middleware/rateLimiter');
-const { createEventHandlers } = require('./services/websocket/handlers');
-const { createEmitters } = require('./services/websocket/emitters');
+const createApp = require('./app');
 const logger = require('./utils/logger');
-const correlationMiddleware = require('./middleware/correlation');
-const loggingMiddleware = require('./middleware/logging');
-const { errorHandler, notFoundHandler } = require('./middleware/errorHandler');
 
-const app = express();
+// Create Express application
+const app = createApp();
+
 const PORT = process.env.PORT || 5000;
-
-// Trust proxy for Railway deployment
-app.set('trust proxy', 1);
+const IS_TEST = process.env.NODE_ENV === 'test';
 
 // SIGTERM/SIGINT handlers for graceful shutdown
-let webSocketServer; // Declare here for access in shutdown handlers
+let webSocketServer;
+let bot;
+let marketingAutomation;
 
 process.on('SIGTERM', async () => {
   logger.info('Received SIGTERM, shutting down gracefully');
   if (webSocketServer) {
     await webSocketServer.shutdown();
+  }
+  if (bot) {
+    await bot.stop();
   }
   process.exit(0);
 });
@@ -78,374 +42,28 @@ process.on('SIGINT', async () => {
   if (webSocketServer) {
     await webSocketServer.shutdown();
   }
+  if (bot) {
+    await bot.stop();
+  }
   process.exit(0);
 });
 
-// Security middleware - Helmet
-app.use(
-  helmet({
-    contentSecurityPolicy: {
-      directives: {
-        defaultSrc: ["'self'"],
-        styleSrc: ["'self'", "'unsafe-inline'"],
-        scriptSrc: ["'self'", "'unsafe-inline'"],
-        imgSrc: ["'self'", 'data:', 'https://cdn.discordapp.com'],
-        connectSrc: ["'self'", 'ws:', 'wss:', 'https://discord.com'],
-        fontSrc: ["'self'"],
-        objectSrc: ["'none'"],
-        mediaSrc: ["'self'"],
-        frameSrc: ["'none'"]
-      }
-    },
-    hsts: {
-      maxAge: 31536000,
-      includeSubDomains: true,
-      preload: true
-    },
-    noSniff: true,
-    referrerPolicy: { policy: 'strict-origin-when-cross-origin' },
-    xssFilter: true,
-    hidePoweredBy: true,
-    crossOriginEmbedderPolicy: false
-  })
-);
-
-// CORS configuration
-app.use(
-  cors({
-    origin: process.env.DASHBOARD_URL || 'http://localhost:3000',
-    credentials: true,
-    methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE'],
-    allowedHeaders: ['Content-Type', 'Authorization']
-  })
-);
-
-// Body parsing middleware
-app.use(express.json({ limit: '10mb' }));
-app.use(express.urlencoded({ extended: true, limit: '10mb' }));
-// app.use(express.static('public')); // Commented out - old marketing assets, use React dashboard instead
-
-// Serve static files from the React dashboard build
-app.use(express.static(path.join(__dirname, '../dist/dashboard')));
-
-// Correlation ID middleware (must be before logging)
-app.use(correlationMiddleware);
-
-// Request/Response logging middleware
-app.use(loggingMiddleware);
-
-// Session configuration
-app.use(
-  session({
-    secret: process.env.SESSION_SECRET || 'dev-secret-change-in-production',
-    resave: false,
-    saveUninitialized: false,
-    store: MongoStore.create({
-      mongoUrl: process.env.MONGODB_URI || 'mongodb://localhost:27017/trade-executor',
-      touchAfter: 24 * 3600 // Lazy session update (seconds)
-    }),
-    cookie: {
-      maxAge: 1000 * 60 * 60 * 24 * 7, // 1 week
-      httpOnly: true,
-      secure: process.env.NODE_ENV === 'production', // HTTPS only in production
-      sameSite: 'lax'
-    }
-  })
-);
-
-// Initialize Passport
-app.use(passport.initialize());
-app.use(passport.session());
-
-// Initialize Discord Bot
-let bot;
-try {
-  bot = new DiscordTradeBot();
-  bot.start();
-  logger.info('🤖 Discord bot initialized successfully');
-} catch (error) {
-  logger.error('❌ Failed to start Discord bot:', { error: error.message, stack: error.stack });
-}
-
-// Subscription Manager is already initialized as singleton (imported above)
-try {
-  logger.info('💳 Subscription manager initialized successfully');
-} catch (error) {
-  logger.error('❌ Failed to initialize subscription manager:', { error: error.message, stack: error.stack });
-}
-
-// Initialize Marketing Automation
-let marketingAutomation;
-try {
-  marketingAutomation = new MarketingAutomation();
-  marketingAutomation.start();
-  logger.info('📈 Marketing automation initialized successfully');
-} catch (error) {
-  logger.error('❌ Failed to start marketing automation:', { error: error.message, stack: error.stack });
-}
-
-// Initialize Payment Processor
-let paymentProcessor;
-try {
-  paymentProcessor = new PaymentProcessor();
-  app.use('/', paymentProcessor.getRouter());
-  logger.info('💳 Payment processor initialized successfully');
-} catch (error) {
-  logger.error('❌ Failed to initialize payment processor:', { error: error.message, stack: error.stack });
-}
-
-// Initialize TradingView Parser and Trade Executor
-let tradingViewParser;
-let tradeExecutor;
-try {
-  tradingViewParser = new TradingViewParser();
-  tradeExecutor = new TradeExecutor();
-  logger.info('📊 TradingView integration initialized successfully');
-} catch (error) {
-  logger.error('❌ Failed to initialize TradingView integration:', { error: error.message, stack: error.stack });
-}
-
-// Mount authentication routes
-app.use('/auth', authRoutes);
-// Note: Old dashboard routes disabled - using React SPA instead
-// app.use('/dashboard', dashboardRoutes);
-
-// Mount API routes
-app.use('/api/risk', riskRoutes);
-app.use('/api/providers', providerRoutes);
-app.use('/api/exchanges', exchangeRoutes);
-app.use('/api/portfolio', portfolioRoutes);
-app.use('/api/trades', tradesRoutes);
-app.use('/api/admin', adminRoutes);
-app.use('/api/brokers', brokerRoutes);
-app.use('/api/brokers/oauth', brokerOAuthRoutes); // OAuth routes (must be before catch-all)
-app.use('/api/auth', oauth2AuthRoutes); // Mount unified OAuth2 authentication routes
-app.use('/api', require('./routes/api/debug-broker-config')); // Debug endpoint (DELETE after debugging)
-app.use('/api/signals', signalsRoutes);
-app.use('/api/analytics', analyticsRoutes);
-app.use('/api/subscriptions', subscriptionRoutes);
-app.use('/api/signal-subscriptions', signalSubscriptionRoutes);
-app.use('/api/community', communityRoutes);
-app.use('/api/trader', traderRoutes);
-app.use('/api/metrics', metricsRoutes);
-app.use('/webhook/polar', polarWebhookRoutes);
-
-// TradingView webhook endpoint
-app.post('/webhook/tradingview', express.raw({ type: 'application/json' }), async (req, res) => {
-  try {
-    logger.info('📈 TradingView webhook received');
-
-    // Verify webhook signature if secret is configured
-    if (process.env.TRADINGVIEW_WEBHOOK_SECRET) {
-      const signature = req.headers['x-webhook-signature'] || req.headers['signature'];
-      const isValid = tradingViewParser.verifyWebhookSignature(
-        req.body.toString(),
-        signature,
-        process.env.TRADINGVIEW_WEBHOOK_SECRET
-      );
-
-      if (!isValid) {
-        logger.warn('⚠️ Invalid TradingView webhook signature');
-        return res.status(401).json({ error: 'Invalid signature' });
-      }
-    }
-
-    // Parse the TradingView signal
-    let bodyString;
-    if (Buffer.isBuffer(req.body)) {
-      bodyString = req.body.toString();
-    } else {
-      bodyString = req.body;
-    }
-    const signal = tradingViewParser.parseWebhook(bodyString);
-
-    if (!signal) {
-      logger.warn('⚠️ Failed to parse TradingView webhook payload');
-      return res.status(400).json({ error: 'Invalid webhook payload' });
-    }
-
-    console.log('✅ TradingView signal parsed:', {
-      id: signal.id,
-      symbol: signal.symbol,
-      action: signal.action,
-      price: signal.price
-    });
-
-    // Execute the trade
-    const executionResult = await tradeExecutor.executeTrade(signal);
-
-    if (executionResult.success) {
-      console.log('🎯 TradingView signal executed successfully:', executionResult.orderId);
-      res.json({
-        success: true,
-        signalId: signal.id,
-        orderId: executionResult.orderId,
-        message: 'Signal executed successfully'
-      });
-    } else {
-      console.warn('⚠️ TradingView signal execution failed:', executionResult.reason);
-      res.status(422).json({
-        success: false,
-        signalId: signal.id,
-        reason: executionResult.reason,
-        message: 'Signal execution failed'
-      });
-    }
-  } catch (error) {
-    logger.error('❌ TradingView webhook error:', { error: error.message, stack: error.stack });
-    res.status(500).json({ error: 'Internal server error', message: error.message });
-  }
-});
-
-// Health check
-app.get('/health', async (req, res) => {
-  const RedisService = require('./services/redis');
-
-  const health = {
-    status: 'healthy',
-    timestamp: new Date().toISOString(),
-    uptime: process.uptime(),
-    memory: process.memoryUsage()
-  };
-
-  // Include Redis statistics
-  try {
-    health.redis = await RedisService.getStats();
-  } catch (err) {
-    health.redis = { mode: 'error', error: err.message };
-  }
-
-  // Include WebSocket statistics if available
-  if (webSocketServer) {
-    health.websocket = webSocketServer.getStats();
-  }
-
-  res.json(health);
-});
-
-// Redis health check endpoint (for monitoring)
-app.get('/health/redis', async (req, res) => {
-  const RedisService = require('./services/redis');
-
-  try {
-    const stats = await RedisService.getStats();
-    const cacheMode = RedisService.getMode();
-
-    if (cacheMode === 'redis') {
-      res.json({
-        status: 'ok',
-        mode: cacheMode,
-        stats
-      });
-    } else {
-      res.status(503).json({
-        status: 'degraded',
-        mode: cacheMode,
-        message: 'Using in-memory fallback - distributed cache unavailable',
-        stats
-      });
-    }
-  } catch (err) {
-    res.status(500).json({
-      status: 'error',
-      error: err.message
-    });
-  }
-});
-
-// API info endpoint
-app.get('/api', (req, res) => {
-  res.json({
-    message: 'Discord Trade Executor SaaS',
-    status: 'running',
-    endpoints: {
-      auth: ['/auth/discord', '/auth/discord/callback', '/auth/logout', '/auth/me'],
-      dashboard: [
-        '/dashboard',
-        '/dashboard/risk',
-        '/dashboard/exchanges',
-        '/dashboard/analytics',
-        '/dashboard/providers'
-      ],
-      api: {
-        risk: ['/api/risk/settings', '/api/risk/calculate-position', '/api/risk/daily-loss'],
-        providers: [
-          '/api/providers',
-          '/api/providers/:providerId',
-          '/api/providers/:providerId/subscribe',
-          '/api/providers/user/subscriptions'
-        ],
-        brokers: [
-          '/api/brokers',
-          '/api/brokers/:brokerKey',
-          '/api/brokers/test',
-          '/api/brokers/configure',
-          '/api/brokers/user/configured',
-          '/api/brokers/compare',
-          '/api/brokers/recommend'
-        ]
-      },
-      webhooks: ['/webhook/polar', '/webhook/tradingview'],
-      health: ['/health'],
-      websocket: {
-        url: 'ws://' + (process.env.FRONTEND_URL || 'localhost:5000'),
-        events: {
-          client: ['subscribe:portfolio', 'subscribe:trades', 'subscribe:watchlist', 'unsubscribe:watchlist'],
-          server: [
-            'portfolio:update',
-            'trade:executed',
-            'trade:failed',
-            'signal:quality',
-            'quote:update',
-            'market:status',
-            'server:shutdown'
-          ]
-        },
-        authentication: 'sessionID via handshake.auth',
-        rateLimit: 'Per event type (portfolio: 1/min, trades: 1/min, watchlist: 10/min)'
-      }
-    },
-    features: [
-      'Discord OAuth2 authentication',
-      'Discord signal parsing',
-      'TradingView webhook integration',
-      'Multi-exchange trading',
-      'Multi-broker trading (stocks & crypto)',
-      'Subscription billing',
-      'Risk management dashboard',
-      'Multi-signal provider support',
-      'Real-time WebSocket updates (portfolio, trades, quotes)',
-      'Horizontal scaling with Redis adapter'
-    ]
-  });
-});
-
-// 404 handler - must be after all other routes
-app.use(notFoundHandler);
-
-// Global error handler - must be last
-app.use(errorHandler);
-
-// Catch-all route - serve React app for client-side routing
-app.get('*', (req, res) => {
-  res.sendFile(path.join(__dirname, '../dist/dashboard/index.html'));
-});
-
-// Connect to MongoDB
+// Connect to MongoDB (unless already connected by test setup)
 if (mongoose.connection.readyState === 0) {
-  // Only connect if not already connected (e.g., by test setup)
   mongoose
     .connect(process.env.MONGODB_URI || 'mongodb://localhost:27017/trade-executor')
     .then(() => {
       logger.info('✅ MongoDB connected');
 
-      // Initialize OAuth2 token refresh cron jobs after DB connection
-      try {
-        const { startTokenRefreshJobs } = require('./jobs/tokenRefreshJob');
-        startTokenRefreshJobs();
-        logger.info('✅ OAuth2 token refresh jobs initialized');
-      } catch (error) {
-        logger.error('❌ Failed to initialize token refresh jobs:', { error: error.message, stack: error.stack });
+      // Initialize OAuth2 token refresh cron jobs after DB connection (production only)
+      if (!IS_TEST) {
+        try {
+          const { startTokenRefreshJobs } = require('./jobs/tokenRefreshJob');
+          startTokenRefreshJobs();
+          logger.info('✅ OAuth2 token refresh jobs initialized');
+        } catch (error) {
+          logger.error('❌ Failed to initialize token refresh jobs:', { error: error.message, stack: error.stack });
+        }
       }
     })
     .catch(err => logger.error('❌ MongoDB connection error:', { error: err.message, stack: err.stack }));
@@ -453,149 +71,202 @@ if (mongoose.connection.readyState === 0) {
   logger.info('✅ MongoDB already connected (test environment)');
 }
 
-// Start the server
-const server = app.listen(PORT, () => {
-  console.log(`🚀 Discord Trade Executor SaaS running on port ${PORT}`);
-  console.log(`💰 Revenue generation system active!`);
-  console.log(`🎯 Application ready and listening for requests`);
-  console.log(`📊 Process ID: ${process.pid}`);
-  console.log(`🔄 Node.js version: ${process.version}`);
-  console.log(`🌐 Server accessible at: http://localhost:${PORT}`);
-});
-
-// Initialize WebSocket Server for real-time updates
-(async () => {
+// Initialize services (production only, skip in test environment)
+if (!IS_TEST) {
+  // Initialize Discord Bot
   try {
-    logger.info('🔌 Initializing WebSocket server...');
+    const DiscordTradeBot = require('./services/DiscordBot');
+    bot = new DiscordTradeBot();
+    bot.start();
+    logger.info('🤖 Discord bot initialized successfully');
+  } catch (error) {
+    logger.error('❌ Failed to start Discord bot:', { error: error.message, stack: error.stack });
+  }
 
-    // Create WebSocket server instance
-    webSocketServer = new WebSocketServer(server, {
-      cors: {
-        origin: process.env.DASHBOARD_URL || 'http://localhost:3000',
-        methods: ['GET', 'POST'],
-        credentials: true
-      }
-    });
+  // Subscription Manager (singleton - already initialized on import)
+  try {
+    require('./services/subscription-manager');
+    logger.info('💳 Subscription manager initialized successfully');
+  } catch (error) {
+    logger.error('❌ Failed to initialize subscription manager:', { error: error.message, stack: error.stack });
+  }
 
-    // Initialize with Redis adapter if available
-    await webSocketServer.initialize();
+  // Initialize Marketing Automation
+  try {
+    const MarketingAutomation = require('./services/MarketingAutomation');
+    marketingAutomation = new MarketingAutomation();
+    marketingAutomation.start();
+    logger.info('📈 Marketing automation initialized successfully');
+  } catch (error) {
+    logger.error('❌ Failed to start marketing automation:', { error: error.message, stack: error.stack });
+  }
+}
 
-    // Apply authentication middleware
-    const authMiddleware = createAuthMiddleware({
-      required: true,
-      sessionCollectionName: 'sessions'
-    });
-    webSocketServer.setAuthMiddleware(authMiddleware);
+// Start the server (only if not in test environment)
+let server;
+if (!IS_TEST) {
+  server = app.listen(PORT, () => {
+    logger.info(`🚀 Discord Trade Executor SaaS running on port ${PORT}`);
+    logger.info(`💰 Revenue generation system active!`);
+    logger.info(`🎯 Application ready and listening for requests`);
+    logger.info(`📊 Process ID: ${process.pid}`);
+    logger.info(`🔄 Node.js version: ${process.version}`);
+    logger.info(`🌐 Server accessible at: http://localhost:${PORT}`);
+  });
 
-    // Apply rate limiting middleware
-    const rateLimiter = createRateLimitMiddleware(webSocketServer.redisPubClient);
-    webSocketServer.setRateLimitMiddleware(rateLimiter.connectionLimit());
+  // Initialize WebSocket Server for real-time updates (production only)
+  (async () => {
+    try {
+      logger.info('🔌 Initializing WebSocket server...');
 
-    // Register event handlers
-    const handlers = createEventHandlers(rateLimiter);
-    Object.entries(handlers).forEach(([event, handler]) => {
-      webSocketServer.registerEventHandler(event, handler);
-    });
+      const WebSocketServer = require('./services/websocket/WebSocketServer');
+      const { createAuthMiddleware } = require('./services/websocket/middleware/auth');
+      const { createRateLimitMiddleware } = require('./services/websocket/middleware/rateLimiter');
+      const { createEventHandlers } = require('./services/websocket/handlers');
+      const { createEmitters } = require('./services/websocket/emitters');
 
-    logger.info('✅ WebSocket event handlers registered');
+      // Create WebSocket server instance
+      webSocketServer = new WebSocketServer(server, {
+        cors: {
+          origin: process.env.DASHBOARD_URL || 'http://localhost:3000',
+          methods: ['GET', 'POST'],
+          credentials: true
+        }
+      });
 
-    // Connect TradeExecutor events to WebSocket emitters
-    if (tradeExecutor) {
-      const emitters = createEmitters(webSocketServer);
+      // Initialize with Redis adapter if available
+      await webSocketServer.initialize();
 
-      // Listen for successful trade executions
-      tradeExecutor.on('trade:executed', async data => {
-        console.log(`📡 Broadcasting trade:executed for user ${data.userId}`);
-        emitters.emitTradeExecuted(data.userId, data.trade);
+      // Apply authentication middleware
+      const authMiddleware = createAuthMiddleware({
+        required: true,
+        sessionCollectionName: 'sessions'
+      });
+      webSocketServer.setAuthMiddleware(authMiddleware);
 
-        // Analyze and emit signal quality for the trade
-        try {
-          const { analyzeSignalQuality } = require('./services/signal-quality-tracker');
-          const quality = await analyzeSignalQuality({
-            tradeId: data.trade.id || data.trade._id,
-            symbol: data.trade.symbol,
-            side: data.trade.side,
-            entryPrice: data.trade.price || data.trade.entryPrice,
-            quantity: data.trade.quantity,
-            providerId: data.trade.providerId || data.signal?.provider || 'UNKNOWN'
-          });
+      // Apply rate limiting middleware
+      const rateLimiter = createRateLimitMiddleware(webSocketServer.redisPubClient);
+      webSocketServer.setRateLimitMiddleware(rateLimiter.connectionLimit());
 
-          if (quality) {
-            emitters.emitNotification(data.userId, {
-              title: 'Signal Quality Update',
-              message: `Quality score: ${quality.score}`,
-              type: 'info',
-              data: quality
+      // Register event handlers
+      const handlers = createEventHandlers(rateLimiter);
+      Object.entries(handlers).forEach(([event, handler]) => {
+        webSocketServer.registerEventHandler(event, handler);
+      });
+
+      logger.info('✅ WebSocket event handlers registered');
+
+      // Connect TradeExecutor events to WebSocket emitters
+      try {
+        const TradeExecutor = require('./services/TradeExecutor');
+        const tradeExecutor = new TradeExecutor();
+        const emitters = createEmitters(webSocketServer);
+
+        // Listen for successful trade executions
+        tradeExecutor.on('trade:executed', async data => {
+          logger.info(`📡 Broadcasting trade:executed for user ${data.userId}`);
+          emitters.emitTradeExecuted(data.userId, data.trade);
+
+          // Analyze and emit signal quality for the trade
+          try {
+            const { analyzeSignalQuality } = require('./services/signal-quality-tracker');
+            const quality = await analyzeSignalQuality({
+              tradeId: data.trade.id || data.trade._id,
+              symbol: data.trade.symbol,
+              side: data.trade.side,
+              entryPrice: data.trade.price || data.trade.entryPrice,
+              quantity: data.trade.quantity,
+              providerId: data.trade.providerId || data.signal?.provider || 'UNKNOWN'
+            });
+
+            if (quality) {
+              emitters.emitNotification(data.userId, {
+                title: 'Signal Quality Update',
+                message: `Quality score: ${quality.score}`,
+                type: 'info',
+                data: quality
+              });
+            }
+          } catch (error) {
+            logger.error('Failed to analyze signal quality for WebSocket emission:', {
+              error: error.message,
+              stack: error.stack
             });
           }
-        } catch (error) {
-          logger.error('Failed to analyze signal quality for WebSocket emission:', { error: error.message, stack: error.stack });
-        }
-      });
-
-      // Listen for trade failures
-      tradeExecutor.on('trade:failed', data => {
-        console.log(`📡 Broadcasting trade:failed for user ${data.userId}`);
-        emitters.emitTradeFailed(data.userId, data.error);
-      });
-
-      // Listen for portfolio updates
-      tradeExecutor.on('portfolio:updated', async data => {
-        try {
-          console.log(`📡 Portfolio update triggered for user ${data.userId}`);
-          const User = mongoose.model('User');
-          const user = await User.findById(data.userId);
-          if (user) {
-            // Get portfolio data from brokers/exchanges
-            const positions = await tradeExecutor.getOpenPositions(user);
-            const portfolio = {
-              totalValue: 0, // TODO: Calculate from positions
-              cash: 0, // TODO: Get from broker balance
-              equity: 0, // TODO: Calculate from positions
-              positions: positions,
-              dayChange: 0,
-              dayChangePercent: 0
-            };
-            emitters.emitPortfolioUpdate(data.userId, portfolio);
-          }
-        } catch (error) {
-          logger.error('Error fetching portfolio for WebSocket update:', { error: error.message, stack: error.stack });
-        }
-      });
-
-      // Listen for position closures
-      tradeExecutor.on('position:closed', data => {
-        console.log(`📡 Position closed for user ${data.userId}: ${data.position.symbol}`);
-        emitters.emitPositionClosed(data.userId, data.position);
-
-        // Trigger portfolio update since position affects portfolio
-        tradeExecutor.emit('portfolio:updated', {
-          userId: data.userId,
-          trigger: 'position_closed',
-          symbol: data.position.symbol
         });
-      });
 
-      logger.info('✅ TradeExecutor event listeners connected to WebSocket emitters');
+        // Listen for trade failures
+        tradeExecutor.on('trade:failed', data => {
+          logger.info(`📡 Broadcasting trade:failed for user ${data.userId}`);
+          emitters.emitTradeFailed(data.userId, data.error);
+        });
+
+        // Listen for portfolio updates
+        tradeExecutor.on('portfolio:updated', async data => {
+          try {
+            logger.info(`📡 Portfolio update triggered for user ${data.userId}`);
+            const User = mongoose.model('User');
+            const user = await User.findById(data.userId);
+            if (user) {
+              // Get portfolio data from brokers/exchanges
+              const positions = await tradeExecutor.getOpenPositions(user);
+              const portfolio = {
+                totalValue: 0, // TODO: Calculate from positions
+                cash: 0, // TODO: Get from broker balance
+                equity: 0, // TODO: Calculate from positions
+                positions: positions,
+                dayChange: 0,
+                dayChangePercent: 0
+              };
+              emitters.emitPortfolioUpdate(data.userId, portfolio);
+            }
+          } catch (error) {
+            logger.error('Error fetching portfolio for WebSocket update:', {
+              error: error.message,
+              stack: error.stack
+            });
+          }
+        });
+
+        // Listen for position closures
+        tradeExecutor.on('position:closed', data => {
+          logger.info(`📡 Position closed for user ${data.userId}: ${data.position.symbol}`);
+          emitters.emitPositionClosed(data.userId, data.position);
+
+          // Trigger portfolio update since position affects portfolio
+          tradeExecutor.emit('portfolio:updated', {
+            userId: data.userId,
+            trigger: 'position_closed',
+            symbol: data.position.symbol
+          });
+        });
+
+        logger.info('✅ TradeExecutor event listeners connected to WebSocket emitters');
+      } catch (error) {
+        logger.error('❌ Failed to connect TradeExecutor to WebSocket:', {
+          error: error.message,
+          stack: error.stack
+        });
+      }
+
+      logger.info('✅ WebSocket server initialization complete');
+    } catch (error) {
+      logger.error('❌ Failed to initialize WebSocket server:', { error: error.message, stack: error.stack });
     }
+  })();
 
-    logger.info('✅ WebSocket server initialization complete');
-  } catch (error) {
-    logger.error('❌ Failed to initialize WebSocket server:', { error: error.message, stack: error.stack });
-  }
-})();
+  // Handle server errors
+  server.on('error', error => {
+    logger.error('Server error:', { error: error.message, stack: error.stack });
+  });
 
-// Handle server errors
-server.on('error', error => {
-  logger.error('Server error:', { error: error.message, stack: error.stack });
-});
+  // Keep the process alive with heartbeat (production only)
+  setInterval(() => {
+    logger.info(`💓 Heartbeat - Uptime: ${Math.floor(process.uptime())}s`);
+  }, 30000); // Every 30 seconds
 
-// Keep the process alive
-setInterval(() => {
-  console.log(`💓 Heartbeat - ${new Date().toISOString()} - Uptime: ${Math.floor(process.uptime())}s`);
-}, 30000); // Every 30 seconds
-
-logger.info('🔄 Application initialization complete');
+  logger.info('🔄 Application initialization complete');
+}
 
 // Export app for testing
 module.exports = app;
