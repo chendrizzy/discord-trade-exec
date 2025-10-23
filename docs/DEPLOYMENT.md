@@ -6,6 +6,95 @@
 - Discord Developer Application
 - Polar.sh account (for billing)
 - Domain name (optional)
+- Sentry account (for error tracking - optional but recommended)
+
+## Database Migrations
+
+### Overview
+
+The application uses a file-based migration system to manage schema changes in MongoDB. Migrations are tracked in a `migrations` collection to ensure they run only once.
+
+### Running Migrations
+
+Before deploying a new version, always run pending migrations:
+
+```bash
+# Check migration status
+npm run migrate:status
+
+# Run all pending migrations
+npm run migrate
+
+# Or using the migration script directly
+node scripts/db/migrate.js up
+```
+
+### Creating New Migrations
+
+To create a new migration:
+
+```bash
+npm run migrate:create add_user_indexes
+
+# This creates: migrations/YYYYMMDD_HHMMSS_add_user_indexes.js
+```
+
+Edit the generated file with your migration logic:
+
+```javascript
+module.exports = {
+  async up(db) {
+    // Apply migration
+    await db.collection('users').createIndex({ email: 1 }, { unique: true });
+  },
+
+  async down(db) {
+    // Rollback migration
+    await db.collection('users').dropIndex('email_1');
+  }
+};
+```
+
+### Migration Best Practices
+
+1. **Test migrations locally** before deploying to production
+2. **Include rollback logic** in the `down()` function
+3. **Make migrations idempotent** - safe to run multiple times
+4. **Document breaking changes** in migration comments
+5. **Backup database** before running migrations in production
+
+### Rollback
+
+To rollback the last migration:
+
+```bash
+npm run migrate:rollback
+
+# Or using the migration script
+node scripts/db/migrate.js down
+```
+
+### Example Deployment Workflow
+
+```bash
+# 1. Pull latest code
+git pull origin main
+
+# 2. Install dependencies
+npm ci
+
+# 3. Check migration status
+npm run migrate:status
+
+# 4. Run pending migrations
+npm run migrate
+
+# 5. Build application (if needed)
+npm run build
+
+# 6. Restart application
+pm2 restart discord-trade-executor
+```
 
 ## Environment Setup
 

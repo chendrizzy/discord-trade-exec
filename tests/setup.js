@@ -26,6 +26,13 @@ process.env.POLAR_WEBHOOK_SECRET = 'whsec_test_123456789012345678901234567890';
 process.env.POLAR_ORGANIZATION_ID = '550e8400-e29b-41d4-a716-446655440000';
 process.env.MONGODB_URI = 'mongodb://localhost:27017/trade-executor-test';
 process.env.ENCRYPTION_KEY = '584fc10bcc68bd3d32d9810a6d633481df732c1fbfd6a70564988ba5dc489239';
+// Session & JWT
+process.env.SESSION_SECRET = 'test-session-secret-key-for-testing-only-minimum-32-chars';
+process.env.JWT_SECRET = 'test-jwt-secret-key-for-testing-only-minimum-32-characters-long';
+// Discord OAuth
+process.env.DISCORD_CLIENT_ID = 'test-discord-client-id';
+process.env.DISCORD_CLIENT_SECRET = 'test-discord-client-secret';
+process.env.DISCORD_REDIRECT_URI = 'http://localhost:3000/auth/discord/callback';
 // OAuth2 Provider Credentials (for testing OAuth2Service and broker adapters)
 process.env.ALPACA_OAUTH_CLIENT_ID = 'test_alpaca_client_id';
 process.env.ALPACA_OAUTH_CLIENT_SECRET = 'test_alpaca_client_secret';

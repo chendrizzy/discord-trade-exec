@@ -19,6 +19,8 @@ No manual configuration needed! See `AUTOMATED-SETUP.md` for details.
 ./quickstart.sh
 ```
 
+📖 **Full Documentation:** See [specs/003-discord-trade-executor-main/quickstart.md](specs/003-discord-trade-executor-main/quickstart.md) for detailed setup instructions, local development guide, and test broker configurations.
+
 ## 💰 Revenue Model
 
 - **Basic Plan:** $49/month - 100 signals/day

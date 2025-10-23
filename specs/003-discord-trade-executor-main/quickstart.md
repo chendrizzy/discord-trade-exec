@@ -32,9 +32,48 @@ Before you begin, ensure you have the following installed:
   git --version
   ```
 
+- **Recommended**: VS Code with extensions:
+  - ESLint
+  - Prettier
+  - Jest
+  - MongoDB for VS Code
+
 ---
 
-## Step 1: Clone Repository
+## Quick Start (5 Minutes)
+
+### Automated Setup
+
+The fastest way to get started:
+
+```bash
+# Clone repository
+git clone https://github.com/chendrizzy/discord-trade-exec.git
+cd discord-trade-exec
+
+# Run automated setup script
+./auto-setup.sh
+
+# Or use the quickstart script
+./quickstart.sh
+```
+
+The automated setup will:
+1. ✅ Check prerequisites (Node.js, Docker)
+2. ✅ Install dependencies
+3. ✅ Start Docker containers (MongoDB + Redis)
+4. ✅ Copy `.env.example` to `.env`
+5. ✅ Generate encryption keys
+6. ✅ Run database migrations
+7. ✅ Start development server
+
+**After automated setup completes**, skip to [Step 6: Test the Setup](#step-6-test-the-setup).
+
+---
+
+## Manual Setup (Step-by-Step)
+
+### Step 1: Clone Repository
 
 ```bash
 git clone https://github.com/chendrizzy/discord-trade-exec.git
@@ -43,7 +82,7 @@ cd discord-trade-exec
 
 ---
 
-## Step 2: Install Dependencies
+### Step 2: Install Dependencies
 
 ```bash
 npm install
@@ -59,7 +98,7 @@ This installs ~70 production and dev dependencies including:
 
 ---
 
-## Step 3: Start Local Infrastructure
+### Step 3: Start Local Infrastructure
 
 Use Docker Compose to spin up MongoDB and Redis:
 
@@ -79,7 +118,7 @@ docker ps
 
 ---
 
-## Step 4: Configure Environment Variables
+### Step 4: Configure Environment Variables
 
 Copy the example environment file:
 
@@ -89,7 +128,7 @@ cp .env.example .env
 
 Edit `.env` and fill in the following **required** variables:
 
-### Core Configuration
+#### Core Configuration
 ```env
 NODE_ENV=development
 PORT=3000
@@ -100,6 +139,125 @@ MONGODB_URI=mongodb://localhost:27017/tradeexec
 REDIS_URL=redis://localhost:6379
 
 # Security
+SESSION_SECRET=your_session_secret_minimum_32_characters_long
+ENCRYPTION_KEY=$(node -e "console.log(require('crypto').randomBytes(32).toString('hex'))")
+JWT_SECRET=your_jwt_secret_minimum_32_characters_long
+```
+
+#### Discord Bot Configuration
+
+Create a Discord application at https://discord.com/developers/applications:
+
+1. Click "New Application"
+2. Go to "Bot" tab → Click "Add Bot"
+3. Copy the bot token
+
+```env
+DISCORD_BOT_TOKEN=your_discord_bot_token_here
+DISCORD_CLIENT_ID=your_discord_client_id
+DISCORD_CLIENT_SECRET=your_discord_client_secret
+DISCORD_REDIRECT_URI=http://localhost:3000/auth/discord/callback
+```
+
+#### Test Broker API Keys (Paper Trading)
+
+For development and testing, use paper trading accounts:
+
+**Alpaca Paper Trading** (Recommended for initial testing):
+1. Sign up at https://alpaca.markets
+2. Get paper trading API keys
+3. Add to `.env`:
+
+```env
+ALPACA_API_KEY=your_alpaca_paper_key
+ALPACA_SECRET_KEY=your_alpaca_paper_secret
+ALPACA_BASE_URL=https://paper-api.alpaca.markets
+```
+
+**Optional: Other Brokers**
+
+See [Test Broker Accounts Setup](#test-broker-accounts-setup) below for:
+- Interactive Brokers (IBKR) paper account
+- TD Ameritrade sandbox
+- E*TRADE sandbox
+- Coinbase Pro sandbox
+- Kraken demo
+
+---
+
+### Step 5: Run Database Migrations
+
+Initialize the database schema:
+
+```bash
+npm run migrate
+```
+
+This creates:
+- User collection with indexes
+- Trade collection
+- Position collection
+- AuditLog collection
+- Subscription collection
+
+Check migration status:
+```bash
+npm run migrate:status
+```
+
+---
+
+### Step 6: Test the Setup
+
+Run the test suite to verify everything is configured correctly:
+
+```bash
+# Run all tests
+npm test
+
+# Run only unit tests (faster)
+npm run test:unit
+
+# Run with coverage
+npm test -- --coverage
+```
+
+Expected output:
+```
+PASS  tests/unit/services/RiskManagementService.test.js
+PASS  tests/integration/api/trades.test.js
+PASS  tests/integration/routes/auth.test.js
+
+Test Suites: 35 passed, 35 total
+Tests:       150 passed, 150 total
+Coverage:    >95% critical paths
+```
+
+---
+
+### Step 7: Start Development Server
+
+Start the backend API and Discord bot:
+
+```bash
+npm run dev
+```
+
+In a separate terminal, start the frontend dashboard:
+
+```bash
+npm run dev:dashboard
+```
+
+Services running:
+- **Backend API**: http://localhost:3000
+- **Frontend Dashboard**: http://localhost:5173
+- **WebSocket Server**: ws://localhost:3000
+- **Discord Bot**: Connected to Discord gateway
+
+---
+
+## Test Broker Accounts Setup# Security
 JWT_SECRET=your-random-256-bit-secret
 ENCRYPTION_KEY=your-aes-256-key-base64
 SESSION_SECRET=your-session-secret

@@ -1,0 +1,36 @@
+# Modelfile for DeepSeek V3.1
+FROM deepseek-v3.1:latest
+
+# Model parameters
+PARAMETER temperature 0.7
+PARAMETER top_p 0.9
+PARAMETER top_k 40
+PARAMETER num_predict 4096
+PARAMETER repeat_penalty 1.1
+PARAMETER seed -1
+
+# System message
+SYSTEM """
+You are DeepSeek V3.1, a helpful AI assistant. You are knowledgeable, accurate, and provide detailed responses when needed. You should:
+
+1. Be concise and direct in your responses
+2. Provide accurate technical information
+3. Ask clarifying questions when needed
+4. Acknowledge when you don't know something
+5. Be helpful and respectful in all interactions
+
+Focus on being practical and solution-oriented in your assistance.
+"""
+
+# Template for chat format
+TEMPLATE """{{ if .System }}<|im_start|>system
+{{ .System }}<|im_end|>
+{{ end }}{{ if .Prompt }}<|im_start|>user
+{{ .Prompt }}<|im_end|>
+{{ end }}<|im_start|>assistant
+{{ .Response }}<|im_end|>
+"""
+
+# Stop sequences
+PARAMETER stop "<|im_start|>"
+PARAMETER stop "<|im_end|>"
