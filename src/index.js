@@ -51,8 +51,10 @@ const { createAuthMiddleware } = require('./services/websocket/middleware/auth')
 const { createRateLimitMiddleware } = require('./services/websocket/middleware/rateLimiter');
 const { createEventHandlers } = require('./services/websocket/handlers');
 const { createEmitters } = require('./services/websocket/emitters');
-const logger = require('utils/logger');
-const logger = require('utils/logger');
+const logger = require('./utils/logger');
+const correlationMiddleware = require('./middleware/correlation');
+const loggingMiddleware = require('./middleware/logging');
+const { errorHandler, notFoundHandler } = require('./middleware/errorHandler');
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -60,19 +62,11 @@ const PORT = process.env.PORT || 5000;
 // Trust proxy for Railway deployment
 app.set('trust proxy', 1);
 
-// Add global error handlers
-process.on('uncaughtException', error => {
-  logger.error('Uncaught Exception:', { error: error.message, stack: error.stack });
-  // Don't exit process, keep running
-});
-
-process.on('unhandledRejection', (reason, promise) => {
-  console.error('Unhandled Rejection at:', promise, 'reason:', reason);
-  // Don't exit process, keep running
-});
+// SIGTERM/SIGINT handlers for graceful shutdown
+let webSocketServer; // Declare here for access in shutdown handlers
 
 process.on('SIGTERM', async () => {
-  logger.info('Received SIGTERM, shutting down gracefully...');
+  logger.info('Received SIGTERM, shutting down gracefully');
   if (webSocketServer) {
     await webSocketServer.shutdown();
   }
@@ -80,7 +74,7 @@ process.on('SIGTERM', async () => {
 });
 
 process.on('SIGINT', async () => {
-  logger.info('Received SIGINT, shutting down gracefully...');
+  logger.info('Received SIGINT, shutting down gracefully');
   if (webSocketServer) {
     await webSocketServer.shutdown();
   }
@@ -133,6 +127,12 @@ app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
 // Serve static files from the React dashboard build
 app.use(express.static(path.join(__dirname, '../dist/dashboard')));
+
+// Correlation ID middleware (must be before logging)
+app.use(correlationMiddleware);
+
+// Request/Response logging middleware
+app.use(loggingMiddleware);
 
 // Session configuration
 app.use(
@@ -197,7 +197,6 @@ try {
 // Initialize TradingView Parser and Trade Executor
 let tradingViewParser;
 let tradeExecutor;
-let webSocketServer; // Declare here for access in shutdown handlers
 try {
   tradingViewParser = new TradingViewParser();
   tradeExecutor = new TradeExecutor();
@@ -420,6 +419,12 @@ app.get('/api', (req, res) => {
     ]
   });
 });
+
+// 404 handler - must be after all other routes
+app.use(notFoundHandler);
+
+// Global error handler - must be last
+app.use(errorHandler);
 
 // Catch-all route - serve React app for client-side routing
 app.get('*', (req, res) => {

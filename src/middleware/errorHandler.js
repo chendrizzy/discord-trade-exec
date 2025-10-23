@@ -13,7 +13,8 @@
  * FR-063-064: Error handling and recovery
  */
 
-const { logger } = require('./logger');
+const logger = require('../utils/logger');
+const { getCorrelationId } = require('../utils/logger');
 const { getConfig } = require('../config/env');
 
 const config = getConfig();
@@ -260,19 +261,26 @@ function errorHandler(err, req, res, next) {
   // Sanitize message for production
   appError.message = sanitizeErrorMessage(appError);
 
-  // Log error
-  logger.error('Error Handler', {
-    message: err.message,
-    code: appError.code,
+  // Get correlation ID from AsyncLocalStorage or request
+  const correlationId = getCorrelationId() || req.correlationId;
+
+  // Log error with correlation ID and sanitized context
+  logger.error('Request error', {
+    correlationId,
+    error: err.message,
+    errorCode: appError.code,
     statusCode: appError.statusCode,
     path: req.path,
     method: req.method,
     userId: req.user?.userId,
-    stack: err.stack
+    communityId: req.user?.communityId,
+    // NEVER log full stack traces to prevent information leakage
+    // Stack is captured by Winston transport for file logs only
+    stackPreview: err.stack ? err.stack.split('\n').slice(0, 3).join('\n') : undefined
   });
 
-  // Send error response
-  res.status(appError.statusCode).json(createErrorResponse(appError, !config.isProduction));
+  // Send error response (never include stack in response, even in dev)
+  res.status(appError.statusCode).json(createErrorResponse(appError, false));
 }
 
 /**
@@ -302,9 +310,10 @@ function asyncHandler(fn) {
  * Handle unhandled promise rejections
  */
 process.on('unhandledRejection', (reason, promise) => {
-  logger.error('Unhandled Promise Rejection', {
-    reason: reason?.message || reason,
-    stack: reason?.stack
+  logger.error('Unhandled promise rejection detected', {
+    error: reason?.message || String(reason),
+    stack: reason?.stack,
+    type: 'UnhandledRejection'
   });
 
   // Send to Sentry if configured
@@ -317,9 +326,10 @@ process.on('unhandledRejection', (reason, promise) => {
  * Handle uncaught exceptions
  */
 process.on('uncaughtException', error => {
-  logger.error('Uncaught Exception', {
-    message: error.message,
-    stack: error.stack
+  logger.error('Uncaught exception - process will exit', {
+    error: error.message,
+    stack: error.stack,
+    type: 'UncaughtException'
   });
 
   // Send to Sentry if configured
