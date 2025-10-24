@@ -55,7 +55,10 @@ class AlpacaAdapter extends BrokerAdapter {
       const balance = await this.getBalance();
       return !!balance;
     } catch (error) {
-      console.error('[AlpacaAdapter] Connection test failed:', error.message);
+      logger.error('[AlpacaAdapter] Connection test failed', {
+        error: error.message,
+        stack: error.stack
+      });
       return false;
     }
   }
@@ -113,7 +116,12 @@ class AlpacaAdapter extends BrokerAdapter {
 
       return this.isAuthenticated;
     } catch (error) {
-      console.error('[AlpacaAdapter] Authentication failed:', error.message);
+      logger.error('[AlpacaAdapter] Authentication failed', {
+        error: error.message,
+        stack: error.stack,
+        userId: this.userId,
+        hasApiKey: !!this.apiKey
+      });
       this.isAuthenticated = false;
       throw new Error(`Alpaca authentication failed: ${error.message}`);
     }
@@ -142,7 +150,10 @@ class AlpacaAdapter extends BrokerAdapter {
           ((parseFloat(account.equity) - parseFloat(account.last_equity)) / parseFloat(account.last_equity)) * 100
       };
     } catch (error) {
-      console.error('[AlpacaAdapter] getBalance error:', error.message);
+      logger.error('[AlpacaAdapter] Error fetching balance', {
+        error: error.message,
+        stack: error.stack
+      });
       throw new Error(`Failed to get balance: ${error.message}`);
     }
   }
@@ -197,7 +208,14 @@ class AlpacaAdapter extends BrokerAdapter {
         updatedAt: response.updated_at
       };
     } catch (error) {
-      console.error('[AlpacaAdapter] createOrder error:', error.message);
+      logger.error('[AlpacaAdapter] Error creating order', {
+        error: error.message,
+        stack: error.stack,
+        symbol: order.symbol,
+        side: order.side,
+        type: order.type,
+        quantity: order.quantity
+      });
       throw new Error(`Failed to create order: ${error.message}`);
     }
   }
@@ -214,7 +232,11 @@ class AlpacaAdapter extends BrokerAdapter {
       await this.alpacaClient.cancelOrder(orderId);
       return true;
     } catch (error) {
-      console.error('[AlpacaAdapter] cancelOrder error:', error.message);
+      logger.error('[AlpacaAdapter] Error cancelling order', {
+        error: error.message,
+        stack: error.stack,
+        orderId
+      });
 
       // If order already filled/cancelled, consider it success
       if (error.message.includes('already') || error.message.includes('not found')) {
@@ -250,7 +272,10 @@ class AlpacaAdapter extends BrokerAdapter {
         changeToday: parseFloat(pos.change_today) * 100
       }));
     } catch (error) {
-      console.error('[AlpacaAdapter] getPositions error:', error.message);
+      logger.error('[AlpacaAdapter] Error fetching positions', {
+        error: error.message,
+        stack: error.stack
+      });
       throw new Error(`Failed to get positions: ${error.message}`);
     }
   }
@@ -290,7 +315,13 @@ class AlpacaAdapter extends BrokerAdapter {
         trailPercent: parseFloat(response.trail_percent || 0)
       };
     } catch (error) {
-      console.error('[AlpacaAdapter] setStopLoss error:', error.message);
+      logger.error('[AlpacaAdapter] Error setting stop-loss', {
+        error: error.message,
+        stack: error.stack,
+        symbol: params.symbol,
+        stopPrice: params.stopPrice,
+        type: params.type
+      });
       throw new Error(`Failed to set stop-loss: ${error.message}`);
     }
   }
@@ -322,7 +353,12 @@ class AlpacaAdapter extends BrokerAdapter {
         limitPrice: parseFloat(response.limit_price)
       };
     } catch (error) {
-      console.error('[AlpacaAdapter] setTakeProfit error:', error.message);
+      logger.error('[AlpacaAdapter] Error setting take-profit', {
+        error: error.message,
+        stack: error.stack,
+        symbol: params.symbol,
+        limitPrice: params.limitPrice
+      });
       throw new Error(`Failed to set take-profit: ${error.message}`);
     }
   }
@@ -377,7 +413,11 @@ class AlpacaAdapter extends BrokerAdapter {
         filledAt: order.filled_at
       }));
     } catch (error) {
-      console.error('[AlpacaAdapter] getOrderHistory error:', error.message);
+      logger.error('[AlpacaAdapter] Error fetching order history', {
+        error: error.message,
+        stack: error.stack,
+        filters
+      });
       throw new Error(`Failed to get order history: ${error.message}`);
     }
   }
@@ -403,7 +443,11 @@ class AlpacaAdapter extends BrokerAdapter {
         timestamp: quote.Timestamp
       };
     } catch (error) {
-      console.error('[AlpacaAdapter] getMarketPrice error:', error.message);
+      logger.error('[AlpacaAdapter] Error fetching market price', {
+        error: error.message,
+        stack: error.stack,
+        symbol
+      });
       throw new Error(`Failed to get market price: ${error.message}`);
     }
   }
