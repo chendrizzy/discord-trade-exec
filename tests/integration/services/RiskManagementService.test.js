@@ -241,33 +241,87 @@ describe('Integration Test: Risk Aggregation', () => {
         maxPortfolioExposurePercent: 80 // Max 80% portfolio exposure
       });
 
-      // Create existing positions totaling 70% of portfolio
+      // Create existing positions totaling 72% of portfolio (all at max 10% position size)
       await createTestPosition(user._id, {
         symbol: 'TSLA',
-        quantity: 20,
-        entryPrice: 250,
-        avgPrice: 250,
-        avgEntryPrice: 250,
-        costBasis: 5000 // 20 * $250 = $5,000
+        quantity: 5,
+        entryPrice: 200,
+        avgPrice: 200,
+        avgEntryPrice: 200,
+        costBasis: 1000 // 5 * $200 = $1,000 (10%)
       });
 
       await createTestPosition(user._id, {
         symbol: 'GOOGL',
-        quantity: 10,
+        quantity: 5,
         entryPrice: 200,
         avgPrice: 200,
         avgEntryPrice: 200,
-        costBasis: 2000 // 10 * $200 = $2,000
+        costBasis: 1000 // 5 * $200 = $1,000 (10%)
       });
-      // Total existing: $7,000 (70% of $10k)
 
-      // Try to add position worth $2,000 (would be 90% total - exceeds 80% limit)
-      const newSignal = {
+      await createTestPosition(user._id, {
+        symbol: 'AAPL',
+        quantity: 5,
+        entryPrice: 200,
+        avgPrice: 200,
+        avgEntryPrice: 200,
+        costBasis: 1000 // 5 * $200 = $1,000 (10%)
+      });
+
+      await createTestPosition(user._id, {
+        symbol: 'NVDA',
+        quantity: 5,
+        entryPrice: 200,
+        avgPrice: 200,
+        avgEntryPrice: 200,
+        costBasis: 1000 // 5 * $200 = $1,000 (10%)
+      });
+
+      await createTestPosition(user._id, {
+        symbol: 'AMD',
+        quantity: 5,
+        entryPrice: 200,
+        avgPrice: 200,
+        avgEntryPrice: 200,
+        costBasis: 1000 // 5 * $200 = $1,000 (10%)
+      });
+
+      await createTestPosition(user._id, {
+        symbol: 'INTC',
+        quantity: 5,
+        entryPrice: 200,
+        avgPrice: 200,
+        avgEntryPrice: 200,
+        costBasis: 1000 // 5 * $200 = $1,000 (10%)
+      });
+
+      await createTestPosition(user._id, {
         symbol: 'MSFT',
+        quantity: 5,
+        entryPrice: 200,
+        avgPrice: 200,
+        avgEntryPrice: 200,
+        costBasis: 1000 // 5 * $200 = $1,000 (10%)
+      });
+
+      await createTestPosition(user._id, {
+        symbol: 'NFLX',
+        quantity: 5,
+        entryPrice: 200,
+        avgPrice: 200,
+        avgEntryPrice: 200,
+        costBasis: 1000 // 5 * $200 = $1,000 (10%)
+      });
+      // Total existing: $8,000 (80% of $10k - at max exposure limit)
+
+      // Try to add position worth $1,000 (9% more - would be 81% total, exceeds 80% limit)
+      const newSignal = {
+        symbol: 'META',
         action: 'buy',
-        quantity: 10,
-        price: 200, // 10 * $200 = $2,000
-        stopLoss: 195
+        quantity: 5, // Won't trigger position size adjustment (9% < 10%)
+        price: 180, // 5 * $180 = $900 (9%)
+        stopLoss: 175
       };
 
       const result = await RiskManagementService.validateTrade(
@@ -412,7 +466,7 @@ describe('Integration Test: Risk Aggregation', () => {
       const lowRiskSignal = {
         symbol: 'AAPL',
         action: 'buy',
-        quantity: 10, // Small position
+        quantity: 5, // Very small position: 5 × $180 = $900 (9% of $10k equity)
         price: 180,
         stopLoss: 178 // Tight stop loss: 1.1%
       };

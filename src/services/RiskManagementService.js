@@ -197,7 +197,7 @@ class RiskManagementService {
         return result;
       }
 
-      // 7. Check portfolio exposure
+      // 7. Check portfolio exposure (use adjusted quantity)
       const exposureCheck = await this._checkPortfolioExposure(
         userId,
         signal,
@@ -289,7 +289,7 @@ class RiskManagementService {
 
     // Check current positions for symbol
     const existingPosition = await Position.findOne({
-      user: userId,
+      userId,
       symbol: signal.symbol,
       status: 'OPEN'
     });
@@ -630,7 +630,11 @@ class RiskManagementService {
    * @private
    */
   _calculateRiskScore(signal, positionSize, equity, riskConfig) {
-    const notionalValue = positionSize.quantity * signal.price;
+    // Use original signal quantity for risk scoring (trader's intent)
+    // Not adjusted quantity (system's execution safety)
+    const scoringQuantity = signal.quantity;
+
+    const notionalValue = scoringQuantity * signal.price;
     const positionPercent = (notionalValue / equity) * 100;
 
     // Stop loss distance as percentage
@@ -678,10 +682,19 @@ class RiskManagementService {
    * @private
    */
   _getUserRiskConfig(user) {
+    // Always start with defaults to ensure all fields are present
+    const config = { ...DEFAULT_RISK_CONFIG };
+
+    // Merge user settings if they exist
     if (user.riskSettings && Object.keys(user.riskSettings).length > 0) {
-      return { ...DEFAULT_RISK_CONFIG, ...user.riskSettings };
+      Object.keys(user.riskSettings).forEach(key => {
+        if (user.riskSettings[key] !== null && user.riskSettings[key] !== undefined) {
+          config[key] = user.riskSettings[key];
+        }
+      });
     }
-    return DEFAULT_RISK_CONFIG;
+
+    return config;
   }
 
   /**
