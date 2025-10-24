@@ -54,7 +54,10 @@ class KrakenAdapter extends BrokerAdapter {
       const balance = await this.getBalance();
       return !!balance;
     } catch (error) {
-      console.error('[KrakenAdapter] Connection test failed:', error.message);
+      logger.error('[KrakenAdapter] Connection test failed', {
+        error: error.message,
+        stack: error.stack
+      });
       return false;
     }
   }
@@ -71,7 +74,10 @@ class KrakenAdapter extends BrokerAdapter {
       logger.info('✅ Kraken authenticated successfully');
       return true;
     } catch (error) {
-      console.error('❌ Kraken authentication failed:', error.message);
+      logger.error('[KrakenAdapter] Authentication failed', {
+        error: error.message,
+        stack: error.stack
+      });
       this.isAuthenticated = false;
       return false;
     }
@@ -105,7 +111,11 @@ class KrakenAdapter extends BrokerAdapter {
         currency: 'USD'
       };
     } catch (error) {
-      console.error('Error fetching Kraken balance:', error.message);
+      logger.error('[KrakenAdapter] Error fetching balance', {
+        error: error.message,
+        stack: error.stack,
+        currency
+      });
       throw error;
     }
   }
@@ -155,7 +165,14 @@ class KrakenAdapter extends BrokerAdapter {
         type: order.type
       };
     } catch (error) {
-      console.error('Error creating Kraken order:', error.message);
+      logger.error('[KrakenAdapter] Error creating order', {
+        error: error.message,
+        stack: error.stack,
+        symbol: order.symbol,
+        side: order.side,
+        type: order.type,
+        quantity: order.quantity
+      });
       throw error;
     }
   }
@@ -167,10 +184,16 @@ class KrakenAdapter extends BrokerAdapter {
   async cancelOrder(orderId) {
     try {
       await withTimeout(this.exchange.cancelOrder(orderId), 30000);
-      console.log(`✅ Kraken order ${orderId} cancelled`);
+      logger.info('[KrakenAdapter] Order cancelled', {
+        orderId
+      });
       return true;
     } catch (error) {
-      console.error('Error cancelling Kraken order:', error.message);
+      logger.error('[KrakenAdapter] Error cancelling order', {
+        orderId,
+        error: error.message,
+        stack: error.stack
+      });
       return false;
     }
   }
@@ -222,7 +245,10 @@ class KrakenAdapter extends BrokerAdapter {
 
       return positions;
     } catch (error) {
-      console.error('Error fetching Kraken positions:', error.message);
+      logger.error('[KrakenAdapter] Error fetching positions', {
+        error: error.message,
+        stack: error.stack
+      });
       return [];
     }
   }
@@ -243,14 +269,23 @@ class KrakenAdapter extends BrokerAdapter {
         30000
       );
 
-      console.log(`✅ Kraken stop-loss set for ${params.symbol} at ${params.stopPrice}`);
+      logger.info('[KrakenAdapter] Stop-loss order set', {
+        symbol: params.symbol,
+        stopPrice: params.stopPrice,
+        orderId: result.id
+      });
       return {
         orderId: result.id,
         symbol: params.symbol,
         stopPrice: params.stopPrice
       };
     } catch (error) {
-      console.error('Error setting Kraken stop-loss:', error.message);
+      logger.error('[KrakenAdapter] Error setting stop-loss', {
+        symbol: params.symbol,
+        stopPrice: params.stopPrice,
+        error: error.message,
+        stack: error.stack
+      });
       throw error;
     }
   }
@@ -271,14 +306,23 @@ class KrakenAdapter extends BrokerAdapter {
         30000
       );
 
-      console.log(`✅ Kraken take-profit set for ${params.symbol} at ${params.limitPrice}`);
+      logger.info('[KrakenAdapter] Take-profit order set', {
+        symbol: params.symbol,
+        limitPrice: params.limitPrice,
+        orderId: result.id
+      });
       return {
         orderId: result.id,
         symbol: params.symbol,
         limitPrice: params.limitPrice
       };
     } catch (error) {
-      console.error('Error setting Kraken take-profit:', error.message);
+      logger.error('[KrakenAdapter] Error setting take-profit', {
+        symbol: params.symbol,
+        limitPrice: params.limitPrice,
+        error: error.message,
+        stack: error.stack
+      });
       throw error;
     }
   }
@@ -325,7 +369,11 @@ class KrakenAdapter extends BrokerAdapter {
         timestamp: new Date(order.timestamp)
       }));
     } catch (error) {
-      console.error('Error fetching Kraken order history:', error.message);
+      logger.error('[KrakenAdapter] Error fetching order history', {
+        error: error.message,
+        stack: error.stack,
+        filters
+      });
       return [];
     }
   }
@@ -344,7 +392,11 @@ class KrakenAdapter extends BrokerAdapter {
         last: ticker.last || 0
       };
     } catch (error) {
-      console.error('Error fetching Kraken market price:', error.message);
+      logger.error('[KrakenAdapter] Error fetching market price', {
+        symbol,
+        error: error.message,
+        stack: error.stack
+      });
       throw error;
     }
   }
@@ -364,7 +416,11 @@ class KrakenAdapter extends BrokerAdapter {
       const normalized = this.normalizeSymbol(symbol);
       return this.supportedPairs.has(normalized);
     } catch (error) {
-      console.error('Error checking symbol support:', error.message);
+      logger.error('[KrakenAdapter] Error checking symbol support', {
+        symbol,
+        error: error.message,
+        stack: error.stack
+      });
       return false;
     }
   }
@@ -393,7 +449,11 @@ class KrakenAdapter extends BrokerAdapter {
         withdrawal: 0
       };
     } catch (error) {
-      console.error('Error fetching Kraken fees:', error.message);
+      logger.error('[KrakenAdapter] Error fetching fees', {
+        symbol,
+        error: error.message,
+        stack: error.stack
+      });
       return {
         maker: 0.0016,
         taker: 0.0026,
