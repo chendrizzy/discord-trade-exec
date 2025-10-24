@@ -169,7 +169,7 @@ router.post('/', ensureAuthenticated, async (req, res) => {
     }
 
     // Validate API key permissions
-    console.log(`Validating ${name} API key...`);
+    logger.info('[Exchanges] Validating API key', { exchange: name, testnet });
     const validation = await validateExchangeKey(name, apiKey, apiSecret, testnet);
 
     if (!validation.valid) {
@@ -507,7 +507,11 @@ router.get('/compare-fees', ensureAuthenticated, exchangeApiLimiter, async (req,
             await cacheService.set(priceCacheKey, priceData, cacheService.DEFAULT_TTL.PRICE);
           } catch (priceError) {
             // If symbol not supported, skip this exchange
-            console.warn(`Symbol ${symbol} not supported on ${exchange.name}:`, priceError.message);
+            logger.warn('[Exchanges] Symbol not supported on exchange', {
+              symbol,
+              exchange: exchange.name,
+              error: priceError.message
+            });
             errors.push({
               exchange: exchange.name,
               error: `Symbol ${symbol} not supported`
@@ -545,7 +549,11 @@ router.get('/compare-fees', ensureAuthenticated, exchangeApiLimiter, async (req,
           website: brokerInfo.websiteUrl
         });
       } catch (error) {
-        console.error(`Error comparing fees for ${exchange.name}:`, error);
+        logger.error('[Exchanges] Error comparing fees', {
+          exchange: exchange.name,
+          error: error.message,
+          stack: error.stack
+        });
         errors.push({
           exchange: exchange.name,
           error: error.message

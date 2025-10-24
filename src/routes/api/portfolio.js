@@ -129,13 +129,21 @@ async function calculateTotalPortfolioValue(user) {
               }
             } catch (tickerError) {
               // If ticker fails, skip this currency
-              console.warn(`Could not fetch ticker for ${currency}:`, tickerError.message);
+              logger.warn('[Portfolio] Could not fetch ticker for currency', {
+                currency,
+                exchange: exchangeConfig.name,
+                error: tickerError.message
+              });
             }
           }
         }
       }
     } catch (error) {
-      console.error(`Error fetching balance from ${exchangeConfig.name}:`, error.message);
+      logger.error('[Portfolio] Error fetching balance from exchange', {
+        exchange: exchangeConfig.name,
+        error: error.message,
+        stack: error.stack
+      });
       // Continue with other exchanges even if one fails
     }
   }

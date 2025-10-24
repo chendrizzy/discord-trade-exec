@@ -476,10 +476,15 @@ router.post('/members/:id/role', dashboardLimiter, async (req, res) => {
       requiresReview: true
     });
 
-    console.log(
-      `[Community API] Role changed: User ${targetUser.discordUsername} (${targetUserId}) ` +
-      `from '${oldRole}' to '${newRole}' by ${user.discordUsername}`
-    );
+    logger.info('[Community API] Member role changed', {
+      targetUserId,
+      targetUsername: targetUser.discordUsername,
+      oldRole,
+      newRole,
+      changedBy: user.discordUsername,
+      changedById: user._id,
+      communityId: user.communityId
+    });
 
     res.json({
       success: true,
@@ -861,7 +866,11 @@ router.get('/subscription', dashboardLimiter, async (req, res) => {
       );
       billingPortalUrl = portalSession.url;
     } catch (portalError) {
-      console.error('[Community API] Error creating billing portal:', portalError.message);
+      logger.error('[Community API] Error creating billing portal', {
+        error: portalError.message,
+        stack: portalError.stack,
+        communityId: user.communityId
+      });
       // Continue without portal URL
     }
 

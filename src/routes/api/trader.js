@@ -128,14 +128,14 @@ router.get('/overview', overviewLimiter, async (req, res) => {
       status: 'OPEN'
     }).lean();
 
-    const avgSize = activePositions.length > 0
-      ? activePositions.reduce((sum, t) => sum + (t.quantity * t.entryPrice), 0) / activePositions.length
-      : 0;
+    const avgSize =
+      activePositions.length > 0
+        ? activePositions.reduce((sum, t) => sum + t.quantity * t.entryPrice, 0) / activePositions.length
+        : 0;
 
-    const totalExposure = activePositions.reduce((sum, t) => sum + (t.quantity * t.entryPrice), 0);
-    const largestPosition = activePositions.length > 0
-      ? Math.max(...activePositions.map(t => t.quantity * t.entryPrice))
-      : 0;
+    const totalExposure = activePositions.reduce((sum, t) => sum + t.quantity * t.entryPrice, 0);
+    const largestPosition =
+      activePositions.length > 0 ? Math.max(...activePositions.map(t => t.quantity * t.entryPrice)) : 0;
 
     // Execution rate (signals received vs executed)
     const subscriptions = await UserSignalSubscription.find({
@@ -165,36 +165,37 @@ router.get('/overview', overviewLimiter, async (req, res) => {
       .limit(3)
       .lean();
 
-    const following = await Promise.all(
-      followedProviders.map(async sub => {
-        // Calculate this week's performance for this user
-        const weekPnLForProvider = await Trade.aggregate([
-          {
-            $match: {
-              communityId: tenantId,
-              userId,
-              'signalSource.providerId': sub.providerId._id,
-              entryTime: { $gte: weekStart },
-              status: { $in: ['FILLED', 'PARTIAL'] }
-            }
-          },
-          {
-            $group: {
-              _id: null,
-              totalPnL: { $sum: '$profitLoss' }
-            }
-          }
-        ]);
+    // US2-T04: Optimize N+1 query - single aggregation for all providers' weekly P&L
+    const providerIds = followedProviders.map(sub => sub.providerId._id);
 
-        return {
-          id: sub.providerId._id.toString(),
-          name: sub.providerId.name,
-          performanceThisWeek: weekPnLForProvider[0]?.totalPnL || 0,
-          signalsReceived: sub.stats.signalsReceived,
-          tradesExecuted: sub.stats.signalsExecuted
-        };
-      })
-    );
+    const weekPnLByProvider = await Trade.aggregate([
+      {
+        $match: {
+          communityId: tenantId,
+          userId,
+          'signalSource.providerId': { $in: providerIds },
+          entryTime: { $gte: weekStart },
+          status: { $in: ['FILLED', 'PARTIAL'] }
+        }
+      },
+      {
+        $group: {
+          _id: '$signalSource.providerId',
+          totalPnL: { $sum: '$profitLoss' }
+        }
+      }
+    ]);
+
+    // Create lookup map for O(1) access
+    const pnlMap = new Map(weekPnLByProvider.map(item => [item._id.toString(), item.totalPnL]));
+
+    const following = followedProviders.map(sub => ({
+      id: sub.providerId._id.toString(),
+      name: sub.providerId.name,
+      performanceThisWeek: pnlMap.get(sub.providerId._id.toString()) || 0,
+      signalsReceived: sub.stats.signalsReceived,
+      tradesExecuted: sub.stats.signalsExecuted
+    }));
 
     // Recent trades
     const recentTrades = await Trade.find({
@@ -308,118 +309,133 @@ router.get('/signals', dashboardLimiter, async (req, res) => {
     }
 
     // Fetch providers
-    const providers = await SignalProvider.find(providerQuery)
-      .sort(sort)
-      .lean();
+    const providers = await SignalProvider.find(providerQuery).sort(sort).lean();
 
     // Get user's subscriptions
     const subscriptions = await UserSignalSubscription.find({
       communityId: tenantId,
       userId,
       active: true
-    }).select('providerId').lean();
+    })
+      .select('providerId')
+      .lean();
 
     const followedProviderIds = new Set(subscriptions.map(sub => sub.providerId.toString()));
 
-    // Enhance providers with stats and follow status
-    const providersWithDetails = await Promise.all(
-      providers.map(async provider => {
-        const isFollowing = followedProviderIds.has(provider._id.toString());
+    // US2-T04: Optimize N+1 queries - aggregate all stats in parallel batches
+    const providerIds = providers.map(p => p._id);
 
-        // Apply filter
-        if (filter === 'following' && !isFollowing) return null;
-        if (filter === 'available' && isFollowing) return null;
-
-        // Count signals and followers
-        const [totalSignals, signalsWeek, followers] = await Promise.all([
-          Signal.countDocuments({
+    // Batch 1: Signal counts (2 aggregations instead of 2N queries)
+    const [signalStatsAll, signalStatsWeek] = await Promise.all([
+      Signal.aggregate([
+        {
+          $match: {
             communityId: tenantId,
-            providerId: provider._id
-          }),
-          Signal.countDocuments({
+            providerId: { $in: providerIds }
+          }
+        },
+        {
+          $group: {
+            _id: '$providerId',
+            count: { $sum: 1 }
+          }
+        }
+      ]),
+      Signal.aggregate([
+        {
+          $match: {
             communityId: tenantId,
-            providerId: provider._id,
+            providerId: { $in: providerIds },
             createdAt: { $gte: weekStart }
-          }),
-          UserSignalSubscription.countDocuments({
-            communityId: tenantId,
-            providerId: provider._id,
-            active: true
-          })
-        ]);
+          }
+        },
+        {
+          $group: {
+            _id: '$providerId',
+            count: { $sum: 1 }
+          }
+        }
+      ])
+    ]);
 
-        // Calculate performance metrics (from trades)
-        const [weekPerf, monthPerf, allTimePerf] = await Promise.all([
-          Trade.aggregate([
-            {
-              $match: {
-                communityId: tenantId,
-                'signalSource.providerId': provider._id,
-                entryTime: { $gte: weekStart },
-                status: { $in: ['FILLED', 'PARTIAL'] }
-              }
-            },
-            {
-              $group: {
-                _id: null,
-                totalPnL: { $sum: '$profitLoss' }
-              }
-            }
-          ]),
-          Trade.aggregate([
-            {
-              $match: {
-                communityId: tenantId,
-                'signalSource.providerId': provider._id,
-                entryTime: { $gte: monthStart },
-                status: { $in: ['FILLED', 'PARTIAL'] }
-              }
-            },
-            {
-              $group: {
-                _id: null,
-                totalPnL: { $sum: '$profitLoss' }
-              }
-            }
-          ]),
-          Trade.aggregate([
-            {
-              $match: {
-                communityId: tenantId,
-                'signalSource.providerId': provider._id,
-                status: { $in: ['FILLED', 'PARTIAL'] }
-              }
-            },
-            {
-              $group: {
-                _id: null,
-                totalPnL: { $sum: '$profitLoss' }
-              }
-            }
-          ])
-        ]);
+    // Batch 2: Follower counts (1 aggregation instead of N queries)
+    const followerStats = await UserSignalSubscription.aggregate([
+      {
+        $match: {
+          communityId: tenantId,
+          providerId: { $in: providerIds },
+          active: true
+        }
+      },
+      {
+        $group: {
+          _id: '$providerId',
+          count: { $sum: 1 }
+        }
+      }
+    ]);
 
-        return {
-          id: provider._id.toString(),
-          name: provider.name,
-          description: provider.description || '',
-          channelId: provider.discordChannelId,
-          stats: {
-            totalSignals,
-            winRate: provider.performance?.winRate || 0,
-            avgPnL: provider.performance?.avgPnL || 0,
-            followers,
-            signalsThisWeek: signalsWeek
-          },
-          performance: {
-            week: weekPerf[0]?.totalPnL || 0,
-            month: monthPerf[0]?.totalPnL || 0,
-            allTime: allTimePerf[0]?.totalPnL || 0
-          },
-          following: isFollowing
-        };
-      })
-    );
+    // Batch 3: Trade performance (3 aggregations with $facet instead of 3N queries)
+    const tradePerf = await Trade.aggregate([
+      {
+        $match: {
+          communityId: tenantId,
+          'signalSource.providerId': { $in: providerIds },
+          status: { $in: ['FILLED', 'PARTIAL'] }
+        }
+      },
+      {
+        $facet: {
+          week: [
+            { $match: { entryTime: { $gte: weekStart } } },
+            { $group: { _id: '$signalSource.providerId', totalPnL: { $sum: '$profitLoss' } } }
+          ],
+          month: [
+            { $match: { entryTime: { $gte: monthStart } } },
+            { $group: { _id: '$signalSource.providerId', totalPnL: { $sum: '$profitLoss' } } }
+          ],
+          allTime: [{ $group: { _id: '$signalSource.providerId', totalPnL: { $sum: '$profitLoss' } } }]
+        }
+      }
+    ]);
+
+    // Create lookup maps for O(1) access
+    const signalTotalMap = new Map(signalStatsAll.map(s => [s._id.toString(), s.count]));
+    const signalWeekMap = new Map(signalStatsWeek.map(s => [s._id.toString(), s.count]));
+    const followerMap = new Map(followerStats.map(f => [f._id.toString(), f.count]));
+    const weekPerfMap = new Map(tradePerf[0].week.map(t => [t._id.toString(), t.totalPnL]));
+    const monthPerfMap = new Map(tradePerf[0].month.map(t => [t._id.toString(), t.totalPnL]));
+    const allTimePerfMap = new Map(tradePerf[0].allTime.map(t => [t._id.toString(), t.totalPnL]));
+
+    // Map providers with pre-computed stats (no more queries in loop!)
+    const providersWithDetails = providers.map(provider => {
+      const isFollowing = followedProviderIds.has(provider._id.toString());
+      const providerId = provider._id.toString();
+
+      // Apply filter
+      if (filter === 'following' && !isFollowing) return null;
+      if (filter === 'available' && isFollowing) return null;
+
+      return {
+        id: providerId,
+        name: provider.name,
+        description: provider.description || '',
+        channelId: provider.discordChannelId,
+        stats: {
+          totalSignals: signalTotalMap.get(providerId) || 0,
+          winRate: provider.performance?.winRate || 0,
+          avgPnL: provider.performance?.avgPnL || 0,
+          followers: followerMap.get(providerId) || 0,
+          signalsThisWeek: signalWeekMap.get(providerId) || 0
+        },
+        performance: {
+          week: weekPerfMap.get(providerId) || 0,
+          month: monthPerfMap.get(providerId) || 0,
+          allTime: allTimePerfMap.get(providerId) || 0
+        },
+        following: isFollowing
+      };
+    });
 
     // Filter out nulls (from filter application)
     const filteredProviders = providersWithDetails.filter(p => p !== null);
@@ -491,9 +507,13 @@ router.post('/signals/:id/follow', async (req, res) => {
         });
       }
 
-      console.log(
-        `[Trader API] User ${user.discordUsername} (${userId}) followed provider ${provider.name} (${providerId})`
-      );
+      logger.info('[Trader API] User followed signal provider', {
+        userId,
+        username: user.discordUsername,
+        providerId,
+        providerName: provider.name,
+        autoExecute
+      });
 
       res.json({
         success: true,
@@ -517,9 +537,12 @@ router.post('/signals/:id/follow', async (req, res) => {
         subscription.active = false;
         await subscription.save();
 
-        console.log(
-          `[Trader API] User ${user.discordUsername} (${userId}) unfollowed provider ${provider.name} (${providerId})`
-        );
+        logger.info('[Trader API] User unfollowed signal provider', {
+          userId,
+          username: user.discordUsername,
+          providerId,
+          providerName: provider.name
+        });
       }
 
       res.json({
@@ -587,44 +610,49 @@ router.get('/trades', tradesLimiter, async (req, res) => {
 
     // Execute query with pagination
     const [trades, total] = await Promise.all([
-      Trade.find(query)
-        .sort({ entryTime: -1 })
-        .skip(skip)
-        .limit(parseInt(limit))
-        .lean(),
+      Trade.find(query).sort({ entryTime: -1 }).skip(skip).limit(parseInt(limit)).lean(),
       Trade.countDocuments(query)
     ]);
 
-    // Populate provider names for trades
-    const tradesWithProviders = await Promise.all(
-      trades.map(async trade => {
-        let providerName = 'Unknown';
+    // US2-T04: Optimize N+1 query - batch fetch all provider names
+    const providerIds = trades
+      .filter(t => t.signalSource && t.signalSource.providerId)
+      .map(t => t.signalSource.providerId);
 
-        if (trade.signalSource && trade.signalSource.providerId) {
-          const provider = await SignalProvider.findById(trade.signalSource.providerId).lean();
-          if (provider) {
-            providerName = provider.name;
-          }
-        }
+    const providers = await SignalProvider.find({
+      _id: { $in: providerIds }
+    })
+      .select('_id name')
+      .lean();
 
-        return {
-          id: trade._id.toString(),
-          symbol: trade.symbol,
-          side: trade.side.toLowerCase(),
-          size: trade.quantity,
-          entryPrice: trade.entryPrice,
-          exitPrice: trade.exitPrice,
-          pnl: trade.profitLoss,
-          pnlPercent: trade.profitLossPercentage,
-          fee: trade.fees.total,
-          broker: trade.exchange,
-          provider: providerName,
-          status: trade.status === 'OPEN' ? 'open' : 'closed',
-          openedAt: trade.entryTime,
-          closedAt: trade.exitTime
-        };
-      })
-    );
+    // Create provider lookup map for O(1) access
+    const providerMap = new Map(providers.map(p => [p._id.toString(), p.name]));
+
+    // Map trades with provider names (no queries in loop!)
+    const tradesWithProviders = trades.map(trade => {
+      let providerName = 'Unknown';
+
+      if (trade.signalSource && trade.signalSource.providerId) {
+        providerName = providerMap.get(trade.signalSource.providerId.toString()) || 'Unknown';
+      }
+
+      return {
+        id: trade._id.toString(),
+        symbol: trade.symbol,
+        side: trade.side.toLowerCase(),
+        size: trade.quantity,
+        entryPrice: trade.entryPrice,
+        exitPrice: trade.exitPrice,
+        pnl: trade.profitLoss,
+        pnlPercent: trade.profitLossPercentage,
+        fee: trade.fees.total,
+        broker: trade.exchange,
+        provider: providerName,
+        status: trade.status === 'OPEN' ? 'open' : 'closed',
+        openedAt: trade.entryTime,
+        closedAt: trade.exitTime
+      };
+    });
 
     res.json({
       trades: tradesWithProviders,
@@ -929,9 +957,12 @@ router.put('/risk-profile', dashboardLimiter, async (req, res) => {
       .select('tradingConfig.riskManagement')
       .lean();
 
-    console.log(
-      `[Trader API] Risk profile updated for user ${req.user.discordUsername} (${userId})`
-    );
+    logger.info('[Trader API] Risk profile updated', {
+      userId,
+      username: req.user.discordUsername,
+      riskTolerance: updates.riskTolerance,
+      maxPositionSize: updates.maxPositionSize
+    });
 
     const updatedRisk = updatedUser.tradingConfig.riskManagement;
 
@@ -1091,9 +1122,12 @@ router.put('/notifications', dashboardLimiter, async (req, res) => {
       .select('preferences.notifications')
       .lean();
 
-    console.log(
-      `[Trader API] Notification preferences updated for user ${req.user.discordUsername} (${userId})`
-    );
+    logger.info('[Trader API] Notification preferences updated', {
+      userId,
+      username: req.user.discordUsername,
+      enableTradeAlerts: updates.enableTradeAlerts,
+      enableMarketUpdates: updates.enableMarketUpdates
+    });
 
     res.json({
       success: true,

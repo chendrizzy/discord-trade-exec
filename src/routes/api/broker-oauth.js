@@ -123,7 +123,11 @@ router.get('/callback/:brokerKey', oauthCallbackLimiter, async (req, res) => {
 
     // Check for OAuth errors
     if (error) {
-      console.error('[OAuth Callback] Error from broker:', error, error_description);
+      logger.error('[OAuth Callback] Error from broker', {
+        error,
+        errorDescription: error_description,
+        brokerKey
+      });
       return res.send(`
         <!DOCTYPE html>
         <html>

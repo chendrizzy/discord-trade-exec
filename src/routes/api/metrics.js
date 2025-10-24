@@ -7,7 +7,10 @@ const { ensureAdmin } = require('../../middleware/admin');
 
 // Verify ensureAdmin is properly loaded
 if (typeof ensureAdmin !== 'function') {
-  console.error('[MetricsRoute] ensureAdmin is not a function:', ensureAdmin);
+  logger.error('[MetricsRoute] ensureAdmin middleware failed to load', {
+    ensureAdminType: typeof ensureAdmin,
+    ensureAdmin
+  });
   throw new Error('ensureAdmin middleware failed to load');
 }
 const { apiLimiter } = require('../../middleware/rateLimiter');
@@ -94,6 +97,32 @@ router.get('/database', ensureAuthenticated, (req, res) => {
   } catch (error) {
     logger.error('Error fetching database metrics:', { error: error.message, stack: error.stack });
     res.status(500).json({ error: 'Failed to fetch database metrics' });
+  }
+});
+
+/**
+ * GET /api/metrics/database/profiling
+ * Get MongoDB slow query profiling statistics (US2-T05)
+ * Requires: Admin authentication
+ */
+router.get('/database/profiling', ensureAuthenticated, async (req, res) => {
+  try {
+    // Import database module for profiling stats
+    const { getProfilingStats } = require('../../config/database');
+    
+    const stats = await getProfilingStats();
+    res.json({
+      success: true,
+      data: stats,
+      timestamp: new Date().toISOString()
+    });
+  } catch (error) {
+    logger.error('Error fetching profiling stats:', { error: error.message, stack: error.stack });
+    res.status(500).json({ 
+      success: false,
+      error: 'Failed to fetch profiling statistics',
+      message: error.message 
+    });
   }
 });
 
