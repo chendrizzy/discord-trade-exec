@@ -40,7 +40,7 @@ class MoomooAdapter extends BrokerAdapter {
     this.accountInfo = null;
     this.tradeEnv = this.isTestnet ? 1 : 0; // 1 = paper trading, 0 = real
 
-    console.log(`[MoomooAdapter] Initialized with config:`, {
+    logger.info('[MoomooAdapter] Initialized with config', {
       accountId: this.accountId,
       host: this.host,
       port: this.port,
@@ -71,8 +71,9 @@ class MoomooAdapter extends BrokerAdapter {
           MoomooAPI = moomooPackage.default || moomooPackage;
           logger.info('[MoomooAdapter] Loaded moomoo-api via require() - avoiding module isolation');
         } catch (requireError) {
-          logger.info('[MoomooAdapter] require() failed, trying dynamic import...');
-          console.log('[MoomooAdapter] Error:', requireError.message);
+          logger.info('[MoomooAdapter] require() failed, trying dynamic import...', {
+            error: requireError.message
+          });
 
           // Fallback to dynamic import with protobuf initialization
           const protobuf = require('protobufjs/light');
@@ -94,7 +95,10 @@ class MoomooAdapter extends BrokerAdapter {
         }
       }
 
-      console.log(`[MoomooAdapter] Connecting to OpenD Gateway at ${this.host}:${this.port}...`);
+      logger.info('[MoomooAdapter] Connecting to OpenD Gateway', {
+        host: this.host,
+        port: this.port
+      });
 
       // Create Moomoo client instance
       this.moomoo = new MoomooAPI();
@@ -142,7 +146,9 @@ class MoomooAdapter extends BrokerAdapter {
           accountList.s2c.accList.find(acc => acc.accID.toString() === this.accountId.toString()) ||
           accountList.s2c.accList[0];
 
-        console.log(`[MoomooAdapter] Using account: ${this.accountInfo.accID}`);
+        logger.info('[MoomooAdapter] Using account', {
+          accountId: this.accountInfo.accID
+        });
         this.connectionReady = true;
         this.isAuthenticated = true;
         return true;
@@ -150,7 +156,10 @@ class MoomooAdapter extends BrokerAdapter {
         throw new Error('No trading accounts found');
       }
     } catch (error) {
-      console.error('[MoomooAdapter] Authentication failed:', error.message);
+      logger.error('[MoomooAdapter] Authentication failed', {
+        error: error.message,
+        stack: error.stack
+      });
       this.isAuthenticated = false;
       this.connectionReady = false;
       throw new Error(`Moomoo authentication failed: ${error.message}. Ensure OpenD Gateway is running.`);
@@ -203,7 +212,10 @@ class MoomooAdapter extends BrokerAdapter {
         throw new Error('Invalid funds response');
       }
     } catch (error) {
-      console.error('[MoomooAdapter] getBalance error:', error.message);
+      logger.error('[MoomooAdapter] Error fetching balance', {
+        error: error.message,
+        stack: error.stack
+      });
       throw new Error(`Failed to get Moomoo balance: ${error.message}`);
     }
   }
@@ -258,7 +270,13 @@ class MoomooAdapter extends BrokerAdapter {
         }
       };
 
-      console.log(`[MoomooAdapter] Placing ${side} ${type} order for ${quantity} ${symbol} @ ${price || 'market'}`);
+      logger.info('[MoomooAdapter] Placing order', {
+        side,
+        type,
+        quantity,
+        symbol,
+        price: price || 'market'
+      });
 
       const response = await this.moomoo.PlaceOrder(orderReq);
 
@@ -278,7 +296,13 @@ class MoomooAdapter extends BrokerAdapter {
         throw new Error('Invalid order response');
       }
     } catch (error) {
-      console.error('[MoomooAdapter] createOrder error:', error.message);
+      logger.error('[MoomooAdapter] Error creating order', {
+        error: error.message,
+        stack: error.stack,
+        symbol: order?.symbol,
+        side: order?.side,
+        type: order?.type
+      });
       throw new Error(`Failed to create Moomoo order: ${error.message}`);
     }
   }
@@ -294,7 +318,9 @@ class MoomooAdapter extends BrokerAdapter {
     }
 
     try {
-      console.log(`[MoomooAdapter] Cancelling order ${orderId}`);
+      logger.info('[MoomooAdapter] Cancelling order', {
+        orderId
+      });
 
       const response = await this.moomoo.ModifyOrder({
         c2s: {
@@ -319,7 +345,11 @@ class MoomooAdapter extends BrokerAdapter {
         throw new Error('Invalid cancel response');
       }
     } catch (error) {
-      console.error('[MoomooAdapter] cancelOrder error:', error.message);
+      logger.error('[MoomooAdapter] Error cancelling order', {
+        orderId,
+        error: error.message,
+        stack: error.stack
+      });
       throw new Error(`Failed to cancel Moomoo order: ${error.message}`);
     }
   }
@@ -361,7 +391,10 @@ class MoomooAdapter extends BrokerAdapter {
         return [];
       }
     } catch (error) {
-      console.error('[MoomooAdapter] getPositions error:', error.message);
+      logger.error('[MoomooAdapter] Error fetching positions', {
+        error: error.message,
+        stack: error.stack
+      });
       throw new Error(`Failed to get Moomoo positions: ${error.message}`);
     }
   }
@@ -466,7 +499,10 @@ class MoomooAdapter extends BrokerAdapter {
         return [];
       }
     } catch (error) {
-      console.error('[MoomooAdapter] getOrderHistory error:', error.message);
+      logger.error('[MoomooAdapter] Error fetching order history', {
+        error: error.message,
+        stack: error.stack
+      });
       throw new Error(`Failed to get Moomoo order history: ${error.message}`);
     }
   }
@@ -505,7 +541,11 @@ class MoomooAdapter extends BrokerAdapter {
         throw new Error('Invalid quote response');
       }
     } catch (error) {
-      console.error('[MoomooAdapter] getMarketPrice error:', error.message);
+      logger.error('[MoomooAdapter] Error fetching market price', {
+        symbol,
+        error: error.message,
+        stack: error.stack
+      });
       throw new Error(`Failed to get Moomoo market price: ${error.message}`);
     }
   }
@@ -538,7 +578,11 @@ class MoomooAdapter extends BrokerAdapter {
         return false;
       }
     } catch (error) {
-      console.error('[MoomooAdapter] isSymbolSupported error:', error.message);
+      logger.error('[MoomooAdapter] Error checking symbol support', {
+        symbol,
+        error: error.message,
+        stack: error.stack
+      });
       return false;
     }
   }
