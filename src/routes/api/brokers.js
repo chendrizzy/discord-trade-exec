@@ -19,6 +19,17 @@ const analyticsEventService = require('../../services/analytics/AnalyticsEventSe
 // Middleware
 const { checkBrokerAccess, requirePremiumBroker, checkBrokerLimit } = require('../../middleware/premiumGating');
 const { checkBrokerRateLimit } = require('../../middleware/rateLimiter');
+const { validate } = require('../../middleware/validation');
+const {
+  getBrokerParams,
+  testBrokerBody,
+  testSpecificBrokerParams,
+  testSpecificBrokerBody,
+  configureBrokerBody,
+  deleteUserBrokerParams,
+  compareBrokersBody,
+  recommendBrokerBody
+} = require('../../validators/brokers.validators');
 const logger = require('../../utils/logger');
 
 /**
@@ -146,7 +157,7 @@ router.get('/', ensureAuthenticated, (req, res) => {
  * GET /api/brokers/:brokerKey
  * Get detailed information about a specific broker
  */
-router.get('/:brokerKey', ensureAuthenticated, (req, res) => {
+router.get('/:brokerKey', ensureAuthenticated, validate(getBrokerParams, 'params'), (req, res) => {
   try {
     const { brokerKey } = req.params;
 
@@ -185,7 +196,7 @@ router.get('/:brokerKey', ensureAuthenticated, (req, res) => {
  * POST /api/brokers/test
  * Test broker connection with provided credentials
  */
-router.post('/test', ensureAuthenticated, async (req, res) => {
+router.post('/test', ensureAuthenticated, validate(testBrokerBody, 'body'), async (req, res) => {
   try {
     const { brokerKey, credentials, options = {} } = req.body;
 
@@ -235,7 +246,7 @@ router.post('/test', ensureAuthenticated, async (req, res) => {
  * Test connection for an already-configured broker
  * Retrieves stored credentials from database and tests the connection
  */
-router.post('/test/:brokerKey', ensureAuthenticated, checkBrokerRateLimit(), async (req, res) => {
+router.post('/test/:brokerKey', ensureAuthenticated, checkBrokerRateLimit(), validate(testSpecificBrokerParams, 'params'), validate(testSpecificBrokerBody, 'body'), async (req, res) => {
   try {
     const { brokerKey } = req.params;
     const userId = req.user.id;
@@ -315,7 +326,7 @@ router.post('/test/:brokerKey', ensureAuthenticated, checkBrokerRateLimit(), asy
  * POST /api/brokers/configure
  * Save broker configuration for the authenticated user
  */
-router.post('/configure', ensureAuthenticated, requirePremiumBroker, checkBrokerLimit, async (req, res) => {
+router.post('/configure', ensureAuthenticated, requirePremiumBroker, checkBrokerLimit, validate(configureBrokerBody, 'body'), async (req, res) => {
   try {
     const { brokerKey, brokerType, authMethod, credentials, environment } = req.body;
     const userId = req.user.id;
@@ -469,7 +480,7 @@ router.get('/user/configured', ensureAuthenticated, async (req, res) => {
  * DELETE /api/brokers/user/:brokerKey
  * Remove broker configuration for the authenticated user
  */
-router.delete('/user/:brokerKey', ensureAuthenticated, async (req, res) => {
+router.delete('/user/:brokerKey', ensureAuthenticated, validate(deleteUserBrokerParams, 'params'), async (req, res) => {
   try {
     const { brokerKey } = req.params;
     const userId = req.user.id;
@@ -509,7 +520,7 @@ router.delete('/user/:brokerKey', ensureAuthenticated, async (req, res) => {
  * Compare broker fees for a specific trade
  * Compares fees across all configured brokers for the user
  */
-router.post('/compare', ensureAuthenticated, async (req, res) => {
+router.post('/compare', ensureAuthenticated, validate(compareBrokersBody, 'body'), async (req, res) => {
   try {
     const { symbol, quantity, side } = req.body;
     const userId = req.user.id;
@@ -561,7 +572,7 @@ router.post('/compare', ensureAuthenticated, async (req, res) => {
  * POST /api/brokers/recommend
  * Get broker recommendation based on requirements
  */
-router.post('/recommend', ensureAuthenticated, (req, res) => {
+router.post('/recommend', ensureAuthenticated, validate(recommendBrokerBody, 'body'), (req, res) => {
   try {
     const { requirements } = req.body;
 
