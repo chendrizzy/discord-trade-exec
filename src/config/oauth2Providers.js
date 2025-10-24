@@ -5,15 +5,21 @@
  * Each provider defines authorization/token endpoints, scopes, and token lifecycle settings.
  */
 
+const logger = require('../utils/logger');
+
 // Validation helper
 function validateProviderEnvVars(providerName, clientIdVar, clientSecretVar) {
   const clientId = process.env[clientIdVar];
   const clientSecret = process.env[clientSecretVar];
 
   if (!clientId || !clientSecret) {
-    console.warn(
-      `[OAuth2Config] Missing credentials for ${providerName}: ${clientIdVar}=${!!clientId}, ${clientSecretVar}=${!!clientSecret}`
-    );
+    logger.warn('[OAuth2Config] Missing credentials for provider', {
+      provider: providerName,
+      clientIdVar,
+      clientIdConfigured: !!clientId,
+      clientSecretVar,
+      clientSecretConfigured: !!clientSecret
+    });
     return false;
   }
 

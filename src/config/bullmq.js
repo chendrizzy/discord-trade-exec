@@ -32,7 +32,11 @@ class BullMQConfig {
     });
 
     this.connection.on('error', (err) => {
-      console.error('[BullMQ] Redis connection error:', err.message);
+      logger.error('[BullMQ] Redis connection error', {
+        error: err.message,
+        stack: err.stack,
+        redisUrl: process.env.REDIS_URL ? 'configured' : 'missing'
+      });
     });
 
     this.connection.on('connect', () => {
@@ -75,7 +79,11 @@ class BullMQConfig {
         }
       });
     } catch (err) {
-      console.error(`[BullMQ] Failed to create queue ${name}:`, err.message);
+      logger.error('[BullMQ] Failed to create queue', {
+        queueName: name,
+        error: err.message,
+        stack: err.stack
+      });
       return null;
     }
   }
@@ -99,7 +107,11 @@ class BullMQConfig {
         ...options
       });
     } catch (err) {
-      console.error(`[BullMQ] Failed to create worker ${name}:`, err.message);
+      logger.error('[BullMQ] Failed to create worker', {
+        workerName: name,
+        error: err.message,
+        stack: err.stack
+      });
       return null;
     }
   }

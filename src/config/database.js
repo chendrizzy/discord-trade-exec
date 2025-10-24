@@ -21,6 +21,13 @@ let connectionAttempts = 0;
 const MAX_RETRIES = 5;
 const INITIAL_RETRY_DELAY = 1000; // 1 second
 
+// Slow query profiling state (US2-T05)
+let profilingEnabled = false;
+let slowQueryCount = 0;
+let slowQueryResetInterval = null;
+const SLOW_QUERY_THRESHOLD = 100; // milliseconds
+const SLOW_QUERY_ALERT_THRESHOLD = 10; // queries per hour
+
 /**
  * MongoDB connection options optimized for production
  */
@@ -56,32 +63,50 @@ async function connect() {
   try {
     connectionAttempts++;
 
-    console.log(`📊 Connecting to MongoDB (attempt ${connectionAttempts}/${MAX_RETRIES})...`);
+    logger.info('[Database] Connecting to MongoDB', {
+      attempt: connectionAttempts,
+      maxRetries: MAX_RETRIES
+    });
 
     await mongoose.connect(config.MONGODB_URI, connectionOptions);
 
     isConnected = true;
     connectionAttempts = 0; // Reset on successful connection
 
-    logger.info('✅ MongoDB connected successfully');
-    console.log(`   - Database: ${mongoose.connection.name}`);
-    console.log(`   - Host: ${mongoose.connection.host}`);
+    logger.info('[Database] MongoDB connected successfully', {
+      database: mongoose.connection.name,
+      host: mongoose.connection.host,
+      readyState: mongoose.connection.readyState
+    });
 
     // Set up connection event listeners
     setupEventListeners();
 
+    // Enable slow query profiling in production and staging (US2-T05)
+    if (config.NODE_ENV === 'production' || config.NODE_ENV === 'staging') {
+      await enableSlowQueryProfiling();
+    }
+
     return mongoose.connection;
   } catch (error) {
-    console.error(`❌ MongoDB connection failed (attempt ${connectionAttempts}):`, error.message);
+    logger.error('[Database] MongoDB connection failed', {
+      attempt: connectionAttempts,
+      maxRetries: MAX_RETRIES,
+      error: error.message,
+      stack: error.stack
+    });
 
     if (connectionAttempts < MAX_RETRIES) {
       const delay = INITIAL_RETRY_DELAY * Math.pow(2, connectionAttempts - 1);
-      console.log(`   - Retrying in ${delay}ms...`);
+      logger.info('[Database] Retrying connection', {
+        delayMs: delay,
+        nextAttempt: connectionAttempts + 1
+      });
 
       await new Promise(resolve => setTimeout(resolve, delay));
       return connect(); // Recursive retry
     } else {
-      logger.error('❌ Max connection retries exceeded. Exiting...');
+      logger.error('[Database] Max connection retries exceeded');
       throw new Error('Failed to connect to MongoDB after maximum retries');
     }
   }
@@ -92,7 +117,11 @@ async function connect() {
  */
 function setupEventListeners() {
   mongoose.connection.on('error', err => {
-    console.error('❌ MongoDB connection error:', err);
+    logger.error('[Database] MongoDB connection error', {
+      error: err.message,
+      stack: err.stack,
+      readyState: mongoose.connection.readyState
+    });
     isConnected = false;
   });
 
@@ -102,9 +131,12 @@ function setupEventListeners() {
 
     // Attempt to reconnect
     if (!mongoose.connection.readyState) {
-      logger.info('📊 Attempting to reconnect to MongoDB...');
+      logger.info('[Database] Attempting to reconnect to MongoDB');
       connect().catch(err => {
-        console.error('❌ Reconnection failed:', err.message);
+        logger.error('[Database] Reconnection failed', {
+          error: err.message,
+          stack: err.stack
+        });
       });
     }
   });
@@ -161,7 +193,11 @@ async function healthCheck() {
     await mongoose.connection.db.admin().ping();
     return true;
   } catch (error) {
-    console.error('❌ MongoDB health check failed:', error.message);
+    logger.error('[Database] MongoDB health check failed', {
+      error: error.message,
+      stack: error.stack,
+      readyState: mongoose.connection.readyState
+    });
     return false;
   }
 }
@@ -195,10 +231,219 @@ function getReadyStateText(state) {
   return states[state] || 'unknown';
 }
 
+/**
+ * Enable MongoDB slow query profiling (US2-T05)
+ * Profiles queries slower than 100ms threshold
+ * @returns {Promise<void>}
+ */
+async function enableSlowQueryProfiling() {
+  try {
+    const db = mongoose.connection.db;
+
+    // Set profiling level 1 (slow queries only) with 100ms threshold
+    await db.command({
+      profile: 1,
+      slowms: SLOW_QUERY_THRESHOLD
+    });
+
+    profilingEnabled = true;
+    logger.info(`✅ MongoDB slow query profiling enabled (threshold: ${SLOW_QUERY_THRESHOLD}ms)`);
+
+    // Start monitoring slow queries
+    startSlowQueryMonitoring();
+
+    // Reset slow query counter every hour
+    slowQueryResetInterval = setInterval(() => {
+      slowQueryCount = 0;
+      logger.debug('🔄 Slow query counter reset');
+    }, 60 * 60 * 1000); // 1 hour
+  } catch (error) {
+    logger.error('❌ Failed to enable slow query profiling:', {
+      error: error.message,
+      stack: error.stack
+    });
+  }
+}
+
+/**
+ * Disable MongoDB slow query profiling
+ * @returns {Promise<void>}
+ */
+async function disableSlowQueryProfiling() {
+  try {
+    if (!profilingEnabled) {
+      return;
+    }
+
+    const db = mongoose.connection.db;
+    await db.command({ profile: 0 });
+
+    profilingEnabled = false;
+    logger.info('✅ MongoDB slow query profiling disabled');
+
+    if (slowQueryResetInterval) {
+      clearInterval(slowQueryResetInterval);
+      slowQueryResetInterval = null;
+    }
+  } catch (error) {
+    logger.error('❌ Failed to disable slow query profiling:', {
+      error: error.message,
+      stack: error.stack
+    });
+  }
+}
+
+/**
+ * Start monitoring slow queries from system.profile collection
+ * Runs every 30 seconds to check for new slow queries
+ */
+function startSlowQueryMonitoring() {
+  let lastCheckTime = new Date();
+
+  setInterval(async () => {
+    try {
+      const db = mongoose.connection.db;
+      const currentTime = new Date();
+
+      // Query system.profile for slow queries since last check
+      const slowQueries = await db
+        .collection('system.profile')
+        .find({
+          ts: { $gte: lastCheckTime },
+          millis: { $gte: SLOW_QUERY_THRESHOLD }
+        })
+        .sort({ ts: -1 })
+        .limit(50)
+        .toArray();
+
+      if (slowQueries.length > 0) {
+        slowQueryCount += slowQueries.length;
+
+        // Log each slow query with details
+        for (const query of slowQueries) {
+          logger.warn('⚠️  Slow query detected', {
+            operation: query.op,
+            namespace: query.ns,
+            duration: `${query.millis}ms`,
+            command: sanitizeQueryCommand(query.command),
+            planSummary: query.planSummary,
+            executionStats: query.execStats,
+            timestamp: query.ts
+          });
+        }
+
+        // Alert if threshold exceeded
+        if (slowQueryCount >= SLOW_QUERY_ALERT_THRESHOLD) {
+          logger.error(`🚨 ALERT: ${slowQueryCount} slow queries detected in the last hour (threshold: ${SLOW_QUERY_ALERT_THRESHOLD})`, {
+            threshold: SLOW_QUERY_ALERT_THRESHOLD,
+            count: slowQueryCount,
+            recommendation: 'Review slow queries and consider adding indexes or optimizing queries'
+          });
+        }
+      }
+
+      lastCheckTime = currentTime;
+    } catch (error) {
+      logger.error('❌ Error monitoring slow queries:', {
+        error: error.message,
+        stack: error.stack
+      });
+    }
+  }, 30 * 1000); // Check every 30 seconds
+}
+
+/**
+ * Sanitize query command for logging (remove sensitive data)
+ * @param {Object} command - MongoDB command object
+ * @returns {Object} Sanitized command
+ */
+function sanitizeQueryCommand(command) {
+  if (!command) return {};
+
+  // Create shallow copy
+  const sanitized = { ...command };
+
+  // Remove potentially sensitive fields
+  const sensitiveFields = ['password', 'token', 'secret', 'apiKey', 'authorization'];
+  for (const field of sensitiveFields) {
+    if (sanitized[field]) {
+      sanitized[field] = '[REDACTED]';
+    }
+  }
+
+  // Limit query object size for logging
+  if (sanitized.filter && JSON.stringify(sanitized.filter).length > 500) {
+    sanitized.filter = '[TRUNCATED - TOO LARGE]';
+  }
+
+  return sanitized;
+}
+
+/**
+ * Get slow query profiling statistics
+ * @returns {Promise<Object>} Profiling stats
+ */
+async function getProfilingStats() {
+  try {
+    const db = mongoose.connection.db;
+
+    // Get profiling status
+    const status = await db.command({ profile: -1 });
+
+    // Get slow query count from system.profile
+    const profileCollection = db.collection('system.profile');
+    const totalSlowQueries = await profileCollection.countDocuments({
+      millis: { $gte: SLOW_QUERY_THRESHOLD }
+    });
+
+    // Get recent slow queries (last 10)
+    const recentSlowQueries = await profileCollection
+      .find({ millis: { $gte: SLOW_QUERY_THRESHOLD } })
+      .sort({ ts: -1 })
+      .limit(10)
+      .project({
+        op: 1,
+        ns: 1,
+        millis: 1,
+        ts: 1,
+        planSummary: 1
+      })
+      .toArray();
+
+    return {
+      enabled: profilingEnabled,
+      profilingLevel: status.was,
+      slowThreshold: SLOW_QUERY_THRESHOLD,
+      slowQueriesThisHour: slowQueryCount,
+      alertThreshold: SLOW_QUERY_ALERT_THRESHOLD,
+      totalSlowQueriesLogged: totalSlowQueries,
+      recentSlowQueries: recentSlowQueries.map(q => ({
+        operation: q.op,
+        collection: q.ns,
+        duration: `${q.millis}ms`,
+        timestamp: q.ts,
+        plan: q.planSummary
+      }))
+    };
+  } catch (error) {
+    logger.error('❌ Failed to get profiling stats:', {
+      error: error.message,
+      stack: error.stack
+    });
+    return {
+      enabled: profilingEnabled,
+      error: error.message
+    };
+  }
+}
+
 module.exports = {
   connect,
   disconnect,
   healthCheck,
   getStatus,
+  enableSlowQueryProfiling,
+  disableSlowQueryProfiling,
+  getProfilingStats,
   mongoose // Export mongoose instance for model registration
 };

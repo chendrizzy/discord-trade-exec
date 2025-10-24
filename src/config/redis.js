@@ -72,20 +72,27 @@ async function connect(enablePubSub = false) {
     // Connect
     await redisClient.connect();
 
-    logger.info('✅ Redis connected successfully');
-    console.log(`   - Host: ${redisClient.options.host}`);
-    console.log(`   - Port: ${redisClient.options.port}`);
-    console.log(`   - Mode: ${enablePubSub ? 'Pub/Sub' : 'Standard'}`);
+    logger.info('[Redis] Connected successfully', {
+      host: redisClient.options.host,
+      port: redisClient.options.port,
+      mode: enablePubSub ? 'pub/sub' : 'standard',
+      status: redisClient.status
+    });
 
     // Set up event listeners
     setupEventListeners();
 
     return redisClient;
   } catch (error) {
-    console.error('❌ Redis connection failed:', error.message);
+    logger.error('[Redis] Connection failed', {
+      error: error.message,
+      stack: error.stack,
+      isDev: isDevelopment(),
+      redisUrl: config.REDIS_URL ? 'configured' : 'missing'
+    });
 
     if (isDevelopment()) {
-      logger.warn('⚠️  Falling back to in-memory storage for development');
+      logger.warn('[Redis] Falling back to in-memory storage for development');
       redisClient = null;
       return null;
     } else {
@@ -101,7 +108,11 @@ function setupEventListeners() {
   if (!redisClient) return;
 
   redisClient.on('error', err => {
-    console.error('❌ Redis error:', err.message);
+    logger.error('[Redis] Client error', {
+      error: err.message,
+      stack: err.stack,
+      status: redisClient?.status
+    });
   });
 
   redisClient.on('connect', () => {
@@ -185,7 +196,11 @@ async function healthCheck() {
     const result = await redisClient.ping();
     return result === 'PONG';
   } catch (error) {
-    console.error('❌ Redis health check failed:', error.message);
+    logger.error('[Redis] Health check failed', {
+      error: error.message,
+      stack: error.stack,
+      status: redisClient?.status
+    });
     return false;
   }
 }
@@ -232,11 +247,19 @@ async function createPubSubClient() {
     });
 
     await pubSubClient.connect();
-    logger.info('✅ Redis pub/sub client created');
+    logger.info('[Redis] Pub/sub client created successfully', {
+      host: pubSubClient.options.host,
+      port: pubSubClient.options.port,
+      status: pubSubClient.status
+    });
 
     return pubSubClient;
   } catch (error) {
-    console.error('❌ Failed to create Redis pub/sub client:', error.message);
+    logger.error('[Redis] Failed to create pub/sub client', {
+      error: error.message,
+      stack: error.stack,
+      redisUrl: config.REDIS_URL ? 'configured' : 'missing'
+    });
     return null;
   }
 }

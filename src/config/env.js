@@ -72,7 +72,11 @@ function validateEnv() {
       if (rules.default) {
         config[key] = rules.default;
         if (process.env.NODE_ENV !== 'test') {
-          console.warn(`⚠️  Using default value for ${key}: ${rules.sensitive ? '[REDACTED]' : rules.default}`);
+          logger.warn('[Env] Using default value for environment variable', {
+            key,
+            value: rules.sensitive ? '[REDACTED]' : rules.default,
+            sensitive: rules.sensitive
+          });
         }
       } else {
         errors.push(`Missing required environment variable: ${key}`);
@@ -109,18 +113,23 @@ function validateEnv() {
 
   // Fail fast if errors exist
   if (errors.length > 0) {
-    logger.error('❌ Environment validation failed:');
-    errors.forEach(err => console.error(`   - ${err}`));
+    logger.error('[Env] Environment validation failed', {
+      errors,
+      errorCount: errors.length,
+      environment: process.env.NODE_ENV
+    });
     throw new Error(`Environment validation failed with ${errors.length} error(s)`);
   }
 
   // Log successful validation (hide sensitive values)
   if (process.env.NODE_ENV !== 'test') {
-    logger.info('✅ Environment validation passed');
-    console.log(`   - Environment: ${config.NODE_ENV}`);
-    console.log(`   - Port: ${config.PORT}`);
-    console.log(`   - WebSocket: ${config.ENABLE_WEBSOCKET ? 'Enabled' : 'Disabled'}`);
-    console.log(`   - Rate Limiting: ${config.ENABLE_RATE_LIMITING ? 'Enabled' : 'Disabled'}`);
+    logger.info('[Env] Environment validation passed', {
+      environment: config.NODE_ENV,
+      port: config.PORT,
+      websocket: config.ENABLE_WEBSOCKET ? 'enabled' : 'disabled',
+      rateLimiting: config.ENABLE_RATE_LIMITING ? 'enabled' : 'disabled',
+      auditLogging: config.ENABLE_AUDIT_LOGGING ? 'enabled' : 'disabled'
+    });
   }
 
   return config;

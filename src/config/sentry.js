@@ -53,7 +53,10 @@ const ENABLED = ENVIRONMENT !== 'development' && ENVIRONMENT !== 'test' && !!SEN
  */
 function initSentry(app) {
   if (!ENABLED) {
-    console.log(`[Sentry] Disabled (environment: ${ENVIRONMENT}, DSN: ${!!SENTRY_DSN})`);
+    logger.info('[Sentry] Disabled', {
+      environment: ENVIRONMENT,
+      dsnConfigured: !!SENTRY_DSN
+    });
     return;
   }
 
@@ -189,13 +192,19 @@ function initSentry(app) {
       }
     });
 
-    console.log(`[Sentry] Initialized successfully`);
-    console.log(`[Sentry] Environment: ${ENVIRONMENT}`);
-    console.log(`[Sentry] Release: ${RELEASE}`);
-    console.log(`[Sentry] Sample Rate: ${SAMPLE_RATE * 100}%`);
-    console.log(`[Sentry] Traces Sample Rate: ${TRACES_SAMPLE_RATE * 100}%`);
+    logger.info('[Sentry] Initialized successfully', {
+      environment: ENVIRONMENT,
+      release: RELEASE,
+      sampleRate: `${SAMPLE_RATE * 100}%`,
+      tracesSampleRate: `${TRACES_SAMPLE_RATE * 100}%`,
+      dsn: SENTRY_DSN ? 'configured' : 'missing'
+    });
   } catch (error) {
-    logger.error('[Sentry] Initialization failed:', { error: error.message, stack: error.stack });
+    logger.error('[Sentry] Initialization failed', {
+      error: error.message,
+      stack: error.stack,
+      environment: ENVIRONMENT
+    });
   }
 }
 
@@ -290,7 +299,11 @@ function captureException(error, context = {}) {
  */
 function captureMessage(message, level = 'info', context = {}) {
   if (!ENABLED) {
-    console.log(`[Sentry] (disabled) Message [${level}]:`, message);
+    logger.info('[Sentry] Disabled - message not captured', {
+      level,
+      message,
+      tags: context.tags
+    });
     return null;
   }
 

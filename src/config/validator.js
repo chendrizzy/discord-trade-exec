@@ -292,12 +292,11 @@ function loadAndValidateConfig(exitOnError = process.env.NODE_ENV === 'productio
   const result = validateConfig(config, environmentSchema);
 
   if (!result.valid) {
-    logger.error('❌ Configuration Validation Failed:');
-    console.error('');
-    result.errors.forEach(error => {
-      console.error(`  • ${error.field}: ${error.message}`);
+    logger.error('[Validator] Configuration validation failed', {
+      errors: result.errors.map(e => `${e.field}: ${e.message}`),
+      errorCount: result.errors.length,
+      fields: result.errors.map(e => e.field)
     });
-    console.error('');
 
     if (exitOnError) {
       logger.error('💥 Cannot start application with invalid configuration');
