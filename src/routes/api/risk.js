@@ -4,6 +4,11 @@ const express = require('express');
 const router = express.Router();
 const { ensureAuthenticated } = require('../../middleware/auth');
 const { apiLimiter } = require('../../middleware/rateLimiter');
+const { validate } = require('../../middleware/validation');
+const {
+  updateRiskSettingsBody,
+  calculatePositionBody
+} = require('../../validators/risk.validators');
 const logger = require('../../utils/logger');
 
 // Apply rate limiting
@@ -53,7 +58,7 @@ router.get('/settings', ensureAuthenticated, async (req, res) => {
 });
 
 // Update risk settings
-router.put('/settings', ensureAuthenticated, async (req, res) => {
+router.put('/settings', ensureAuthenticated, validate(updateRiskSettingsBody, 'body'), async (req, res) => {
   try {
     const updates = req.body;
     const riskSettings = req.user.tradingConfig.riskManagement;
@@ -178,7 +183,7 @@ router.put('/settings', ensureAuthenticated, async (req, res) => {
 });
 
 // Calculate position size
-router.post('/calculate-position', ensureAuthenticated, async (req, res) => {
+router.post('/calculate-position', ensureAuthenticated, validate(calculatePositionBody, 'body'), async (req, res) => {
   try {
     const { accountBalance, entryPrice, stopLossPrice } = req.body;
 
