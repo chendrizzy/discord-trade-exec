@@ -94,8 +94,10 @@ class BlockchainProvider {
       throw new Error('No RPC providers configured. Set POLYGON_RPC_* environment variables.');
     }
 
-    console.log(`[BlockchainProvider] Initialized ${providers.length} provider(s):`,
-      providers.map(p => p.name).join(', '));
+    logger.info('[BlockchainProvider] Initialized providers', {
+      providerCount: providers.length,
+      providers: providers.map(p => p.name).join(', ')
+    });
 
     return providers;
   }
@@ -108,7 +110,9 @@ class BlockchainProvider {
     const isHealthy = await this._checkProviderHealth(this.activeProvider);
 
     if (!isHealthy) {
-      console.warn(`[BlockchainProvider] Active provider ${this.activeProvider.name} unhealthy, failing over...`);
+      logger.warn('[BlockchainProvider] Active provider unhealthy, failing over', {
+        provider: this.activeProvider.name
+      });
       await this._failover();
     }
 
@@ -125,7 +129,9 @@ class BlockchainProvider {
     // Convert HTTP(S) URL to WebSocket URL
     const wsUrl = httpUrl.replace('https://', 'wss://').replace('http://', 'ws://');
 
-    console.log(`[BlockchainProvider] Creating WebSocket connection to ${this.activeProvider.name}`);
+    logger.info('[BlockchainProvider] Creating WebSocket connection', {
+      provider: this.activeProvider.name
+    });
 
     return new ethers.WebSocketProvider(wsUrl, {
       chainId: polygonConfig.network.chainId,
@@ -142,7 +148,10 @@ class BlockchainProvider {
       const blockNumber = await provider.getBlockNumber();
       return blockNumber;
     } catch (error) {
-      console.error('[BlockchainProvider] Error getting current block:', error.message);
+      logger.error('[BlockchainProvider] Error getting current block', {
+        error: error.message,
+        stack: error.stack
+      });
       throw error;
     }
   }
@@ -162,12 +171,19 @@ class BlockchainProvider {
 
       this.stats.lastHealthCheck = new Date();
 
-      console.log(`[BlockchainProvider] Health check passed for ${providerInfo.name} ` +
-        `(block: ${blockNumber}, latency: ${latency}ms)`);
+      logger.info('[BlockchainProvider] Health check passed', {
+        provider: providerInfo.name,
+        blockNumber,
+        latency
+      });
 
       return true;
     } catch (error) {
-      console.error(`[BlockchainProvider] Health check failed for ${providerInfo.name}:`, error.message);
+      logger.error('[BlockchainProvider] Health check failed', {
+        provider: providerInfo.name,
+        error: error.message,
+        stack: error.stack
+      });
       providerInfo.healthy = false;
       providerInfo.lastChecked = new Date();
       return false;
@@ -186,14 +202,18 @@ class BlockchainProvider {
       const nextIndex = (startIndex + i) % this.providers.length;
       const nextProvider = this.providers[nextIndex];
 
-      console.log(`[BlockchainProvider] Attempting failover to ${nextProvider.name}...`);
+      logger.info('[BlockchainProvider] Attempting failover', {
+        targetProvider: nextProvider.name
+      });
 
       const isHealthy = await this._checkProviderHealth(nextProvider);
 
       if (isHealthy) {
         this.activeProviderIndex = nextIndex;
         this.activeProvider = nextProvider;
-        console.log(`[BlockchainProvider] Failover successful to ${nextProvider.name}`);
+        logger.info('[BlockchainProvider] Failover successful', {
+          provider: nextProvider.name
+        });
         return;
       }
     }
@@ -217,7 +237,7 @@ class BlockchainProvider {
       await this._checkProviderHealth(this.activeProvider);
     }, interval);
 
-    console.log(`[BlockchainProvider] Health checks started (interval: ${interval}ms)`);
+    logger.info('[BlockchainProvider] Health checks started', { interval });
   }
 
   /**
@@ -261,10 +281,12 @@ class BlockchainProvider {
       const blockNumber = await provider.getBlockNumber();
       const balance = await provider.getBalance('0x0000000000000000000000000000000000000000');
 
-      logger.info('[BlockchainProvider] Connection test successful:');
-      console.log(`  Network: ${network.name} (chainId: ${network.chainId})`);
-      console.log(`  Current Block: ${blockNumber}`);
-      console.log(`  Provider: ${this.activeProvider.name}`);
+      logger.info('[BlockchainProvider] Connection test successful', {
+        network: network.name,
+        chainId: Number(network.chainId),
+        currentBlock: blockNumber,
+        provider: this.activeProvider.name
+      });
 
       return {
         success: true,

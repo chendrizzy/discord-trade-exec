@@ -70,7 +70,7 @@ class TransactionProcessor {
           break;
 
         default:
-          console.warn(`[TransactionProcessor] Unknown event type: ${eventData.eventName}`);
+          logger.warn('[TransactionProcessor] Unknown event type', { eventName: eventData.eventName });
           return {
             success: false,
             error: `Unknown event type: ${eventData.eventName}`
@@ -84,13 +84,13 @@ class TransactionProcessor {
       // Update wallet statistics asynchronously (non-blocking)
       if (eventData.maker) {
         this._updateWalletStats(eventData.maker, transaction).catch(err => {
-          console.error('[TransactionProcessor] Error updating maker wallet:', err);
+          logger.error('[TransactionProcessor] Error updating maker wallet', { error: err.message, stack: err.stack, wallet: eventData.maker });
         });
       }
 
       if (eventData.taker) {
         this._updateWalletStats(eventData.taker, transaction).catch(err => {
-          console.error('[TransactionProcessor] Error updating taker wallet:', err);
+          logger.error('[TransactionProcessor] Error updating taker wallet', { error: err.message, stack: err.stack, wallet: eventData.taker });
         });
       }
 
@@ -130,7 +130,11 @@ class TransactionProcessor {
 
     await transaction.save();
 
-    console.log(`[TransactionProcessor] Saved OrderFilled: ${eventData.maker.slice(0, 8)}... → $${eventData.makerAmountFilled}`);
+    logger.info('[TransactionProcessor] Saved OrderFilled', {
+      makerPrefix: eventData.maker.slice(0, 8),
+      makerAmountFilled: eventData.makerAmountFilled,
+      transactionHash: eventData.transactionHash
+    });
 
     return transaction;
   }
@@ -155,7 +159,10 @@ class TransactionProcessor {
 
     await transaction.save();
 
-    console.log(`[TransactionProcessor] Saved OrdersMatched: $${eventData.makerAmountFilled}`);
+    logger.info('[TransactionProcessor] Saved OrdersMatched', {
+      makerAmountFilled: eventData.makerAmountFilled,
+      transactionHash: eventData.transactionHash
+    });
 
     return transaction;
   }
@@ -175,7 +182,10 @@ class TransactionProcessor {
 
     await transaction.save();
 
-    console.log(`[TransactionProcessor] Saved OrderCancelled: ${eventData.orderHash}`);
+    logger.info('[TransactionProcessor] Saved OrderCancelled', {
+      orderHash: eventData.orderHash,
+      transactionHash: eventData.transactionHash
+    });
 
     return transaction;
   }
@@ -197,7 +207,11 @@ class TransactionProcessor {
 
     await transaction.save();
 
-    console.log(`[TransactionProcessor] Saved FeeCharged: $${eventData.amount}`);
+    logger.info('[TransactionProcessor] Saved FeeCharged', {
+      amount: eventData.amount,
+      receiver: eventData.receiver,
+      transactionHash: eventData.transactionHash
+    });
 
     return transaction;
   }
@@ -219,7 +233,10 @@ class TransactionProcessor {
 
     await transaction.save();
 
-    console.log(`[TransactionProcessor] Saved TokenRegistered: ${eventData.conditionId}`);
+    logger.info('[TransactionProcessor] Saved TokenRegistered', {
+      conditionId: eventData.conditionId,
+      transactionHash: eventData.transactionHash
+    });
 
     return transaction;
   }
@@ -239,10 +256,17 @@ class TransactionProcessor {
       await wallet.updateMetrics(transactions);
       await wallet.save();
 
-      console.log(`[TransactionProcessor] Updated wallet ${walletAddress.slice(0, 8)}... ` +
-        `(volume: $${wallet.totalVolume.toFixed(0)}, whale: ${wallet.isWhale})`);
+      logger.info('[TransactionProcessor] Updated wallet', {
+        walletPrefix: walletAddress.slice(0, 8),
+        totalVolume: Math.round(wallet.totalVolume),
+        isWhale: wallet.isWhale
+      });
     } catch (error) {
-      console.error(`[TransactionProcessor] Error updating wallet ${walletAddress}:`, error);
+      logger.error('[TransactionProcessor] Error updating wallet', {
+        wallet: walletAddress,
+        error: error.message,
+        stack: error.stack
+      });
     }
   }
 
@@ -259,7 +283,7 @@ class TransactionProcessor {
       details: []
     };
 
-    console.log(`[TransactionProcessor] Processing batch of ${eventsArray.length} events...`);
+    logger.info('[TransactionProcessor] Processing batch', { eventCount: eventsArray.length });
 
     for (const eventData of eventsArray) {
       const result = await this.processEvent(eventData);
@@ -279,8 +303,12 @@ class TransactionProcessor {
       results.details.push(result);
     }
 
-    console.log(`[TransactionProcessor] Batch complete: ${results.saved} saved, ` +
-      `${results.duplicates} duplicates, ${results.errors} errors`);
+    logger.info('[TransactionProcessor] Batch complete', {
+      saved: results.saved,
+      duplicates: results.duplicates,
+      errors: results.errors,
+      total: results.total
+    });
 
     return results;
   }

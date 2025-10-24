@@ -68,7 +68,7 @@ class AnalysisPipeline {
       // Step 3: WhaleDetector - async, non-blocking
       if (wallet) {
         this._updateWhaleAsync(wallet).catch(err => {
-          console.error('[Pipeline] Whale update error:', err.message);
+          logger.error('[Pipeline] Whale update error', { error: err.message, stack: err.stack, wallet: wallet.address });
         });
       }
 
@@ -84,7 +84,7 @@ class AnalysisPipeline {
       );
 
       if (duration > 5000) {
-        console.warn(`[Pipeline] Slow processing: ${duration}ms (target: <5s)`);
+        logger.warn('[Pipeline] Slow processing', { duration, target: 5000 });
       }
 
       return {
@@ -124,7 +124,11 @@ class AnalysisPipeline {
     try {
       return await sentimentAnalyzer.analyzeMarket(transaction.marketId);
     } catch (err) {
-      console.error('[Pipeline] Sentiment analysis failed:', err.message);
+      logger.error('[Pipeline] Sentiment analysis failed', {
+        error: err.message,
+        stack: err.stack,
+        marketId: transaction.marketId
+      });
       return { error: 'unavailable' };
     }
   }
@@ -137,7 +141,11 @@ class AnalysisPipeline {
     try {
       return await anomalyDetector.checkTransaction(transaction, priority);
     } catch (err) {
-      console.error('[Pipeline] Anomaly detection failed:', err.message);
+      logger.error('[Pipeline] Anomaly detection failed', {
+        error: err.message,
+        stack: err.stack,
+        txHash: transaction.txHash
+      });
       return { detected: false, error: err.message };
     }
   }
@@ -199,14 +207,21 @@ class AnalysisPipeline {
       // Send to Discord (async, queued)
       for (const alert of alerts) {
         discordAlertService.sendAlert(alert).catch(err => {
-          console.error('[Pipeline] Alert send error:', err.message);
+          logger.error('[Pipeline] Alert send error', {
+            error: err.message,
+            stack: err.stack,
+            alertType: alert.alertType
+          });
         });
       }
 
       this.stats.alerts += alerts.length;
       return alerts;
     } catch (err) {
-      console.error('[Pipeline] Generate alerts error:', err);
+      logger.error('[Pipeline] Generate alerts error', {
+        error: err.message,
+        stack: err.stack
+      });
       return alerts; // Return partial results
     }
   }
@@ -231,7 +246,11 @@ class AnalysisPipeline {
         }
       });
     } catch (err) {
-      console.error('[Pipeline] Create whale alert error:', err.message);
+      logger.error('[Pipeline] Create whale alert error', {
+        error: err.message,
+        stack: err.stack,
+        amount
+      });
       return null;
     }
   }
@@ -255,7 +274,11 @@ class AnalysisPipeline {
         }
       });
     } catch (err) {
-      console.error('[Pipeline] Create volume spike alert error:', err.message);
+      logger.error('[Pipeline] Create volume spike alert error', {
+        error: err.message,
+        stack: err.stack,
+        spikePercentage: spike.percentage
+      });
       return null;
     }
   }
@@ -279,7 +302,11 @@ class AnalysisPipeline {
         }
       });
     } catch (err) {
-      console.error('[Pipeline] Create sentiment shift alert error:', err.message);
+      logger.error('[Pipeline] Create sentiment shift alert error', {
+        error: err.message,
+        stack: err.stack,
+        shift: shift.shift
+      });
       return null;
     }
   }
@@ -303,7 +330,11 @@ class AnalysisPipeline {
         }
       });
     } catch (err) {
-      console.error('[Pipeline] Create anomaly alert error:', err.message);
+      logger.error('[Pipeline] Create anomaly alert error', {
+        error: err.message,
+        stack: err.stack,
+        severity: anomaly.severity
+      });
       return null;
     }
   }

@@ -25,7 +25,9 @@ if (polarAccessToken) {
   polar = new Polar({
     accessToken: polarAccessToken
   });
-  console.log('[Polar] Initialized with access token:', polarAccessToken.substring(0, 12) + '...');
+  logger.info('[Polar] Initialized with access token', {
+    tokenPrefix: polarAccessToken.substring(0, 12)
+  });
 } else {
   logger.warn('[Polar] POLAR_ACCESS_TOKEN not configured - using mock data');
 }
@@ -101,7 +103,11 @@ const getCommunitySubscription = async (customerId) => {
       }
     };
   } catch (error) {
-    console.error('[Polar] Error getting community subscription:', error.message);
+    logger.error('[Polar] Error getting community subscription', {
+      error: error.message,
+      stack: error.stack,
+      customerId
+    });
     throw error;
   }
 };
@@ -145,7 +151,11 @@ const getCustomer = async (customerId) => {
       createdAt: result.customer.createdAt
     };
   } catch (error) {
-    console.error('[Polar] Error getting customer:', error.message);
+    logger.error('[Polar] Error getting customer', {
+      error: error.message,
+      stack: error.stack,
+      customerId
+    });
     throw error;
   }
 };
@@ -175,7 +185,11 @@ const createCustomerPortalSession = async (customerId, returnUrl) => {
       url: result.customerSession.url
     };
   } catch (error) {
-    console.error('[Polar] Error creating customer portal session:', error.message);
+    logger.error('[Polar] Error creating customer portal session', {
+      error: error.message,
+      stack: error.stack,
+      customerId
+    });
     throw error;
   }
 };
@@ -214,7 +228,11 @@ const createCheckoutSession = async (productId, successUrl, customerEmail, metad
       customerId: result.checkout.customerId
     };
   } catch (error) {
-    console.error('[Polar] Error creating checkout session:', error.message);
+    logger.error('[Polar] Error creating checkout session', {
+      error: error.message,
+      stack: error.stack,
+      productId
+    });
     throw error;
   }
 };
@@ -244,7 +262,10 @@ const verifyWebhookSignature = (payload, signature, secret) => {
       Buffer.from(expectedSignature)
     );
   } catch (error) {
-    console.error('[Polar] Error verifying webhook signature:', error.message);
+    logger.error('[Polar] Error verifying webhook signature', {
+      error: error.message,
+      stack: error.stack
+    });
     return false;
   }
 };
@@ -275,7 +296,11 @@ const getProduct = async (productId) => {
 
     return result.product;
   } catch (error) {
-    console.error('[Polar] Error getting product:', error.message);
+    logger.error('[Polar] Error getting product', {
+      error: error.message,
+      stack: error.stack,
+      productId
+    });
     throw error;
   }
 };
@@ -332,7 +357,11 @@ const listProducts = async () => {
 
     return result.items || [];
   } catch (error) {
-    console.error('[Polar] Error listing products:', error.message);
+    logger.error('[Polar] Error listing products', {
+      error: error.message,
+      stack: error.stack,
+      organizationId: polarOrganizationId
+    });
     throw error;
   }
 };
@@ -362,7 +391,11 @@ const cancelSubscription = async (subscriptionId) => {
       cancelAtPeriodEnd: result.subscription.cancelAtPeriodEnd
     };
   } catch (error) {
-    console.error('[Polar] Error canceling subscription:', error.message);
+    logger.error('[Polar] Error canceling subscription', {
+      error: error.message,
+      stack: error.stack,
+      subscriptionId
+    });
     throw error;
   }
 };
@@ -389,7 +422,11 @@ const updateSubscription = async (subscriptionId, updates) => {
 
     return result.subscription;
   } catch (error) {
-    console.error('[Polar] Error updating subscription:', error.message);
+    logger.error('[Polar] Error updating subscription', {
+      error: error.message,
+      stack: error.stack,
+      subscriptionId
+    });
     throw error;
   }
 };
