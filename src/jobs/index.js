@@ -75,7 +75,10 @@ class JobOrchestrator {
 
       logger.info('[Jobs] All workers started successfully');
     } catch (err) {
-      console.error('[Jobs] Worker startup error:', err);
+      logger.error('[Jobs] Worker startup error', {
+        error: err.message,
+        stack: err.stack
+      });
       throw err;
     }
   }
@@ -89,19 +92,35 @@ class JobOrchestrator {
       if (!worker) return;
 
       worker.on('completed', (job) => {
-        console.log(`[${name}] Job ${job.id} completed`);
+        logger.info('[Jobs] Job completed', {
+          workerName: name,
+          jobId: job.id
+        });
       });
 
       worker.on('failed', (job, err) => {
-        console.error(`[${name}] Job ${job?.id} failed:`, err.message);
+        logger.error('[Jobs] Job failed', {
+          workerName: name,
+          jobId: job?.id,
+          error: err.message,
+          stack: err.stack
+        });
       });
 
       worker.on('progress', (job, progress) => {
-        console.log(`[${name}] Job ${job.id} progress: ${progress}%`);
+        logger.info('[Jobs] Job progress', {
+          workerName: name,
+          jobId: job.id,
+          progressPercent: progress
+        });
       });
 
       worker.on('error', (err) => {
-        console.error(`[${name}] Worker error:`, err.message);
+        logger.error('[Jobs] Worker error', {
+          workerName: name,
+          error: err.message,
+          stack: err.stack
+        });
       });
     });
   }
@@ -149,11 +168,16 @@ class JobOrchestrator {
         }
       );
 
-      logger.info('[Jobs] Recurring jobs scheduled:');
-      logger.info('  - Whale updates: Hourly (0 * * * *)');
-      console.log(`  - Anomaly batch: Every ${anomalyInterval / 1000}s`);
+      logger.info('[Jobs] Recurring jobs scheduled', {
+        whaleUpdates: 'Hourly (0 * * * *)',
+        anomalyBatch: `Every ${anomalyInterval / 1000}s`,
+        anomalyIntervalMs: anomalyInterval
+      });
     } catch (err) {
-      console.error('[Jobs] Schedule recurring jobs error:', err);
+      logger.error('[Jobs] Schedule recurring jobs error', {
+        error: err.message,
+        stack: err.stack
+      });
       throw err;
     }
   }
@@ -211,7 +235,10 @@ class JobOrchestrator {
 
       logger.info('[Jobs] All workers stopped');
     } catch (err) {
-      console.error('[Jobs] Worker shutdown error:', err);
+      logger.error('[Jobs] Worker shutdown error', {
+        error: err.message,
+        stack: err.stack
+      });
       throw err;
     }
   }
@@ -234,7 +261,11 @@ class JobOrchestrator {
         const counts = await queue.getJobCounts();
         stats[name] = counts;
       } catch (err) {
-        console.error(`[Jobs] Get stats error for ${name}:`, err.message);
+        logger.error('[Jobs] Get stats error', {
+          queueName: name,
+          error: err.message,
+          stack: err.stack
+        });
         stats[name] = { error: err.message };
       }
     }

@@ -48,16 +48,35 @@ async function refreshTokenWithRetry(broker, userId, retryCount = 0) {
     if (isTransientError && retryCount < RETRY_CONFIG.maxRetries) {
       // Retry transient errors (5xx)
       const delay = getBackoffDelay(retryCount);
-      console.log(`[TokenRefreshJob] Transient error (${error.response.status}), retrying in ${delay}ms... (attempt ${retryCount + 1}/${RETRY_CONFIG.maxRetries})`);
+      logger.info('[TokenRefreshJob] Transient error, retrying with backoff', {
+        statusCode: error.response.status,
+        delayMs: delay,
+        retryAttempt: retryCount + 1,
+        maxRetries: RETRY_CONFIG.maxRetries,
+        broker,
+        userId
+      });
       await sleep(delay);
       return refreshTokenWithRetry(broker, userId, retryCount + 1);
     } else if (isPermanentError) {
       // Don't retry permanent errors (4xx) - mark token invalid
-      console.error(`[TokenRefreshJob] Permanent error (${error.response?.status || 'unknown'}), marking token invalid for user ${userId}, broker ${broker}`);
+      logger.error('[TokenRefreshJob] Permanent error, marking token invalid', {
+        statusCode: error.response?.status || 'unknown',
+        userId,
+        broker,
+        error: error.message,
+        stack: error.stack
+      });
       return { success: false, permanent: true, error };
     } else {
       // Max retries exhausted for transient errors
-      console.error(`[TokenRefreshJob] Max retries exhausted for user ${userId}, broker ${broker}`, error.message);
+      logger.error('[TokenRefreshJob] Max retries exhausted', {
+        userId,
+        broker,
+        error: error.message,
+        stack: error.stack,
+        maxRetries: RETRY_CONFIG.maxRetries
+      });
       return { success: false, permanent: false, error };
     }
   }
@@ -81,12 +100,21 @@ async function markTokenInvalid(userId, broker, error) {
     user.tradingConfig.oauthTokens.set(broker, tokens);
     await user.save();
 
-    console.log(`[TokenRefreshJob] Marked ${broker} token invalid for user ${userId}`);
+    logger.info('[TokenRefreshJob] Marked token invalid', {
+      broker,
+      userId,
+      lastRefreshError: tokens.lastRefreshError
+    });
 
     // TODO: Send email notification (Phase 4.2)
     // await emailService.sendTokenRefreshFailureEmail(user, broker, tokens.lastRefreshError);
   } catch (saveError) {
-    console.error(`[TokenRefreshJob] Failed to mark token invalid for user ${userId}:`, saveError.message);
+    logger.error('[TokenRefreshJob] Failed to mark token invalid', {
+      userId,
+      broker,
+      error: saveError.message,
+      stack: saveError.stack
+    });
   }
 }
 
@@ -114,7 +142,11 @@ async function refreshExpiringTokens(expiryWindowHours, brokerFilter = null) {
       'tradingConfig.oauthTokens': { $exists: true, $ne: {} }
     });
 
-    console.log(`[TokenRefreshJob] Checking ${users.length} users for tokens expiring before ${expiryThreshold.toISOString()}`);
+    logger.info('[TokenRefreshJob] Checking users for expiring tokens', {
+      totalUsers: users.length,
+      expiryThreshold: expiryThreshold.toISOString(),
+      expiryWindowHours
+    });
 
     for (const user of users) {
       if (!user.tradingConfig.oauthTokens || user.tradingConfig.oauthTokens.size === 0) {
@@ -150,7 +182,11 @@ async function refreshExpiringTokens(expiryWindowHours, brokerFilter = null) {
           if (result.success) {
             metrics.successful++;
             metrics.brokerBreakdown[broker].successful++;
-            console.log(`[TokenRefreshJob] Successfully refreshed ${broker} token for user ${user._id} (${refreshDuration}ms)`);
+            logger.info('[TokenRefreshJob] Successfully refreshed token', {
+              broker,
+              userId: user._id.toString(),
+              refreshDurationMs: refreshDuration
+            });
           } else {
             metrics.failed++;
             metrics.brokerBreakdown[broker].failed++;
@@ -178,21 +214,33 @@ async function refreshExpiringTokens(expiryWindowHours, brokerFilter = null) {
       ? ((metrics.successful / metrics.totalRefreshes) * 100).toFixed(2)
       : 0;
 
-    console.log(`[TokenRefreshJob] Refresh cycle complete in ${totalDuration}ms`);
-    console.log(`  Total Checked: ${metrics.totalChecked}`);
-    console.log(`  Total Refreshes: ${metrics.totalRefreshes}`);
-    console.log(`  Successful: ${metrics.successful}`);
-    console.log(`  Failed: ${metrics.failed} (${metrics.transient} transient, ${metrics.permanent} permanent)`);
-    console.log(`  Success Rate: ${successRate}%`);
-    console.log(`  Avg Refresh Duration: ${metrics.avgRefreshDuration}ms`);
-    console.log(`  Broker Breakdown:`, JSON.stringify(metrics.brokerBreakdown, null, 2));
+    logger.info('[TokenRefreshJob] Refresh cycle complete', {
+      totalDurationMs: totalDuration,
+      totalChecked: metrics.totalChecked,
+      totalRefreshes: metrics.totalRefreshes,
+      successful: metrics.successful,
+      failed: metrics.failed,
+      transientFailures: metrics.transient,
+      permanentFailures: metrics.permanent,
+      successRatePercent: successRate,
+      avgRefreshDurationMs: metrics.avgRefreshDuration,
+      brokerBreakdown: metrics.brokerBreakdown,
+      expiryWindowHours
+    });
 
     // Log metrics to analytics
     await TokenRefreshMetrics.logRefreshCycle(metrics);
 
     // Alert if success rate < 90% (SLA breach)
     if (metrics.totalRefreshes > 0 && parseFloat(successRate) < 90) {
-      console.error(`⚠️ SLA BREACH: Token refresh success rate ${successRate}% is below 90% threshold!`);
+      logger.error('[TokenRefreshJob] SLA BREACH: Success rate below threshold', {
+        successRatePercent: successRate,
+        threshold: 90,
+        totalRefreshes: metrics.totalRefreshes,
+        successful: metrics.successful,
+        failed: metrics.failed,
+        brokerBreakdown: metrics.brokerBreakdown
+      });
       // TODO: Integrate with alerting service (PagerDuty, Slack, etc.)
       // await monitoringService.sendAlert('OAuth2 Token Refresh SLA Breach', metrics);
     }
@@ -259,7 +307,10 @@ function stopTokenRefreshJobs() {
  * Run token refresh cycle manually (for testing)
  */
 async function runManualRefresh(expiryWindowHours = 24, brokerFilter = null) {
-  console.log(`[TokenRefreshJob] Running manual token refresh (${expiryWindowHours}-hour window${brokerFilter ? `, broker: ${brokerFilter}` : ''})`);
+  logger.info('[TokenRefreshJob] Running manual token refresh', {
+    expiryWindowHours,
+    brokerFilter: brokerFilter || 'all'
+  });
   return await refreshExpiringTokens(expiryWindowHours, brokerFilter);
 }
 
