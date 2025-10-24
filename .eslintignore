@@ -1,0 +1,26 @@
+# Dependencies
+node_modules/
+
+# Build outputs
+dist/
+build/
+
+# Test coverage
+coverage/
+.nyc_output/
+
+# Configuration files
+*.config.js
+vite.config.js
+jest.config.js
+
+# Generated files
+**/*.min.js
+
+# Test files (allow linting but with relaxed rules)
+# Remove this line if you want to lint tests
+# tests/
+
+# Temporary files
+*.tmp
+*.temp
