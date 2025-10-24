@@ -132,7 +132,7 @@ const positionSchema = new mongoose.Schema(
     // Position status
     status: {
       type: String,
-      enum: ['OPEN', 'CLOSED', 'PARTIALLY_CLOSED'],
+      enum: ['OPEN', 'CLOSED', 'PARTIALLY_CLOSED', 'PENDING_CLOSE'],
       default: 'OPEN',
       index: true
     },
@@ -162,7 +162,15 @@ const positionSchema = new mongoose.Schema(
     },
 
     // Notes
-    notes: String
+    notes: String,
+
+    // Automatic closure tracking (for circuit breaker / daily loss limit)
+    closeReason: {
+      type: String,
+      enum: ['CIRCUIT_BREAKER', 'DAILY_LOSS_LIMIT', 'MANUAL']
+    },
+
+    closeInitiatedAt: Date
   },
   {
     timestamps: true

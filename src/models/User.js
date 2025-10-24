@@ -537,7 +537,37 @@ const userSchema = new mongoose.Schema(
     suspensionReason: String,
     suspensionMetadata: mongoose.Schema.Types.Mixed,
     cooldownUntil: Date,
-    cooldownReason: String
+    cooldownReason: String,
+
+    // Broker account information for risk management
+    brokerAccounts: [
+      {
+        broker: {
+          type: String,
+          enum: ['alpaca', 'moomoo', 'ibkr', 'tradier', 'robinhood']
+        },
+        isPrimary: {
+          type: Boolean,
+          default: false
+        },
+        equity: Number,
+        cashAvailable: Number,
+        buyingPower: Number,
+        lastSyncedAt: Date
+      }
+    ],
+
+    // User-specific risk management settings (overrides defaults)
+    riskSettings: {
+      maxPositionSizePercent: Number,
+      maxDailyLossPercent: Number,
+      circuitBreakerPercent: Number,
+      riskPerTradePercent: Number,
+      stopLossPercent: Number,
+      maxPortfolioExposurePercent: Number,
+      maxPositionsPerSymbol: Number,
+      minAccountBalance: Number
+    }
   },
   {
     timestamps: true

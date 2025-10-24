@@ -88,7 +88,7 @@ const createTestTrade = async (userId, overrides = {}) => {
     entryPrice: 45000,
     quantity: 0.1,
     status: 'FILLED',
-    realizedPnL: 0,
+    profitLoss: 0,
     ...overrides
   });
   return trade;
@@ -188,7 +188,7 @@ describe('Integration Test: Risk Aggregation', () => {
       // Create trades with losses totaling > 5% of equity
       // Ensure trades have today's date
       await createTestTrade(user._id, {
-        realizedPnL: -600, // -6% loss (exceeds 5% limit)
+        profitLoss: -600, // -6% loss (exceeds 5% limit)
         status: 'FILLED'
       });
 
@@ -290,25 +290,25 @@ describe('Integration Test: Risk Aggregation', () => {
 
       // Create winning and losing trades for today
       await createTestTrade(user._id, {
-        realizedPnL: 500,
+        profitLoss: 500,
         status: 'FILLED'
       });
 
       await createTestTrade(user._id, {
-        realizedPnL: -200,
+        profitLoss: -200,
         status: 'FILLED'
       });
 
       await createTestTrade(user._id, {
-        realizedPnL: 150,
-        status: 'CLOSED'
+        profitLoss: 150,
+        status: 'FILLED'
       });
 
       // Trade from yesterday (should not be counted)
       const yesterday = new Date();
       yesterday.setDate(yesterday.getDate() - 2);
       await createTestTrade(user._id, {
-        realizedPnL: 1000,
+        profitLoss: 1000,
         status: 'FILLED',
         createdAt: yesterday
       });
@@ -328,12 +328,13 @@ describe('Integration Test: Risk Aggregation', () => {
   describe('8. Calculate correct intraday drawdown', () => {
     it('should calculate drawdown percentage correctly', async () => {
       const user = await createTestUser({
-        circuitBreakerPercent: 8 // Circuit breaker at -8%
+        circuitBreakerPercent: 8, // Circuit breaker at -8%
+        maxDailyLossPercent: 10 // Set daily loss limit above test loss (-7%) to avoid triggering it
       });
 
       // Create loss that is 7% (below circuit breaker threshold)
       await createTestTrade(user._id, {
-        realizedPnL: -700, // -7% of $10,000
+        profitLoss: -700, // -7% of $10,000
         status: 'FILLED'
       });
 
@@ -355,7 +356,7 @@ describe('Integration Test: Risk Aggregation', () => {
 
       // Create loss that is 8.5% (exceeds circuit breaker threshold)
       await createTestTrade(user._id, {
-        realizedPnL: -850, // -8.5% of $10,000
+        profitLoss: -850, // -8.5% of $10,000
         status: 'FILLED'
       });
 
@@ -511,7 +512,7 @@ describe('Integration Test: Circuit Breaker', () => {
 
       // Create loss exceeding circuit breaker threshold
       await createTestTrade(user._id, {
-        realizedPnL: -850, // -8.5% drawdown
+        profitLoss: -850, // -8.5% drawdown
         status: 'FILLED'
       });
 
@@ -641,7 +642,7 @@ describe('Integration Test: Circuit Breaker', () => {
 
       // Create loss exceeding circuit breaker threshold
       await createTestTrade(user._id, {
-        realizedPnL: -900, // -9% drawdown
+        profitLoss: -900, // -9% drawdown
         status: 'FILLED'
       });
 
@@ -690,7 +691,7 @@ describe('Integration Test: Circuit Breaker', () => {
 
       // Create catastrophic loss
       await createTestTrade(user._id, {
-        realizedPnL: -950, // -9.5% drawdown
+        profitLoss: -950, // -9.5% drawdown
         status: 'FILLED'
       });
 
@@ -731,12 +732,12 @@ describe('Integration Test: Risk Status', () => {
 
     // Create some trades
     await createTestTrade(user._id, {
-      realizedPnL: 200,
+      profitLoss: 200,
       status: 'FILLED'
     });
 
     await createTestTrade(user._id, {
-      realizedPnL: -100,
+      profitLoss: -100,
       status: 'FILLED'
     });
 
@@ -768,7 +769,7 @@ describe('Integration Test: Risk Status', () => {
 
     // Create loss exceeding daily limit
     await createTestTrade(user._id, {
-      realizedPnL: -600, // -6% loss (exceeds 5% limit)
+      profitLoss: -600, // -6% loss (exceeds 5% limit)
       status: 'FILLED'
     });
 

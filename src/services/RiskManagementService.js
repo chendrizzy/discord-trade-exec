@@ -143,25 +143,10 @@ class RiskManagementService {
         return result;
       }
 
-      // 3. Check daily loss limit
+      // 3. Get daily P&L for risk checks
       const dailyPnL = await this._getDailyPnL(userId);
-      const dailyLossLimit = accountInfo.equity * (riskConfig.maxDailyLossPercent / 100);
 
-      if (dailyPnL < -dailyLossLimit) {
-        const result = {
-          approved: false,
-          adjustedQuantity: null,
-          reason: `Daily loss limit exceeded: -$${Math.abs(dailyPnL).toFixed(2)} of -$${dailyLossLimit.toFixed(2)} limit (-${riskConfig.maxDailyLossPercent}%). Trading paused until tomorrow 00:00 UTC.`,
-          riskScore: { level: 'HIGH', score: 85, dailyPnL, limit: dailyLossLimit },
-          action: 'REJECTED'
-        };
-
-        await this._auditDecision(userId, signal, result, 'DAILY_LOSS_LIMIT');
-        await this._triggerPositionClosure(userId, 'DAILY_LOSS_LIMIT');
-        return result;
-      }
-
-      // 4. Check circuit breaker threshold
+      // 4. Check circuit breaker threshold (EMERGENCY - check first)
       const intradayDrawdown = this._calculateIntradayDrawdown(dailyPnL, accountInfo.equity);
       if (intradayDrawdown >= riskConfig.circuitBreakerPercent) {
         await this._activateCircuitBreaker(userId, accountInfo.equity, dailyPnL);
@@ -179,7 +164,24 @@ class RiskManagementService {
         return result;
       }
 
-      // 5. Calculate position size
+      // 5. Check daily loss limit
+      const dailyLossLimit = accountInfo.equity * (riskConfig.maxDailyLossPercent / 100);
+
+      if (dailyPnL < -dailyLossLimit) {
+        const result = {
+          approved: false,
+          adjustedQuantity: null,
+          reason: `Daily loss limit exceeded: -$${Math.abs(dailyPnL).toFixed(2)} of -$${dailyLossLimit.toFixed(2)} limit (-${riskConfig.maxDailyLossPercent}%). Trading paused until tomorrow 00:00 UTC.`,
+          riskScore: { level: 'HIGH', score: 85, dailyPnL, limit: dailyLossLimit },
+          action: 'REJECTED'
+        };
+
+        await this._auditDecision(userId, signal, result, 'DAILY_LOSS_LIMIT');
+        await this._triggerPositionClosure(userId, 'DAILY_LOSS_LIMIT');
+        return result;
+      }
+
+      // 6. Calculate position size
       const positionSize = await this._calculatePositionSize(userId, signal, accountInfo.equity, riskConfig);
 
       if (positionSize.quantity === 0) {
@@ -195,7 +197,7 @@ class RiskManagementService {
         return result;
       }
 
-      // 6. Check portfolio exposure
+      // 7. Check portfolio exposure
       const exposureCheck = await this._checkPortfolioExposure(
         userId,
         signal,
@@ -217,10 +219,10 @@ class RiskManagementService {
         return result;
       }
 
-      // 7. Calculate risk score
+      // 8. Calculate risk score
       const riskScore = this._calculateRiskScore(signal, positionSize, accountInfo.equity, riskConfig);
 
-      // 8. Determine action and prepare result
+      // 9. Determine action and prepare result
       const wasAdjusted = positionSize.quantity !== signal.quantity;
       const result = {
         approved: true,
@@ -293,14 +295,14 @@ class RiskManagementService {
     });
 
     if (existingPosition) {
-      const totalNotional = existingPosition.quantity * existingPosition.avgPrice + requestedNotional;
+      const totalNotional = existingPosition.quantity * existingPosition.avgEntryPrice + requestedNotional;
       if (totalNotional > maxPositionValue) {
         const availableSize = Math.floor(
-          (maxPositionValue - existingPosition.quantity * existingPosition.avgPrice) / signal.price
+          (maxPositionValue - existingPosition.quantity * existingPosition.avgEntryPrice) / signal.price
         );
         return {
           quantity: Math.max(0, availableSize),
-          reason: `Existing position ${existingPosition.quantity} shares @ $${existingPosition.avgPrice.toFixed(2)}. Max position size reached.`,
+          reason: `Existing position ${existingPosition.quantity} shares @ $${existingPosition.avgEntryPrice.toFixed(2)}. Max position size reached.`,
           stopLossPrice: signal.stopLoss || signal.price * (1 - riskConfig.stopLossPercent / 100)
         };
       }
@@ -327,13 +329,13 @@ class RiskManagementService {
    */
   async _checkPortfolioExposure(userId, signal, quantity, equity, riskConfig) {
     const openPositions = await Position.find({
-      user: userId,
+      userId,
       status: 'OPEN'
     });
 
     let totalExposure = 0;
     for (const position of openPositions) {
-      totalExposure += position.quantity * position.avgPrice;
+      totalExposure += position.quantity * position.avgEntryPrice;
     }
 
     const newTradeValue = quantity * signal.price;
@@ -367,15 +369,15 @@ class RiskManagementService {
     todayStart.setUTCHours(0, 0, 0, 0);
 
     const trades = await Trade.find({
-      user: userId,
+      userId,
       createdAt: { $gte: todayStart },
-      status: { $in: ['FILLED', 'PARTIALLY_FILLED', 'CLOSED'] }
+      status: { $in: ['FILLED', 'PARTIAL'] }
     });
 
     let totalPnL = 0;
     for (const trade of trades) {
-      if (trade.realizedPnL) {
-        totalPnL += trade.realizedPnL;
+      if (trade.profitLoss) {
+        totalPnL += trade.profitLoss;
       }
     }
 
@@ -507,7 +509,7 @@ class RiskManagementService {
 
     // Find all open positions
     const openPositions = await Position.find({
-      user: userId,
+      userId,
       status: 'OPEN'
     });
 
