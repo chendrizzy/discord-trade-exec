@@ -1,72 +1,39 @@
-# OWASP ZAP Rules Configuration for Discord Trade Executor
-# T056: ZAP scan rules for US-009 (OWASP Security Audit)
-# Constitutional Principle I: Security-First compliance
-
-# Rule format: ID	THRESHOLD	[INSTANCE_IDS]
-# Thresholds: IGNORE, INFO, WARN, FAIL
-# Leave INSTANCE_IDS empty to apply to all instances
-
-# A01:2021 - Broken Access Control
-10006	FAIL	# Path Traversal
-10011	FAIL	# Cookie Without Secure Flag
-10015	FAIL	# Re-examine Cache-control Directives
-10017	FAIL	# Cross-Domain JavaScript Source File Inclusion
-10021	FAIL	# X-Content-Type-Options Header Missing
-10023	INFO	# Information Disclosure - Debug Error Messages
-10027	INFO	# Information Disclosure - Suspicious Comments
-10033	WARN	# Directory Browsing
+# ZAP Scanning Rules Configuration
+# Format: rule_id	WARN|FAIL|IGNORE|INFO
+#
+# OWASP Top 10 Rules
+10023	FAIL	# Information Disclosure - Debug Error Messages
+10025	FAIL	# Information Disclosure - Sensitive Information in URL
+10026	FAIL	# HTTP Parameter Override
+10027	WARN	# Information Disclosure - Suspicious Comments
+10032	FAIL	# Viewstate
 10040	FAIL	# Secure Pages Include Mixed Content
-10041	WARN	# HTTP to HTTPS Insecure Transition in Form Post
-10042	WARN	# HTTPS to HTTP Insecure Transition in Form Post
-10043	WARN	# User Controllable JavaScript Event (XSS)
-10047	WARN	# HTTPS Content Available via HTTP
-10048	WARN	# Remote Code Execution - Shell Shock
-10049	FAIL	# Content Cacheability
-10050	WARN	# Retrieved from Cache
-10051	WARN	# Relative Path Confusion
-10052	WARN	# X-ChromeLogger-Data (XCOLD) Header Information Leak
-10054	FAIL	# Cookie Without SameSite Attribute
-10055	FAIL	# CSP Scanner: Wildcard Directive
-10056	FAIL	# CSP Scanner: Missing Content-Security-Policy Header
-10057	WARN	# Username Hash Found
+10043	FAIL	# User Controllable JavaScript Event (XSS)
+10045	FAIL	# Source Code Disclosure - /WEB-INF folder
+10047	FAIL	# HTTPS Content Available via HTTP
+10048	FAIL	# Remote Code Execution - Shell Shock
+10050	FAIL	# Retrieved from Cache
+10052	FAIL	# X-ChromeLogger-Data (XCOLD) Header Information Leak
+10054	FAIL	# Cookie without SameSite Attribute
+10055	FAIL	# CSP
+10056	FAIL	# X-Debug-Token Information Leak
+10057	FAIL	# Username Hash Found
 10061	FAIL	# X-AspNet-Version Response Header
-10062	FAIL	# PII Scanner
+10062	FAIL	# PII Disclosure
 10063	FAIL	# Permissions Policy Header Not Set
-10094	FAIL	# Base64 Disclosure
-10095	WARN	# Backup File Disclosure
-10096	WARN	# Timestamp Disclosure
-10097	WARN	# Hash Disclosure
+10095	FAIL	# Backup File Disclosure
+10096	FAIL	# Timestamp Disclosure
+10097	FAIL	# Hash Disclosure
 10098	FAIL	# Cross-Domain Misconfiguration
 10099	FAIL	# Source Code Disclosure
-10103	FAIL	# Weak Authentication Method
-10104	FAIL	# User Agent Fuzzer
+
+# Authentication & Session Management
 10105	FAIL	# Weak Authentication Method
-10106	FAIL	# HTTP Only Site
-10107	FAIL	# Httpoxy - Proxy Header Misuse
 10108	FAIL	# Reverse Tabnabbing
 10109	FAIL	# Modern Web Application
-10110	FAIL	# Dangerous JS Functions
+10202	FAIL	# Absence of Anti-CSRF Tokens
 
-# A02:2021 - Cryptographic Failures
-10020	FAIL	# X-Frame-Options Header Not Set
-10024	FAIL	# Weak HTTP Authentication over HTTP
-10026	FAIL	# HTTP Parameter Pollution
-10031	FAIL	# User Controllable Charset
-10032	FAIL	# Viewstate Scanner
-10035	FAIL	# Strict-Transport-Security Header Not Set
-10036	FAIL	# HTTP Server Response Header
-10037	FAIL	# Server Leaks Information via "X-Powered-By" HTTP Response Header Field(s)
-10038	FAIL	# Content Security Policy (CSP) Header Not Set
-10039	FAIL	# X-Backend-Server Header Information Leak
-10044	WARN	# Big Redirect Detected (Potential Sensitive Information Leak)
-10045	FAIL	# Source Code Disclosure - /WEB-INF Folder
-10046	FAIL	# Source Code Disclosure - File Inclusion
-10053	FAIL	# Apache Range Header DoS (CVE-2011-3192)
-10058	FAIL	# GET for POST
-10059	FAIL	# Heartbleed OpenSSL Vulnerability
-10060	FAIL	# Server Leaks Version Information via "Server" HTTP Response Header Field
-
-# A03:2021 - Injection
+# Injection Attacks
 40003	FAIL	# CRLF Injection
 40008	FAIL	# Parameter Tampering
 40009	FAIL	# Server Side Include
@@ -82,19 +49,20 @@
 40022	FAIL	# SQL Injection - PostgreSQL
 40023	FAIL	# Possible Username Enumeration
 40024	FAIL	# SQL Injection - SQLite
-40025	FAIL	# SQL Injection - MsSQL
+40025	FAIL	# Proxy Disclosure
 40026	FAIL	# Cross Site Scripting (DOM Based)
-40027	FAIL	# SQL Injection - MsAccess
-40028	FAIL	# ELMAH Information Leak
-40029	FAIL	# Trace.axd Information Leak
-40030	FAIL	# LDAP Injection
-40031	FAIL	# XPath Injection
+40027	FAIL	# SQL Injection - MsSQL
+40028	FAIL	# LDAP Injection
+40029	FAIL	# NoSQL Injection - MongoDB
 40032	FAIL	# .htaccess Information Leak
-40033	FAIL	# CRLF Injection (Body)
 40034	FAIL	# .env Information Leak
-40035	FAIL	# Hidden File Finder
+
+# Security Misconfigurations
 90001	FAIL	# Insecure JSF ViewState
-90011	FAIL	# Charset Mismatch
+90002	FAIL	# Java Serialization Object
+90003	FAIL	# Sub Resource Integrity Attribute Missing
+90004	FAIL	# Insufficient Site Isolation Against Spectre Vulnerability
+90011	FAIL	# Character Set Mismatch
 90017	FAIL	# XSLT Injection
 90019	FAIL	# Server Side Code Injection
 90020	FAIL	# Remote OS Command Injection
@@ -106,52 +74,28 @@
 90026	FAIL	# SOAP Action Spoofing
 90027	FAIL	# Cookie Slack Detector
 90028	FAIL	# Insecure HTTP Method
-90029	FAIL	# SOAP XML Injection
+90029	FAIL	# Trace.axd Information Leak
 90030	FAIL	# WSDL File Detection
 90033	FAIL	# Loosely Scoped Cookie
 
-# A04:2021 - Insecure Design
-# (Covered by broader rules above)
-
-# A05:2021 - Security Misconfiguration
-0	WARN	# Directory Browsing
-2	WARN	# Private IP Disclosure
-3	WARN	# Session ID in URL Rewrite
-10010	FAIL	# Cookie No HttpOnly Flag
+# Headers & Security Controls
 10016	WARN	# Web Browser XSS Protection Not Enabled
+10017	WARN	# Cross-Domain JavaScript Source File Inclusion
 10019	WARN	# Content-Type Header Missing
-10025	WARN	# Information Disclosure - Sensitive Information in URL
-10034	WARN	# Cloud Metadata Potentially Exposed
-10070	FAIL	# Use of a Broken or Risky Cryptographic Algorithm
-10071	FAIL	# Application Error Disclosure
-10072	FAIL	# Server Leaks Information via "X-AspNet-Version" Response Header
-90003	WARN	# Sub Resource Integrity Attribute Missing
-90004	WARN	# Insufficient Site Isolation Against Spectre Vulnerability
+10020	WARN	# Anti-clickjacking Header
+10021	WARN	# X-Content-Type-Options Header Missing
+10035	WARN	# Strict-Transport-Security Header Not Set
+10037	WARN	# Server Leaks Information via "X-Powered-By" HTTP Response Header
+10038	WARN	# Content Security Policy (CSP) Header Not Set
+10039	WARN	# X-Frame-Options Header Not Set
+10049	WARN	# Non-Storable Content
+10051	WARN	# HTTP to HTTPS Insecure Transition in Form Post
+10098	WARN	# Cross-Domain Misconfiguration
 
-# A06:2021 - Vulnerable and Outdated Components
-10068	FAIL	# Use of Vulnerable JavaScript Library (Outdated/Vulnerable Library)
-10069	FAIL	# Use of Vulnerable Components
-
-# A07:2021 - Identification and Authentication Failures
-10101	FAIL	# Insufficient Authentication/Authorization Testing
-10102	FAIL	# Session Management Response Identified
-
-# A08:2021 - Software and Data Integrity Failures
-90005	FAIL	# Code Injection
-
-# A09:2021 - Security Logging and Monitoring Failures
-10009	FAIL	# In Page Banner Information Leak
-10018	WARN	# Viewstate
-
-# A10:2021 - Server-Side Request Forgery (SSRF)
-40009	FAIL	# Server Side Include
-90024	FAIL	# SSRF
-
-# Additional Active Scan Rules (FAIL = block deployment)
-40000	FAIL	# Cross Site Scripting (Reflected)
-40001	FAIL	# Cross Site Scripting (Persistent)
-40002	FAIL	# SQL Injection
-40004	FAIL	# Path Traversal
-40005	FAIL	# Remote File Inclusion
-40006	FAIL	# Server Side Include
-40007	FAIL	# Remote File Inclusion
+# Informational Rules (Monitor Only)
+10015	INFO	# Re-examine Cache-control Directives
+10024	INFO	# Information Disclosure - Sensitive Information in HTTP Referrer Header
+10031	INFO	# User Controllable Charset
+10036	INFO	# HTTP Server Response Header
+10094	INFO	# Base64 Disclosure
+10202	INFO	# Absence of Anti-CSRF Tokens

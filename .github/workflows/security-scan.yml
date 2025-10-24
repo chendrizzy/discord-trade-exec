@@ -1,0 +1,162 @@
+name: OWASP ZAP Security Scan
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main, develop]
+  schedule:
+    # Run weekly on Mondays at 2 AM UTC
+    - cron: '0 2 * * 1'
+  workflow_dispatch:
+
+jobs:
+  zap-baseline-scan:
+    name: OWASP ZAP Baseline Scan
+    runs-on: ubuntu-latest
+
+    permissions:
+      contents: read
+      security-events: write
+      issues: write
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22.11.0'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Set up test environment
+        env:
+          NODE_ENV: test
+          JWT_SECRET: test-jwt-secret-for-security-scan-only
+          ENCRYPTION_KEY: test-encryption-key-32-chars-minimum-required
+          MFA_ENCRYPTION_KEY: test-mfa-encryption-32-chars-minimum-req
+          SESSION_SECRET: test-session-secret-for-zap-scan
+          DISCORD_CLIENT_ID: test-client-id
+          DISCORD_CLIENT_SECRET: test-client-secret
+          DISCORD_REDIRECT_URI: http://localhost:3000/api/auth/callback
+          MONGODB_URI: mongodb://localhost:27017/test-security-scan
+        run: |
+          npm start &
+          timeout 60 bash -c 'until curl -f http://localhost:3000/health; do sleep 2; done' || exit 1
+          echo "Application is ready for scanning"
+
+      - name: OWASP ZAP Baseline Scan
+        uses: zaproxy/action-baseline@v0.11.0
+        with:
+          target: 'http://localhost:3000'
+          rules_file_name: '.zap/rules.tsv'
+          allow_issue_writing: true
+          artifact_name: 'zap-scan-report'
+          fail_action: ${{ github.event_name == 'pull_request' && 'true' || 'false' }}
+
+      - name: Upload ZAP Scan Report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: zap-scan-report
+          path: |
+            report_html.html
+            report_md.md
+            report_json.json
+          retention-days: 30
+
+      - name: Create GitHub Issue on Failure
+        if: failure() && github.event_name == 'schedule'
+        uses: actions/github-script@v7
+        env:
+          WORKFLOW_NAME: ${{ github.workflow }}
+          RUN_ID: ${{ github.run_id }}
+          SERVER_URL: ${{ github.server_url }}
+          REPO_OWNER: ${{ github.repository_owner }}
+          REPO_NAME: ${{ github.event.repository.name }}
+        with:
+          script: |
+            const fs = require('fs');
+            const reportMd = fs.readFileSync('report_md.md', 'utf8');
+            const now = new Date().toISOString();
+
+            await github.rest.issues.create({
+              owner: process.env.REPO_OWNER,
+              repo: process.env.REPO_NAME,
+              title: '🚨 Security: OWASP ZAP Scan Failed',
+              body: `# OWASP ZAP Security Scan Failed\n\n` +
+                    `**Date**: ${now}\n` +
+                    `**Workflow**: ${process.env.WORKFLOW_NAME}\n` +
+                    `**Run ID**: ${process.env.RUN_ID}\n\n` +
+                    `## Scan Results\n\n${reportMd}\n\n` +
+                    `## Actions Required\n\n` +
+                    `1. Review the security findings in the attached report\n` +
+                    `2. Prioritize fixes based on severity (High → Medium → Low)\n` +
+                    `3. Update validation rules if needed\n` +
+                    `4. Re-run scan after fixes\n\n` +
+                    `## Artifacts\n\n` +
+                    `[View full scan results](${process.env.SERVER_URL}/${process.env.REPO_OWNER}/${process.env.REPO_NAME}/actions/runs/${process.env.RUN_ID})`,
+              labels: ['security', 'automated', 'owasp-zap']
+            });
+
+  zap-full-scan:
+    name: OWASP ZAP Full Scan (Weekly)
+    runs-on: ubuntu-latest
+    if: github.event_name == 'schedule'
+
+    permissions:
+      contents: read
+      security-events: write
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22.11.0'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Set up test environment
+        env:
+          NODE_ENV: test
+          JWT_SECRET: test-jwt-secret-for-security-scan-only
+          ENCRYPTION_KEY: test-encryption-key-32-chars-minimum-required
+          MFA_ENCRYPTION_KEY: test-mfa-encryption-32-chars-minimum-req
+          SESSION_SECRET: test-session-secret-for-zap-scan
+          DISCORD_CLIENT_ID: test-client-id
+          DISCORD_CLIENT_SECRET: test-client-secret
+          DISCORD_REDIRECT_URI: http://localhost:3000/api/auth/callback
+          MONGODB_URI: mongodb://localhost:27017/test-security-scan
+        run: |
+          npm start &
+          timeout 60 bash -c 'until curl -f http://localhost:3000/health; do sleep 2; done' || exit 1
+          echo "Application ready for full scan"
+
+      - name: OWASP ZAP Full Scan
+        uses: zaproxy/action-full-scan@v0.10.0
+        with:
+          target: 'http://localhost:3000'
+          rules_file_name: '.zap/rules.tsv'
+          allow_issue_writing: false
+          artifact_name: 'zap-full-scan-report'
+          fail_action: false
+
+      - name: Upload Full Scan Report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: zap-full-scan-report
+          path: |
+            report_html.html
+            report_md.md
+            report_json.json
+          retention-days: 90
