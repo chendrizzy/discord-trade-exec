@@ -15,6 +15,17 @@ const { getMFAService } = require('../../services/MFAService');
 const User = require('../../models/User');
 const { BrokerFactory } = require('../../brokers');
 const logger = require('../../utils/logger');
+const { validate } = require('../../middleware/validation');
+const {
+  brokerAuthorizeParams,
+  oauthCallbackQuery,
+  oauthCallbackBody,
+  deleteBrokerOAuthParams,
+  refreshBrokerOAuthParams,
+  mfaEnableBody,
+  mfaDisableBody,
+  mfaVerifyBody
+} = require('../../validators/auth.validators');
 
 // Initialize MFA service
 const mfaService = getMFAService();
@@ -29,9 +40,9 @@ const mfaService = getMFAService();
  * @param {string} broker - Broker key (alpaca, ibkr, tdameritrade, etrade)
  * @returns {Object} { authorizationURL }
  */
-router.get('/broker/:broker/authorize', ensureAuthenticated, (req, res) => {
+router.get('/broker/:broker/authorize', ensureAuthenticated, validate(brokerAuthorizeParams, 'params'), (req, res) => {
   try {
-    const { broker } = req.params;
+    const { broker} = req.params;
 
     // Validate broker supports OAuth2
     if (!isOAuth2Broker(broker)) {
@@ -182,7 +193,7 @@ router.get('/brokers/status', ensureAuthenticated, async (req, res) => {
  * @param {string} error_description - Error description
  * @returns {Redirect} Redirects to dashboard with success/error message
  */
-router.get('/callback', async (req, res) => {
+router.get('/callback', validate(oauthCallbackQuery, 'query'), async (req, res) => {
   try {
     const { code, state, error, error_description } = req.query;
 
@@ -285,7 +296,7 @@ router.get('/callback', async (req, res) => {
  * @body {string} state - CSRF protection state parameter
  * @returns {Object} { success, broker, message } or { success: false, error }
  */
-router.post('/callback', async (req, res) => {
+router.post('/callback', validate(oauthCallbackBody, 'body'), async (req, res) => {
   try {
     const { code, state } = req.body;
 
@@ -390,7 +401,7 @@ router.post('/callback', async (req, res) => {
  * @param {string} broker - Broker key
  * @returns {Object} { success, message }
  */
-router.delete('/brokers/:broker/oauth', ensureAuthenticated, async (req, res) => {
+router.delete('/brokers/:broker/oauth', ensureAuthenticated, validate(deleteBrokerOAuthParams, 'params'), async (req, res) => {
   try {
     const { broker } = req.params;
     const userId = req.user.id;
@@ -444,7 +455,7 @@ router.delete('/brokers/:broker/oauth', ensureAuthenticated, async (req, res) =>
  * @param {string} broker - Broker key
  * @returns {Object} { success, expiresAt }
  */
-router.post('/brokers/:broker/oauth/refresh', ensureAuthenticated, async (req, res) => {
+router.post('/brokers/:broker/oauth/refresh', ensureAuthenticated, validate(refreshBrokerOAuthParams, 'params'), async (req, res) => {
   try {
     const { broker } = req.params;
     const userId = req.user.id;
@@ -550,7 +561,7 @@ router.post('/mfa/setup', ensureAuthenticated, async (req, res) => {
  * @throws {400} Invalid token
  * @throws {400} MFA already enabled
  */
-router.post('/mfa/enable', ensureAuthenticated, async (req, res) => {
+router.post('/mfa/enable', ensureAuthenticated, validate(mfaEnableBody, 'body'), async (req, res) => {
   try {
     const userId = req.user._id;
     const { token } = req.body;
@@ -628,7 +639,7 @@ router.post('/mfa/enable', ensureAuthenticated, async (req, res) => {
  * @throws {400} Invalid token
  * @throws {400} MFA not enabled
  */
-router.post('/mfa/disable', ensureAuthenticated, async (req, res) => {
+router.post('/mfa/disable', ensureAuthenticated, validate(mfaDisableBody, 'body'), async (req, res) => {
   try {
     const userId = req.user._id;
     const { token } = req.body;
@@ -828,7 +839,7 @@ router.get('/mfa/status', ensureAuthenticated, async (req, res) => {
  * @throws {403} MFA not required
  * @throws {429} Rate limit exceeded
  */
-router.post('/mfa/verify', ensureAuthenticated, async (req, res) => {
+router.post('/mfa/verify', ensureAuthenticated, validate(mfaVerifyBody, 'body'), async (req, res) => {
   try {
     const userId = req.user._id;
     const { token, type } = req.body;
