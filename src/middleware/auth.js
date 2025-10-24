@@ -75,15 +75,18 @@ const discordStrategy = new DiscordStrategy(
 // Override parseErrorResponse to log raw Discord API response
 const originalParseError = discordStrategy.parseErrorResponse;
 discordStrategy.parseErrorResponse = function (body, status) {
-  logger.error('🔍 Raw Discord API Response:');
-  console.error('Status Code:', status);
-  console.error('Response Body (raw):', body);
+  const errorDetails = {
+    statusCode: status,
+    responseBodyRaw: body
+  };
+
   try {
-    const parsed = JSON.parse(body);
-    console.error('Response Body (parsed):', JSON.stringify(parsed, null, 2));
+    errorDetails.responseBodyParsed = JSON.parse(body);
   } catch (e) {
-    logger.error('Failed to parse response as JSON');
+    errorDetails.parseError = 'Failed to parse response as JSON';
   }
+
+  logger.error('[Auth] Raw Discord API response error', errorDetails);
 
   // Call original implementation
   return originalParseError.call(this, body, status);

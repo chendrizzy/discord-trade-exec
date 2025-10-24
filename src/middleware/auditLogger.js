@@ -185,7 +185,13 @@ const auditFailedAuth = async (req, error) => {
       timestamp: new Date()
     });
   } catch (auditError) {
-    console.error('[AuditLogger] Failed to log auth failure:', auditError);
+    logger.error('[AuditLogger] Failed to log auth failure', {
+      error: auditError.message,
+      stack: auditError.stack,
+      action: 'auth.failed_login',
+      authError: error?.message,
+      endpoint: req.originalUrl || req.url
+    });
   }
 };
 
@@ -224,7 +230,14 @@ const auditCrossTenantAttempt = async (req, attemptedCommunityId) => {
       timestamp: new Date()
     });
   } catch (auditError) {
-    console.error('[AuditLogger] Failed to log cross-tenant attempt:', auditError);
+    logger.error('[AuditLogger] Failed to log cross-tenant attempt', {
+      error: auditError.message,
+      stack: auditError.stack,
+      action: 'security.cross_tenant_attempt',
+      attemptedCommunityId,
+      currentCommunityId: context?.communityId,
+      userId: context?.userId
+    });
   }
 };
 
@@ -261,7 +274,15 @@ const auditCredentialOperation = async (action, credentialType, resourceId, succ
       timestamp: new Date()
     });
   } catch (auditError) {
-    console.error('[AuditLogger] Failed to log credential operation:', auditError);
+    logger.error('[AuditLogger] Failed to log credential operation', {
+      error: auditError.message,
+      stack: auditError.stack,
+      action,
+      credentialType,
+      resourceId,
+      success,
+      communityId: context?.communityId
+    });
   }
 };
 

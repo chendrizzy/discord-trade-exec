@@ -17,16 +17,20 @@ if (process.env.NODE_ENV === 'production' && process.env.REDIS_URL) {
     });
 
     redisClient.on('error', err => {
-      console.error('Redis rate limiter error:', err.message);
-      logger.info('⚠️  Falling back to in-memory rate limiting');
+      logger.error('[RateLimiter] Redis error, falling back to in-memory', {
+        error: err.message,
+        stack: err.stack
+      });
     });
 
     redisClient.on('connect', () => {
       logger.info('✅ Redis rate limiter connected');
     });
   } catch (error) {
-    console.error('Failed to initialize Redis rate limiter:', error.message);
-    logger.info('⚠️  Using in-memory rate limiting');
+    logger.error('[RateLimiter] Failed to initialize Redis, using in-memory fallback', {
+      error: error.message,
+      stack: error.stack
+    });
   }
 }
 
@@ -217,7 +221,11 @@ const oauthCallbackLimiter = rateLimit({
   legacyHeaders: false,
   keyGenerator: ipKeyGenerator,
   handler: (req, res) => {
-    console.warn(`[OAuth2] Rate limit exceeded for IP ${req.ip} on OAuth callback`);
+    logger.warn('[OAuth2] Rate limit exceeded on callback', {
+      ip: req.ip,
+      userAgent: req.get('user-agent'),
+      endpoint: req.originalUrl
+    });
 
     // Audit log for security monitoring
     const SecurityAudit = require('../models/SecurityAudit');
@@ -233,7 +241,10 @@ const oauthCallbackLimiter = rateLimit({
       userAgent: req.get('user-agent'),
       endpoint: req.originalUrl,
       httpMethod: req.method
-    }).catch(err => console.error('[OAuth2] Audit log failed:', err));
+    }).catch(err => logger.error('[OAuth2] Audit log failed', {
+      error: err.message,
+      stack: err.stack
+    }));
 
     res.status(429).send(`
       <!DOCTYPE html>
