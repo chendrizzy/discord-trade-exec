@@ -19,6 +19,13 @@ const User = require('../../models/User');
 const encryptionService = require('../../services/encryption');
 const { sendSuccess, sendError, sendValidationError } = require('../../utils/api-response');
 const { oauthCallbackLimiter } = require('../../middleware/rateLimiter');
+const { validate } = require('../../middleware/validation');
+const {
+  initiateOAuthParams,
+  oauthCallbackParams,
+  oauthCallbackQuery,
+  disconnectOAuthParams
+} = require('../../validators/broker-oauth.validators');
 
 // Import broker adapters
 const AlpacaAdapter = require('../../brokers/adapters/AlpacaAdapter');
@@ -32,7 +39,7 @@ const oauthStates = new Map();
  * GET /api/brokers/oauth/initiate/:brokerKey
  * Initiates OAuth flow by redirecting to broker's authorization page
  */
-router.get('/initiate/:brokerKey', async (req, res) => {
+router.get('/initiate/:brokerKey', validate(initiateOAuthParams, 'params'), async (req, res) => {
   try {
     const { brokerKey } = req.params;
     const { environment = 'testnet' } = req.query;
@@ -116,7 +123,7 @@ router.get('/initiate/:brokerKey', async (req, res) => {
  * Handles OAuth callback from broker
  * Rate limited to 10 requests per 15 minutes per IP
  */
-router.get('/callback/:brokerKey', oauthCallbackLimiter, async (req, res) => {
+router.get('/callback/:brokerKey', oauthCallbackLimiter, validate(oauthCallbackParams, 'params'), validate(oauthCallbackQuery, 'query'), async (req, res) => {
   try {
     const { brokerKey } = req.params;
     const { code, state, error, error_description } = req.query;
@@ -387,7 +394,7 @@ router.get('/callback/:brokerKey', oauthCallbackLimiter, async (req, res) => {
  * POST /api/brokers/oauth/disconnect/:brokerKey
  * Disconnects OAuth broker (clears tokens)
  */
-router.post('/disconnect/:brokerKey', async (req, res) => {
+router.post('/disconnect/:brokerKey', validate(disconnectOAuthParams, 'params'), async (req, res) => {
   try {
     if (!req.user) {
       return sendError(res, 'Authentication required', 401);
