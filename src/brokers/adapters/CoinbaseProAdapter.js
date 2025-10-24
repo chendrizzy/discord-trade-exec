@@ -58,10 +58,15 @@ class CoinbaseProAdapter extends BrokerAdapter {
       const balance = await withTimeout(this.exchange.fetchBalance(), 30000);
 
       this.isAuthenticated = true;
-      console.log(`✅ Coinbase Pro authenticated: ${balance.info?.profile_id || 'profile'}`);
+      logger.info('[CoinbaseProAdapter] Authenticated successfully', {
+        profileId: balance.info?.profile_id || 'profile'
+      });
       return true;
     } catch (error) {
-      console.error('❌ Coinbase Pro authentication failed:', error.message);
+      logger.error('[CoinbaseProAdapter] Authentication failed', {
+        error: error.message,
+        stack: error.stack
+      });
       this.isAuthenticated = false;
       return false;
     }
@@ -93,7 +98,11 @@ class CoinbaseProAdapter extends BrokerAdapter {
         currency: 'USD'
       };
     } catch (error) {
-      console.error('Error fetching Coinbase Pro balance:', error.message);
+      logger.error('[CoinbaseProAdapter] Error fetching balance', {
+        error: error.message,
+        stack: error.stack,
+        currency
+      });
       throw error;
     }
   }
@@ -143,7 +152,14 @@ class CoinbaseProAdapter extends BrokerAdapter {
         type: order.type
       };
     } catch (error) {
-      console.error('Error creating Coinbase Pro order:', error.message);
+      logger.error('[CoinbaseProAdapter] Error creating order', {
+        error: error.message,
+        stack: error.stack,
+        symbol: order.symbol,
+        side: order.side,
+        type: order.type,
+        quantity: order.quantity
+      });
       throw error;
     }
   }
@@ -155,10 +171,16 @@ class CoinbaseProAdapter extends BrokerAdapter {
   async cancelOrder(orderId) {
     try {
       await withTimeout(this.exchange.cancelOrder(orderId), 30000);
-      console.log(`✅ Coinbase Pro order ${orderId} cancelled`);
+      logger.info('[CoinbaseProAdapter] Order cancelled', {
+        orderId
+      });
       return true;
     } catch (error) {
-      console.error('Error cancelling Coinbase Pro order:', error.message);
+      logger.error('[CoinbaseProAdapter] Error cancelling order', {
+        error: error.message,
+        stack: error.stack,
+        orderId
+      });
       return false;
     }
   }
@@ -209,7 +231,10 @@ class CoinbaseProAdapter extends BrokerAdapter {
 
       return positions;
     } catch (error) {
-      console.error('Error fetching Coinbase Pro positions:', error.message);
+      logger.error('[CoinbaseProAdapter] Error fetching positions', {
+        error: error.message,
+        stack: error.stack
+      });
       return [];
     }
   }
@@ -236,14 +261,23 @@ class CoinbaseProAdapter extends BrokerAdapter {
         30000
       );
 
-      console.log(`✅ Coinbase Pro stop-loss set for ${params.symbol} at ${params.stopPrice}`);
+      logger.info('[CoinbaseProAdapter] Stop-loss order set', {
+        orderId: result.id,
+        symbol: params.symbol,
+        stopPrice: params.stopPrice
+      });
       return {
         orderId: result.id,
         symbol: params.symbol,
         stopPrice: params.stopPrice
       };
     } catch (error) {
-      console.error('Error setting Coinbase Pro stop-loss:', error.message);
+      logger.error('[CoinbaseProAdapter] Error setting stop-loss', {
+        error: error.message,
+        stack: error.stack,
+        symbol: params.symbol,
+        stopPrice: params.stopPrice
+      });
       throw error;
     }
   }
@@ -261,14 +295,23 @@ class CoinbaseProAdapter extends BrokerAdapter {
         30000
       );
 
-      console.log(`✅ Coinbase Pro take-profit set for ${params.symbol} at ${params.limitPrice}`);
+      logger.info('[CoinbaseProAdapter] Take-profit order set', {
+        orderId: result.id,
+        symbol: params.symbol,
+        limitPrice: params.limitPrice
+      });
       return {
         orderId: result.id,
         symbol: params.symbol,
         limitPrice: params.limitPrice
       };
     } catch (error) {
-      console.error('Error setting Coinbase Pro take-profit:', error.message);
+      logger.error('[CoinbaseProAdapter] Error setting take-profit', {
+        error: error.message,
+        stack: error.stack,
+        symbol: params.symbol,
+        limitPrice: params.limitPrice
+      });
       throw error;
     }
   }
@@ -315,7 +358,11 @@ class CoinbaseProAdapter extends BrokerAdapter {
         timestamp: new Date(order.timestamp)
       }));
     } catch (error) {
-      console.error('Error fetching Coinbase Pro order history:', error.message);
+      logger.error('[CoinbaseProAdapter] Error fetching order history', {
+        error: error.message,
+        stack: error.stack,
+        filters
+      });
       return [];
     }
   }
@@ -334,7 +381,11 @@ class CoinbaseProAdapter extends BrokerAdapter {
         last: ticker.last || 0
       };
     } catch (error) {
-      console.error('Error fetching Coinbase Pro market price:', error.message);
+      logger.error('[CoinbaseProAdapter] Error fetching market price', {
+        error: error.message,
+        stack: error.stack,
+        symbol
+      });
       throw error;
     }
   }
@@ -354,7 +405,11 @@ class CoinbaseProAdapter extends BrokerAdapter {
       const normalized = this.normalizeSymbol(symbol);
       return this.supportedPairs.has(normalized);
     } catch (error) {
-      console.error('Error checking symbol support:', error.message);
+      logger.error('[CoinbaseProAdapter] Error checking symbol support', {
+        error: error.message,
+        stack: error.stack,
+        symbol
+      });
       return false;
     }
   }
@@ -383,7 +438,11 @@ class CoinbaseProAdapter extends BrokerAdapter {
         withdrawal: 0
       };
     } catch (error) {
-      console.error('Error fetching Coinbase Pro fees:', error.message);
+      logger.error('[CoinbaseProAdapter] Error fetching fees', {
+        error: error.message,
+        stack: error.stack,
+        symbol
+      });
       return {
         maker: 0.005,
         taker: 0.005,
