@@ -44,7 +44,7 @@ const initializeRedis = async () => {
     });
 
     client.on('error', (err) => {
-      console.error('[Redis] Connection error:', err.message);
+      logger.error('[Redis] Connection error', { error: err.message, stack: err.stack });
       if (cacheMode === 'redis') {
         logger.warn('[Redis] Falling back to memory cache due to error');
         cacheMode = 'memory';
@@ -64,7 +64,7 @@ const initializeRedis = async () => {
     logger.info('[Redis] Initialization complete - using distributed Redis cache');
     cacheMode = 'redis';
   } catch (err) {
-    console.error('[Redis] Failed to initialize:', err.message);
+    logger.error('[Redis] Failed to initialize', { error: err.message, stack: err.stack });
     logger.warn('[Redis] Falling back to in-memory cache');
     cacheMode = 'memory';
     client = null;
@@ -81,12 +81,12 @@ const get = async (key) => {
     try {
       const value = await client.get(key);
       if (value) {
-        console.log(`[Cache:Redis] HIT: ${key}`);
+        logger.info('[Cache:Redis] HIT', { key });
         return JSON.parse(value);
       }
       return null;
     } catch (err) {
-      console.error(`[Redis] GET error for key ${key}:`, err.message);
+      logger.error('[Redis] GET error', { key, error: err.message, stack: err.stack });
       logger.warn('[Redis] Falling back to memory cache');
       cacheMode = 'memory';
     }
@@ -101,7 +101,7 @@ const get = async (key) => {
     return null;
   }
 
-  console.log(`[Cache:Memory] HIT: ${key}`);
+  logger.info('[Cache:Memory] HIT', { key });
   return cached.value;
 };
 
@@ -116,10 +116,10 @@ const set = async (key, value, ttlSeconds = 300) => {
   if (cacheMode === 'redis' && client) {
     try {
       await client.setEx(key, ttlSeconds, JSON.stringify(value));
-      console.log(`[Cache:Redis] SET: ${key} (TTL: ${ttlSeconds}s)`);
+      logger.info('[Cache:Redis] SET', { key, ttlSeconds });
       return;
     } catch (err) {
-      console.error(`[Redis] SET error for key ${key}:`, err.message);
+      logger.error('[Redis] SET error', { key, error: err.message, stack: err.stack });
       logger.warn('[Redis] Falling back to memory cache');
       cacheMode = 'memory';
     }
@@ -128,7 +128,7 @@ const set = async (key, value, ttlSeconds = 300) => {
   // Memory cache fallback
   const expiry = Date.now() + (ttlSeconds * 1000);
   memoryCache.set(key, { value, expiry });
-  console.log(`[Cache:Memory] SET: ${key} (TTL: ${ttlSeconds}s)`);
+  logger.info('[Cache:Memory] SET', { key, ttlSeconds });
 };
 
 /**
@@ -140,15 +140,15 @@ const del = async (key) => {
   if (cacheMode === 'redis' && client) {
     try {
       await client.del(key);
-      console.log(`[Cache:Redis] DEL: ${key}`);
+      logger.info('[Cache:Redis] DEL', { key });
       return;
     } catch (err) {
-      console.error(`[Redis] DEL error for key ${key}:`, err.message);
+      logger.error('[Redis] DEL error', { key, error: err.message, stack: err.stack });
     }
   }
 
   memoryCache.delete(key);
-  console.log(`[Cache:Memory] DEL: ${key}`);
+  logger.info('[Cache:Memory] DEL', { key });
 };
 
 /**
@@ -162,11 +162,11 @@ const delPattern = async (pattern) => {
       const keys = await client.keys(pattern);
       if (keys.length > 0) {
         await client.del(keys);
-        console.log(`[Cache:Redis] DEL PATTERN: ${pattern} (${keys.length} keys)`);
+        logger.info('[Cache:Redis] DEL PATTERN', { pattern, keysDeleted: keys.length });
         return;
       }
     } catch (err) {
-      console.error(`[Redis] DEL PATTERN error for ${pattern}:`, err.message);
+      logger.error('[Redis] DEL PATTERN error', { pattern, error: err.message, stack: err.stack });
     }
   }
 
@@ -181,7 +181,7 @@ const delPattern = async (pattern) => {
   }
 
   keysToDelete.forEach(key => memoryCache.delete(key));
-  console.log(`[Cache:Memory] DEL PATTERN: ${pattern} (${keysToDelete.length} keys)`);
+  logger.info('[Cache:Memory] DEL PATTERN', { pattern, keysDeleted: keysToDelete.length });
 };
 
 /**
@@ -197,7 +197,7 @@ const getOrCompute = async (key, computeFn, ttlSeconds = 300) => {
     return cached;
   }
 
-  console.log(`[Cache:${cacheMode}] MISS: ${key} - computing...`);
+  logger.info('[Cache] MISS - computing', { cacheMode, key });
   const value = await computeFn();
   await set(key, value, ttlSeconds);
   return value;
@@ -215,7 +215,7 @@ const increment = async (key, amount = 1) => {
       const result = await client.incrBy(key, amount);
       return result;
     } catch (err) {
-      console.error(`[Redis] INCR error for key ${key}:`, err.message);
+      logger.error('[Redis] INCR error', { key, error: err.message, stack: err.stack });
     }
   }
 
@@ -237,7 +237,7 @@ const exists = async (key) => {
       const result = await client.exists(key);
       return result === 1;
     } catch (err) {
-      console.error(`[Redis] EXISTS error for key ${key}:`, err.message);
+      logger.error('[Redis] EXISTS error', { key, error: err.message, stack: err.stack });
     }
   }
 
@@ -261,7 +261,7 @@ const getStats = async () => {
         connected: client.isReady
       };
     } catch (err) {
-      console.error('[Redis] STATS error:', err.message);
+      logger.error('[Redis] STATS error', { error: err.message, stack: err.stack });
     }
   }
 
@@ -296,7 +296,7 @@ const clear = async () => {
       logger.info('[Cache:Redis] CLEARED all keys');
       return;
     } catch (err) {
-      console.error('[Redis] CLEAR error:', err.message);
+      logger.error('[Redis] CLEAR error', { error: err.message, stack: err.stack });
     }
   }
 
@@ -323,7 +323,7 @@ const close = async () => {
 
 // Initialize on module load
 initializeRedis().catch(err => {
-  console.error('[Redis] Initialization failed:', err);
+  logger.error('[Redis] Initialization failed', { error: err.message, stack: err.stack });
   cacheMode = 'memory';
 });
 

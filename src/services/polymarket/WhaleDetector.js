@@ -45,7 +45,7 @@ class WhaleDetector {
       let updated = 0;
       let errors = 0;
 
-      console.log(`[WhaleDetector] Found ${total} whale wallets to update`);
+      logger.info('[WhaleDetector] Found whale wallets to update', { totalWhales: total });
 
       // Process in batches to avoid memory issues
       for (let i = 0; i < total; i += batchSize) {
@@ -57,7 +57,7 @@ class WhaleDetector {
               await this.updateWallet(whale.address);
               updated++;
             } catch (err) {
-              console.error(`[WhaleDetector] Error updating ${whale.address}:`, err.message);
+              logger.error('[WhaleDetector] Error updating wallet', { address: whale.address, error: err.message, stack: err.stack });
               errors++;
             }
           })
@@ -70,7 +70,11 @@ class WhaleDetector {
         }
 
         // Log batch completion
-        console.log(`[WhaleDetector] Batch ${Math.floor(i / batchSize) + 1} complete: ${updated}/${total} updated`);
+        logger.info('[WhaleDetector] Batch complete', {
+          batchNumber: Math.floor(i / batchSize) + 1,
+          updated,
+          total
+        });
       }
 
       const duration = Date.now() - startTime;
@@ -78,7 +82,7 @@ class WhaleDetector {
       this.stats.walletsTracked = total;
       this.stats.lastUpdateTime = new Date();
 
-      console.log(`[WhaleDetector] Whale update complete: ${updated} updated, ${errors} errors, ${duration}ms`);
+      logger.info('[WhaleDetector] Whale update complete', { updated, errors, total, durationMs: duration });
 
       return {
         updated,
@@ -87,7 +91,7 @@ class WhaleDetector {
         duration
       };
     } catch (err) {
-      console.error('[WhaleDetector] Update all whales failed:', err);
+      logger.error('[WhaleDetector] Update all whales failed', { error: err.message, stack: err.stack });
       throw err;
     }
   }
@@ -102,7 +106,7 @@ class WhaleDetector {
       const wallet = await PolymarketWallet.findOne({ address: walletAddress });
 
       if (!wallet) {
-        console.warn(`[WhaleDetector] Wallet not found: ${walletAddress}`);
+        logger.warn('[WhaleDetector] Wallet not found', { address: walletAddress });
         return null;
       }
 
@@ -115,7 +119,7 @@ class WhaleDetector {
 
       return wallet;
     } catch (err) {
-      console.error(`[WhaleDetector] Update wallet error (${walletAddress}):`, err.message);
+      logger.error('[WhaleDetector] Update wallet error', { address: walletAddress, error: err.message, stack: err.stack });
       throw err;
     }
   }
@@ -147,11 +151,11 @@ class WhaleDetector {
         }
       }
 
-      console.log(`[WhaleDetector] Win rates updated for ${updated} whales`);
+      logger.info('[WhaleDetector] Win rates updated', { updatedWhales: updated });
 
       return { updated };
     } catch (err) {
-      console.error('[WhaleDetector] Update win rates failed:', err);
+      logger.error('[WhaleDetector] Update win rates failed', { error: err.message, stack: err.stack });
       throw err;
     }
   }
@@ -191,7 +195,7 @@ class WhaleDetector {
       const winRate = (result[0].wins / result[0].total) * 100;
       return Math.round(winRate * 100) / 100; // 2 decimal places
     } catch (err) {
-      console.error(`[WhaleDetector] Calculate win rate error (${walletAddress}):`, err.message);
+      logger.error('[WhaleDetector] Calculate win rate error', { address: walletAddress, error: err.message, stack: err.stack });
       return null;
     }
   }
@@ -255,13 +259,16 @@ class WhaleDetector {
 
       // Log whale detection
       if (isWhale && !wasWhale) {
-        console.log(`[WhaleDetector] New whale detected: ${walletDoc.address} ($${walletDoc.totalVolume.toLocaleString()})`);
+        logger.info('[WhaleDetector] New whale detected', {
+          address: walletDoc.address,
+          totalVolume: walletDoc.totalVolume
+        });
         this.stats.whalesDetected++;
       }
 
       return isWhale;
     } catch (err) {
-      console.error('[WhaleDetector] Check whale status error:', err.message);
+      logger.error('[WhaleDetector] Check whale status error', { error: err.message, stack: err.stack });
       return false;
     }
   }

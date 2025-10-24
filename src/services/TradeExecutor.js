@@ -75,7 +75,7 @@ class TradeExecutor extends EventEmitter {
           }
         );
       } catch (error) {
-        console.error('Failed to initialize Alpaca broker:', error.message);
+        logger.error('Failed to initialize Alpaca broker', { error: error.message, stack: error.stack });
       }
     }
 
@@ -92,11 +92,11 @@ class TradeExecutor extends EventEmitter {
           }
         );
       } catch (error) {
-        console.error('Failed to initialize Alpaca OAuth broker:', error.message);
+        logger.error('Failed to initialize Alpaca OAuth broker', { error: error.message, stack: error.stack });
       }
     }
 
-    console.log(`✅ Initialized ${Object.keys(this.brokers).length} stock broker(s)`);
+    logger.info('✅ Initialized stock brokers', { brokerCount: Object.keys(this.brokers).length });
   }
 
   /**
@@ -111,10 +111,10 @@ class TradeExecutor extends EventEmitter {
       const broker = BrokerFactory.createBroker(brokerType, credentials, options);
       await broker.authenticate();
       this.brokers[brokerKey] = broker;
-      console.log(`✅ Added broker: ${brokerKey} (${brokerType})`);
+      logger.info('✅ Added broker', { brokerKey, brokerType });
       return { success: true, brokerKey };
     } catch (error) {
-      console.error(`Failed to add broker ${brokerKey}:`, error.message);
+      logger.error('Failed to add broker', { brokerKey, error: error.message, stack: error.stack });
       return { success: false, error: error.message };
     }
   }
@@ -224,13 +224,13 @@ class TradeExecutor extends EventEmitter {
       // Risk management validation
       const riskCheck = await this.performRiskValidation(signal, user);
       if (!riskCheck.allowed) {
-        console.log(`❌ Trade rejected: ${riskCheck.reason}`);
+        logger.info('❌ Trade rejected', { reason: riskCheck.reason, symbol: signal.symbol });
         return { success: false, reason: riskCheck.reason, riskRejection: true };
       }
 
       // Get appropriate trading adapter (broker or exchange)
       const { adapter, type, key } = this.getTradingAdapter(signal.symbol, options.preferredBroker);
-      console.log(`📊 Using ${type}: ${key} for ${signal.symbol}`);
+      logger.info('📊 Using trading adapter', { type, adapterKey: key, symbol: signal.symbol });
 
       // Get account balance for position size calculation
       const balance = await this.getAccountBalance(adapter, type, signal.symbol);
@@ -238,7 +238,7 @@ class TradeExecutor extends EventEmitter {
       // Calculate position size based on user's risk settings
       const positionData = this.calculatePositionSize(signal, user, balance);
 
-      console.log(`📊 Position calculation:`, positionData);
+      logger.info('📊 Position calculation', positionData);
 
       // Execute the trade based on adapter type
       let order;
@@ -252,16 +252,24 @@ class TradeExecutor extends EventEmitter {
           timeInForce: signal.timeInForce || 'GTC'
         });
 
-        console.log(
-          `✅ Trade executed via ${key}: ${signal.action} ${positionData.positionSize} ${signal.symbol} @ ${order.executedPrice || signal.price}`
-        );
+        logger.info('✅ Trade executed via broker', {
+          broker: key,
+          action: signal.action,
+          quantity: positionData.positionSize,
+          symbol: signal.symbol,
+          price: order.executedPrice || signal.price
+        });
       } else {
         // Use CCXT exchange interface
         order = await adapter.createOrder(signal.symbol, 'market', signal.action, positionData.positionSize);
 
-        console.log(
-          `✅ Trade executed via ${key}: ${signal.action} ${positionData.positionSize} ${signal.symbol} @ ${order.price || signal.price}`
-        );
+        logger.info('✅ Trade executed via exchange', {
+          exchange: key,
+          action: signal.action,
+          quantity: positionData.positionSize,
+          symbol: signal.symbol,
+          price: order.price || signal.price
+        });
       }
 
       // Set stop loss and take profit
@@ -505,9 +513,13 @@ class TradeExecutor extends EventEmitter {
         );
       }
 
-      console.log(`🛡️ Stop loss set at ${stopLossPrice} ${riskSettings.useTrailingStop ? '(trailing)' : ''}`);
+      logger.info('🛡️ Stop loss set', {
+        stopLossPrice,
+        trailing: riskSettings.useTrailingStop,
+        symbol: signal.symbol
+      });
     } catch (error) {
-      console.error('Stop loss error:', error.message);
+      logger.error('Stop loss error', { error: error.message, stack: error.stack, symbol: signal.symbol });
     }
   }
 
@@ -537,9 +549,9 @@ class TradeExecutor extends EventEmitter {
         );
       }
 
-      console.log(`🎯 Take profit set at ${takeProfitPrice}`);
+      logger.info('🎯 Take profit set', { takeProfitPrice, symbol: signal.symbol });
     } catch (error) {
-      console.error('Take profit error:', error.message);
+      logger.error('Take profit error', { error: error.message, stack: error.stack, symbol: signal.symbol });
     }
   }
 
@@ -551,7 +563,7 @@ class TradeExecutor extends EventEmitter {
       // Track the risk exposure (will be updated when position closes)
       const riskAmount = positionData.riskAmount / positionData.accountBalance;
       await user.recordDailyLoss(riskAmount);
-      console.log(`📈 Risk exposure tracked: ${(riskAmount * 100).toFixed(2)}%`);
+      logger.info('📈 Risk exposure tracked', { riskPercent: parseFloat((riskAmount * 100).toFixed(2)) });
     } catch (error) {
       logger.error('Error tracking trade result:', { error: error.message, stack: error.stack });
     }
@@ -602,7 +614,7 @@ class TradeExecutor extends EventEmitter {
             const positions = await broker.getPositions();
             allPositions.push(...positions.map(p => ({ ...p, source: key })));
           } catch (error) {
-            console.error(`Error fetching positions from ${key}:`, error.message);
+            logger.error('Error fetching positions from broker', { broker: key, error: error.message, stack: error.stack });
           }
         }
       }
@@ -624,7 +636,7 @@ class TradeExecutor extends EventEmitter {
               }))
             );
           } catch (error) {
-            console.error(`Error fetching positions from ${key}:`, error.message);
+            logger.error('Error fetching positions from exchange', { exchange: key, error: error.message, stack: error.stack });
           }
         }
       }
@@ -652,7 +664,7 @@ class TradeExecutor extends EventEmitter {
       if (type === 'broker') {
         // Use BrokerAdapter interface
         await adapter.closePosition(symbol);
-        console.log(`✅ Position closed: ${percentage}% of ${symbol} via ${key}`);
+        logger.info('✅ Position closed', { percentage, symbol, broker: key });
         result = { success: true, symbol, percentage };
       } else {
         // Use CCXT exchange interface
@@ -667,7 +679,7 @@ class TradeExecutor extends EventEmitter {
 
         const order = await adapter.createOrder(symbol, 'market', side, closeAmount);
 
-        console.log(`✅ Position closed: ${percentage}% of ${symbol} via ${key}`);
+        logger.info('✅ Position closed', { percentage, symbol, exchange: key, amount: closeAmount, side });
         result = {
           success: true,
           orderId: order.id,

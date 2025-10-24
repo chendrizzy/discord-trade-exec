@@ -57,8 +57,7 @@ class EventListener {
       // Set up provider event handlers
       this._setupProviderHandlers();
 
-      logger.info('[EventListener] Initialization complete');
-      console.log(`[EventListener] Contract: ${polygonConfig.contracts.ctfExchange}`);
+      logger.info('[EventListener] Initialization complete', { contract: polygonConfig.contracts.ctfExchange });
     } catch (error) {
       logger.error('[EventListener] Initialization failed:', { error: error.message, stack: error.stack });
       throw error;
@@ -76,7 +75,7 @@ class EventListener {
     });
 
     this.wsProvider.on('close', (code) => {
-      console.warn(`[EventListener] WebSocket closed (code: ${code})`);
+      logger.warn('[EventListener] WebSocket closed', { closeCode: code });
       if (this.isListening) {
         this._attemptReconnect();
       }
@@ -169,7 +168,7 @@ class EventListener {
       this.eventHandlers.set(eventName, []);
     }
     this.eventHandlers.get(eventName).push(handler);
-    console.log(`[EventListener] Registered handler for ${eventName}`);
+    logger.info('[EventListener] Registered handler', { eventName });
   }
 
   /**
@@ -185,7 +184,7 @@ class EventListener {
       try {
         await handler(eventData);
       } catch (error) {
-        console.error(`[EventListener] Handler error for ${eventName}:`, error);
+        logger.error('[EventListener] Handler error', { eventName, error: error.message, stack: error.stack });
       }
     }
   }
@@ -216,7 +215,11 @@ class EventListener {
       this._updateStats('OrderFilled', eventData);
       await this._callHandlers('OrderFilled', eventData);
 
-      console.log(`[EventListener] OrderFilled: ${eventData.maker.slice(0, 8)}... bet $${eventData.makerAmountFilled}`);
+      logger.info('[EventListener] OrderFilled', {
+        makerPrefix: eventData.maker.slice(0, 8),
+        makerAmountFilled: eventData.makerAmountFilled,
+        transactionHash: eventData.transactionHash
+      });
     } catch (error) {
       logger.error('[EventListener] Error handling OrderFilled:', { error: error.message, stack: error.stack });
       this.stats.errors++;
@@ -247,7 +250,10 @@ class EventListener {
       this._updateStats('OrdersMatched', eventData);
       await this._callHandlers('OrdersMatched', eventData);
 
-      console.log(`[EventListener] OrdersMatched: $${eventData.makerAmountFilled}`);
+      logger.info('[EventListener] OrdersMatched', {
+        makerAmountFilled: eventData.makerAmountFilled,
+        transactionHash: eventData.transactionHash
+      });
     } catch (error) {
       logger.error('[EventListener] Error handling OrdersMatched:', { error: error.message, stack: error.stack });
       this.stats.errors++;
@@ -273,7 +279,10 @@ class EventListener {
       this._updateStats('OrderCancelled', eventData);
       await this._callHandlers('OrderCancelled', eventData);
 
-      console.log(`[EventListener] OrderCancelled: ${eventData.orderHash}`);
+      logger.info('[EventListener] OrderCancelled', {
+        orderHash: eventData.orderHash,
+        transactionHash: eventData.transactionHash
+      });
     } catch (error) {
       logger.error('[EventListener] Error handling OrderCancelled:', { error: error.message, stack: error.stack });
       this.stats.errors++;
@@ -301,7 +310,11 @@ class EventListener {
       this._updateStats('FeeCharged', eventData);
       await this._callHandlers('FeeCharged', eventData);
 
-      console.log(`[EventListener] FeeCharged: $${eventData.amount} to ${eventData.receiver.slice(0, 8)}...`);
+      logger.info('[EventListener] FeeCharged', {
+        amount: eventData.amount,
+        receiverPrefix: eventData.receiver.slice(0, 8),
+        transactionHash: eventData.transactionHash
+      });
     } catch (error) {
       logger.error('[EventListener] Error handling FeeCharged:', { error: error.message, stack: error.stack });
       this.stats.errors++;
@@ -329,7 +342,10 @@ class EventListener {
       this._updateStats('TokenRegistered', eventData);
       await this._callHandlers('TokenRegistered', eventData);
 
-      console.log(`[EventListener] TokenRegistered: condition ${eventData.conditionId}`);
+      logger.info('[EventListener] TokenRegistered', {
+        conditionId: eventData.conditionId,
+        transactionHash: eventData.transactionHash
+      });
     } catch (error) {
       logger.error('[EventListener] Error handling TokenRegistered:', { error: error.message, stack: error.stack });
       this.stats.errors++;
@@ -362,7 +378,10 @@ class EventListener {
     this.reconnectAttempts++;
     this.stats.reconnections++;
 
-    console.log(`[EventListener] Reconnecting... (attempt ${this.reconnectAttempts}/${this.maxReconnectAttempts})`);
+    logger.info('[EventListener] Reconnecting...', {
+      attempt: this.reconnectAttempts,
+      maxAttempts: this.maxReconnectAttempts
+    });
 
     // Wait before reconnecting
     await new Promise(resolve => setTimeout(resolve, this.reconnectDelay));
@@ -391,15 +410,15 @@ class EventListener {
    */
   async queryHistoricalEvents(eventName, fromBlock, toBlock = 'latest') {
     try {
-      console.log(`[EventListener] Querying ${eventName} events from block ${fromBlock} to ${toBlock}...`);
+      logger.info('[EventListener] Querying historical events', { eventName, fromBlock, toBlock });
 
       const filter = this.contract.filters[eventName]();
       const events = await this.contract.queryFilter(filter, fromBlock, toBlock);
 
-      console.log(`[EventListener] Found ${events.length} ${eventName} events`);
+      logger.info('[EventListener] Found historical events', { eventName, eventCount: events.length });
       return events;
     } catch (error) {
-      console.error(`[EventListener] Error querying ${eventName} events:`, error);
+      logger.error('[EventListener] Error querying events', { eventName, error: error.message, stack: error.stack });
       throw error;
     }
   }

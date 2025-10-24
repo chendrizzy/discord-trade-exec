@@ -68,12 +68,12 @@ class WebSocketServer {
 
       this.io.adapter(createAdapter(pubClient, subClient));
 
-      pubClient.on('error', err => console.error('Redis Pub Error:', err));
-      subClient.on('error', err => console.error('Redis Sub Error:', err));
+      pubClient.on('error', err => logger.error('Redis Pub Error', { error: err.message, stack: err.stack }));
+      subClient.on('error', err => logger.error('Redis Sub Error', { error: err.message, stack: err.stack }));
 
       logger.info('✅ WebSocket Redis adapter configured for horizontal scaling');
     } catch (error) {
-      console.error('❌ Redis adapter setup failed:', error.message);
+      logger.error('❌ Redis adapter setup failed', { error: error.message, stack: error.stack });
       logger.info('⚠️  WebSocket will run in single-instance mode');
     }
   }
@@ -178,9 +178,11 @@ class WebSocketServer {
       const active = this.io.sockets.sockets.size;
       if (active > 0) {
         const metrics = this.getPerformanceMetrics();
-        console.log(
-          `📊 WebSocket Stats: ${active} active | ${metrics.messageRateOut.toFixed(1)} msg/s out | ${metrics.avgLatency.toFixed(0)}ms latency`
-        );
+        logger.info('📊 WebSocket Stats', {
+          activeConnections: active,
+          messageRateOut: parseFloat(metrics.messageRateOut.toFixed(1)),
+          avgLatency: Math.round(metrics.avgLatency)
+        });
       }
     }, 60000); // Log every minute
   }
@@ -190,7 +192,7 @@ class WebSocketServer {
    */
   setupEventHandlers() {
     this.io.on('connection', socket => {
-      console.log(`✅ WebSocket connected: ${socket.id} (User: ${socket.userId || 'anonymous'})`);
+      logger.info('✅ WebSocket connected', { socketId: socket.id, userId: socket.userId || 'anonymous' });
 
       this.connectionStats.total++;
       this.connectionStats.active = this.io.sockets.sockets.size;
@@ -207,7 +209,7 @@ class WebSocketServer {
       // Portfolio subscription
       socket.on('subscribe:portfolio', () => {
         if (this.checkRateLimit(socket, 'subscribe:portfolio')) {
-          console.log(`📊 Portfolio subscription: ${socket.userId}`);
+          logger.info('📊 Portfolio subscription', { userId: socket.userId });
           socket.join('portfolio-updates');
           socket.emit('subscription:confirmed', { type: 'portfolio' });
         } else {
@@ -218,7 +220,7 @@ class WebSocketServer {
       // Trade notifications subscription
       socket.on('subscribe:trades', () => {
         if (this.checkRateLimit(socket, 'subscribe:trades')) {
-          console.log(`🔔 Trade subscription: ${socket.userId}`);
+          logger.info('🔔 Trade subscription', { userId: socket.userId });
           socket.join('trade-updates');
           socket.emit('subscription:confirmed', { type: 'trades' });
         } else {
@@ -234,7 +236,7 @@ class WebSocketServer {
             return;
           }
 
-          console.log(`👁️  Watchlist subscription: ${symbols.join(', ')}`);
+          logger.info('👁️  Watchlist subscription', { symbols });
 
           // Join symbol-specific rooms
           symbols.forEach(symbol => {
@@ -269,7 +271,7 @@ class WebSocketServer {
           dayChangePercent: 1.0
         };
 
-        console.log(`🧪 TEST: Triggering portfolio update for user ${targetUserId}`);
+        logger.info('🧪 TEST: Triggering portfolio update', { targetUserId });
         this.emitPortfolioUpdate(targetUserId, portfolio);
       });
 
@@ -285,7 +287,7 @@ class WebSocketServer {
           timestamp: Date.now()
         };
 
-        console.log(`🧪 TEST: Triggering trade notification for user ${targetUserId}`);
+        logger.info('🧪 TEST: Triggering trade notification', { targetUserId });
         this.emitTradeNotification(targetUserId, trade);
       });
 
@@ -300,13 +302,13 @@ class WebSocketServer {
           timestamp: Date.now()
         };
 
-        console.log(`🧪 TEST: Triggering quote update for ${symbol}`);
+        logger.info('🧪 TEST: Triggering quote update', { symbol });
         this.emitQuoteUpdate(symbol, quote);
       });
 
       // Disconnect handler
       socket.on('disconnect', reason => {
-        console.log(`❌ WebSocket disconnected: ${socket.id} (${reason})`);
+        logger.info('❌ WebSocket disconnected', { socketId: socket.id, reason });
 
         // Track unexpected disconnections for alerts
         if (reason === 'transport error' || reason === 'transport close' || reason === 'ping timeout') {
@@ -328,7 +330,7 @@ class WebSocketServer {
 
       // Error handler
       socket.on('error', error => {
-        console.error(`WebSocket error (${socket.id}):`, error);
+        logger.error('WebSocket error', { socketId: socket.id, error: error.message, stack: error.stack });
       });
     });
   }
@@ -349,7 +351,7 @@ class WebSocketServer {
     if (now - lastCall < limit.window) {
       const attempts = socket.rateLimit.get(`${event}:count`) || 0;
       if (attempts >= limit.max) {
-        console.warn(`⚠️  Rate limit exceeded: ${event} for ${socket.userId}`);
+        logger.warn('⚠️  Rate limit exceeded', { event, userId: socket.userId });
         return false;
       }
       socket.rateLimit.set(`${event}:count`, attempts + 1);
@@ -388,7 +390,7 @@ class WebSocketServer {
     this.performanceMetrics.messagesOut++;
     this.trackLatency(startTime);
 
-    console.log(`📊 Portfolio update sent to user ${userId}: $${portfolio.totalValue?.toFixed(2)}`);
+    logger.info('📊 Portfolio update sent', { userId, totalValue: portfolio.totalValue?.toFixed(2) });
   }
 
   /**
@@ -420,9 +422,13 @@ class WebSocketServer {
     this.performanceMetrics.messagesOut++;
     this.trackLatency(startTime);
 
-    console.log(
-      `🔔 Trade notification sent to user ${userId}: ${notification.side} ${notification.quantity} ${notification.symbol} @ $${notification.price}`
-    );
+    logger.info('🔔 Trade notification sent', {
+      userId,
+      side: notification.side,
+      quantity: notification.quantity,
+      symbol: notification.symbol,
+      price: notification.price
+    });
   }
 
   /**
@@ -448,7 +454,7 @@ class WebSocketServer {
     this.performanceMetrics.messagesOut++;
     this.trackLatency(startTime);
 
-    console.warn(`⚠️  Trade failure sent to user ${userId}: ${error.message || error.reason}`);
+    logger.warn('⚠️  Trade failure sent', { userId, errorMessage: error.message || error.reason });
   }
 
   /**
@@ -477,7 +483,7 @@ class WebSocketServer {
     this.performanceMetrics.messagesOut++;
     this.trackLatency(startTime);
 
-    console.log(`🎯 Signal quality sent to user ${userId}: ${quality.quality?.tier || 'N/A'} (trade: ${tradeId})`);
+    logger.info('🎯 Signal quality sent', { userId, qualityTier: quality.quality?.tier || 'N/A', tradeId });
   }
 
   /**
@@ -508,9 +514,11 @@ class WebSocketServer {
 
     // Only log significant price changes to avoid spam
     if (Math.abs(quote.changePercent || 0) > 1) {
-      console.log(
-        `📈 Quote update: ${symbol} @ $${quote.price} (${quote.changePercent > 0 ? '+' : ''}${quote.changePercent?.toFixed(2)}%)`
-      );
+      logger.info('📈 Quote update', {
+        symbol,
+        price: quote.price,
+        changePercent: parseFloat(quote.changePercent?.toFixed(2))
+      });
     }
   }
 
@@ -526,7 +534,7 @@ class WebSocketServer {
       timestamp: new Date().toISOString()
     });
 
-    console.log(`🏦 Market status update: ${status.isOpen ? 'OPEN' : 'CLOSED'}`);
+    logger.info('🏦 Market status update', { isOpen: status.isOpen, status: status.isOpen ? 'OPEN' : 'CLOSED' });
   }
 
   /**
@@ -565,9 +573,10 @@ class WebSocketServer {
 
     // Alert on high latency
     if (metrics.avgLatency > this.ALERT_THRESHOLDS.HIGH_LATENCY) {
-      console.error(
-        `🚨 ALERT: High WebSocket latency detected: ${metrics.avgLatency.toFixed(0)}ms (threshold: ${this.ALERT_THRESHOLDS.HIGH_LATENCY}ms)`
-      );
+      logger.error('🚨 ALERT: High WebSocket latency detected', {
+        avgLatency: Math.round(metrics.avgLatency),
+        threshold: this.ALERT_THRESHOLDS.HIGH_LATENCY
+      });
       metrics.lastAlert = now;
 
       // In production, this would trigger monitoring system alerts
@@ -576,9 +585,10 @@ class WebSocketServer {
 
     // Alert on connection drop rate
     if (metrics.connectionDrops > this.ALERT_THRESHOLDS.CONNECTION_DROP_RATE) {
-      console.error(
-        `🚨 ALERT: High connection drop rate: ${metrics.connectionDrops} drops in last minute (threshold: ${this.ALERT_THRESHOLDS.CONNECTION_DROP_RATE})`
-      );
+      logger.error('🚨 ALERT: High connection drop rate', {
+        connectionDrops: metrics.connectionDrops,
+        threshold: this.ALERT_THRESHOLDS.CONNECTION_DROP_RATE
+      });
       metrics.lastAlert = now;
 
       // Reset connection drops counter

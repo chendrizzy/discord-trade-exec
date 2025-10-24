@@ -89,7 +89,7 @@ class OAuth2Service {
     authUrl.searchParams.set('state', state);
     authUrl.searchParams.set('scope', config.scopes.join(' '));
 
-    console.log(`[OAuth2Service] Generated authorization URL for ${broker} | userId: ${userId} | state: ${state.substring(0, 8)}...`);
+    logger.info('[OAuth2Service] Generated authorization URL', { broker, userId, statePrefix: state.substring(0, 8) });
 
     return authUrl.toString();
   }
@@ -117,7 +117,7 @@ class OAuth2Service {
         requiresReview: true,
         ipAddress: session.ipAddress || 'unknown',
         userAgent: session.userAgent
-      }).catch(err => console.error('[OAuth2Service] Audit log failed:', err));
+      }).catch(err => logger.error('[OAuth2Service] Audit log failed', { error: err.message, stack: err.stack }));
 
       return { valid: false, error: 'Session state not found' };
     }
@@ -141,7 +141,7 @@ class OAuth2Service {
         ipAddress: session.ipAddress || 'unknown',
         userAgent: session.userAgent,
         dataBefore: { broker, expectedState: state.substring(0, 8) + '...', receivedState: callbackState.substring(0, 8) + '...' }
-      }).catch(err => console.error('[OAuth2Service] Audit log failed:', err));
+      }).catch(err => logger.error('[OAuth2Service] Audit log failed', { error: err.message, stack: err.stack }));
 
       return { valid: false, error: 'State mismatch - possible CSRF attack' };
     }
@@ -149,7 +149,7 @@ class OAuth2Service {
     // Check state expiration (5-minute TTL)
     const age = Date.now() - createdAt;
     if (age > STATE_TTL_MS) {
-      console.warn(`[OAuth2Service] State validation failed: State expired (age: ${age}ms > ${STATE_TTL_MS}ms)`);
+      logger.warn('[OAuth2Service] State validation failed: State expired', { age, maxAge: STATE_TTL_MS });
 
       // Audit log: CSRF validation failed (CRITICAL)
       SecurityAudit.log({
@@ -164,12 +164,12 @@ class OAuth2Service {
         ipAddress: session.ipAddress || 'unknown',
         userAgent: session.userAgent,
         dataBefore: { broker, stateAge: age, maxAge: STATE_TTL_MS }
-      }).catch(err => console.error('[OAuth2Service] Audit log failed:', err));
+      }).catch(err => logger.error('[OAuth2Service] Audit log failed', { error: err.message, stack: err.stack }));
 
       return { valid: false, error: 'State expired' };
     }
 
-    console.log(`[OAuth2Service] State validated successfully | broker: ${broker} | userId: ${userId} | age: ${age}ms`);
+    logger.info('[OAuth2Service] State validated successfully', { broker, userId, age });
 
     return { valid: true, userId, broker };
   }
@@ -229,7 +229,7 @@ class OAuth2Service {
         client_secret: config.clientSecret
       };
 
-      console.log(`[OAuth2Service] Exchanging code for tokens | broker: ${broker}`);
+      logger.info('[OAuth2Service] Exchanging code for tokens', { broker });
 
       // Send token request
       const response = await axios.post(
@@ -250,7 +250,7 @@ class OAuth2Service {
       // Clear session state after successful exchange
       delete session.oauthState;
 
-      console.log(`[OAuth2Service] Token exchange successful | broker: ${broker} | expiresAt: ${expiresAt.toISOString()}`);
+      logger.info('[OAuth2Service] Token exchange successful', { broker, expiresAt: expiresAt.toISOString() });
 
       // Audit log: Successful token exchange (MEDIUM risk)
       const User = require('../models/User');
@@ -270,10 +270,10 @@ class OAuth2Service {
               ipAddress: session.ipAddress || 'unknown',
               userAgent: session.userAgent,
               dataAfter: { broker, expiresAt, scopes: tokenData.scope ? tokenData.scope.split(' ') : config.scopes }
-            }).catch(err => console.error('[OAuth2Service] Audit log failed:', err));
+            }).catch(err => logger.error('[OAuth2Service] Audit log failed', { error: err.message, stack: err.stack }));
           }
         })
-        .catch(err => console.error('[OAuth2Service] User lookup for audit failed:', err));
+        .catch(err => logger.error('[OAuth2Service] User lookup for audit failed', { error: err.message, stack: err.stack }));
 
       return {
         accessToken: tokenData.access_token,
@@ -283,7 +283,7 @@ class OAuth2Service {
         tokenType: tokenData.token_type || 'Bearer'
       };
     } catch (error) {
-      console.error(`[OAuth2Service] Token exchange failed | broker: ${broker}`, error.response?.data || error.message);
+      logger.error('[OAuth2Service] Token exchange failed', { broker, error: error.message, responseData: error.response?.data, stack: error.stack });
 
       // Audit log: Token exchange failed (HIGH risk)
       const User = require('../models/User');
@@ -306,10 +306,10 @@ class OAuth2Service {
               ipAddress: session.ipAddress || 'unknown',
               userAgent: session.userAgent,
               dataBefore: { broker, operation: 'token_exchange' }
-            }).catch(err => console.error('[OAuth2Service] Audit log failed:', err));
+            }).catch(err => logger.error('[OAuth2Service] Audit log failed', { error: err.message, stack: err.stack }));
           }
         })
-        .catch(err => console.error('[OAuth2Service] User lookup for audit failed:', err));
+        .catch(err => logger.error('[OAuth2Service] User lookup for audit failed', { error: err.message, stack: err.stack }));
 
       throw new Error(`Token exchange failed: ${error.response?.data?.error_description || error.message}`);
     }
@@ -347,7 +347,7 @@ class OAuth2Service {
       // Decrypt refresh token
       const refreshToken = this.decryptToken(encryptedTokens.refreshToken);
 
-      console.log(`[OAuth2Service] Refreshing access token | broker: ${broker} | userId: ${userId} | attempt: ${retryCount + 1}`);
+      logger.info('[OAuth2Service] Refreshing access token', { broker, userId, attempt: retryCount + 1 });
 
       // Build refresh request
       const refreshRequest = {
@@ -378,7 +378,7 @@ class OAuth2Service {
         ? tokenData.refresh_token
         : refreshToken; // Reuse old refresh token if no rotation
 
-      console.log(`[OAuth2Service] Token refresh successful | broker: ${broker} | expiresAt: ${expiresAt.toISOString()} | rotated: ${tokenData.refresh_token ? 'yes' : 'no'}`);
+      logger.info('[OAuth2Service] Token refresh successful', { broker, expiresAt: expiresAt.toISOString(), tokenRotated: !!tokenData.refresh_token });
 
       // Encrypt and update tokens
       const updatedTokens = this.encryptTokens({
@@ -412,7 +412,7 @@ class OAuth2Service {
         riskLevel: 'medium',
         ipAddress: 'system',
         dataAfter: { broker, expiresAt, tokenRotated: !!tokenData.refresh_token }
-      }).catch(err => console.error('[OAuth2Service] Audit log failed:', err));
+      }).catch(err => logger.error('[OAuth2Service] Audit log failed', { error: err.message, stack: err.stack }));
 
       // Clear decrypted tokens from memory
       refreshToken.replace(/./g, '0');
@@ -430,7 +430,7 @@ class OAuth2Service {
 
       // Permanent error (4xx) - do not retry, mark tokens invalid
       if (statusCode >= 400 && statusCode < 500) {
-        console.error(`[OAuth2Service] Token refresh failed (permanent) | broker: ${broker} | error: ${errorCode}`, error.response?.data);
+        logger.error('[OAuth2Service] Token refresh failed (permanent)', { broker, errorCode, responseData: error.response?.data, error: error.message, stack: error.stack });
 
         // Audit log: Token refresh failed permanently (HIGH risk)
         const User = require('../models/User');
@@ -452,7 +452,7 @@ class OAuth2Service {
             requiresReview: true,
             ipAddress: 'system',
             dataBefore: { broker, operation: 'token_refresh', failureType: 'permanent', retryAttempt: retryCount }
-          }).catch(err => console.error('[OAuth2Service] Audit log failed:', err));
+          }).catch(err => logger.error('[OAuth2Service] Audit log failed', { error: err.message, stack: err.stack }));
         }
 
         // Mark tokens as invalid in user document
@@ -464,14 +464,14 @@ class OAuth2Service {
       // Transient error (5xx) - retry with exponential backoff
       if (retryCount < MAX_RETRIES) {
         const delay = RETRY_DELAYS[retryCount];
-        console.warn(`[OAuth2Service] Token refresh failed (transient) | broker: ${broker} | retrying in ${delay}ms...`);
+        logger.warn('[OAuth2Service] Token refresh failed (transient)', { broker, retryDelay: delay, nextAttempt: retryCount + 2 });
 
         await new Promise(resolve => setTimeout(resolve, delay));
         return await this.refreshAccessToken(broker, userId, retryCount + 1);
       }
 
       // Max retries exceeded
-      console.error(`[OAuth2Service] Token refresh failed (max retries) | broker: ${broker}`, error.message);
+      logger.error('[OAuth2Service] Token refresh failed (max retries)', { broker, error: error.message, stack: error.stack, retriesAttempted: MAX_RETRIES });
 
       // Audit log: Token refresh failed after max retries (HIGH risk)
       const User = require('../models/User');
@@ -491,7 +491,7 @@ class OAuth2Service {
           requiresReview: true,
           ipAddress: 'system',
           dataBefore: { broker, operation: 'token_refresh', failureType: 'max_retries', retryAttempt: MAX_RETRIES }
-        }).catch(err => console.error('[OAuth2Service] Audit log failed:', err));
+        }).catch(err => logger.error('[OAuth2Service] Audit log failed', { error: err.message, stack: err.stack }));
       }
 
       throw new Error(`Token refresh failed after ${MAX_RETRIES} retries: ${error.message}`);
@@ -520,10 +520,10 @@ class OAuth2Service {
         });
         await user.save();
 
-        console.log(`[OAuth2Service] Marked tokens invalid | broker: ${broker} | userId: ${userId} | error: ${errorMessage}`);
+        logger.info('[OAuth2Service] Marked tokens invalid', { broker, userId, errorMessage });
       }
     } catch (error) {
-      console.error(`[OAuth2Service] Failed to mark tokens invalid | broker: ${broker} | userId: ${userId}`, error);
+      logger.error('[OAuth2Service] Failed to mark tokens invalid', { broker, userId, error: error.message, stack: error.stack });
     }
   }
 
@@ -616,7 +616,7 @@ class OAuth2Service {
 
       return decrypted;
     } catch (error) {
-      console.error('[OAuth2Service] Token decryption failed:', error.message);
+      logger.error('[OAuth2Service] Token decryption failed', { error: error.message, stack: error.stack });
       throw new Error('Token decryption failed - possible tampering or corruption');
     }
   }
