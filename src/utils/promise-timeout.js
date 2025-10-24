@@ -3,6 +3,8 @@
  * and ensure operations complete within reasonable timeframes
  */
 
+const logger = require('./logger');
+
 /**
  * Wraps a promise with a timeout
  * @param {Promise} promise - Promise to wrap
@@ -31,7 +33,12 @@ async function withTimeoutAndFallback(promise, fallbackValue, timeoutMs = 30000,
   try {
     return await withTimeout(promise, timeoutMs, operationName);
   } catch (error) {
-    console.error(`[PromiseTimeout] ${operationName} failed:`, error.message);
+    logger.error('[PromiseTimeout] Operation failed', {
+      operationName,
+      error: error.message,
+      timeoutMs,
+      isTimeout: error.message.includes('timed out')
+    });
     return fallbackValue;
   }
 }

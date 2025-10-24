@@ -55,7 +55,10 @@ class AnalyticsCache {
       });
 
       this.client.on('error', err => {
-        console.error('Redis client error:', err);
+        logger.error('[AnalyticsCache] Redis client error', {
+          error: err.message,
+          stack: err.stack
+        });
         this.enabled = false; // Disable on persistent errors
       });
 
@@ -65,7 +68,11 @@ class AnalyticsCache {
 
       // Connect to Redis
       this.client.connect().catch(err => {
-        console.error('Failed to connect to Redis:', err);
+        logger.error('[AnalyticsCache] Failed to connect to Redis', {
+          error: err.message,
+          stack: err.stack,
+          redisUrl: process.env.REDIS_URL ? 'configured' : 'missing'
+        });
         this.enabled = false;
       });
     } catch (error) {

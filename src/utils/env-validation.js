@@ -105,7 +105,7 @@ const OPTIONAL_ENV_VARS = [
  * @throws {Error} If required environment variables are missing
  */
 function validateEnvironment(env = process.env.NODE_ENV || 'development') {
-  console.log(`🔍 Validating environment variables for: ${env}`);
+  logger.info('[EnvValidation] Validating environment variables', { environment: env });
 
   // Get required variables for this environment
   const required = REQUIRED_ENV_VARS[env] || REQUIRED_ENV_VARS.development;
@@ -114,37 +114,42 @@ function validateEnvironment(env = process.env.NODE_ENV || 'development') {
   const missing = required.filter(key => !process.env[key]);
 
   if (missing.length > 0) {
-    logger.error('❌ ENVIRONMENT VALIDATION FAILED');
-    logger.error('❌ Missing required environment variables:');
-    missing.forEach(key => console.error(`   - ${key}`));
-    console.error('');
-    logger.error('💡 Please check your .env file and ensure all required variables are set.');
-    logger.error('💡 Refer to .env.example for the complete list of required variables.');
-    console.error('');
+    logger.error('[EnvValidation] Missing required environment variables', {
+      environment: env,
+      missingVariables: missing,
+      totalRequired: required.length,
+      totalMissing: missing.length,
+      isProduction: env === 'production'
+    });
 
     // In production, exit immediately
     if (env === 'production') {
-      logger.error('🚨 Cannot start application in production without required environment variables');
+      logger.error('[EnvValidation] Cannot start in production without required variables');
       process.exit(1);
     }
 
     // In development, warn but allow continuation
-    logger.warn('⚠️ Application may not function correctly without these variables');
-    logger.warn('⚠️ Proceeding in development mode...');
-    console.warn('');
+    logger.warn('[EnvValidation] Proceeding in development mode with missing variables', {
+      environment: env,
+      missingCount: missing.length
+    });
   } else {
-    logger.info('✅ All required environment variables are present');
+    logger.info('[EnvValidation] All required variables present', {
+      environment: env,
+      totalRequired: required.length
+    });
   }
 
   // Check for optional variables and log warnings if missing
   const missingOptional = OPTIONAL_ENV_VARS.filter(key => !process.env[key]);
 
   if (missingOptional.length > 0 && env !== 'test') {
-    console.log('');
-    logger.info('ℹ️ Optional environment variables not set:');
-    missingOptional.forEach(key => console.log(`   - ${key}`));
-    logger.info('ℹ️ Some features may not be available without these variables');
-    console.log('');
+    logger.info('[EnvValidation] Optional variables not set', {
+      environment: env,
+      missingOptional: missingOptional,
+      totalOptional: OPTIONAL_ENV_VARS.length,
+      missingCount: missingOptional.length
+    });
   }
 }
 

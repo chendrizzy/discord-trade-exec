@@ -3,6 +3,8 @@
  * Provides consistent response format across all API endpoints
  */
 
+const logger = require('./logger');
+
 /**
  * Standard success response
  * @param {object} res - Express response object
@@ -45,7 +47,11 @@ function sendError(res, error, statusCode = 500, details = null) {
 
   // Log server errors (5xx)
   if (statusCode >= 500) {
-    console.error(`[API Error ${statusCode}]:`, error, details || '');
+    logger.error('[API] Server error', {
+      statusCode,
+      error,
+      details
+    });
   }
 
   return res.status(statusCode).json(response);
