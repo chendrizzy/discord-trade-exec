@@ -6,6 +6,15 @@ const ccxt = require('ccxt');
 const { ensureAuthenticated } = require('../../middleware/auth');
 const { apiLimiter, exchangeApiLimiter, getExchangeRateLimitStatus } = require('../../middleware/rateLimiter');
 const { encrypt, decrypt } = require('../../middleware/encryption');
+const { validate } = require('../../middleware/validation');
+const {
+  createExchangeBody,
+  deleteExchangeParams,
+  validateExchangeParams,
+  toggleExchangeParams,
+  cacheInvalidateBody,
+  compareFeesQuery
+} = require('../../validators/exchanges.validators');
 const User = require('../../models/User');
 const { sendSuccess, sendError, sendValidationError, sendNotFound } = require('../../utils/api-response');
 const cacheService = require('../../services/CacheService');
@@ -159,7 +168,7 @@ router.get('/', ensureAuthenticated, async (req, res) => {
  * POST /api/exchanges
  * Add new exchange API key (encrypted)
  */
-router.post('/', ensureAuthenticated, async (req, res) => {
+router.post('/', ensureAuthenticated, validate(createExchangeBody, 'body'), async (req, res) => {
   try {
     const { name, apiKey, apiSecret, testnet = false } = req.body;
 
@@ -231,7 +240,7 @@ router.post('/', ensureAuthenticated, async (req, res) => {
  * DELETE /api/exchanges/:id
  * Remove exchange API key
  */
-router.delete('/:id', ensureAuthenticated, async (req, res) => {
+router.delete('/:id', ensureAuthenticated, validate(deleteExchangeParams, 'params'), async (req, res) => {
   try {
     const { id } = req.params;
 
@@ -262,7 +271,7 @@ router.delete('/:id', ensureAuthenticated, async (req, res) => {
  * POST /api/exchanges/:id/validate
  * Re-validate exchange API key permissions
  */
-router.post('/:id/validate', ensureAuthenticated, async (req, res) => {
+router.post('/:id/validate', ensureAuthenticated, validate(validateExchangeParams, 'params'), async (req, res) => {
   try {
     const { id } = req.params;
 
@@ -315,7 +324,7 @@ router.post('/:id/validate', ensureAuthenticated, async (req, res) => {
  * PATCH /api/exchanges/:id/toggle
  * Enable/disable exchange
  */
-router.patch('/:id/toggle', ensureAuthenticated, async (req, res) => {
+router.patch('/:id/toggle', ensureAuthenticated, validate(toggleExchangeParams, 'params'), async (req, res) => {
   try {
     const { id } = req.params;
 
@@ -364,7 +373,7 @@ router.get('/cache-stats', ensureAuthenticated, (req, res) => {
  * POST /api/exchanges/cache-invalidate
  * Invalidate cache for specific exchange or symbol (admin only)
  */
-router.post('/cache-invalidate', ensureAuthenticated, async (req, res) => {
+router.post('/cache-invalidate', ensureAuthenticated, validate(cacheInvalidateBody, 'body'), async (req, res) => {
   // Only admins can invalidate cache
   if (!req.user.isAdmin) {
     return res.status(403).json({
@@ -414,7 +423,7 @@ router.post('/cache-invalidate', ensureAuthenticated, async (req, res) => {
  * Query params: symbol (required), quantity (required)
  * Rate limited: 10 requests per minute per user
  */
-router.get('/compare-fees', ensureAuthenticated, exchangeApiLimiter, async (req, res) => {
+router.get('/compare-fees', ensureAuthenticated, exchangeApiLimiter, validate(compareFeesQuery, 'query'), async (req, res) => {
   try {
     const { symbol, quantity } = req.query;
 
