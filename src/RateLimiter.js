@@ -1,3 +1,5 @@
+const logger = require('./utils/logger');
+
 class RateLimiter {
   constructor() {
     // Configuration
@@ -298,7 +300,12 @@ class RateLimiter {
       violations
     });
 
-    console.warn(`⚠️ IP ${ip} banned for ${Math.ceil(duration / 60000)} minutes (${violations} violations)`);
+    logger.warn('[RateLimiter] IP banned', {
+      ip,
+      durationMinutes: Math.ceil(duration / 60000),
+      violations,
+      bannedUntil: new Date(bannedUntil).toISOString()
+    });
   }
 
   /**
@@ -314,7 +321,7 @@ class RateLimiter {
       ipData.violations = 0;
     }
 
-    console.log(`✓ IP ${ip} unbanned`);
+    logger.info('[RateLimiter] IP unbanned', { ip });
   }
 
   /**
@@ -323,7 +330,7 @@ class RateLimiter {
    */
   blacklistIP(ip) {
     this.config.ipBlacklist.add(ip);
-    console.warn(`🚫 IP ${ip} added to blacklist`);
+    logger.warn('[RateLimiter] IP added to blacklist', { ip });
   }
 
   /**
@@ -332,7 +339,7 @@ class RateLimiter {
    */
   whitelistIP(ip) {
     this.config.ipWhitelist.add(ip);
-    console.log(`✓ IP ${ip} added to whitelist`);
+    logger.info('[RateLimiter] IP added to whitelist', { ip });
   }
 
   /**
@@ -341,7 +348,7 @@ class RateLimiter {
    */
   removeFromBlacklist(ip) {
     this.config.ipBlacklist.delete(ip);
-    console.log(`✓ IP ${ip} removed from blacklist`);
+    logger.info('[RateLimiter] IP removed from blacklist', { ip });
   }
 
   /**
@@ -350,7 +357,7 @@ class RateLimiter {
    */
   removeFromWhitelist(ip) {
     this.config.ipWhitelist.delete(ip);
-    console.log(`✓ IP ${ip} removed from whitelist`);
+    logger.info('[RateLimiter] IP removed from whitelist', { ip });
   }
 
   /**
@@ -416,7 +423,7 @@ class RateLimiter {
     for (const [ip, banData] of this.bannedIPs.entries()) {
       if (now >= banData.bannedUntil) {
         this.bannedIPs.delete(ip);
-        console.log(`✓ Ban expired for IP ${ip}`);
+        logger.info('[RateLimiter] Ban expired for IP', { ip });
       }
     }
   }

@@ -1,3 +1,5 @@
+const logger = require('./utils/logger');
+
 class PerformanceTracker {
   constructor() {
     this.metrics = {
@@ -119,7 +121,11 @@ class PerformanceTracker {
       this.metrics.webhooks.successful++;
     } else {
       this.metrics.webhooks.failed++;
-      console.warn(`⚠️ Webhook ${requestId} failed: ${error}`);
+      logger.warn('[PerformanceTracker] Webhook failed', {
+        requestId,
+        error: error?.message || error,
+        responseTime
+      });
     }
 
     // Keep only last 100 response times

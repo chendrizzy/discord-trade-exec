@@ -191,9 +191,10 @@ const tenantScopingPlugin = (schema, options = {}) => {
       // No tenant context during save
       if (this.isNew && !this.communityId) {
         // New document without communityId and no context
-        console.warn(
-          '[TenantScoping] Saving document without communityId. This should only happen during seeds/migrations.'
-        );
+        logger.warn('[TenantScoping] Saving document without communityId', {
+          message: 'This should only happen during seeds/migrations',
+          modelName: this.constructor.modelName
+        });
       }
       next();
     }
