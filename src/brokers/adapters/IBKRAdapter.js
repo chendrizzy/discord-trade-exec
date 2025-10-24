@@ -49,7 +49,7 @@ class IBKRAdapter extends BrokerAdapter {
     this.accountSummaryHandlers = [];
     this.positionHandlers = [];
 
-    console.log(`[IBKRAdapter] Initialized with config:`, {
+    logger.info('[IBKRAdapter] Initialized with config', {
       userId: this.userId,
       clientId: this.clientId,
       host: this.host,
@@ -69,7 +69,10 @@ class IBKRAdapter extends BrokerAdapter {
       const balance = await this.getBalance();
       return !!balance;
     } catch (error) {
-      console.error('[IBKRAdapter] Connection test failed:', error.message);
+      logger.error('[IBKRAdapter] Connection test failed', {
+        error: error.message,
+        stack: error.stack
+      });
       return false;
     }
   }
@@ -126,7 +129,10 @@ class IBKRAdapter extends BrokerAdapter {
         return true;
       } else {
         // Fall back to TWS/IB Gateway authentication (legacy)
-        console.log(`[IBKRAdapter] Connecting to TWS/IB Gateway at ${this.host}:${this.port}...`);
+        logger.info('[IBKRAdapter] Connecting to TWS/IB Gateway', {
+          host: this.host,
+          port: this.port
+        });
 
         // Create IB client instance
         this.ib = new IBApi({
@@ -150,7 +156,9 @@ class IBKRAdapter extends BrokerAdapter {
             clearTimeout(timeout);
             this.nextValidOrderId = orderId;
             this.connectionReady = true;
-            console.log(`[IBKRAdapter] Connection ready, next valid order ID: ${orderId}`);
+            logger.info('[IBKRAdapter] Connection ready', {
+              nextValidOrderId: orderId
+            });
             resolve();
           });
 
@@ -160,7 +168,12 @@ class IBKRAdapter extends BrokerAdapter {
               clearTimeout(timeout);
               reject(new Error(`TWS connection failed: ${err.message}`));
             } else {
-              console.error('[IBKRAdapter] IB API error:', err, data);
+              logger.error('[IBKRAdapter] IB API error', {
+                error: err.message || err,
+                code: err.code,
+                data,
+                stack: err.stack
+              });
             }
           });
 
@@ -178,7 +191,13 @@ class IBKRAdapter extends BrokerAdapter {
         return true;
       }
     } catch (error) {
-      console.error('[IBKRAdapter] Authentication failed:', error.message);
+      logger.error('[IBKRAdapter] Authentication failed', {
+        error: error.message,
+        stack: error.stack,
+        userId: this.userId,
+        host: this.host,
+        port: this.port
+      });
       this.isAuthenticated = false;
       this.connectionReady = false;
       throw new Error(
@@ -241,7 +260,11 @@ class IBKRAdapter extends BrokerAdapter {
         });
       });
     } catch (error) {
-      console.error('[IBKRAdapter] getBalance error:', error.message);
+      logger.error('[IBKRAdapter] getBalance error', {
+        error: error.message,
+        stack: error.stack,
+        currency
+      });
       throw new Error(`Failed to get IBKR balance: ${error.message}`);
     }
   }
@@ -282,7 +305,14 @@ class IBKRAdapter extends BrokerAdapter {
         ibOrder.auxPrice = stopPrice;
       }
 
-      console.log(`[IBKRAdapter] Placing ${side} ${type} order for ${quantity} ${symbol} @ ${price || 'market'}`);
+      logger.info('[IBKRAdapter] Placing order', {
+        side,
+        type,
+        quantity,
+        symbol,
+        price: price || 'market',
+        orderId: ibOrder.orderId
+      });
 
       // Place order and wait for confirmation
       return new Promise((resolve, reject) => {
@@ -331,7 +361,14 @@ class IBKRAdapter extends BrokerAdapter {
         this.ib.placeOrder(ibOrder.orderId, contract, ibOrder);
       });
     } catch (error) {
-      console.error('[IBKRAdapter] createOrder error:', error.message);
+      logger.error('[IBKRAdapter] createOrder error', {
+        error: error.message,
+        stack: error.stack,
+        symbol: order.symbol,
+        side: order.side,
+        type: order.type,
+        quantity: order.quantity
+      });
       throw new Error(`Failed to create IBKR order: ${error.message}`);
     }
   }
@@ -348,7 +385,9 @@ class IBKRAdapter extends BrokerAdapter {
 
     try {
       const id = parseInt(orderId);
-      console.log(`[IBKRAdapter] Cancelling order ${id}`);
+      logger.info('[IBKRAdapter] Cancelling order', {
+        orderId: id
+      });
 
       return new Promise((resolve, reject) => {
         const timeout = setTimeout(() => {
@@ -365,7 +404,11 @@ class IBKRAdapter extends BrokerAdapter {
         this.ib.cancelOrder(id);
       });
     } catch (error) {
-      console.error('[IBKRAdapter] cancelOrder error:', error.message);
+      logger.error('[IBKRAdapter] cancelOrder error', {
+        error: error.message,
+        stack: error.stack,
+        orderId
+      });
       throw new Error(`Failed to cancel IBKR order: ${error.message}`);
     }
   }
@@ -409,7 +452,10 @@ class IBKRAdapter extends BrokerAdapter {
         });
       });
     } catch (error) {
-      console.error('[IBKRAdapter] getPositions error:', error.message);
+      logger.error('[IBKRAdapter] getPositions error', {
+        error: error.message,
+        stack: error.stack
+      });
       throw new Error(`Failed to get IBKR positions: ${error.message}`);
     }
   }
@@ -557,7 +603,11 @@ class IBKRAdapter extends BrokerAdapter {
         });
       });
     } catch (error) {
-      console.error('[IBKRAdapter] getOrderHistory error:', error.message);
+      logger.error('[IBKRAdapter] getOrderHistory error', {
+        error: error.message,
+        stack: error.stack,
+        filters
+      });
       throw new Error(`Failed to get IBKR order history: ${error.message}`);
     }
   }
@@ -606,7 +656,11 @@ class IBKRAdapter extends BrokerAdapter {
         });
       });
     } catch (error) {
-      console.error('[IBKRAdapter] getMarketPrice error:', error.message);
+      logger.error('[IBKRAdapter] getMarketPrice error', {
+        error: error.message,
+        stack: error.stack,
+        symbol
+      });
       throw new Error(`Failed to get IBKR market price: ${error.message}`);
     }
   }
@@ -660,7 +714,11 @@ class IBKRAdapter extends BrokerAdapter {
         });
       });
     } catch (error) {
-      console.error('[IBKRAdapter] isSymbolSupported error:', error.message);
+      logger.error('[IBKRAdapter] isSymbolSupported error', {
+        error: error.message,
+        stack: error.stack,
+        symbol
+      });
       return false;
     }
   }
