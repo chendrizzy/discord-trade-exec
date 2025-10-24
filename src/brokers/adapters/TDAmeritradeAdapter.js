@@ -48,7 +48,10 @@ class TDAmeritradeAdapter extends BrokerAdapter {
       const accounts = await this.getAccounts();
       return !!accounts && accounts.length > 0;
     } catch (error) {
-      console.error('[TDAmeritradeAdapter] Connection test failed:', error.message);
+      logger.error('[TDAmeritradeAdapter] Connection test failed', {
+        error: error.message,
+        stack: error.stack
+      });
       return false;
     }
   }
@@ -100,14 +103,20 @@ class TDAmeritradeAdapter extends BrokerAdapter {
       const accounts = await this.getAccounts();
       if (accounts && accounts.length > 0) {
         this.accountId = accounts[0].accountId;
-        console.log(`[TDAmeritradeAdapter] Authenticated with account: ${this.accountId}`);
+        logger.info('[TDAmeritradeAdapter] Authenticated with account', {
+          accountId: this.accountId
+        });
       }
 
       this.isAuthenticated = true;
       logger.info('[TDAmeritradeAdapter] OAuth2 authentication successful');
       return true;
     } catch (error) {
-      console.error('[TDAmeritradeAdapter] Authentication failed:', error.message);
+      logger.error('[TDAmeritradeAdapter] Authentication failed', {
+        error: error.message,
+        stack: error.stack,
+        userId: this.userId
+      });
       this.isAuthenticated = false;
       throw new Error(`TD Ameritrade authentication failed: ${error.message}`);
     }
@@ -155,7 +164,14 @@ class TDAmeritradeAdapter extends BrokerAdapter {
       const response = await axios(config);
       return response.data;
     } catch (error) {
-      console.error(`[TDAmeritradeAdapter] API request failed: ${method} ${endpoint}`, error.response?.data || error.message);
+      logger.error('[TDAmeritradeAdapter] API request failed', {
+        method,
+        endpoint,
+        error: error.message,
+        responseData: error.response?.data,
+        statusCode: error.response?.status,
+        stack: error.stack
+      });
 
       // If 401 Unauthorized, tokens may be invalid
       if (error.response?.status === 401) {
@@ -182,7 +198,10 @@ class TDAmeritradeAdapter extends BrokerAdapter {
         isClosingOnlyRestricted: acc.securitiesAccount.isClosingOnlyRestricted
       }));
     } catch (error) {
-      console.error('[TDAmeritradeAdapter] getAccounts error:', error.message);
+      logger.error('[TDAmeritradeAdapter] Error fetching accounts', {
+        error: error.message,
+        stack: error.stack
+      });
       throw new Error(`Failed to get accounts: ${error.message}`);
     }
   }
@@ -211,7 +230,11 @@ class TDAmeritradeAdapter extends BrokerAdapter {
         profitLossPercent: ((balances.equity - balances.liquidationValue) / balances.liquidationValue) * 100
       };
     } catch (error) {
-      console.error('[TDAmeritradeAdapter] getBalance error:', error.message);
+      logger.error('[TDAmeritradeAdapter] Error fetching balance', {
+        error: error.message,
+        stack: error.stack,
+        accountId: this.accountId
+      });
       throw new Error(`Failed to get balance: ${error.message}`);
     }
   }
@@ -276,7 +299,14 @@ class TDAmeritradeAdapter extends BrokerAdapter {
         createdAt: new Date().toISOString()
       };
     } catch (error) {
-      console.error('[TDAmeritradeAdapter] createOrder error:', error.message);
+      logger.error('[TDAmeritradeAdapter] Error creating order', {
+        error: error.message,
+        stack: error.stack,
+        symbol: order.symbol,
+        side: order.side,
+        type: order.type,
+        accountId: this.accountId
+      });
       throw new Error(`Failed to create order: ${error.message}`);
     }
   }
@@ -293,7 +323,12 @@ class TDAmeritradeAdapter extends BrokerAdapter {
       await this.makeRequest('DELETE', `/accounts/${this.accountId}/orders/${orderId}`);
       return true;
     } catch (error) {
-      console.error('[TDAmeritradeAdapter] cancelOrder error:', error.message);
+      logger.error('[TDAmeritradeAdapter] Error cancelling order', {
+        orderId,
+        error: error.message,
+        stack: error.stack,
+        accountId: this.accountId
+      });
 
       // If order already filled/cancelled, consider it success
       if (error.message.includes('already') || error.message.includes('not found')) {
@@ -330,7 +365,11 @@ class TDAmeritradeAdapter extends BrokerAdapter {
         dayPnLPercent: pos.currentDayProfitLossPercentage
       }));
     } catch (error) {
-      console.error('[TDAmeritradeAdapter] getPositions error:', error.message);
+      logger.error('[TDAmeritradeAdapter] Error fetching positions', {
+        error: error.message,
+        stack: error.stack,
+        accountId: this.accountId
+      });
       throw new Error(`Failed to get positions: ${error.message}`);
     }
   }
@@ -367,7 +406,13 @@ class TDAmeritradeAdapter extends BrokerAdapter {
         trailPercent: params.trailPercent || 0
       };
     } catch (error) {
-      console.error('[TDAmeritradeAdapter] setStopLoss error:', error.message);
+      logger.error('[TDAmeritradeAdapter] Error setting stop-loss', {
+        error: error.message,
+        stack: error.stack,
+        symbol: params.symbol,
+        stopPrice: params.stopPrice,
+        accountId: this.accountId
+      });
       throw new Error(`Failed to set stop-loss: ${error.message}`);
     }
   }
@@ -399,7 +444,13 @@ class TDAmeritradeAdapter extends BrokerAdapter {
         limitPrice: params.limitPrice
       };
     } catch (error) {
-      console.error('[TDAmeritradeAdapter] setTakeProfit error:', error.message);
+      logger.error('[TDAmeritradeAdapter] Error setting take-profit', {
+        error: error.message,
+        stack: error.stack,
+        symbol: params.symbol,
+        limitPrice: params.limitPrice,
+        accountId: this.accountId
+      });
       throw new Error(`Failed to set take-profit: ${error.message}`);
     }
   }
@@ -447,7 +498,12 @@ class TDAmeritradeAdapter extends BrokerAdapter {
         updatedAt: order.closeTime || order.enteredTime
       }));
     } catch (error) {
-      console.error('[TDAmeritradeAdapter] getOrderHistory error:', error.message);
+      logger.error('[TDAmeritradeAdapter] Error fetching order history', {
+        error: error.message,
+        stack: error.stack,
+        accountId: this.accountId,
+        filters
+      });
       throw new Error(`Failed to get order history: ${error.message}`);
     }
   }
@@ -475,7 +531,11 @@ class TDAmeritradeAdapter extends BrokerAdapter {
         timestamp: new Date(quoteData.quoteTimeInLong).toISOString()
       };
     } catch (error) {
-      console.error('[TDAmeritradeAdapter] getMarketPrice error:', error.message);
+      logger.error('[TDAmeritradeAdapter] Error fetching market price', {
+        symbol,
+        error: error.message,
+        stack: error.stack
+      });
       throw new Error(`Failed to get market price: ${error.message}`);
     }
   }
