@@ -514,10 +514,24 @@ const userSchema = new mongoose.Schema(
 
     // Security monitoring (Layer 7: SecurityMonitor)
     accountStatus: {
-      type: String,
-      enum: ['active', 'suspended', 'banned', 'pending_verification'],
-      default: 'active',
-      index: true
+      status: {
+        type: String,
+        enum: ['active', 'suspended', 'banned', 'pending_verification'],
+        default: 'active',
+        index: true
+      },
+      // Risk management and circuit breaker status
+      trading: {
+        type: Boolean,
+        default: true
+      },
+      circuitBreakerActive: {
+        type: Boolean,
+        default: false
+      },
+      circuitBreakerActivatedAt: Date,
+      circuitBreakerResetAt: Date,
+      circuitBreakerResetBy: String
     },
     suspendedAt: Date,
     suspensionReason: String,
