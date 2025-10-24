@@ -63,13 +63,13 @@ class PolymarketService {
         // Phase 2: Intelligence analysis (non-blocking)
         if (transaction && !transaction.duplicate) {
           analysisPipeline.processTransaction(transaction).catch(err => {
-            console.error('[PolymarketService] Intelligence analysis error:', err.message);
+            logger.error('[PolymarketService] Intelligence analysis error', { error: err.message, stack: err.stack });
           });
         }
       });
     });
 
-    console.log(`[PolymarketService] Registered handlers for ${events.length} event types`);
+    logger.info('[PolymarketService] Registered event handlers', { eventCount: events.length });
   }
 
   /**
@@ -125,13 +125,13 @@ class PolymarketService {
    * Backfill historical data
    */
   async backfillHistory(fromBlock, toBlock = 'latest', eventName = null) {
-    console.log(`[PolymarketService] Backfilling from block ${fromBlock} to ${toBlock}...`);
+    logger.info('[PolymarketService] Starting backfill', { fromBlock, toBlock });
 
     const events = eventName ? [eventName] : polygonConfig.events.ctfExchange;
     const allEvents = [];
 
     for (const name of events) {
-      console.log(`[PolymarketService] Querying ${name} events...`);
+      logger.info('[PolymarketService] Querying events', { eventName: name });
 
       const historicalEvents = await this.eventListener.queryHistoricalEvents(
         name,
@@ -145,16 +145,17 @@ class PolymarketService {
       allEvents.push(...eventDataArray);
     }
 
-    console.log(`[PolymarketService] Found ${allEvents.length} total events`);
+    logger.info('[PolymarketService] Events found', { totalEvents: allEvents.length });
 
     // Process in batch
     const result = await transactionProcessor.processBatch(allEvents);
 
-    logger.info('[PolymarketService] Backfill complete:');
-    console.log(`  Total events: ${result.total}`);
-    console.log(`  Saved: ${result.saved}`);
-    console.log(`  Duplicates: ${result.duplicates}`);
-    console.log(`  Errors: ${result.errors}`);
+    logger.info('[PolymarketService] Backfill complete', {
+      total: result.total,
+      saved: result.saved,
+      duplicates: result.duplicates,
+      errors: result.errors
+    });
 
     return {
       success: true,

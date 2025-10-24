@@ -152,7 +152,10 @@ class MFAService {
 
     await user.save();
 
-    console.log(`[MFAService] Generated TOTP secret for user ${user.discordUsername} (${userId})`);
+    logger.info('[MFAService] Generated TOTP secret', {
+      discordUsername: user.discordUsername,
+      userId
+    });
 
     return {
       secret: secret.base32, // Return plaintext secret (for immediate verification)
@@ -221,7 +224,10 @@ class MFAService {
       user.mfa.lastVerified = new Date();
       await user.save();
 
-      console.log(`[MFAService] TOTP verified successfully for user ${user.discordUsername} (${userId})`);
+      logger.info('[MFAService] TOTP verified successfully', {
+        discordUsername: user.discordUsername,
+        userId
+      });
     }
 
     return isValid;
@@ -284,7 +290,10 @@ class MFAService {
 
     await user.save();
 
-    console.log(`[MFAService] MFA enabled successfully for user ${user.discordUsername} (${userId})`);
+    logger.info('[MFAService] MFA enabled successfully', {
+      discordUsername: user.discordUsername,
+      userId
+    });
 
     return {
       enabled: true,
@@ -338,7 +347,10 @@ class MFAService {
 
     await user.save();
 
-    console.log(`[MFAService] MFA disabled for user ${user.discordUsername} (${userId})`);
+    logger.info('[MFAService] MFA disabled', {
+      discordUsername: user.discordUsername,
+      userId
+    });
 
     return {
       disabled: true,
@@ -398,7 +410,10 @@ class MFAService {
 
     await user.save();
 
-    console.log(`[MFAService] Backup codes regenerated for user ${user.discordUsername} (${userId})`);
+    logger.info('[MFAService] Backup codes regenerated', {
+      discordUsername: user.discordUsername,
+      userId
+    });
 
     return {
       backupCodes: backupCodes, // Return plaintext codes (only time they're accessible)
@@ -464,7 +479,10 @@ class MFAService {
 
         this.recordAttempt(userId, true);
 
-        console.log(`[MFAService] Backup code verified for user ${user.discordUsername} (${userId})`);
+        logger.info('[MFAService] Backup code verified', {
+          discordUsername: user.discordUsername,
+          userId
+        });
 
         return true;
       }
@@ -703,7 +721,9 @@ class MFAService {
           }
         }
 
-        console.log(`[MFAService] Rate limit cache cleaned. Active users: ${this.attemptCache.size}`);
+        logger.info('[MFAService] Rate limit cache cleaned', {
+          activeUsers: this.attemptCache.size
+        });
       },
       5 * 60 * 1000
     ); // Every 5 minutes
@@ -718,7 +738,7 @@ class MFAService {
    */
   clearRateLimit(userId) {
     this.attemptCache.delete(userId);
-    console.log(`[MFAService] Rate limit cleared for user ${userId}`);
+    logger.info('[MFAService] Rate limit cleared', { userId });
   }
 
   /**

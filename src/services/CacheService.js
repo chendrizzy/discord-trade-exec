@@ -70,7 +70,7 @@ class CacheService {
         });
 
         this.redisClient.on('error', err => {
-          console.error('❌ CacheService: Redis error:', err.message);
+          logger.error('[CacheService] Redis error', { error: err.message, stack: err.stack });
           this.fallbackToMemory();
         });
 
@@ -89,7 +89,7 @@ class CacheService {
             this.fallbackToMemory();
           });
       } catch (error) {
-        console.error('❌ CacheService: Failed to initialize Redis:', error.message);
+        logger.error('[CacheService] Failed to initialize Redis', { error: error.message, stack: error.stack });
         this.fallbackToMemory();
       }
     } else {
@@ -139,7 +139,7 @@ class CacheService {
       this.stats.misses++;
       return null;
     } catch (error) {
-      console.error('CacheService: Error getting key:', key, error.message);
+      logger.error('[CacheService] Error getting key', { error: error.message, stack: error.stack, key });
       this.stats.errors++;
       return null;
     }
@@ -163,7 +163,7 @@ class CacheService {
       this.stats.sets++;
       return true;
     } catch (error) {
-      console.error('CacheService: Error setting key:', key, error.message);
+      logger.error('[CacheService] Error setting key', { error: error.message, stack: error.stack, key, ttl });
       this.stats.errors++;
       return false;
     }
@@ -185,7 +185,7 @@ class CacheService {
       this.stats.deletes++;
       return true;
     } catch (error) {
-      console.error('CacheService: Error deleting key:', key, error.message);
+      logger.error('[CacheService] Error deleting key', { error: error.message, stack: error.stack, key });
       this.stats.errors++;
       return false;
     }
@@ -221,7 +221,7 @@ class CacheService {
 
       return 0;
     } catch (error) {
-      console.error('CacheService: Error deleting pattern:', pattern, error.message);
+      logger.error('[CacheService] Error deleting pattern', { error: error.message, stack: error.stack, pattern });
       this.stats.errors++;
       return 0;
     }
@@ -242,7 +242,7 @@ class CacheService {
       logger.info('CacheService: Cache cleared');
       return true;
     } catch (error) {
-      console.error('CacheService: Error clearing cache:', error.message);
+      logger.error('[CacheService] Error clearing cache', { error: error.message, stack: error.stack });
       this.stats.errors++;
       return false;
     }
@@ -264,7 +264,7 @@ class CacheService {
 
       return false;
     } catch (error) {
-      console.error('CacheService: Error checking key:', key, error.message);
+      logger.error('[CacheService] Error checking key', { error: error.message, stack: error.stack, key });
       return false;
     }
   }
@@ -287,7 +287,7 @@ class CacheService {
 
       return -2;
     } catch (error) {
-      console.error('CacheService: Error getting TTL:', key, error.message);
+      logger.error('[CacheService] Error getting TTL', { error: error.message, stack: error.stack, key });
       return -2;
     }
   }
@@ -379,7 +379,7 @@ class CacheService {
         logger.info('✅ CacheService: Memory cache closed');
       }
     } catch (error) {
-      console.error('CacheService: Error closing cache:', error.message);
+      logger.error('[CacheService] Error closing cache', { error: error.message, stack: error.stack });
     }
   }
 }

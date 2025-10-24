@@ -60,7 +60,7 @@ class SubscriptionManager {
       }
 
       if (!user) {
-        console.error('[SubscriptionManager] User not found for subscription creation:', {
+        logger.error('[SubscriptionManager] User not found for subscription creation', {
           customer,
           email: customer_email
         });
@@ -98,7 +98,11 @@ class SubscriptionManager {
         req
       );
 
-      console.log(`[SubscriptionManager] Subscription created: ${user.discordUsername} -> ${tier} ($${amount}/mo)`);
+      logger.info('[SubscriptionManager] Subscription created', {
+        discordUsername: user.discordUsername,
+        tier,
+        monthlyAmount: amount
+      });
 
       return {
         success: true,
@@ -128,7 +132,7 @@ class SubscriptionManager {
       const user = await User.findOne({ 'subscription.polarCustomerId': customer });
 
       if (!user) {
-        console.error('[SubscriptionManager] User not found for renewal:', customer);
+        logger.error('[SubscriptionManager] User not found for renewal', { customer });
         return { success: false, error: 'User not found' };
       }
 
@@ -157,9 +161,11 @@ class SubscriptionManager {
         req
       );
 
-      console.log(
-        `[SubscriptionManager] Subscription renewed: ${user.discordUsername} -> ${user.subscription.tier} (renewal #${user.subscription.renewalCount})`
-      );
+      logger.info('[SubscriptionManager] Subscription renewed', {
+        discordUsername: user.discordUsername,
+        tier: user.subscription.tier,
+        renewalCount: user.subscription.renewalCount
+      });
 
       return {
         success: true,
@@ -196,7 +202,7 @@ class SubscriptionManager {
       });
 
       if (!user) {
-        console.error('[SubscriptionManager] User not found for cancellation:', { customer, subscriptionId });
+        logger.error('[SubscriptionManager] User not found for cancellation', { customer, subscriptionId });
         return { success: false, error: 'User not found' };
       }
 
@@ -226,9 +232,12 @@ class SubscriptionManager {
         req
       );
 
-      console.log(
-        `[SubscriptionManager] Subscription cancelled: ${user.discordUsername} -> ${previousTier} -> free (reason: ${reason})`
-      );
+      logger.info('[SubscriptionManager] Subscription cancelled', {
+        discordUsername: user.discordUsername,
+        previousTier,
+        newTier: 'free',
+        reason
+      });
 
       return {
         success: true,
@@ -257,7 +266,7 @@ class SubscriptionManager {
       const user = await User.findOne({ 'subscription.polarCustomerId': customer });
 
       if (!user) {
-        console.error('[SubscriptionManager] User not found for payment failure:', customer);
+        logger.error('[SubscriptionManager] User not found for payment failure', { customer });
         return { success: false, error: 'User not found' };
       }
 
@@ -265,7 +274,10 @@ class SubscriptionManager {
       user.subscription.status = 'past_due';
       await user.save();
 
-      console.log(`[SubscriptionManager] Payment failed: ${user.discordUsername} -> status: past_due`);
+      logger.info('[SubscriptionManager] Payment failed', {
+        discordUsername: user.discordUsername,
+        status: 'past_due'
+      });
 
       // TODO: Send payment failure notification email
       // TODO: Implement retry logic or grace period
@@ -327,7 +339,11 @@ class SubscriptionManager {
         );
       }
 
-      console.log(`[SubscriptionManager] Manual upgrade: ${user.discordUsername} -> ${previousTier} -> ${tier}`);
+      logger.info('[SubscriptionManager] Manual upgrade', {
+        discordUsername: user.discordUsername,
+        previousTier,
+        newTier: tier
+      });
 
       return {
         success: true,
