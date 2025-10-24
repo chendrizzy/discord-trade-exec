@@ -130,7 +130,7 @@ describe('Integration Test: OAuth2 Authentication Flow', () => {
         email: 'test@example.com',
         communityId: new mongoose.Types.ObjectId(),
         subscription: {
-          tier: 'PRO',
+          tier: 'professional',
           status: 'active',
           currentPeriodStart: new Date(),
           currentPeriodEnd: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000)
