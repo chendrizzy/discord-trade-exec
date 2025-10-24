@@ -1206,6 +1206,11 @@ describe('Integration Test: OAuth2 Authentication Flow', () => {
       const secret = speakeasy.generateSecret({ length: 32 });
       mfaSecret = secret.base32;
 
+      // Encrypt the secret using MFAService
+      const { getMFAService } = require('../../../src/services/MFAService');
+      const mfaService = getMFAService();
+      const encryptedSecret = mfaService.encryptSecret(mfaSecret);
+
       testUser = await User.create({
         discordId: 'mfa_backup_test_' + Date.now(),
         username: 'mfa_backup_tester',
@@ -1218,7 +1223,7 @@ describe('Integration Test: OAuth2 Authentication Flow', () => {
         },
         mfa: {
           enabled: true,
-          secret: mfaSecret,
+          secret: encryptedSecret,
           backupCodes: [
             { code: 'OLD1-CODE', used: false },
             { code: 'OLD2-CODE', used: false }
@@ -1295,6 +1300,11 @@ describe('Integration Test: OAuth2 Authentication Flow', () => {
       const secret = speakeasy.generateSecret({ length: 32 });
       mfaSecret = secret.base32;
 
+      // Encrypt the secret using MFAService
+      const { getMFAService } = require('../../../src/services/MFAService');
+      const mfaService = getMFAService();
+      const encryptedSecret = mfaService.encryptSecret(mfaSecret);
+
       testUser = await User.create({
         discordId: 'mfa_status_test_' + Date.now(),
         username: 'mfa_status_tester',
@@ -1307,7 +1317,7 @@ describe('Integration Test: OAuth2 Authentication Flow', () => {
         },
         mfa: {
           enabled: true,
-          secret: mfaSecret,
+          secret: encryptedSecret,
           backupCodes: [
             { code: 'BACK-UP01', used: false },
             { code: 'BACK-UP02', used: false },
