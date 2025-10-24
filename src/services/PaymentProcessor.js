@@ -17,7 +17,10 @@ class PaymentProcessor {
       this.billingProvider = BillingProviderFactory.createProvider();
       this.providerType = BillingProviderFactory.getProviderType();
     } catch (error) {
-      console.error(`[PaymentProcessor] Failed to initialize billing provider: ${error.message}`);
+      logger.error('[PaymentProcessor] Failed to initialize billing provider', {
+        error: error.message,
+        stack: error.stack
+      });
     }
 
     // Pricing plans configuration (shared across providers)
@@ -80,7 +83,10 @@ class PaymentProcessor {
     }
 
     const message = 'Billing provider not configured';
-    console.error(`[PaymentProcessor] ${message}`);
+    logger.error('[PaymentProcessor] Billing provider not configured', {
+      billingProvider: process.env.BILLING_PROVIDER,
+      hint: 'Verify BILLING_PROVIDER configuration and related environment variables'
+    });
 
     if (res) {
       res.status(503).json({

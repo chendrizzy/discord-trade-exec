@@ -74,9 +74,13 @@ class SignalSubscriptionService {
         req
       );
 
-      console.log(
-        `[SignalSubscriptionService] User subscribed: ${user.discordUsername} -> ${provider.name} (${subscriptionType})`
-      );
+      logger.info('[SignalSubscriptionService] User subscribed to provider', {
+        userId: user._id,
+        username: user.discordUsername,
+        providerId: provider._id,
+        providerName: provider.name,
+        subscriptionType
+      });
 
       return {
         success: true,
@@ -129,7 +133,12 @@ class SignalSubscriptionService {
       provider.activeSubscribers = Math.max(0, provider.activeSubscribers - 1);
       await provider.save();
 
-      console.log(`[SignalSubscriptionService] User unsubscribed: ${user.discordUsername} -> ${provider.name}`);
+      logger.info('[SignalSubscriptionService] User unsubscribed from provider', {
+        userId: user._id,
+        username: user.discordUsername,
+        providerId: provider._id,
+        providerName: provider.name
+      });
 
       return {
         success: true,
@@ -171,9 +180,13 @@ class SignalSubscriptionService {
 
       await user.save();
 
-      console.log(
-        `[SignalSubscriptionService] Subscription settings updated: ${user.discordUsername} -> ${subscription.channelName}`
-      );
+      logger.info('[SignalSubscriptionService] Subscription settings updated', {
+        userId: user._id,
+        username: user.discordUsername,
+        channelId: subscription.channelId,
+        channelName: subscription.channelName,
+        settings
+      });
 
       return {
         success: true,

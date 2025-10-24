@@ -18,7 +18,11 @@ class AnalyticsEventService {
     if (process.env.NODE_ENV !== 'test' && process.env.NODE_ENV !== 'development') {
       this.flushTimer = setInterval(() => {
         this.flush().catch(err => {
-          console.error('Analytics event flush error:', err);
+          logger.error('[AnalyticsEventService] Event flush error', {
+            error: err.message,
+            stack: err.stack,
+            bufferSize: this.eventBuffer.length
+          });
         });
       }, this.flushInterval);
     }

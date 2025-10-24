@@ -510,7 +510,9 @@ class MFAService {
    * @example
    * const status = await mfaService.getMFAStatus(userId);
    * if (status.enabled) {
-   *   console.log(`Backup codes remaining: ${status.backupCodesRemaining}`);
+   *   logger.info('[MFA] Backup codes status', {
+   *     backupCodesRemaining: status.backupCodesRemaining
+   *   });
    * }
    */
   async getMFAStatus(userId) {

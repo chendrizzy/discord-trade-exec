@@ -22,7 +22,10 @@ class DiscordTradeBot {
 
   setupEventHandlers() {
     this.client.on('clientReady', () => {
-      console.log(`✅ Bot logged in as ${this.client.user.tag}`);
+      logger.info('[DiscordBot] Bot logged in successfully', {
+        tag: this.client.user.tag,
+        id: this.client.user.id
+      });
     });
 
     this.client.on('error', error => {
