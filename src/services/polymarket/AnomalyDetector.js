@@ -80,7 +80,11 @@ class AnomalyDetector {
 
       return detected || { detected: false };
     } catch (err) {
-      console.error('[AnomalyDetector] Check transaction error:', err.message);
+      logger.error('[AnomalyDetector] Check transaction error', {
+        error: err.message,
+        stack: err.stack,
+        transactionId: transaction._id
+      });
       return { detected: false, error: err.message };
     }
   }
@@ -129,7 +133,11 @@ class AnomalyDetector {
 
       return { detected: false };
     } catch (err) {
-      console.error('[AnomalyDetector] Coordinated betting detection error:', err.message);
+      logger.error('[AnomalyDetector] Coordinated betting detection error', {
+        error: err.message,
+        stack: err.stack,
+        marketId: transaction.marketId
+      });
       return { detected: false, error: err.message };
     }
   }
@@ -183,7 +191,11 @@ class AnomalyDetector {
 
       return { detected: false };
     } catch (err) {
-      console.error('[AnomalyDetector] Sudden reversal detection error:', err.message);
+      logger.error('[AnomalyDetector] Sudden reversal detection error', {
+        error: err.message,
+        stack: err.stack,
+        marketId: transaction.marketId
+      });
       return { detected: false, error: err.message };
     }
   }
@@ -244,7 +256,11 @@ class AnomalyDetector {
           this.stats.high++;
         }
       } catch (err) {
-        console.error('[AnomalyDetector] Flash whale async detection error:', err.message);
+        logger.error('[AnomalyDetector] Flash whale async detection error', {
+          error: err.message,
+          stack: err.stack,
+          transactionId: transaction._id
+        });
       }
     }, 60000);
 
@@ -293,7 +309,11 @@ class AnomalyDetector {
         totalVolume
       };
     } catch (err) {
-      console.error('[AnomalyDetector] Get outcome volumes error:', err.message);
+      logger.error('[AnomalyDetector] Get outcome volumes error', {
+        error: err.message,
+        stack: err.stack,
+        marketId
+      });
       return null;
     }
   }
@@ -347,11 +367,18 @@ class AnomalyDetector {
         }
       });
 
-      console.log(`[AnomalyDetector] ${anomalyData.severity} anomaly logged: ${anomalyData.pattern}`);
+      logger.info('[AnomalyDetector] Anomaly logged', {
+        severity: anomalyData.severity,
+        pattern: anomalyData.pattern
+      });
 
       return alert;
     } catch (err) {
-      console.error('[AnomalyDetector] Log anomaly error:', err.message);
+      logger.error('[AnomalyDetector] Log anomaly error', {
+        error: err.message,
+        stack: err.stack,
+        pattern: anomalyData.pattern
+      });
     }
   }
 

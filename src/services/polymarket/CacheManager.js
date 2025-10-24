@@ -48,7 +48,10 @@ class CacheManager {
 
     // Redis error handling
     this.client.on('error', (err) => {
-      console.error('[CacheManager] Redis error:', err.message);
+      logger.error('[CacheManager] Redis error', {
+        error: err.message,
+        stack: err.stack
+      });
       this.enabled = false; // Fallback to memory on error
     });
 
@@ -62,7 +65,10 @@ class CacheManager {
 
     // Connect to Redis
     this.client.connect().catch((err) => {
-      console.error('[CacheManager] Redis connection failed:', err.message);
+      logger.error('[CacheManager] Redis connection failed', {
+        error: err.message,
+        stack: err.stack
+      });
       this.enabled = false;
     });
 
@@ -90,7 +96,11 @@ class CacheManager {
 
       return parsed;
     } catch (err) {
-      console.error('[CacheManager] Get error:', err.message);
+      logger.error('[CacheManager] Get error', {
+        error: err.message,
+        stack: err.stack,
+        key
+      });
       // Fallback to memory cache
       return this.memoryCache.get(key) || null;
     }
@@ -113,7 +123,12 @@ class CacheManager {
     try {
       await this.client.setEx(key, ttl, JSON.stringify(value));
     } catch (err) {
-      console.error('[CacheManager] Set error:', err.message);
+      logger.error('[CacheManager] Set error', {
+        error: err.message,
+        stack: err.stack,
+        key,
+        ttl
+      });
       // Already cached in memory, continue gracefully
     }
   }
@@ -151,7 +166,11 @@ class CacheManager {
     try {
       await this.client.del(key);
     } catch (err) {
-      console.error('[CacheManager] Delete error:', err.message);
+      logger.error('[CacheManager] Delete error', {
+        error: err.message,
+        stack: err.stack,
+        key
+      });
     }
   }
 
@@ -177,7 +196,11 @@ class CacheManager {
         await this.client.del(keys);
       }
     } catch (err) {
-      console.error('[CacheManager] Flush error:', err.message);
+      logger.error('[CacheManager] Flush error', {
+        error: err.message,
+        stack: err.stack,
+        pattern
+      });
     }
   }
 
@@ -195,7 +218,11 @@ class CacheManager {
       const exists = await this.client.exists(key);
       return exists === 1;
     } catch (err) {
-      console.error('[CacheManager] Exists error:', err.message);
+      logger.error('[CacheManager] Exists error', {
+        error: err.message,
+        stack: err.stack,
+        key
+      });
       return this.memoryCache.has(key);
     }
   }
@@ -242,7 +269,11 @@ class CacheManager {
 
       return value;
     } catch (err) {
-      console.error('[CacheManager] getOrCompute error:', err.message);
+      logger.error('[CacheManager] getOrCompute error', {
+        error: err.message,
+        stack: err.stack,
+        key
+      });
       // Fallback to direct computation
       value = await computeFn();
       await this.set(key, value, ttl);
