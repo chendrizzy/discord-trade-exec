@@ -205,7 +205,11 @@ class SchwabAdapter extends BrokerAdapter {
 
       return true;
     } catch (error) {
-      console.error('[SchwabAdapter] Authentication failed:', error.message);
+      logger.error('[SchwabAdapter] Authentication failed', {
+        error: error.message,
+        stack: error.stack,
+        userId: this.userId
+      });
       this.isAuthenticated = false;
       throw new Error(`Schwab authentication failed: ${error.message}`);
     }
@@ -242,7 +246,11 @@ class SchwabAdapter extends BrokerAdapter {
         profitLossPercent: 0 // Schwab doesn't provide this directly
       };
     } catch (error) {
-      console.error('[SchwabAdapter] getBalance error:', error.message);
+      logger.error('[SchwabAdapter] Error fetching balance', {
+        error: error.message,
+        stack: error.stack,
+        accountId: this.accountId
+      });
       throw new Error(`Failed to get balance: ${error.message}`);
     }
   }
@@ -313,7 +321,14 @@ class SchwabAdapter extends BrokerAdapter {
         updatedAt: orderDetails.enteredTime
       };
     } catch (error) {
-      console.error('[SchwabAdapter] createOrder error:', error.message);
+      logger.error('[SchwabAdapter] Error creating order', {
+        error: error.message,
+        stack: error.stack,
+        symbol: order.symbol,
+        side: order.side,
+        type: order.type,
+        accountId: this.accountId
+      });
       throw new Error(`Failed to create order: ${error.message}`);
     }
   }
@@ -335,7 +350,12 @@ class SchwabAdapter extends BrokerAdapter {
 
       return true;
     } catch (error) {
-      console.error('[SchwabAdapter] cancelOrder error:', error.message);
+      logger.error('[SchwabAdapter] Error cancelling order', {
+        error: error.message,
+        stack: error.stack,
+        orderId,
+        accountId: this.accountId
+      });
 
       // If order already filled/cancelled, consider it success
       if (error.message.includes('cannot be canceled') || error.message.includes('not found')) {
@@ -379,7 +399,11 @@ class SchwabAdapter extends BrokerAdapter {
           changeToday: pos.currentDayProfitLossPercentage || 0
         }));
     } catch (error) {
-      console.error('[SchwabAdapter] getPositions error:', error.message);
+      logger.error('[SchwabAdapter] Error fetching positions', {
+        error: error.message,
+        stack: error.stack,
+        accountId: this.accountId
+      });
       throw new Error(`Failed to get positions: ${error.message}`);
     }
   }
@@ -417,7 +441,13 @@ class SchwabAdapter extends BrokerAdapter {
         trailPercent: params.trailPercent || 0
       };
     } catch (error) {
-      console.error('[SchwabAdapter] setStopLoss error:', error.message);
+      logger.error('[SchwabAdapter] Error setting stop-loss', {
+        error: error.message,
+        stack: error.stack,
+        symbol: params.symbol,
+        stopPrice: params.stopPrice,
+        type: params.type
+      });
       throw new Error(`Failed to set stop-loss: ${error.message}`);
     }
   }
@@ -449,7 +479,12 @@ class SchwabAdapter extends BrokerAdapter {
         limitPrice: params.limitPrice
       };
     } catch (error) {
-      console.error('[SchwabAdapter] setTakeProfit error:', error.message);
+      logger.error('[SchwabAdapter] Error setting take-profit', {
+        error: error.message,
+        stack: error.stack,
+        symbol: params.symbol,
+        limitPrice: params.limitPrice
+      });
       throw new Error(`Failed to set take-profit: ${error.message}`);
     }
   }
@@ -513,7 +548,12 @@ class SchwabAdapter extends BrokerAdapter {
         filledAt: order.closeTime
       }));
     } catch (error) {
-      console.error('[SchwabAdapter] getOrderHistory error:', error.message);
+      logger.error('[SchwabAdapter] Error fetching order history', {
+        error: error.message,
+        stack: error.stack,
+        accountId: this.accountId,
+        filters
+      });
       throw new Error(`Failed to get order history: ${error.message}`);
     }
   }
@@ -541,7 +581,11 @@ class SchwabAdapter extends BrokerAdapter {
         timestamp: new Date(quote.quoteTimeInLong || Date.now()).toISOString()
       };
     } catch (error) {
-      console.error('[SchwabAdapter] getMarketPrice error:', error.message);
+      logger.error('[SchwabAdapter] Error fetching market price', {
+        error: error.message,
+        stack: error.stack,
+        symbol
+      });
       throw new Error(`Failed to get market price: ${error.message}`);
     }
   }
