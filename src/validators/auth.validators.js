@@ -41,16 +41,8 @@ const oauthCallbackQuery = z.object({
  * POST /api/auth/callback
  */
 const oauthCallbackBody = z.object({
-  code: z
-    .string()
-    .min(10, 'Authorization code required')
-    .max(512, 'Authorization code too long')
-    .regex(/^[a-zA-Z0-9\-_=+/]+$/, 'Authorization code contains invalid characters'),
-  state: z
-    .string()
-    .min(16, 'State parameter required')
-    .max(256, 'State parameter too long')
-    .regex(/^[a-zA-Z0-9\-_]+$/, 'State contains invalid characters'),
+  code: z.string().optional(),
+  state: z.string().optional(),
   broker: z.enum(['alpaca', 'ibkr', 'tdameritrade', 'etrade', 'schwab', 'moomoo']).optional()
 });
 

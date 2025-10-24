@@ -40,6 +40,50 @@ class OAuth2Service {
   }
 
   /**
+   * Sanitize broker error messages to prevent sensitive data leakage
+   * Removes client secrets, API keys, IPs, user IDs, and debug information
+   *
+   * @param {string} message - Raw error message from broker
+   * @returns {string} Sanitized error message
+   */
+  sanitizeErrorMessage(message) {
+    if (!message || typeof message !== 'string') {
+      return 'Token exchange failed: Invalid credentials or authorization code';
+    }
+
+    // Check if message contains sensitive patterns before sanitizing
+    const hasSensitiveData =
+      /[A-Za-z0-9]{12,}/.test(message) || // Secrets/keys (12+ alphanumeric)
+      /\b\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}\b/.test(message) || // IP addresses
+      /user_id\s*=\s*\d+/i.test(message) || // User IDs
+      /debug|trace|stack/i.test(message); // Debug info
+
+    // If sensitive data detected, return generic message
+    if (hasSensitiveData) {
+      return 'Token exchange failed: Invalid credentials or authorization code';
+    }
+
+    // Allow safe, generic broker error messages through
+    const safeBrokerErrors = [
+      'invalid_grant',
+      'invalid_client',
+      'invalid_request',
+      'unauthorized_client',
+      'access_denied',
+      'unsupported_grant_type'
+    ];
+
+    // If it's a known safe OAuth error, allow it
+    const lowerMessage = message.toLowerCase();
+    if (safeBrokerErrors.some(err => lowerMessage.includes(err))) {
+      return message.trim();
+    }
+
+    // Default to generic message for unknown patterns
+    return 'Token exchange failed: Invalid credentials or authorization code';
+  }
+
+  /**
    * Generate OAuth2 authorization URL for broker
    *
    * @param {string} broker - Broker key (e.g., 'alpaca', 'ibkr')
@@ -200,14 +244,14 @@ class OAuth2Service {
       throw new Error('User not found');
     }
 
-    if (!user.tradingConfig.communityId) {
+    if (!user.communityId) {
       throw new Error('User must be associated with a community to connect brokers');
     }
 
     // Verify communityId hasn't changed since OAuth flow started
     if (session.oauthState && session.oauthState.communityId) {
       const sessionCommunityId = session.oauthState.communityId;
-      const userCommunityId = user.tradingConfig.communityId.toString();
+      const userCommunityId = user.communityId.toString();
 
       if (sessionCommunityId !== userCommunityId) {
         throw new Error('Community mismatch detected - possible cross-tenant attack attempt');
@@ -311,7 +355,10 @@ class OAuth2Service {
         })
         .catch(err => logger.error('[OAuth2Service] User lookup for audit failed', { error: err.message, stack: err.stack }));
 
-      throw new Error(`Token exchange failed: ${error.response?.data?.error_description || error.message}`);
+      // Sanitize error message to prevent sensitive data leakage
+      const rawMessage = error.response?.data?.error_description || error.message;
+      const sanitizedMessage = this.sanitizeErrorMessage(rawMessage);
+      throw new Error(sanitizedMessage);
     }
   }
 
