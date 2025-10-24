@@ -77,7 +77,11 @@ class SentimentAnalyzer {
 
       return result;
     } catch (err) {
-      console.error(`[SentimentAnalyzer] Analysis failed for ${marketId}:`, err.message);
+      logger.error('[SentimentAnalyzer] Analysis failed', {
+        marketId,
+        error: err.message,
+        stack: err.stack
+      });
       throw err;
     }
   }
@@ -172,7 +176,11 @@ class SentimentAnalyzer {
         threshold: this.thresholds.volumeSpike
       };
     } catch (err) {
-      console.error(`[SentimentAnalyzer] Volume spike detection error:`, err.message);
+      logger.error('[SentimentAnalyzer] Volume spike detection error', {
+        marketId,
+        error: err.message,
+        stack: err.stack
+      });
       return { detected: false, error: err.message };
     }
   }
@@ -217,7 +225,11 @@ class SentimentAnalyzer {
         threshold: this.thresholds.sentimentShift
       };
     } catch (err) {
-      console.error(`[SentimentAnalyzer] Sentiment shift detection error:`, err.message);
+      logger.error('[SentimentAnalyzer] Sentiment shift detection error', {
+        marketId,
+        error: err.message,
+        stack: err.stack
+      });
       return { detected: false, error: err.message };
     }
   }
@@ -342,7 +354,11 @@ class SentimentAnalyzer {
         .sort((a, b) => b.volumeSpike.percentage - a.volumeSpike.percentage)
         .slice(0, limit);
     } catch (err) {
-      console.error('[SentimentAnalyzer] Get trending markets error:', err.message);
+      logger.error('[SentimentAnalyzer] Get trending markets error', {
+        limit,
+        error: err.message,
+        stack: err.stack
+      });
       return [];
     }
   }

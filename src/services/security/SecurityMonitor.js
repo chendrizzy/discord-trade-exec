@@ -353,7 +353,10 @@ class SecurityMonitor {
     try {
       const user = await User.findOne({ _id: userId, communityId });
       if (!user) {
-        console.error('[SecurityMonitor] User not found for suspension:', userId);
+        logger.error('[SecurityMonitor] User not found for suspension', {
+          userId,
+          communityId
+        });
         return;
       }
 
@@ -385,7 +388,12 @@ class SecurityMonitor {
         timestamp: new Date()
       });
 
-      console.log(`[SecurityMonitor] User suspended: ${userId} (Reason: ${reason})`);
+      logger.info('[SecurityMonitor] User suspended', {
+        userId,
+        communityId,
+        reason,
+        metadata
+      });
     } catch (error) {
       logger.error('[SecurityMonitor] Failed to suspend user:', { error: error.message, stack: error.stack });
       throw error;
@@ -425,7 +433,12 @@ class SecurityMonitor {
         timestamp: new Date()
       });
 
-      console.log(`[SecurityMonitor] User cooldown applied: ${userId} (${durationMinutes}m)`);
+      logger.info('[SecurityMonitor] User cooldown applied', {
+        userId,
+        communityId,
+        durationMinutes,
+        reason
+      });
     } catch (error) {
       logger.error('[SecurityMonitor] Failed to apply cooldown:', { error: error.message, stack: error.stack });
     }
@@ -444,15 +457,8 @@ class SecurityMonitor {
 
     // Console logging
     if (this.alertChannels.console) {
-      const emoji =
-        {
-          CRITICAL: '🚨',
-          HIGH: '⚠️',
-          MEDIUM: '⚡',
-          LOW: 'ℹ️'
-        }[alert.severity] || '📢';
-
-      console.log(`${emoji} [SecurityMonitor] ${alert.type}`, {
+      logger.info('[SecurityMonitor] Security alert', {
+        alertType: alert.type,
         severity: alert.severity,
         communityId: alert.communityId,
         userId: alert.userId,

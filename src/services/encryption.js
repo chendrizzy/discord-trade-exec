@@ -56,7 +56,9 @@ class EncryptionService {
         throw new Error(errorMsg + ' - Production deployment requires AWS KMS encryption');
       } else {
         // WARN in development - allow local testing with fallback encryption
-        console.warn(`[EncryptionService] WARNING: ${errorMsg}`);
+        logger.warn('[EncryptionService] Missing AWS KMS environment variables', {
+          missing: missing
+        });
         logger.warn('[EncryptionService] Using fallback local encryption (NOT suitable for production)');
       }
     }
@@ -157,7 +159,9 @@ class EncryptionService {
 
     // Check if key rotation needed (90 days)
     if (this.needsRotation(community)) {
-      console.log('[Encryption] DEK rotation needed for community', communityId);
+      logger.info('[Encryption] DEK rotation needed for community', {
+        communityId
+      });
       return await this.rotateDEK(community);
     }
 
@@ -209,7 +213,9 @@ class EncryptionService {
    * @returns {Promise<Buffer>} - New plaintext DEK
    */
   async rotateDEK(community) {
-    console.log('[Encryption] Starting DEK rotation for community', community._id);
+    logger.info('[Encryption] Starting DEK rotation for community', {
+      communityId: community._id
+    });
 
     // Generate new DEK
     const newDEK = await this.generateDEK(community);
@@ -218,7 +224,9 @@ class EncryptionService {
     // This method just generates the new key
     // Application should call reencryptAllCredentials() separately
 
-    console.log('[Encryption] DEK rotation complete for community', community._id);
+    logger.info('[Encryption] DEK rotation complete for community', {
+      communityId: community._id
+    });
     return newDEK;
   }
 
@@ -440,7 +448,9 @@ class EncryptionService {
         for (const [communityId, cached] of this.dekCache.entries()) {
           if (now - cached.timestamp > this.dekCacheTTL) {
             this.dekCache.delete(communityId);
-            console.log('[Encryption] Cleared expired DEK from cache:', communityId);
+            logger.info('[Encryption] Cleared expired DEK from cache', {
+              communityId
+            });
           }
         }
       },

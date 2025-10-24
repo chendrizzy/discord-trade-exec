@@ -28,13 +28,18 @@ class TradingViewParser {
         // If it's already a JavaScript object, use it directly
         data = payload;
       } else {
-        console.warn('Invalid TradingView webhook payload type:', typeof payload);
+        logger.warn('[TradingViewParser] Invalid webhook payload type', {
+          payloadType: typeof payload
+        });
         return null;
       }
 
       // Validate required fields
       if (!this.validateRequiredFields(data)) {
-        console.warn('TradingView webhook missing required fields:', data);
+        logger.warn('[TradingViewParser] Webhook missing required fields', {
+          receivedFields: Object.keys(data),
+          requiredFields: this.requiredFields
+        });
         return null;
       }
 
@@ -49,7 +54,11 @@ class TradingViewParser {
 
       // Validate parsed signal
       if (!this.validateParsedSignal(signal)) {
-        console.warn('TradingView signal failed validation:', signal);
+        logger.warn('[TradingViewParser] Signal failed validation', {
+          symbol: signal.symbol,
+          action: signal.action,
+          signalId: signal.id
+        });
         return null;
       }
 
@@ -250,7 +259,9 @@ class TradingViewParser {
         // If it's already a string, use it as-is
         payloadData = payload;
       } else {
-        console.warn('Invalid payload type for signature verification:', typeof payload);
+        logger.warn('[TradingViewParser] Invalid payload type for signature verification', {
+          payloadType: typeof payload
+        });
         return false;
       }
 
@@ -261,13 +272,15 @@ class TradingViewParser {
 
       // Validate that the signature is a valid hex string
       if (!/^[0-9a-fA-F]+$/.test(cleanSignature)) {
-        console.warn('Invalid signature format - not hex:', cleanSignature);
+        logger.warn('[TradingViewParser] Invalid signature format - not hex', {
+          signatureLength: cleanSignature.length
+        });
         return false;
       }
 
       // Ensure both signatures are the same length for timingSafeEqual
       if (cleanSignature.length !== expectedSignature.length) {
-        console.warn('Signature length mismatch:', {
+        logger.warn('[TradingViewParser] Signature length mismatch', {
           received: cleanSignature.length,
           expected: expectedSignature.length
         });

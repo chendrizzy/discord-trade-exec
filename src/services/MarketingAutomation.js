@@ -330,7 +330,9 @@ Join 15,000+ profitable traders today.
 
   // Integration methods (would connect to real APIs)
   async postToTwitter(content) {
-    console.log('📱 Posted to Twitter:', content.slice(0, 50) + '...');
+    logger.info('[MarketingAutomation] Posted to Twitter', {
+      contentPreview: content.slice(0, 50)
+    });
   }
   async postToDiscordCommunities(content) {
     logger.info('💬 Posted to Discord communities');
@@ -339,25 +341,40 @@ Join 15,000+ profitable traders today.
     logger.info('📋 Posted to Reddit communities');
   }
   async sendEmailToSegment(users, content) {
-    console.log(`📧 Sent email to ${users} users`);
+    logger.info('[MarketingAutomation] Sent email to segment', {
+      userCount: users,
+      subject: content.subject
+    });
   }
   async payReferralCommission(referral) {
     logger.info('💰 Paid referral commission');
   }
   async sendReferralNotification(referrer) {
-    console.log(`📨 Sent referral notification to ${referrer}`);
+    logger.info('[MarketingAutomation] Sent referral notification', {
+      referrer
+    });
   }
   async publishToWordPress(article) {
-    console.log('📝 Published SEO article:', article.title);
+    logger.info('[MarketingAutomation] Published SEO article', {
+      title: article.title,
+      slug: article.slug
+    });
   }
   async engageWithCommunity(community) {
-    console.log(`🤝 Engaging with community: ${community.name} (${community.members} members)`);
+    logger.info('[MarketingAutomation] Engaging with community', {
+      communityName: community.name,
+      members: community.members,
+      engagement: community.engagement
+    });
   }
   async crossPostContent(post) {
     logger.info('🔄 Cross-posting content to all platforms');
   }
   async boostAdSpend(postId, performance) {
-    console.log(`💸 Boosting ad spend for post ${postId} (performance: ${performance})`);
+    logger.info('[MarketingAutomation] Boosting ad spend', {
+      postId,
+      performance
+    });
   }
   async notifyAffiliates(post) {
     logger.info('📢 Notifying affiliate team about viral content');

@@ -40,7 +40,11 @@ class TokenRefreshMetrics {
 
       return event;
     } catch (error) {
-      console.error('[TokenRefreshMetrics] Failed to log refresh cycle:', error.message);
+      logger.error('[TokenRefreshMetrics] Failed to log refresh cycle', {
+        error: error.message,
+        stack: error.stack,
+        totalRefreshes: metrics.totalRefreshes
+      });
       return null;
     }
   }
@@ -109,7 +113,11 @@ class TokenRefreshMetrics {
         brokerBreakdown
       };
     } catch (error) {
-      console.error('[TokenRefreshMetrics] Failed to calculate success rate:', error.message);
+      logger.error('[TokenRefreshMetrics] Failed to calculate success rate', {
+        error: error.message,
+        stack: error.stack,
+        hours
+      });
       return null;
     }
   }
@@ -147,7 +155,11 @@ class TokenRefreshMetrics {
           : `⚠️ SLA BREACH: Success rate ${stats.successRate}% is below ${SLA_THRESHOLD}% threshold. Investigate refresh failures.`
       };
     } catch (error) {
-      console.error('[TokenRefreshMetrics] Failed to check SLA compliance:', error.message);
+      logger.error('[TokenRefreshMetrics] Failed to check SLA compliance', {
+        error: error.message,
+        stack: error.stack,
+        hours
+      });
       return {
         compliant: false,
         error: error.message
@@ -203,10 +215,12 @@ class TokenRefreshMetrics {
         period: `Last ${hours} hours`
       };
     } catch (error) {
-      console.error(
-        `[TokenRefreshMetrics] Failed to get stats for broker ${broker}:`,
-        error.message
-      );
+      logger.error('[TokenRefreshMetrics] Failed to get broker stats', {
+        error: error.message,
+        stack: error.stack,
+        broker,
+        hours
+      });
       return null;
     }
   }
@@ -234,7 +248,11 @@ class TokenRefreshMetrics {
         brokerBreakdown: cycle.data.brokerBreakdown || {}
       }));
     } catch (error) {
-      console.error('[TokenRefreshMetrics] Failed to get recent failures:', error.message);
+      logger.error('[TokenRefreshMetrics] Failed to get recent failures', {
+        error: error.message,
+        stack: error.stack,
+        limit
+      });
       return [];
     }
   }
@@ -277,7 +295,11 @@ class TokenRefreshMetrics {
             ]
       };
     } catch (error) {
-      console.error('[TokenRefreshMetrics] Failed to generate report:', error.message);
+      logger.error('[TokenRefreshMetrics] Failed to generate report', {
+        error: error.message,
+        stack: error.stack,
+        hours
+      });
       return {
         error: error.message
       };
