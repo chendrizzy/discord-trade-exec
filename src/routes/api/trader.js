@@ -13,6 +13,17 @@ const { overviewLimiter, analyticsLimiter, tradesLimiter, dashboardLimiter } = r
 const redis = require('../../services/redis');
 const BillingProviderFactory = require('../../services/billing/BillingProviderFactory');
 const logger = require('../../utils/logger');
+const { validate } = require('../../middleware/validation');
+const {
+  followSignalParams,
+  followSignalBody,
+  overviewQuery,
+  signalsQuery,
+  tradesQuery,
+  analyticsPerformanceQuery,
+  updateRiskProfileBody,
+  updateNotificationsBody
+} = require('../../validators/trader.validators');
 
 // Apply trader authorization to all routes
 router.use(requireTrader);
@@ -30,7 +41,7 @@ router.use(requireTrader);
  * - Top followed signal providers
  * - Recent trade history
  */
-router.get('/overview', overviewLimiter, async (req, res) => {
+router.get('/overview', overviewLimiter, validate(overviewQuery, 'query'), async (req, res) => {
   try {
     const user = req.user;
     const userId = user._id;
@@ -264,7 +275,7 @@ router.get('/overview', overviewLimiter, async (req, res) => {
  * - sortBy: Sort by (winRate, followers, signals)
  * - minWinRate: Minimum win rate filter
  */
-router.get('/signals', dashboardLimiter, async (req, res) => {
+router.get('/signals', dashboardLimiter, validate(signalsQuery, 'query'), async (req, res) => {
   try {
     const { filter = 'all', sortBy = 'winRate', minWinRate } = req.query;
     const user = req.user;
@@ -455,7 +466,7 @@ router.get('/signals', dashboardLimiter, async (req, res) => {
  * - following: Boolean (true to follow, false to unfollow)
  * - autoExecute: Boolean (optional, auto-execute signals from this provider)
  */
-router.post('/signals/:id/follow', async (req, res) => {
+router.post('/signals/:id/follow', validate(followSignalParams, 'params'), validate(followSignalBody, 'body'), async (req, res) => {
   try {
     const { id: providerId } = req.params;
     const { following, autoExecute = false } = req.body;
@@ -581,7 +592,7 @@ router.post('/signals/:id/follow', async (req, res) => {
  * - symbol: Filter by symbol
  * - side: Filter by side (buy/sell)
  */
-router.get('/trades', tradesLimiter, async (req, res) => {
+router.get('/trades', tradesLimiter, validate(tradesQuery, 'query'), async (req, res) => {
   try {
     const { page = 1, limit = 25, startDate, endDate, symbol, side } = req.query;
     const skip = (page - 1) * limit;
@@ -680,7 +691,7 @@ router.get('/trades', tradesLimiter, async (req, res) => {
  * - endDate: End date (ISO format)
  * - groupBy: Grouping period (day, week, month)
  */
-router.get('/analytics/performance', analyticsLimiter, async (req, res) => {
+router.get('/analytics/performance', analyticsLimiter, validate(analyticsPerformanceQuery, 'query'), async (req, res) => {
   try {
     const { startDate, endDate, groupBy = 'day' } = req.query;
     const user = req.user;
@@ -842,7 +853,7 @@ router.get('/risk-profile', dashboardLimiter, async (req, res) => {
  *
  * Rate Limit: 100 requests/minute
  */
-router.put('/risk-profile', dashboardLimiter, async (req, res) => {
+router.put('/risk-profile', dashboardLimiter, validate(updateRiskProfileBody, 'body'), async (req, res) => {
   try {
     const userId = req.user._id;
     const {
@@ -1055,7 +1066,7 @@ router.get('/notifications', dashboardLimiter, async (req, res) => {
   }
 });
 
-router.put('/notifications', dashboardLimiter, async (req, res) => {
+router.put('/notifications', dashboardLimiter, validate(updateNotificationsBody, 'body'), async (req, res) => {
   try {
     const userId = req.user._id;
     const {
