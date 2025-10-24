@@ -60,7 +60,7 @@ class DiscordAlertService {
       // Step 2: Check deduplication
       const isDuplicate = await this.checkDuplication(alert);
       if (isDuplicate) {
-        console.log(`[Discord] Duplicate alert suppressed: ${alert.alertType}`);
+        logger.info('[Discord] Duplicate alert suppressed', { alertType: alert.alertType });
         return { duplicate: true };
       }
 
@@ -69,7 +69,11 @@ class DiscordAlertService {
 
       return { sent: true };
     } catch (error) {
-      console.error('[Discord] Alert send error:', error.message);
+      logger.error('[Discord] Alert send error', {
+        error: error.message,
+        stack: error.stack,
+        alertType: alert.alertType
+      });
       return { error: error.message };
     }
   }
@@ -110,7 +114,10 @@ class DiscordAlertService {
 
       return true; // OK to send
     } catch (err) {
-      console.error('[Discord] Rate limit check error:', err.message);
+      logger.error('[Discord] Rate limit check error', {
+        error: err.message,
+        stack: err.stack
+      });
       return true; // Allow send on error
     }
   }
@@ -202,11 +209,15 @@ class DiscordAlertService {
       if (formatMethod) {
         embed = formatMethod(alert);
       } else {
-        console.warn(`[Discord] No formatter for ${alert.alertType}, using generic`);
+        logger.warn('[Discord] No formatter found, using generic', { alertType: alert.alertType });
         embed = AlertFormatter.formatGenericAlert(alert);
       }
     } catch (err) {
-      console.error('[Discord] Format error:', err.message);
+      logger.error('[Discord] Format error', {
+        error: err.message,
+        stack: err.stack,
+        alertType: alert.alertType
+      });
       embed = AlertFormatter.formatGenericAlert(alert);
     }
 
@@ -229,7 +240,10 @@ class DiscordAlertService {
       fingerprint: this.getAlertFingerprint(alert)
     });
 
-    console.log(`[Discord] Alert sent: ${alert.alertType} - ${alert.title}`);
+    logger.info('[Discord] Alert sent', {
+      alertType: alert.alertType,
+      title: alert.title
+    });
   }
 
   /**
@@ -239,7 +253,7 @@ class DiscordAlertService {
   async queueAlert(alert) {
     // This will be called by BullMQ worker
     // For now, just create the alert document
-    console.log(`[Discord] Alert queued for delivery: ${alert.alertType}`);
+    logger.info('[Discord] Alert queued for delivery', { alertType: alert.alertType });
     return alert;
   }
 
@@ -274,7 +288,10 @@ class DiscordAlertService {
       logger.info('[Discord] Webhook test successful');
       return true;
     } catch (err) {
-      console.error('[Discord] Webhook test failed:', err.message);
+      logger.error('[Discord] Webhook test failed', {
+        error: err.message,
+        stack: err.stack
+      });
       return false;
     }
   }

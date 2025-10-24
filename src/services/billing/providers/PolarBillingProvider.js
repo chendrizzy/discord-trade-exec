@@ -66,7 +66,11 @@ class PolarBillingProvider extends BillingProvider {
       // Map Polar subscription to normalized format
       return this._mapPolarSubscription(subscription, customer.id);
     } catch (error) {
-      console.error('[PolarBillingProvider] Error getting subscription:', error.message);
+      logger.error('[PolarBillingProvider] Error getting subscription', {
+        error: error.message,
+        stack: error.stack,
+        customerId
+      });
       throw new Error(`Failed to get Polar subscription: ${error.message}`);
     }
   }
@@ -99,7 +103,11 @@ class PolarBillingProvider extends BillingProvider {
         createdAt: new Date(result.customer.createdAt)
       };
     } catch (error) {
-      console.error('[PolarBillingProvider] Error getting customer:', error.message);
+      logger.error('[PolarBillingProvider] Error getting customer', {
+        error: error.message,
+        stack: error.stack,
+        customerId
+      });
       throw new Error(`Failed to get Polar customer: ${error.message}`);
     }
   }
@@ -129,7 +137,11 @@ class PolarBillingProvider extends BillingProvider {
         url: result.customerSession.url
       };
     } catch (error) {
-      console.error('[PolarBillingProvider] Error creating customer portal session:', error.message);
+      logger.error('[PolarBillingProvider] Error creating customer portal session', {
+        error: error.message,
+        stack: error.stack,
+        customerId
+      });
       throw new Error(`Failed to create Polar customer portal session: ${error.message}`);
     }
   }
@@ -171,7 +183,11 @@ class PolarBillingProvider extends BillingProvider {
         customerId: result.checkout.customerId
       };
     } catch (error) {
-      console.error('[PolarBillingProvider] Error creating checkout session:', error.message);
+      logger.error('[PolarBillingProvider] Error creating checkout session', {
+        error: error.message,
+        stack: error.stack,
+        productId
+      });
       throw new Error(`Failed to create Polar checkout session: ${error.message}`);
     }
   }
@@ -193,7 +209,11 @@ class PolarBillingProvider extends BillingProvider {
 
       return this._mapPolarProduct(result.product);
     } catch (error) {
-      console.error('[PolarBillingProvider] Error getting product:', error.message);
+      logger.error('[PolarBillingProvider] Error getting product', {
+        error: error.message,
+        stack: error.stack,
+        productId
+      });
       throw new Error(`Failed to get Polar product: ${error.message}`);
     }
   }
@@ -218,7 +238,11 @@ class PolarBillingProvider extends BillingProvider {
 
       return (result.items || []).map(product => this._mapPolarProduct(product));
     } catch (error) {
-      console.error('[PolarBillingProvider] Error listing products:', error.message);
+      logger.error('[PolarBillingProvider] Error listing products', {
+        error: error.message,
+        stack: error.stack,
+        organizationId: this.organizationId
+      });
       throw new Error(`Failed to list Polar products: ${error.message}`);
     }
   }
@@ -248,7 +272,11 @@ class PolarBillingProvider extends BillingProvider {
         cancelAtPeriodEnd: result.subscription.cancelAtPeriodEnd
       };
     } catch (error) {
-      console.error('[PolarBillingProvider] Error canceling subscription:', error.message);
+      logger.error('[PolarBillingProvider] Error canceling subscription', {
+        error: error.message,
+        stack: error.stack,
+        subscriptionId
+      });
       throw new Error(`Failed to cancel Polar subscription: ${error.message}`);
     }
   }
@@ -272,7 +300,11 @@ class PolarBillingProvider extends BillingProvider {
 
       return this._mapPolarSubscription(result.subscription, result.subscription.customerId);
     } catch (error) {
-      console.error('[PolarBillingProvider] Error updating subscription:', error.message);
+      logger.error('[PolarBillingProvider] Error updating subscription', {
+        error: error.message,
+        stack: error.stack,
+        subscriptionId
+      });
       throw new Error(`Failed to update Polar subscription: ${error.message}`);
     }
   }
@@ -303,7 +335,10 @@ class PolarBillingProvider extends BillingProvider {
         Buffer.from(expectedSignature)
       );
     } catch (error) {
-      console.error('[PolarBillingProvider] Error verifying webhook signature:', error.message);
+      logger.error('[PolarBillingProvider] Error verifying webhook signature', {
+        error: error.message,
+        stack: error.stack
+      });
       return false;
     }
   }
