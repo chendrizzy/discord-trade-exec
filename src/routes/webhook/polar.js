@@ -85,9 +85,11 @@ router.post('/', express.raw({ type: 'application/json' }), async (req, res) => 
       webhookEvents.length = WEBHOOK_EVENT_LIMIT;
     }
 
-    console.log(`[Polar Webhook] Received event: ${eventType}`, {
+    logger.info('[Polar Webhook] Received event', {
+      eventType,
       eventId: event.id,
-      customerId: event.data?.customerId
+      customerId: event.data?.customerId,
+      subscriptionId: event.data?.id || event.data?.subscriptionId
     });
 
     // Route event to appropriate handler
@@ -109,7 +111,7 @@ router.post('/', express.raw({ type: 'application/json' }), async (req, res) => 
         break;
 
       default:
-        console.log(`[Polar Webhook] Unhandled event type: ${eventType}`);
+        logger.warn('[Polar Webhook] Unhandled event type', { eventType });
     }
 
     // Acknowledge receipt
@@ -139,7 +141,7 @@ async function handleSubscriptionCreated(event, req, billingProvider) {
     });
 
     if (!community) {
-      console.error(`[Polar Webhook] Community not found for customer: ${customerId}`);
+      logger.error('[Polar Webhook] Community not found for customer', { customerId, subscriptionType });
       return;
     }
 
@@ -177,7 +179,13 @@ async function handleSubscriptionCreated(event, req, billingProvider) {
       }
     });
 
-    console.log(`[Polar Webhook] Community subscription created: ${community.name} -> ${tier}`);
+    logger.info('[Polar Webhook] Community subscription created', {
+      communityId: community._id,
+      communityName: community.name,
+      tier,
+      customerId,
+      productId
+    });
   } else if (subscriptionType === 'trader') {
     // Update User model
     const user = await User.findOne({
@@ -185,7 +193,7 @@ async function handleSubscriptionCreated(event, req, billingProvider) {
     });
 
     if (!user) {
-      console.error(`[Polar Webhook] User not found for customer: ${customerId}`);
+      logger.error('[Polar Webhook] User not found for customer', { customerId, subscriptionType });
       return;
     }
 
@@ -222,9 +230,15 @@ async function handleSubscriptionCreated(event, req, billingProvider) {
       }
     });
 
-    console.log(`[Polar Webhook] Trader subscription created: ${user.discordUsername} -> ${tier}`);
+    logger.info('[Polar Webhook] Trader subscription created', {
+      userId: user._id,
+      username: user.discordUsername,
+      tier,
+      customerId,
+      productId
+    });
   } else {
-    console.error(`[Polar Webhook] Unknown subscription type: ${subscriptionType}`);
+    logger.error('[Polar Webhook] Unknown subscription type', { subscriptionType, customerId });
   }
 }
 
@@ -246,7 +260,7 @@ async function handleSubscriptionUpdated(event, req, billingProvider) {
     });
 
     if (!community) {
-      console.error(`[Polar Webhook] Community not found for subscription: ${subscriptionId}`);
+      logger.error('[Polar Webhook] Community not found for subscription', { subscriptionId, subscriptionType });
       return;
     }
 
@@ -281,14 +295,20 @@ async function handleSubscriptionUpdated(event, req, billingProvider) {
       details: { provider: 'polar', productId }
     });
 
-    console.log(`[Polar Webhook] Community subscription updated: ${community.name} -> ${tier}/${status}`);
+    logger.info('[Polar Webhook] Community subscription updated', {
+      communityId: community._id,
+      communityName: community.name,
+      tier,
+      status,
+      productId
+    });
   } else if (subscriptionType === 'trader') {
     const user = await User.findOne({
       'subscription.polarSubscriptionId': subscriptionId
     });
 
     if (!user) {
-      console.error(`[Polar Webhook] User not found for subscription: ${subscriptionId}`);
+      logger.error('[Polar Webhook] User not found for subscription', { subscriptionId, subscriptionType });
       return;
     }
 
@@ -322,7 +342,13 @@ async function handleSubscriptionUpdated(event, req, billingProvider) {
       details: { provider: 'polar', productId }
     });
 
-    console.log(`[Polar Webhook] Trader subscription updated: ${user.discordUsername} -> ${tier}/${status}`);
+    logger.info('[Polar Webhook] Trader subscription updated', {
+      userId: user._id,
+      username: user.discordUsername,
+      tier,
+      status,
+      productId
+    });
   }
 }
 
@@ -369,7 +395,11 @@ async function handleSubscriptionCancelled(event, req) {
       details: { provider: 'polar', cancelAtPeriodEnd }
     });
 
-    console.log(`[Polar Webhook] Community subscription cancelled: ${community.name}`);
+    logger.info('[Polar Webhook] Community subscription cancelled', {
+      communityId: community._id,
+      communityName: community.name,
+      cancelAtPeriodEnd
+    });
     return;
   }
 
@@ -409,11 +439,15 @@ async function handleSubscriptionCancelled(event, req) {
       details: { provider: 'polar', cancelAtPeriodEnd }
     });
 
-    console.log(`[Polar Webhook] Trader subscription cancelled: ${user.discordUsername}`);
+    logger.info('[Polar Webhook] Trader subscription cancelled', {
+      userId: user._id,
+      username: user.discordUsername,
+      cancelAtPeriodEnd
+    });
     return;
   }
 
-  console.error(`[Polar Webhook] Subscription not found: ${subscriptionId}`);
+  logger.error('[Polar Webhook] Subscription not found', { subscriptionId });
 }
 
 /**
@@ -448,7 +482,12 @@ async function handleCheckoutCompleted(event, req, billingProvider) {
 
       await community.save();
 
-      console.log(`[Polar Webhook] Checkout completed for community: ${community.name}`);
+      logger.info('[Polar Webhook] Checkout completed for community', {
+        communityId: community._id,
+        communityName: community.name,
+        customerId,
+        tier
+      });
     }
   } else if (entityType === 'user' && entityId) {
     const user = await User.findById(entityId);
@@ -465,7 +504,12 @@ async function handleCheckoutCompleted(event, req, billingProvider) {
 
       await user.save();
 
-      console.log(`[Polar Webhook] Checkout completed for trader: ${user.discordUsername}`);
+      logger.info('[Polar Webhook] Checkout completed for trader', {
+        userId: user._id,
+        username: user.discordUsername,
+        customerId,
+        tier
+      });
     }
   }
 }

@@ -15,35 +15,47 @@ router.get('/discord/callback', authLimiter, (req, res, next) => {
   passport.authenticate('discord', (err, user, info) => {
     // Log detailed error information for debugging
     if (err) {
-      logger.error('❌ Discord OAuth Error Details:');
-      console.error('Error type:', err.constructor.name);
-      console.error('Error message:', err.message);
-      console.error('Error stack:', err.stack);
+      const errorDetails = {
+        errorType: err.constructor.name,
+        error: err.message,
+        stack: err.stack
+      };
+
       if (err.oauthError) {
-        console.error('OAuth Error Data:', JSON.stringify(err.oauthError, null, 2));
+        errorDetails.oauthError = err.oauthError;
       }
+
       if (err.data) {
         try {
-          console.error('Discord API Response:', JSON.parse(err.data));
+          errorDetails.discordApiResponse = JSON.parse(err.data);
         } catch (e) {
-          console.error('Discord API Response (raw):', err.data);
+          errorDetails.discordApiResponseRaw = err.data;
         }
       }
+
+      logger.error('[Auth] Discord OAuth error', errorDetails);
       return res.redirect('/login-failed?error=oauth_error');
     }
 
     if (!user) {
-      console.warn('⚠️ Discord OAuth: No user returned. Info:', info);
+      logger.warn('[Auth] Discord OAuth no user returned', { info });
       return res.redirect('/login-failed?error=no_user');
     }
 
     req.logIn(user, loginErr => {
       if (loginErr) {
-        console.error('❌ Session login error:', loginErr);
+        logger.error('[Auth] Session login error', {
+          error: loginErr.message,
+          stack: loginErr.stack,
+          discordId: user.discordId
+        });
         return res.redirect('/login-failed?error=session_error');
       }
 
-      console.log('✅ Discord OAuth successful for user:', user.discordId);
+      logger.info('[Auth] Discord OAuth successful', {
+        discordId: user.discordId,
+        userId: user._id
+      });
       return res.redirect('/dashboard');
     });
   })(req, res, next);
