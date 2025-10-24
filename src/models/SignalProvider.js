@@ -271,6 +271,18 @@ signalProviderSchema.index({ communityId: 1, isActive: 1 }); // Tenant-scoped ac
 signalProviderSchema.index({ communityId: 1, 'performance.winRate': -1 }); // Tenant-scoped top providers
 signalProviderSchema.index({ communityId: 1, verificationStatus: 1 }); // Tenant-scoped verified providers
 
+// **PERFORMANCE OPTIMIZED COVERING INDEX** (US2-T03: Query Optimization)
+// Supports: GET /api/community/top-providers aggregation (community.js lines 68-157)
+// Covers: $match (communityId + isActive + verificationStatus) + $sort (winRate + netProfit)
+// Target: <50ms p95 response time (down from 68ms)
+signalProviderSchema.index({
+  communityId: 1,
+  isActive: 1,
+  verificationStatus: 1,
+  'performance.winRate': -1,
+  'performance.netProfit': -1
+});
+
 // Methods
 signalProviderSchema.methods.updatePerformanceMetrics = async function () {
   const perf = this.performance;
