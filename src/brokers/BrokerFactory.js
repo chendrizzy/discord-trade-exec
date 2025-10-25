@@ -101,7 +101,8 @@ class BrokerFactory {
     this.registerBroker('moomoo', {
       name: 'Moomoo',
       type: 'stock',
-      class: null, // Loaded dynamically when needed (status will default to 'planned')
+      class: null, // Loaded dynamically when needed
+      status: 'available', // Explicitly mark as available (adapter is lazy-loaded)
       features: ['stocks', 'options', 'etfs', 'futures', 'commission-free', 'paper-trading', 'mobile-first'],
       description: 'Modern mobile-first trading platform with comprehensive OpenAPI',
       authMethods: ['api-key'],
