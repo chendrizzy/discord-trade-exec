@@ -247,8 +247,12 @@ if [[ "$SKIP_ENV_VALIDATION" == "false" ]]; then
   )
 
   MISSING_VARS=()
+  # Get all variables in JSON format and check for required ones
+  VARIABLES_JSON=$(railway variables --json 2>/dev/null || echo "{}")
+
   for var in "${REQUIRED_VARS[@]}"; do
-    if ! railway variables get "$var" &> /dev/null; then
+    # Check if variable exists in JSON output
+    if ! echo "$VARIABLES_JSON" | jq -e "has(\"$var\")" &> /dev/null; then
       MISSING_VARS+=("$var")
     fi
   done
