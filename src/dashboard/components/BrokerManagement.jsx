@@ -272,11 +272,11 @@ export function BrokerManagement() {
                 <div>
                   <h3 className="text-lg font-semibold mb-2">No OAuth2 Brokers Connected</h3>
                   <p className="text-muted-foreground text-sm mb-4">
-                    Use the broker wizard to connect exchanges that support OAuth2 authentication.
+                    Connect your broker account securely through their official login portal.
                   </p>
                 </div>
                 <div className="flex justify-center">
-                  <BrokerConfigWizard onSuccess={fetchConfiguredBrokers} />
+                  <BrokerConfigWizard onSuccess={fetchOAuthStatus} />
                 </div>
               </div>
             </CardContent>
