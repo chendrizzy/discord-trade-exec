@@ -300,14 +300,11 @@ export function BrokerManagement() {
 
       {/* API Key / Legacy Broker Configurations */}
       <section className="space-y-4">
-        <div className="flex items-center justify-between">
-          <div>
-            <h2 className="text-2xl font-bold">API Key Broker Configurations</h2>
-            <p className="text-muted-foreground text-sm">
-              Manage brokers that use API keys or other credential-based authentication.
-            </p>
-          </div>
-          <BrokerConfigWizard onSuccess={fetchConfiguredBrokers} />
+        <div>
+          <h2 className="text-2xl font-bold">API Key Broker Configurations</h2>
+          <p className="text-muted-foreground text-sm">
+            Manage brokers that use API keys or other credential-based authentication.
+          </p>
         </div>
 
         {configuredError && (

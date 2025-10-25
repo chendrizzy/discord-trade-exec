@@ -168,6 +168,9 @@ function App() {
               {/* Default redirect to overview */}
               <Route path="/" element={<Navigate to="/overview" replace />} />
 
+              {/* Legacy /dashboard route - redirect to /overview */}
+              <Route path="/dashboard" element={<Navigate to="/overview" replace />} />
+
               {/* Overview Tab */}
               <Route
                 path="/overview"
