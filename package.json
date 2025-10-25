@@ -11,6 +11,7 @@
     "build:dashboard": "vite build",
     "preview:dashboard": "vite preview",
     "test": "NODE_OPTIONS='--experimental-vm-modules' jest --no-coverage",
+    "test:ci": "NODE_OPTIONS='--experimental-vm-modules' jest --ci --no-coverage --maxWorkers=2",
     "test:coverage": "c8 --reporter=text --reporter=lcov --reporter=html npm test",
     "test:coverage:critical": "c8 --reporter=text --reporter=lcov --include='src/routes/api/auth.js' --include='src/middleware/auth.js' --include='src/services/OAuth2Service.js' --include='src/services/MFAService.js' --include='src/services/billing/**' --include='src/services/RiskManagementService.js' --include='src/services/TradeExecutionService.js' npm test",
     "test:unit": "NODE_OPTIONS='--experimental-vm-modules' jest --testPathPatterns=tests/unit --no-coverage",
