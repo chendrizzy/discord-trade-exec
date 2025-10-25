@@ -1,5 +1,5 @@
 import { useState, useEffect, lazy, Suspense } from 'react';
-import { Routes, Route, Navigate, useNavigate } from 'react-router-dom';
+import { Routes, Route, Navigate, useNavigate, useLocation } from 'react-router-dom';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from './components/ui/card';
 import { Badge } from './components/ui/badge';
 import { Button } from './components/ui/button';
@@ -8,6 +8,9 @@ import { WebSocketProvider } from './contexts/WebSocketContext';
 import { ConnectionStatusIndicator } from './components/ConnectionStatusIndicator';
 import { ErrorBoundary } from './components/ErrorBoundary';
 import { getSessionID, getUserID } from './utils/session';
+import { Landing } from './pages/Landing';
+import { TermsOfService } from './pages/TermsOfService';
+import { PrivacyPolicy } from './pages/PrivacyPolicy';
 
 // Lazy load heavy components to reduce initial bundle size
 const PortfolioOverview = lazy(() =>
@@ -55,6 +58,7 @@ const BillingSettings = lazy(() => import('./components/BillingSettings'));
 
 function App() {
   const navigate = useNavigate();
+  const location = useLocation();
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
   const [commandPaletteOpen, setCommandPaletteOpen] = useState(false);
@@ -65,19 +69,27 @@ function App() {
   const sessionID = getSessionID();
   const userId = user ? getUserID(user) : null;
 
+  // Define public routes that don't require authentication
+  const publicRoutes = ['/', '/terms', '/privacy'];
+  const isPublicRoute = publicRoutes.includes(location.pathname);
+
   useEffect(() => {
-    // Check authentication status
-    fetch('/auth/status')
-      .then(res => res.json())
-      .then(data => {
-        setUser(data.user);
-        setLoading(false);
-      })
-      .catch(err => {
-        console.error('Failed to check auth status:', err);
-        setLoading(false);
-      });
-  }, []);
+    // Only check authentication for protected routes
+    if (!isPublicRoute) {
+      fetch('/auth/status')
+        .then(res => res.json())
+        .then(data => {
+          setUser(data.user);
+          setLoading(false);
+        })
+        .catch(err => {
+          console.error('Failed to check auth status:', err);
+          setLoading(false);
+        });
+    } else {
+      setLoading(false);
+    }
+  }, [isPublicRoute]);
 
   // Command Palette keyboard shortcut (⌘K or Ctrl+K)
   useEffect(() => {
@@ -114,6 +126,17 @@ function App() {
         console.log('Unknown action:', action);
     }
   };
+
+  // Show public routes immediately
+  if (isPublicRoute) {
+    return (
+      <Routes>
+        <Route path="/" element={<Landing />} />
+        <Route path="/terms" element={<TermsOfService />} />
+        <Route path="/privacy" element={<PrivacyPolicy />} />
+      </Routes>
+    );
+  }
 
   if (loading) {
     return (
@@ -165,9 +188,6 @@ function App() {
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
             {/* Tab Content - URL-based routing with React Router */}
             <Routes>
-              {/* Default redirect to overview */}
-              <Route path="/" element={<Navigate to="/overview" replace />} />
-
               {/* Legacy /dashboard route - redirect to /overview */}
               <Route path="/dashboard" element={<Navigate to="/overview" replace />} />
 
