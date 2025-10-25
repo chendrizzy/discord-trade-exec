@@ -308,7 +308,7 @@ fi
 
 # Trigger deployment
 log "Triggering Railway deployment to $RAILWAY_ENV environment..."
-railway up --environment "$RAILWAY_ENV" || {
+railway up --service discord-trade-exec --environment "$RAILWAY_ENV" || {
   error "Railway deployment failed"
   exit 1
 }
