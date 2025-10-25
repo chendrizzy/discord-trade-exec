@@ -1,6 +1,7 @@
 /**
  * Session utilities for extracting session information from cookies
  */
+import logger from './logger.js';
 
 /**
  * Parse cookies into an object

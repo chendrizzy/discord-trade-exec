@@ -1,5 +1,6 @@
 import { useEffect, useState, useRef, useCallback } from 'react';
 import { io } from 'socket.io-client';
+import logger from '../utils/logger.js';
 
 /**
  * WebSocket React Hook for Real-Time Updates
