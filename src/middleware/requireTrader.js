@@ -40,11 +40,11 @@ const requireTrader = (req, res, next) => {
   }
 
   // Check account status
-  if (user.accountStatus && user.accountStatus !== 'active') {
+  if (user.accountStatus?.status && user.accountStatus.status !== 'active') {
     return res.status(403).json({
       error: 'Account restricted',
-      message: `Account is ${user.accountStatus}`,
-      accountStatus: user.accountStatus
+      message: `Account is ${user.accountStatus.status}`,
+      accountStatus: user.accountStatus.status
     });
   }
 
