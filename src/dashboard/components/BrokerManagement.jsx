@@ -266,10 +266,18 @@ export function BrokerManagement() {
           </Card>
         ) : oauthBrokers.length === 0 ? (
           <Card>
-            <CardContent className="py-10">
-              <div className="text-center space-y-2 text-sm text-muted-foreground">
-                <p>No OAuth2-enabled brokers are currently configured for this environment.</p>
-                <p>Configure client IDs/secrets via environment variables to enable secure OAuth flows.</p>
+            <CardContent className="py-12">
+              <div className="text-center space-y-4">
+                <Building2 className="h-12 w-12 mx-auto text-muted-foreground" />
+                <div>
+                  <h3 className="text-lg font-semibold mb-2">No OAuth2 Brokers Connected</h3>
+                  <p className="text-muted-foreground text-sm mb-4">
+                    Use the broker wizard to connect exchanges that support OAuth2 authentication.
+                  </p>
+                </div>
+                <div className="flex justify-center">
+                  <BrokerConfigWizard onSuccess={fetchConfiguredBrokers} />
+                </div>
               </div>
             </CardContent>
           </Card>
