@@ -354,16 +354,19 @@ function createApp(options = {}) {
     });
   });
 
-  // 404 handler - must be after all other routes
+  // Catch-all route - serve React app for client-side routing
+  // CRITICAL: Must be BEFORE 404 handler to handle SPA client-side routes
+  // This allows React Router to handle routes like /dashboard, /dashboard/overview, etc.
+  app.get('*', (req, res) => {
+    res.sendFile(path.join(__dirname, '../dist/dashboard/index.html'));
+  });
+
+  // 404 handler - catches non-GET requests to undefined routes (POST/PUT/DELETE/etc)
+  // Note: GET requests are handled by catch-all route above
   app.use(notFoundHandler);
 
   // Global error handler - must be last middleware
   app.use(errorHandler);
-
-  // Catch-all route - serve React app for client-side routing
-  app.get('*', (req, res) => {
-    res.sendFile(path.join(__dirname, '../dist/dashboard/index.html'));
-  });
 
   return app;
 }
