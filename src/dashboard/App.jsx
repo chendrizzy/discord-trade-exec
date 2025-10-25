@@ -5,6 +5,7 @@ import { Button } from './components/ui/button';
 import { Navigation } from './components/Navigation';
 import { WebSocketProvider } from './contexts/WebSocketContext';
 import { ConnectionStatusIndicator } from './components/ConnectionStatusIndicator';
+import { ErrorBoundary } from './components/ErrorBoundary';
 import { getSessionID, getUserID } from './utils/session';
 
 // Lazy load heavy components to reduce initial bundle size
@@ -583,63 +584,73 @@ function App() {
               {activeTab === 'settings' && (
                 <div className="space-y-4">
                   <div className="animate-fade-in" style={{ animationDelay: '0.1s' }}>
-                    <Suspense
-                      fallback={
-                        <div className="h-96 flex items-center justify-center text-sm text-muted-foreground">
-                          Loading broker management...
-                        </div>
-                      }
-                    >
-                      <BrokerManagement />
-                    </Suspense>
+                    <ErrorBoundary>
+                      <Suspense
+                        fallback={
+                          <div className="h-96 flex items-center justify-center text-sm text-muted-foreground">
+                            Loading broker management...
+                          </div>
+                        }
+                      >
+                        <BrokerManagement />
+                      </Suspense>
+                    </ErrorBoundary>
                   </div>
 
                   <div className="animate-fade-in" style={{ animationDelay: '0.2s' }}>
-                    <Suspense
-                      fallback={
-                        <div className="h-64 flex items-center justify-center text-sm text-muted-foreground">
-                          Loading personal settings...
-                        </div>
-                      }
-                    >
-                      <PersonalSettings />
-                    </Suspense>
+                    <ErrorBoundary>
+                      <Suspense
+                        fallback={
+                          <div className="h-64 flex items-center justify-center text-sm text-muted-foreground">
+                            Loading personal settings...
+                          </div>
+                        }
+                      >
+                        <PersonalSettings />
+                      </Suspense>
+                    </ErrorBoundary>
                   </div>
 
                   <div className="animate-fade-in" style={{ animationDelay: '0.3s' }}>
-                    <Suspense
-                      fallback={
-                        <div className="h-64 flex items-center justify-center text-sm text-muted-foreground">
-                          Loading risk settings...
-                        </div>
-                      }
-                    >
-                      <RiskSettings />
-                    </Suspense>
+                    <ErrorBoundary>
+                      <Suspense
+                        fallback={
+                          <div className="h-64 flex items-center justify-center text-sm text-muted-foreground">
+                            Loading risk settings...
+                          </div>
+                        }
+                      >
+                        <RiskSettings />
+                      </Suspense>
+                    </ErrorBoundary>
                   </div>
 
                   <div className="animate-fade-in" style={{ animationDelay: '0.4s' }}>
-                    <Suspense
-                      fallback={
-                        <div className="h-64 flex items-center justify-center text-sm text-muted-foreground">
-                          Loading integration settings...
-                        </div>
-                      }
-                    >
-                      <IntegrationSettings />
-                    </Suspense>
+                    <ErrorBoundary>
+                      <Suspense
+                        fallback={
+                          <div className="h-64 flex items-center justify-center text-sm text-muted-foreground">
+                            Loading integration settings...
+                          </div>
+                        }
+                      >
+                        <IntegrationSettings />
+                      </Suspense>
+                    </ErrorBoundary>
                   </div>
 
                   <div className="animate-fade-in" style={{ animationDelay: '0.5s' }}>
-                    <Suspense
-                      fallback={
-                        <div className="h-64 flex items-center justify-center text-sm text-muted-foreground">
-                          Loading billing settings...
-                        </div>
-                      }
-                    >
-                      <BillingSettings />
-                    </Suspense>
+                    <ErrorBoundary>
+                      <Suspense
+                        fallback={
+                          <div className="h-64 flex items-center justify-center text-sm text-muted-foreground">
+                            Loading billing settings...
+                          </div>
+                        }
+                      >
+                        <BillingSettings />
+                      </Suspense>
+                    </ErrorBoundary>
                   </div>
                 </div>
               )}
