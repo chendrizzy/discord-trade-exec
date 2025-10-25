@@ -29,11 +29,6 @@ export function BrokerManagement() {
   const [oauthAction, setOAuthAction] = useState(null);
   const [callbackNotice, setCallbackNotice] = useState(null);
 
-  useEffect(() => {
-    fetchConfiguredBrokers();
-    fetchOAuthStatus();
-  }, [fetchConfiguredBrokers, fetchOAuthStatus]);
-
   const fetchConfiguredBrokers = useCallback(async () => {
     try {
       setLoadingConfigured(true);
@@ -80,6 +75,11 @@ export function BrokerManagement() {
       setLoadingOAuth(false);
     }
   }, []);
+
+  useEffect(() => {
+    fetchConfiguredBrokers();
+    fetchOAuthStatus();
+  }, [fetchConfiguredBrokers, fetchOAuthStatus]);
 
   const handleRefreshOAuth = async broker => {
     try {
