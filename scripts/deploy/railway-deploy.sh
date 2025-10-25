@@ -28,10 +28,11 @@
 #   environment    Target environment (staging|production)
 #
 # Options:
-#   --skip-tests        Skip pre-deployment tests
-#   --skip-migrations   Skip database migrations
-#   --force             Force deploy without confirmations
-#   --rollback          Rollback to previous deployment
+#   --skip-tests            Skip pre-deployment tests
+#   --skip-migrations       Skip database migrations
+#   --skip-env-validation   Skip environment variable validation (auto-enabled for staging)
+#   --force                 Force deploy without confirmations
+#   --rollback              Rollback to previous deployment
 #
 # Examples:
 #   ./scripts/deploy/railway-deploy.sh staging
@@ -82,6 +83,7 @@ warn() {
 ENVIRONMENT="${1:-}"
 SKIP_TESTS=false
 SKIP_MIGRATIONS=false
+SKIP_ENV_VALIDATION=false
 FORCE=false
 ROLLBACK=false
 
@@ -94,6 +96,10 @@ while [[ $# -gt 0 ]]; do
       ;;
     --skip-migrations)
       SKIP_MIGRATIONS=true
+      shift
+      ;;
+    --skip-env-validation)
+      SKIP_ENV_VALIDATION=true
       shift
       ;;
     --force)
@@ -222,33 +228,43 @@ success "Using Railway environment: $RAILWAY_ENV"
 
 log "Step 5: Validating environment variables"
 
-# Required environment variables (Constitutional Principle I: Security-First)
-REQUIRED_VARS=(
-  "MONGODB_URI"
-  "REDIS_URL"
-  "JWT_SECRET"
-  "ENCRYPTION_KEY"
-  "DISCORD_CLIENT_ID"
-  "DISCORD_CLIENT_SECRET"
-  "NODE_ENV"
-)
-
-MISSING_VARS=()
-for var in "${REQUIRED_VARS[@]}"; do
-  if ! railway variables get "$var" &> /dev/null; then
-    MISSING_VARS+=("$var")
-  fi
-done
-
-if [[ ${#MISSING_VARS[@]} -gt 0 ]]; then
-  error "Missing required environment variables:"
-  for var in "${MISSING_VARS[@]}"; do
-    echo "  - $var"
-  done
-  exit 1
+# Auto-enable skip for staging environment (production requires all vars)
+if [[ "$ENVIRONMENT" == "staging" ]]; then
+  SKIP_ENV_VALIDATION=true
+  warn "Staging environment - environment variable validation relaxed (app will use fallbacks)"
 fi
 
-success "All required environment variables present"
+if [[ "$SKIP_ENV_VALIDATION" == "false" ]]; then
+  # Required environment variables (Constitutional Principle I: Security-First)
+  REQUIRED_VARS=(
+    "MONGODB_URI"
+    "REDIS_URL"
+    "JWT_SECRET"
+    "ENCRYPTION_KEY"
+    "DISCORD_CLIENT_ID"
+    "DISCORD_CLIENT_SECRET"
+    "NODE_ENV"
+  )
+
+  MISSING_VARS=()
+  for var in "${REQUIRED_VARS[@]}"; do
+    if ! railway variables get "$var" &> /dev/null; then
+      MISSING_VARS+=("$var")
+    fi
+  done
+
+  if [[ ${#MISSING_VARS[@]} -gt 0 ]]; then
+    error "Missing required environment variables:"
+    for var in "${MISSING_VARS[@]}"; do
+      echo "  - $var"
+    done
+    exit 1
+  fi
+
+  success "All required environment variables present"
+else
+  warn "Environment variable validation skipped (--skip-env-validation or staging environment)"
+fi
 
 ###############################################################################
 # Database migrations (unless skipped)
