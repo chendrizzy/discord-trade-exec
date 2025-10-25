@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { NavLink } from 'react-router-dom';
 import { Home, Bot, BarChart3, Trophy, Settings, Menu, X, Shield, TrendingUp } from 'lucide-react';
 import { Button } from './ui/button';
 import { cn } from '@/lib/utils';
@@ -20,7 +21,7 @@ const getNavItems = isAdmin => {
   return items;
 };
 
-export function Navigation({ activeTab, onTabChange, userName, onLogout, user }) {
+export function Navigation({ userName, onLogout, user }) {
   const navItems = getNavItems(user?.isAdmin);
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
@@ -38,21 +39,22 @@ export function Navigation({ activeTab, onTabChange, userName, onLogout, user })
           <nav className="flex-1 px-3 py-4 space-y-1">
             {navItems.map(item => {
               const Icon = item.icon;
-              const isActive = activeTab === item.id;
               return (
-                <button
+                <NavLink
                   key={item.id}
-                  onClick={() => onTabChange(item.id)}
-                  className={cn(
-                    'w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors',
-                    isActive
-                      ? 'bg-gold-500/10 text-gold-500 border border-gold-500/20'
-                      : 'text-muted-foreground hover:bg-accent hover:text-foreground'
-                  )}
+                  to={`/${item.id}`}
+                  className={({ isActive }) =>
+                    cn(
+                      'w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors',
+                      isActive
+                        ? 'bg-gold-500/10 text-gold-500 border border-gold-500/20'
+                        : 'text-muted-foreground hover:bg-accent hover:text-foreground'
+                    )
+                  }
                 >
                   <Icon className="h-5 w-5" />
                   {item.label}
-                </button>
+                </NavLink>
               );
             })}
           </nav>
@@ -100,24 +102,23 @@ export function Navigation({ activeTab, onTabChange, userName, onLogout, user })
               <nav className="flex-1 px-3 py-4 space-y-1">
                 {navItems.map(item => {
                   const Icon = item.icon;
-                  const isActive = activeTab === item.id;
                   return (
-                    <button
+                    <NavLink
                       key={item.id}
-                      onClick={() => {
-                        onTabChange(item.id);
-                        setSidebarOpen(false);
-                      }}
-                      className={cn(
-                        'w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors',
-                        isActive
-                          ? 'bg-gold-500/10 text-gold-500 border border-gold-500/20'
-                          : 'text-muted-foreground hover:bg-accent hover:text-foreground'
-                      )}
+                      to={`/${item.id}`}
+                      onClick={() => setSidebarOpen(false)}
+                      className={({ isActive }) =>
+                        cn(
+                          'w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors',
+                          isActive
+                            ? 'bg-gold-500/10 text-gold-500 border border-gold-500/20'
+                            : 'text-muted-foreground hover:bg-accent hover:text-foreground'
+                        )
+                      }
                     >
                       <Icon className="h-5 w-5" />
                       {item.label}
-                    </button>
+                    </NavLink>
                   );
                 })}
               </nav>
@@ -144,19 +145,20 @@ export function Navigation({ activeTab, onTabChange, userName, onLogout, user })
         <nav className="flex items-center justify-around h-16 px-2">
           {navItems.map(item => {
             const Icon = item.icon;
-            const isActive = activeTab === item.id;
             return (
-              <button
+              <NavLink
                 key={item.id}
-                onClick={() => onTabChange(item.id)}
-                className={cn(
-                  'flex flex-col items-center justify-center flex-1 h-full gap-1 transition-colors',
-                  isActive ? 'text-gold-500' : 'text-muted-foreground hover:text-foreground'
-                )}
+                to={`/${item.id}`}
+                className={({ isActive }) =>
+                  cn(
+                    'flex flex-col items-center justify-center flex-1 h-full gap-1 transition-colors',
+                    isActive ? 'text-gold-500' : 'text-muted-foreground hover:text-foreground'
+                  )
+                }
               >
                 <Icon className="h-5 w-5" />
                 <span className="text-xs font-medium">{item.label}</span>
-              </button>
+              </NavLink>
             );
           })}
         </nav>

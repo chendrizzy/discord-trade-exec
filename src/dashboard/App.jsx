@@ -1,4 +1,5 @@
 import { useState, useEffect, lazy, Suspense } from 'react';
+import { Routes, Route, Navigate, useNavigate } from 'react-router-dom';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from './components/ui/card';
 import { Badge } from './components/ui/badge';
 import { Button } from './components/ui/button';
@@ -53,9 +54,9 @@ const IntegrationSettings = lazy(() => import('./components/IntegrationSettings'
 const BillingSettings = lazy(() => import('./components/BillingSettings'));
 
 function App() {
+  const navigate = useNavigate();
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState('overview');
   const [commandPaletteOpen, setCommandPaletteOpen] = useState(false);
   const [portfolioLoading, setPortfolioLoading] = useState(false);
   const [portfolioData, setPortfolioData] = useState(null);
@@ -103,11 +104,11 @@ function App() {
     switch (action) {
       case 'create-bot':
         // Navigate to Bots tab and trigger bot creation
-        setActiveTab('bots');
+        navigate('/bots');
         break;
       case 'api-keys':
         // Navigate to Settings tab
-        setActiveTab('settings');
+        navigate('/settings');
         break;
       default:
         console.log('Unknown action:', action);
@@ -154,8 +155,6 @@ function App() {
       <div className="min-h-screen bg-background">
         {/* Responsive Navigation */}
         <Navigation
-          activeTab={activeTab}
-          onTabChange={setActiveTab}
           userName={`${user.username}#${user.discriminator}`}
           onLogout={handleLogout}
           user={user}
@@ -164,9 +163,15 @@ function App() {
         {/* Main Content - Adjusted for sidebar and mobile nav */}
         <main className="pt-[192px] pb-32 md:pt-0 md:pb-0 md:pl-64 min-h-screen">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-            {/* Tab Content - Controlled by Navigation state */}
-            <div className="space-y-10">
-              {activeTab === 'overview' && (
+            {/* Tab Content - URL-based routing with React Router */}
+            <Routes>
+              {/* Default redirect to overview */}
+              <Route path="/" element={<Navigate to="/overview" replace />} />
+
+              {/* Overview Tab */}
+              <Route
+                path="/overview"
+                element={
                 <div className="space-y-6">
                   {/* Portfolio Overview with Real-Time Updates */}
                   <Suspense
@@ -406,9 +411,13 @@ function App() {
                     </CardContent>
                   </Card>
                 </div>
-              )}
+                }
+              />
 
-              {activeTab === 'bots' && (
+              {/* Bots Tab */}
+              <Route
+                path="/bots"
+                element={
                 <div className="space-y-4">
                   <Card className="animate-fade-in" style={{ animationDelay: '0.1s' }}>
                     <CardHeader>
@@ -523,9 +532,13 @@ function App() {
                     </CardContent>
                   </Card>
                 </div>
-              )}
+                }
+              />
 
-              {activeTab === 'analytics' && (
+              {/* Analytics Tab */}
+              <Route
+                path="/analytics"
+                element={
                 <div className="space-y-4">
                   {/* Portfolio Performance Chart */}
                   <Card className="animate-fade-in" style={{ animationDelay: '0.1s' }}>
@@ -565,9 +578,13 @@ function App() {
                     </CardContent>
                   </Card>
                 </div>
-              )}
+                }
+              />
 
-              {activeTab === 'leaderboard' && (
+              {/* Leaderboard Tab */}
+              <Route
+                path="/leaderboard"
+                element={
                 <div className="space-y-4">
                   <Suspense
                     fallback={
@@ -579,9 +596,13 @@ function App() {
                     <ProviderLeaderboard />
                   </Suspense>
                 </div>
-              )}
+                }
+              />
 
-              {activeTab === 'settings' && (
+              {/* Settings Tab */}
+              <Route
+                path="/settings"
+                element={
                 <div className="space-y-4">
                   <div className="animate-fade-in" style={{ animationDelay: '0.1s' }}>
                     <ErrorBoundary>
@@ -653,9 +674,14 @@ function App() {
                     </ErrorBoundary>
                   </div>
                 </div>
-              )}
+                }
+              />
 
-              {activeTab === 'admin' && user?.isAdmin && (
+              {/* Admin Tab - Only accessible to admins */}
+              {user?.isAdmin && (
+                <Route
+                  path="/admin"
+                  element={
                 <div className="space-y-4">
                   <Suspense
                     fallback={
@@ -667,9 +693,15 @@ function App() {
                     <AdminDashboard />
                   </Suspense>
                 </div>
+                  }
+                />
               )}
 
-              {activeTab === 'business-analytics' && user?.isAdmin && (
+              {/* Business Analytics Tab - Only accessible to admins */}
+              {user?.isAdmin && (
+                <Route
+                  path="/business-analytics"
+                  element={
                 <div className="space-y-6">
                   {/* Main Analytics Dashboard */}
                   <Suspense
@@ -704,8 +736,10 @@ function App() {
                     <CohortRetentionTable />
                   </Suspense>
                 </div>
+                  }
+                />
               )}
-            </div>
+            </Routes>
           </div>
         </main>
 
@@ -714,7 +748,7 @@ function App() {
           <CommandPalette
             open={commandPaletteOpen}
             onOpenChange={setCommandPaletteOpen}
-            onNavigate={setActiveTab}
+            onNavigate={navigate}
             onAction={handleCommandAction}
           />
         </Suspense>
