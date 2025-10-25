@@ -207,12 +207,14 @@ else
   RAILWAY_PROJECT="discord-trade-exec-staging"
 fi
 
-railway link "$RAILWAY_PROJECT" || {
-  error "Failed to link Railway project: $RAILWAY_PROJECT"
-  exit 1
-}
+# Determine environment name for Railway
+if [[ "$ENVIRONMENT" == "production" ]]; then
+  RAILWAY_ENV="production"
+else
+  RAILWAY_ENV="staging"
+fi
 
-success "Linked to Railway project: $RAILWAY_PROJECT"
+success "Using Railway environment: $RAILWAY_ENV"
 
 ###############################################################################
 # Environment validation
@@ -289,8 +291,8 @@ if [[ "$ENVIRONMENT" == "production" && "$FORCE" != "true" ]]; then
 fi
 
 # Trigger deployment
-log "Triggering Railway deployment..."
-railway up || {
+log "Triggering Railway deployment to $RAILWAY_ENV environment..."
+railway up --environment "$RAILWAY_ENV" || {
   error "Railway deployment failed"
   exit 1
 }
