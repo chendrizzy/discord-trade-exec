@@ -222,6 +222,12 @@ fi
 
 success "Using Railway environment: $RAILWAY_ENV"
 
+# Get Railway environment ID for health checks
+RAILWAY_ENVIRONMENT_ID=$(railway variables --json | jq -r '.RAILWAY_ENVIRONMENT_ID // empty')
+if [[ -n "$RAILWAY_ENVIRONMENT_ID" ]]; then
+  log "Railway environment ID: $RAILWAY_ENVIRONMENT_ID"
+fi
+
 ###############################################################################
 # Environment validation
 ###############################################################################
@@ -325,12 +331,23 @@ success "Deployment triggered successfully"
 
 log "Step 8: Post-deployment health checks"
 
-# Get deployed service URL
-DEPLOY_URL=$(railway status --json | jq -r '.deployments[0].url')
+# Get deployed service URL from Railway status JSON
+# Extract the domain from the service instances for the current environment
+DEPLOY_URL=$(railway status --json | jq -r '.services.edges[0].node.serviceInstances.edges[] | select(.node.environmentId == "'$RAILWAY_ENVIRONMENT_ID'") | .node.domains.serviceDomains[0].domain' | head -1)
+
+# If still empty, try getting from variables (fallback)
+if [[ -z "$DEPLOY_URL" || "$DEPLOY_URL" == "null" ]]; then
+  DEPLOY_URL=$(railway variables --json | jq -r '.RAILWAY_PUBLIC_DOMAIN // .DASHBOARD_URL // empty' | sed 's|https://||' | sed 's|http://||')
+fi
 
 if [[ -z "$DEPLOY_URL" || "$DEPLOY_URL" == "null" ]]; then
   error "Could not determine deployment URL"
   exit 1
+fi
+
+# Ensure URL has https:// prefix
+if [[ ! "$DEPLOY_URL" =~ ^https?:// ]]; then
+  DEPLOY_URL="https://$DEPLOY_URL"
 fi
 
 log "Deployment URL: $DEPLOY_URL"
