@@ -304,6 +304,30 @@ function createApp(options = {}) {
     }
   });
 
+  // OAuth2 providers health check endpoint
+  app.get('/health/oauth2', (req, res) => {
+    const { getEnabledProviders, OAUTH2_PROVIDERS } = require('./config/oauth2Providers');
+
+    const enabled = getEnabledProviders();
+    const allProviders = Object.keys(OAUTH2_PROVIDERS);
+    const missing = allProviders.filter(p => !enabled.includes(p));
+
+    res.json({
+      status: enabled.length > 0 ? 'ok' : 'no_providers',
+      enabled,
+      totalConfigured: enabled.length,
+      totalAvailable: allProviders.length,
+      missing,
+      missingDetails: missing.map(key => ({
+        provider: key,
+        requiredEnvVars: [
+          `${key.toUpperCase()}_OAUTH_CLIENT_ID`,
+          `${key.toUpperCase()}_OAUTH_CLIENT_SECRET`
+        ]
+      }))
+    });
+  });
+
   // API info endpoint
   app.get('/api', (req, res) => {
     res.json({

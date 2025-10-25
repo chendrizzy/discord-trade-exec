@@ -112,6 +112,21 @@ if (!IS_TEST) {
     logger.info(`📊 Process ID: ${process.pid}`);
     logger.info(`🔄 Node.js version: ${process.version}`);
     logger.info(`🌐 Server accessible at: http://localhost:${PORT}`);
+
+    // Log OAuth2 provider status
+    try {
+      const { getEnabledProviders } = require('./config/oauth2Providers');
+      const enabled = getEnabledProviders();
+      if (enabled.length > 0) {
+        logger.info(`🔐 OAuth2 Brokers Enabled: ${enabled.join(', ')}`);
+      } else {
+        logger.warn('⚠️  No OAuth2 brokers configured - add credentials to enable');
+        logger.warn('   Missing: ALPACA_OAUTH_CLIENT_ID, IBKR_OAUTH_CLIENT_ID, etc.');
+        logger.warn('   See .env.example for setup instructions');
+      }
+    } catch (error) {
+      logger.error('❌ Failed to load OAuth2 provider status:', { error: error.message });
+    }
   });
 
   // Initialize WebSocket Server for real-time updates (production only)
