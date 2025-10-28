@@ -643,7 +643,7 @@ describe('Error Handler', () => {
 
 ---
 
-## US5: Development Mock Elimination (6 tasks, 4 hours) - ✅ 4/6 COMPLETE
+## US5: Development Mock Elimination ✅ **COMPLETE** (6/6 tasks, 4 hours)
 
 ### US5-T01: Guard PolarBillingProvider Mocks ✅ COMPLETE
 **File**: src/services/PolarBillingProvider.js
@@ -699,13 +699,17 @@ describe('Error Handler', () => {
 
 ---
 
-### US5-T06: Update Deployment Scripts
-**File**: deploy-railway.sh  
-**Effort**: 30min  
-**Depends**: US5-T04  
+### US5-T06: Update Deployment Scripts ✅ COMPLETE
+**File**: deploy-railway.sh
+**Effort**: 30min
+**Depends**: US5-T04
 **Acceptance**:
-- Add env validation to deployment
-- Fail deployment if health check detects mocks
+- [X] Add env validation to deployment (5-step validation process)
+- [X] Fail deployment if environment validation fails
+- [X] Fail deployment if dangerous mocks detected in production
+- [X] Run unit tests before deploying
+- [X] Post-deployment health check verifies mock detection
+- [X] Clear error messages guide configuration fixes
 
 ---
 
