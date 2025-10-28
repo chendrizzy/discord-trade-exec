@@ -62,10 +62,54 @@ router.get('/', ensureAuthenticated, (req, res) => {
 
 /**
  * GET /api/metrics/performance
- * Get HTTP response time metrics (p50/p95/p99) (US6-T01)
- * Requires: Authentication
+ * Get HTTP response time metrics (p50/p95/p99) (US6-T01, US6-T05)
+ * Requires: Admin authentication
  */
-router.get('/performance', ensureAuthenticated, responseTimeTracker.metricsEndpoint);
+router.get('/performance', ensureAdmin, responseTimeTracker.metricsEndpoint);
+
+/**
+ * GET /api/metrics/queries
+ * Get slow query statistics and patterns (US6-T05)
+ * Requires: Admin authentication
+ */
+router.get('/queries', ensureAdmin, (req, res) => {
+  try {
+    // Get query logger instance
+    const { getQueryLoggerInstance } = require('../../utils/analytics-query-logger');
+    const queryLogger = getQueryLoggerInstance();
+
+    // Gather slow query statistics
+    const slowestPatterns = queryLogger.getSlowestPatterns(20);
+    const frequentPatterns = queryLogger.getFrequentPatterns(50);
+
+    res.json({
+      success: true,
+      data: {
+        slowest: slowestPatterns,
+        frequent: frequentPatterns,
+        summary: {
+          totalSlowPatterns: slowestPatterns.length,
+          criticalPatterns: slowestPatterns.filter(p => p.avgTime > 5000).length,
+          needsCaching: slowestPatterns.filter(p =>
+            p.recommendation?.includes('Redis caching')
+          ).length
+        }
+      },
+      timestamp: new Date().toISOString()
+    });
+  } catch (error) {
+    logger.error('Error fetching query metrics:', {
+      error: error.message,
+      correlationId: req.correlationId
+    });
+
+    throw new AppError(
+      'Operation failed',
+      500,
+      ErrorCodes.INTERNAL_SERVER_ERROR
+    );
+  }
+});
 
 /**
  * GET /api/metrics/health
