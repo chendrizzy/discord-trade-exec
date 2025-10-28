@@ -13,6 +13,7 @@ const BaseRepository = require('../../repositories/BaseRepository');
 const { sendSuccess, sendError, sendValidationError, sendNotFound } = require('../../utils/api-response');
 const tradeExecutionService = require('../../services/TradeExecutionService');
 const logger = require('../../utils/logger');
+const { AppError, ErrorCodes } = require('../../middleware/errorHandler');
 
 // Apply rate limiting to all routes
 router.use(apiLimiter);
@@ -130,8 +131,19 @@ router.get(
         }
       });
     } catch (error) {
-      logger.error('Trade history API error:', { error: error.message, stack: error.stack });
-      return sendError(res, 'Failed to fetch trade history', 500, { message: error.message });
+      logger.error('Trade history API error:', {
+        error: error.message,
+        stack: error.stack,
+        userId: req.tenant.userId,
+        filters: req.query,
+        correlationId: req.correlationId
+      });
+      throw new AppError(
+        'Failed to fetch trade history',
+        500,
+        ErrorCodes.INTERNAL_SERVER_ERROR,
+        { userId: req.tenant.userId }
+      );
     }
   }
 );
@@ -163,8 +175,19 @@ router.get('/:tradeId', extractTenantMiddleware, auditLog('trade.view', 'Trade')
       data: trade
     });
   } catch (error) {
-    logger.error('Trade detail API error:', { error: error.message, stack: error.stack });
-    return sendError(res, 'Failed to fetch trade details', 500, { message: error.message });
+    logger.error('Trade detail API error:', {
+      error: error.message,
+      stack: error.stack,
+      tradeId: req.params.tradeId,
+      userId: req.tenant.userId,
+      correlationId: req.correlationId
+    });
+    throw new AppError(
+      'Failed to fetch trade details',
+      500,
+      ErrorCodes.INTERNAL_SERVER_ERROR,
+      { tradeId: req.params.tradeId, userId: req.tenant.userId }
+    );
   }
 });
 
@@ -195,8 +218,18 @@ router.get('/stats/summary', extractTenantMiddleware, auditLog('trade.stats', 'T
       }
     });
   } catch (error) {
-    logger.error('Trade stats API error:', { error: error.message, stack: error.stack });
-    return sendError(res, 'Failed to fetch trade statistics', 500, { message: error.message });
+    logger.error('Trade stats API error:', {
+      error: error.message,
+      stack: error.stack,
+      userId: req.tenant.userId,
+      correlationId: req.correlationId
+    });
+    throw new AppError(
+      'Failed to fetch trade statistics',
+      500,
+      ErrorCodes.INTERNAL_SERVER_ERROR,
+      { userId: req.tenant.userId }
+    );
   }
 });
 
@@ -249,8 +282,19 @@ router.post(
 
       return sendSuccess(res, result.trade, 'Trade executed successfully');
     } catch (error) {
-      logger.error('[Trade Execution API] Error executing trade:', { error: error.message, stack: error.stack });
-      return sendError(res, 'Failed to execute trade', 500, { message: error.message });
+      logger.error('[Trade Execution API] Error executing trade:', {
+        error: error.message,
+        stack: error.stack,
+        userId: req.tenant.userId,
+        signal: req.body,
+        correlationId: req.correlationId
+      });
+      throw new AppError(
+        'Failed to execute trade',
+        500,
+        ErrorCodes.BROKER_ERROR,
+        { userId: req.tenant.userId, symbol: req.body.symbol }
+      );
     }
   }
 );
@@ -282,8 +326,20 @@ router.post(
         `Trade closed with ${result.trade.profitLoss >= 0 ? 'profit' : 'loss'}: $${Math.abs(result.trade.profitLoss).toFixed(2)}`
       );
     } catch (error) {
-      logger.error('[Trade Execution API] Error closing trade:', { error: error.message, stack: error.stack });
-      return sendError(res, 'Failed to close trade', 500, { message: error.message });
+      logger.error('[Trade Execution API] Error closing trade:', {
+        error: error.message,
+        stack: error.stack,
+        tradeId: req.params.tradeId,
+        userId: req.tenant.userId,
+        exitPrice: req.body.exitPrice,
+        correlationId: req.correlationId
+      });
+      throw new AppError(
+        'Failed to close trade',
+        500,
+        ErrorCodes.BROKER_ERROR,
+        { tradeId: req.params.tradeId, userId: req.tenant.userId }
+      );
     }
   }
 );
@@ -309,8 +365,19 @@ router.delete(
 
       return sendSuccess(res, result.trade, 'Trade cancelled successfully');
     } catch (error) {
-      logger.error('[Trade Execution API] Error cancelling trade:', { error: error.message, stack: error.stack });
-      return sendError(res, 'Failed to cancel trade', 500, { message: error.message });
+      logger.error('[Trade Execution API] Error cancelling trade:', {
+        error: error.message,
+        stack: error.stack,
+        tradeId: req.params.tradeId,
+        userId: req.tenant.userId,
+        correlationId: req.correlationId
+      });
+      throw new AppError(
+        'Failed to cancel trade',
+        500,
+        ErrorCodes.BROKER_ERROR,
+        { tradeId: req.params.tradeId, userId: req.tenant.userId }
+      );
     }
   }
 );
@@ -332,8 +399,18 @@ router.get('/active', extractTenantMiddleware, auditLog('trade.view_active', 'Tr
 
     return sendSuccess(res, result.trades, `${result.trades.length} active trade(s) found`);
   } catch (error) {
-    logger.error('[Trade Execution API] Error fetching active trades:', { error: error.message, stack: error.stack });
-    return sendError(res, 'Failed to fetch active trades', 500, { message: error.message });
+    logger.error('[Trade Execution API] Error fetching active trades:', {
+      error: error.message,
+      stack: error.stack,
+      userId: req.tenant.userId,
+      correlationId: req.correlationId
+    });
+    throw new AppError(
+      'Failed to fetch active trades',
+      500,
+      ErrorCodes.INTERNAL_SERVER_ERROR,
+      { userId: req.tenant.userId }
+    );
   }
 });
 
@@ -368,8 +445,19 @@ router.get('/history', extractTenantMiddleware, auditLog('trade.view_history', '
       `Trade history retrieved (${result.trades.length} trades)`
     );
   } catch (error) {
-    logger.error('[Trade Execution API] Error fetching trade history:', { error: error.message, stack: error.stack });
-    return sendError(res, 'Failed to fetch trade history', 500, { message: error.message });
+    logger.error('[Trade Execution API] Error fetching trade history:', {
+      error: error.message,
+      stack: error.stack,
+      userId: req.tenant.userId,
+      timeframe: req.query.timeframe,
+      correlationId: req.correlationId
+    });
+    throw new AppError(
+      'Failed to fetch trade history',
+      500,
+      ErrorCodes.INTERNAL_SERVER_ERROR,
+      { userId: req.tenant.userId }
+    );
   }
 });
 
