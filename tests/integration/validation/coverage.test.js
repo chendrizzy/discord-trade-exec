@@ -478,6 +478,493 @@ describe('Validation Coverage Tests', () => {
     });
   });
 
+  describe('Admin Routes Validation', () => {
+    describe('GET /api/admin/users', () => {
+      it('should reject invalid page number', async () => {
+        const res = await request(app)
+          .get('/api/admin/users')
+          .query({ page: -1 })
+          .expect(400);
+
+        expect(res.body.error).toContain('Validation failed');
+      });
+
+      it('should reject invalid limit number', async () => {
+        const res = await request(app)
+          .get('/api/admin/users')
+          .query({ limit: 1000 })
+          .expect(400);
+
+        expect(res.body.error).toContain('Validation failed');
+      });
+
+      it('should reject invalid tier', async () => {
+        const res = await request(app)
+          .get('/api/admin/users')
+          .query({ tier: 'invalid-tier' })
+          .expect(400);
+
+        expect(res.body.details).toBeDefined();
+      });
+
+      it('should reject invalid status', async () => {
+        const res = await request(app)
+          .get('/api/admin/users')
+          .query({ status: 'invalid-status' })
+          .expect(400);
+
+        expect(res.body.details).toBeDefined();
+      });
+
+      it('should accept valid query parameters', async () => {
+        const res = await request(app)
+          .get('/api/admin/users')
+          .query({ page: 1, limit: 20, tier: 'basic', status: 'active' });
+
+        expect(res.status).not.toBe(400);
+      });
+    });
+
+    describe('PATCH /api/admin/users/:userId/role', () => {
+      it('should reject invalid userId format', async () => {
+        const res = await request(app)
+          .patch('/api/admin/users/invalid-id/role')
+          .send({ communityRole: 'admin' })
+          .expect(400);
+
+        expect(res.body.error).toContain('Validation failed');
+      });
+
+      it('should reject invalid communityRole', async () => {
+        const validId = '507f1f77bcf86cd799439011';
+        const res = await request(app)
+          .patch(`/api/admin/users/${validId}/role`)
+          .send({ communityRole: 'invalid-role' })
+          .expect(400);
+
+        expect(res.body.details).toBeDefined();
+      });
+
+      it('should accept valid role update', async () => {
+        const validId = '507f1f77bcf86cd799439011';
+        const res = await request(app)
+          .patch(`/api/admin/users/${validId}/role`)
+          .send({ communityRole: 'admin' });
+
+        expect(res.status).not.toBe(400);
+      });
+    });
+  });
+
+  describe('Analytics Routes Validation', () => {
+    describe('GET /api/analytics/revenue', () => {
+      it('should reject invalid date format', async () => {
+        const res = await request(app)
+          .get('/api/analytics/revenue')
+          .query({ startDate: 'invalid-date', endDate: '2024-10-28' })
+          .expect(400);
+
+        expect(res.body.error).toContain('Validation failed');
+      });
+
+      it('should reject endDate before startDate', async () => {
+        const res = await request(app)
+          .get('/api/analytics/revenue')
+          .query({ startDate: '2024-10-28', endDate: '2024-10-01' })
+          .expect(400);
+
+        expect(res.body.details).toBeDefined();
+      });
+
+      it('should accept valid date range', async () => {
+        const res = await request(app)
+          .get('/api/analytics/revenue')
+          .query({ startDate: '2024-10-01', endDate: '2024-10-28' });
+
+        expect(res.status).not.toBe(400);
+      });
+    });
+
+    describe('GET /api/analytics/churn', () => {
+      it('should reject missing required dates', async () => {
+        const res = await request(app)
+          .get('/api/analytics/churn')
+          .expect(400);
+
+        expect(res.body.error).toContain('Validation failed');
+      });
+
+      it('should reject invalid period parameter', async () => {
+        const res = await request(app)
+          .get('/api/analytics/churn')
+          .query({
+            startDate: '2024-10-01',
+            endDate: '2024-10-28',
+            period: 'invalid-period'
+          })
+          .expect(400);
+
+        expect(res.body.details).toBeDefined();
+      });
+    });
+
+    describe('POST /api/analytics/churn-risk/calculate', () => {
+      it('should reject missing userId', async () => {
+        const res = await request(app)
+          .post('/api/analytics/churn-risk/calculate')
+          .send({})
+          .expect(400);
+
+        expect(res.body.error).toContain('Validation failed');
+      });
+
+      it('should reject invalid userId format', async () => {
+        const res = await request(app)
+          .post('/api/analytics/churn-risk/calculate')
+          .send({ userId: 'invalid-id' })
+          .expect(400);
+
+        expect(res.body.details).toBeDefined();
+      });
+
+      it('should accept valid userId', async () => {
+        const validId = '507f1f77bcf86cd799439011';
+        const res = await request(app)
+          .post('/api/analytics/churn-risk/calculate')
+          .send({ userId: validId });
+
+        expect(res.status).not.toBe(400);
+      });
+    });
+
+    describe('GET /api/analytics/cohorts/retention', () => {
+      it('should reject invalid period', async () => {
+        const res = await request(app)
+          .get('/api/analytics/cohorts/retention')
+          .query({
+            startDate: '2024-10-01',
+            period: 'invalid-period'
+          })
+          .expect(400);
+
+        expect(res.body.details).toBeDefined();
+      });
+
+      it('should accept valid cohort retention query', async () => {
+        const res = await request(app)
+          .get('/api/analytics/cohorts/retention')
+          .query({
+            startDate: '2024-10-01',
+            period: 'monthly'
+          });
+
+        expect(res.status).not.toBe(400);
+      });
+    });
+
+    describe('GET /api/analytics/cohorts/:cohortId', () => {
+      it('should reject invalid cohortId format', async () => {
+        const res = await request(app)
+          .get('/api/analytics/cohorts/invalid-id')
+          .expect(400);
+
+        expect(res.body.error).toContain('Validation failed');
+      });
+
+      it('should accept valid cohortId', async () => {
+        const validId = '507f1f77bcf86cd799439011';
+        const res = await request(app)
+          .get(`/api/analytics/cohorts/${validId}`);
+
+        expect(res.status).not.toBe(400);
+      });
+    });
+
+    describe('POST /api/analytics/cohorts/compare', () => {
+      it('should reject missing cohortIds', async () => {
+        const res = await request(app)
+          .post('/api/analytics/cohorts/compare')
+          .send({})
+          .expect(400);
+
+        expect(res.body.error).toContain('Validation failed');
+      });
+
+      it('should reject non-array cohortIds', async () => {
+        const res = await request(app)
+          .post('/api/analytics/cohorts/compare')
+          .send({ cohortIds: 'not-an-array' })
+          .expect(400);
+
+        expect(res.body.details).toBeDefined();
+      });
+
+      it('should reject invalid ObjectId in array', async () => {
+        const res = await request(app)
+          .post('/api/analytics/cohorts/compare')
+          .send({ cohortIds: ['invalid-id', '507f1f77bcf86cd799439011'] })
+          .expect(400);
+
+        expect(res.body.details).toBeDefined();
+      });
+
+      it('should accept valid cohortIds array', async () => {
+        const res = await request(app)
+          .post('/api/analytics/cohorts/compare')
+          .send({
+            cohortIds: ['507f1f77bcf86cd799439011', '507f1f77bcf86cd799439012']
+          });
+
+        expect(res.status).not.toBe(400);
+      });
+    });
+
+    describe('GET /api/analytics/metrics/slow-queries', () => {
+      it('should reject invalid threshold', async () => {
+        const res = await request(app)
+          .get('/api/analytics/metrics/slow-queries')
+          .query({ threshold: -100 })
+          .expect(400);
+
+        expect(res.body.details).toBeDefined();
+      });
+
+      it('should accept valid threshold', async () => {
+        const res = await request(app)
+          .get('/api/analytics/metrics/slow-queries')
+          .query({ threshold: 1000 });
+
+        expect(res.status).not.toBe(400);
+      });
+    });
+
+    describe('GET /api/analytics/alerts', () => {
+      it('should reject invalid severity', async () => {
+        const res = await request(app)
+          .get('/api/analytics/alerts')
+          .query({ severity: 'invalid-severity' })
+          .expect(400);
+
+        expect(res.body.details).toBeDefined();
+      });
+
+      it('should accept valid severity', async () => {
+        const res = await request(app)
+          .get('/api/analytics/alerts')
+          .query({ severity: 'critical' });
+
+        expect(res.status).not.toBe(400);
+      });
+    });
+  });
+
+  describe('Providers Routes Validation', () => {
+    describe('GET /api/providers', () => {
+      it('should reject invalid limit', async () => {
+        const res = await request(app)
+          .get('/api/providers')
+          .query({ limit: 1000 })
+          .expect(400);
+
+        expect(res.body.error).toContain('Validation failed');
+      });
+
+      it('should reject invalid minWinRate', async () => {
+        const res = await request(app)
+          .get('/api/providers')
+          .query({ minWinRate: 150 })
+          .expect(400);
+
+        expect(res.body.details).toBeDefined();
+      });
+
+      it('should reject invalid sortBy', async () => {
+        const res = await request(app)
+          .get('/api/providers')
+          .query({ sortBy: 'invalid-sort' })
+          .expect(400);
+
+        expect(res.body.details).toBeDefined();
+      });
+
+      it('should accept valid provider list query', async () => {
+        const res = await request(app)
+          .get('/api/providers')
+          .query({ limit: 20, minWinRate: 60, sortBy: 'winRate' });
+
+        expect(res.status).not.toBe(400);
+      });
+    });
+
+    describe('GET /api/providers/:providerId', () => {
+      it('should reject invalid providerId format', async () => {
+        const res = await request(app)
+          .get('/api/providers/invalid@provider#id')
+          .expect(400);
+
+        expect(res.body.error).toContain('Validation failed');
+      });
+
+      it('should accept valid providerId', async () => {
+        const res = await request(app)
+          .get('/api/providers/valid-provider-123');
+
+        expect(res.status).not.toBe(400);
+      });
+    });
+
+    describe('POST /api/providers/:providerId/review', () => {
+      it('should reject missing rating', async () => {
+        const res = await request(app)
+          .post('/api/providers/provider-123/review')
+          .send({ comment: 'Great provider!' })
+          .expect(400);
+
+        expect(res.body.error).toContain('Validation failed');
+      });
+
+      it('should reject invalid rating range', async () => {
+        const res = await request(app)
+          .post('/api/providers/provider-123/review')
+          .send({ rating: 6, comment: 'Too high!' })
+          .expect(400);
+
+        expect(res.body.details).toBeDefined();
+      });
+
+      it('should accept valid review', async () => {
+        const res = await request(app)
+          .post('/api/providers/provider-123/review')
+          .send({ rating: 5, comment: 'Excellent!' });
+
+        expect(res.status).not.toBe(400);
+      });
+    });
+
+    describe('PUT /api/providers/user/providers/:channelId', () => {
+      it('should reject invalid channelId format', async () => {
+        const res = await request(app)
+          .put('/api/providers/user/providers/invalid@channel#id')
+          .send({ enabled: true })
+          .expect(400);
+
+        expect(res.body.error).toContain('Validation failed');
+      });
+
+      it('should reject invalid minConfidence', async () => {
+        const res = await request(app)
+          .put('/api/providers/user/providers/channel-123')
+          .send({ minConfidence: 1.5 })
+          .expect(400);
+
+        expect(res.body.details).toBeDefined();
+      });
+
+      it('should accept valid provider config', async () => {
+        const res = await request(app)
+          .put('/api/providers/user/providers/channel-123')
+          .send({ enabled: true, minConfidence: 0.8 });
+
+        expect(res.status).not.toBe(400);
+      });
+    });
+  });
+
+  describe('Metrics Routes Validation', () => {
+    describe('GET /api/metrics/custom/:name', () => {
+      it('should reject invalid metric name format', async () => {
+        const res = await request(app)
+          .get('/api/metrics/custom/invalid@metric#name')
+          .expect(400);
+
+        expect(res.body.error).toContain('Validation failed');
+      });
+
+      it('should accept valid metric name', async () => {
+        const res = await request(app)
+          .get('/api/metrics/custom/user-signups');
+
+        expect(res.status).not.toBe(400);
+      });
+    });
+
+    describe('POST /api/metrics/custom', () => {
+      it('should reject missing name', async () => {
+        const res = await request(app)
+          .post('/api/metrics/custom')
+          .send({ value: 42 })
+          .expect(400);
+
+        expect(res.body.error).toContain('Validation failed');
+      });
+
+      it('should reject missing value', async () => {
+        const res = await request(app)
+          .post('/api/metrics/custom')
+          .send({ name: 'test-metric' })
+          .expect(400);
+
+        expect(res.body.error).toContain('Validation failed');
+      });
+
+      it('should reject non-numeric value', async () => {
+        const res = await request(app)
+          .post('/api/metrics/custom')
+          .send({ name: 'test-metric', value: 'not-a-number' })
+          .expect(400);
+
+        expect(res.body.details).toBeDefined();
+      });
+
+      it('should accept valid custom metric', async () => {
+        const res = await request(app)
+          .post('/api/metrics/custom')
+          .send({ name: 'test-metric', value: 42.5 });
+
+        expect(res.status).not.toBe(400);
+      });
+    });
+  });
+
+  describe('Auth MFA Backup Codes Validation', () => {
+    describe('POST /api/auth/mfa/backup-codes/regenerate', () => {
+      it('should reject missing token', async () => {
+        const res = await request(app)
+          .post('/api/auth/mfa/backup-codes/regenerate')
+          .send({})
+          .expect(400);
+
+        expect(res.body.error).toContain('Validation failed');
+      });
+
+      it('should reject invalid token length', async () => {
+        const res = await request(app)
+          .post('/api/auth/mfa/backup-codes/regenerate')
+          .send({ token: '12345' })
+          .expect(400);
+
+        expect(res.body.details).toBeDefined();
+      });
+
+      it('should reject non-numeric token', async () => {
+        const res = await request(app)
+          .post('/api/auth/mfa/backup-codes/regenerate')
+          .send({ token: 'abcdef' })
+          .expect(400);
+
+        expect(res.body.details).toBeDefined();
+      });
+
+      it('should accept valid token', async () => {
+        const res = await request(app)
+          .post('/api/auth/mfa/backup-codes/regenerate')
+          .send({ token: '123456' });
+
+        expect(res.status).not.toBe(400);
+      });
+    });
+  });
+
   describe('Edge Cases', () => {
     it('should handle very long string inputs', async () => {
       const longString = 'a'.repeat(10000);
