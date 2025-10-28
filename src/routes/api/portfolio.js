@@ -7,6 +7,7 @@ const { apiLimiter } = require('../../middleware/rateLimiter');
 const ccxt = require('ccxt');
 const Trade = require('../../models/Trade');
 const logger = require('../../utils/logger');
+const { AppError, ErrorCodes } = require('../../middleware/errorHandler');
 
 // Apply rate limiting
 router.use(apiLimiter);
@@ -76,12 +77,18 @@ router.get('/', ensureAuthenticated, async (req, res) => {
 
     res.json(responseData);
   } catch (error) {
-    logger.error('Portfolio API error:', { error: error.message, stack: error.stack });
-    res.status(500).json({
-      success: false,
-      error: 'Failed to fetch portfolio data',
-      message: error.message
+    logger.error('Portfolio API error:', {
+      error: error.message,
+      stack: error.stack,
+      userId: req.user._id,
+      correlationId: req.correlationId
     });
+    throw new AppError(
+      'Failed to fetch portfolio data',
+      500,
+      ErrorCodes.INTERNAL_SERVER_ERROR,
+      { userId: req.user._id }
+    );
   }
 });
 
@@ -240,11 +247,18 @@ router.post('/refresh', ensureAuthenticated, async (req, res) => {
       message: 'Portfolio cache cleared. Next request will fetch fresh data.'
     });
   } catch (error) {
-    logger.error('Portfolio refresh error:', { error: error.message, stack: error.stack });
-    res.status(500).json({
-      success: false,
-      error: 'Failed to refresh portfolio'
+    logger.error('Portfolio refresh error:', {
+      error: error.message,
+      stack: error.stack,
+      userId: req.user._id,
+      correlationId: req.correlationId
     });
+    throw new AppError(
+      'Failed to refresh portfolio',
+      500,
+      ErrorCodes.INTERNAL_SERVER_ERROR,
+      { userId: req.user._id }
+    );
   }
 });
 
