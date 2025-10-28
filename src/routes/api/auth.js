@@ -16,6 +16,7 @@ const User = require('../../models/User');
 const { BrokerFactory } = require('../../brokers');
 const logger = require('../../utils/logger');
 const { validate } = require('../../middleware/validation');
+const { AppError, ErrorCodes } = require('../../middleware/errorHandler');
 const {
   brokerAuthorizeParams,
   oauthCallbackQuery,
@@ -74,12 +75,15 @@ router.get('/broker/:broker/authorize', ensureAuthenticated, validate(brokerAuth
       broker: req.params.broker,
       userId: req.user.id,
       error: error.message,
-      stack: error.stack
+      stack: error.stack,
+      correlationId: req.correlationId
     });
-    res.status(500).json({
-      success: false,
-      error: error.message
-    });
+    throw new AppError(
+      'Failed to generate authorization URL',
+      500,
+      ErrorCodes.BROKER_ERROR,
+      { broker: req.params.broker }
+    );
   }
 });
 
@@ -172,12 +176,15 @@ router.get('/brokers/status', ensureAuthenticated, async (req, res) => {
     logger.error('Failed to fetch OAuth2 broker status', {
       userId: req.user.id,
       error: error.message,
-      stack: error.stack
+      stack: error.stack,
+      correlationId: req.correlationId
     });
-    res.status(500).json({
-      success: false,
-      error: error.message
-    });
+    throw new AppError(
+      'Failed to fetch broker status',
+      500,
+      ErrorCodes.BROKER_ERROR,
+      { userId: req.user.id }
+    );
   }
 });
 
@@ -280,9 +287,12 @@ router.get('/callback', validate(oauthCallbackQuery, 'query'), async (req, res) 
       error: error.message,
       stack: error.stack,
       state: req.query.state,
-      ip: req.ip
+      ip: req.ip,
+      correlationId: req.correlationId
     });
-    res.redirect(`/dashboard?oauth_error=${encodeURIComponent(error.message)}`);
+    // For callbacks, redirect to dashboard with generic error message
+    const errorMessage = 'Authorization failed. Please try connecting again.';
+    res.redirect(`/dashboard?oauth_error=${encodeURIComponent(errorMessage)}`);
   }
 });
 
@@ -383,12 +393,15 @@ router.post('/callback', validate(oauthCallbackBody, 'body'), async (req, res) =
       stack: error.stack,
       code: req.body.code ? 'present' : 'missing',
       state: req.body.state,
-      ip: req.ip
+      ip: req.ip,
+      correlationId: req.correlationId
     });
-    res.status(500).json({
-      success: false,
-      error: error.message
-    });
+    throw new AppError(
+      'Authorization failed',
+      500,
+      ErrorCodes.BROKER_AUTH_FAILED,
+      { state: req.body.state }
+    );
   }
 });
 
@@ -436,12 +449,15 @@ router.delete('/brokers/:broker/oauth', ensureAuthenticated, validate(deleteBrok
       broker: req.params.broker,
       userId: req.user.id,
       error: error.message,
-      stack: error.stack
+      stack: error.stack,
+      correlationId: req.correlationId
     });
-    res.status(500).json({
-      success: false,
-      error: error.message
-    });
+    throw new AppError(
+      'Failed to revoke broker connection',
+      500,
+      ErrorCodes.BROKER_ERROR,
+      { broker: req.params.broker, userId: req.user.id }
+    );
   }
 });
 
@@ -487,12 +503,15 @@ router.post('/brokers/:broker/oauth/refresh', ensureAuthenticated, validate(refr
       broker: req.params.broker,
       userId: req.user.id,
       error: error.message,
-      stack: error.stack
+      stack: error.stack,
+      correlationId: req.correlationId
     });
-    res.status(500).json({
-      success: false,
-      error: error.message
-    });
+    throw new AppError(
+      'Failed to refresh broker tokens',
+      500,
+      ErrorCodes.BROKER_AUTH_FAILED,
+      { broker: req.params.broker, userId: req.user.id }
+    );
   }
 });
 
@@ -530,22 +549,25 @@ router.post('/mfa/setup', ensureAuthenticated, async (req, res) => {
       userId: req.user._id,
       username: req.user.discordUsername,
       error: error.message,
-      stack: error.stack
+      stack: error.stack,
+      correlationId: req.correlationId
     });
 
     if (error.message.includes('already enabled')) {
-      return res.status(400).json({
-        success: false,
-        error: error.message,
-        code: 'MFA_ALREADY_ENABLED'
-      });
+      throw new AppError(
+        'MFA is already enabled',
+        400,
+        ErrorCodes.VALIDATION_ERROR,
+        { userId: req.user._id }
+      );
     }
 
-    res.status(500).json({
-      success: false,
-      error: 'Failed to initiate MFA setup',
-      message: error.message
-    });
+    throw new AppError(
+      'Failed to initiate MFA setup',
+      500,
+      ErrorCodes.INTERNAL_SERVER_ERROR,
+      { userId: req.user._id }
+    );
   }
 });
 
@@ -592,38 +614,43 @@ router.post('/mfa/enable', ensureAuthenticated, validate(mfaEnableBody, 'body'),
       userId: req.user._id,
       username: req.user.discordUsername,
       error: error.message,
-      stack: error.stack
+      stack: error.stack,
+      correlationId: req.correlationId
     });
 
     if (error.message.includes('Invalid TOTP token')) {
-      return res.status(400).json({
-        success: false,
-        error: 'Invalid verification code. Please try again.',
-        code: 'INVALID_TOKEN'
-      });
+      throw new AppError(
+        'Invalid verification code',
+        400,
+        ErrorCodes.INVALID_TOKEN,
+        { userId: req.user._id }
+      );
     }
 
     if (error.message.includes('already enabled')) {
-      return res.status(400).json({
-        success: false,
-        error: error.message,
-        code: 'MFA_ALREADY_ENABLED'
-      });
+      throw new AppError(
+        'MFA is already enabled',
+        400,
+        ErrorCodes.VALIDATION_ERROR,
+        { userId: req.user._id }
+      );
     }
 
     if (error.message.includes('Rate limit exceeded')) {
-      return res.status(429).json({
-        success: false,
-        error: error.message,
-        code: 'RATE_LIMIT_EXCEEDED'
-      });
+      throw new AppError(
+        'Too many attempts',
+        429,
+        ErrorCodes.RATE_LIMIT_EXCEEDED,
+        { userId: req.user._id }
+      );
     }
 
-    res.status(500).json({
-      success: false,
-      error: 'Failed to enable MFA',
-      message: error.message
-    });
+    throw new AppError(
+      'Failed to enable MFA',
+      500,
+      ErrorCodes.INTERNAL_SERVER_ERROR,
+      { userId: req.user._id }
+    );
   }
 });
 
@@ -674,38 +701,43 @@ router.post('/mfa/disable', ensureAuthenticated, validate(mfaDisableBody, 'body'
       userId: req.user._id,
       username: req.user.discordUsername,
       error: error.message,
-      stack: error.stack
+      stack: error.stack,
+      correlationId: req.correlationId
     });
 
     if (error.message.includes('Invalid TOTP token')) {
-      return res.status(400).json({
-        success: false,
-        error: 'Invalid verification code. Cannot disable MFA without verification.',
-        code: 'INVALID_TOKEN'
-      });
+      throw new AppError(
+        'Invalid verification code',
+        400,
+        ErrorCodes.INVALID_TOKEN,
+        { userId: req.user._id }
+      );
     }
 
     if (error.message.includes('not enabled')) {
-      return res.status(400).json({
-        success: false,
-        error: error.message,
-        code: 'MFA_NOT_ENABLED'
-      });
+      throw new AppError(
+        'MFA is not enabled',
+        400,
+        ErrorCodes.VALIDATION_ERROR,
+        { userId: req.user._id }
+      );
     }
 
     if (error.message.includes('Rate limit exceeded')) {
-      return res.status(429).json({
-        success: false,
-        error: error.message,
-        code: 'RATE_LIMIT_EXCEEDED'
-      });
+      throw new AppError(
+        'Too many attempts',
+        429,
+        ErrorCodes.RATE_LIMIT_EXCEEDED,
+        { userId: req.user._id }
+      );
     }
 
-    res.status(500).json({
-      success: false,
-      error: 'Failed to disable MFA',
-      message: error.message
-    });
+    throw new AppError(
+      'Failed to disable MFA',
+      500,
+      ErrorCodes.INTERNAL_SERVER_ERROR,
+      { userId: req.user._id }
+    );
   }
 });
 
@@ -752,38 +784,43 @@ router.post('/mfa/backup-codes/regenerate', ensureAuthenticated, async (req, res
       userId: req.user._id,
       username: req.user.discordUsername,
       error: error.message,
-      stack: error.stack
+      stack: error.stack,
+      correlationId: req.correlationId
     });
 
     if (error.message.includes('Invalid TOTP token')) {
-      return res.status(400).json({
-        success: false,
-        error: 'Invalid verification code. Cannot regenerate backup codes without verification.',
-        code: 'INVALID_TOKEN'
-      });
+      throw new AppError(
+        'Invalid verification code',
+        400,
+        ErrorCodes.INVALID_TOKEN,
+        { userId: req.user._id }
+      );
     }
 
     if (error.message.includes('not enabled')) {
-      return res.status(400).json({
-        success: false,
-        error: error.message,
-        code: 'MFA_NOT_ENABLED'
-      });
+      throw new AppError(
+        'MFA is not enabled',
+        400,
+        ErrorCodes.VALIDATION_ERROR,
+        { userId: req.user._id }
+      );
     }
 
     if (error.message.includes('Rate limit exceeded')) {
-      return res.status(429).json({
-        success: false,
-        error: error.message,
-        code: 'RATE_LIMIT_EXCEEDED'
-      });
+      throw new AppError(
+        'Too many attempts',
+        429,
+        ErrorCodes.RATE_LIMIT_EXCEEDED,
+        { userId: req.user._id }
+      );
     }
 
-    res.status(500).json({
-      success: false,
-      error: 'Failed to regenerate backup codes',
-      message: error.message
-    });
+    throw new AppError(
+      'Failed to regenerate backup codes',
+      500,
+      ErrorCodes.INTERNAL_SERVER_ERROR,
+      { userId: req.user._id }
+    );
   }
 });
 
@@ -810,14 +847,16 @@ router.get('/mfa/status', ensureAuthenticated, async (req, res) => {
       userId: req.user._id,
       username: req.user.discordUsername,
       error: error.message,
-      stack: error.stack
+      stack: error.stack,
+      correlationId: req.correlationId
     });
 
-    res.status(500).json({
-      success: false,
-      error: 'Failed to get MFA status',
-      message: error.message
-    });
+    throw new AppError(
+      'Failed to get MFA status',
+      500,
+      ErrorCodes.INTERNAL_SERVER_ERROR,
+      { userId: req.user._id }
+    );
   }
 });
 
@@ -917,22 +956,25 @@ router.post('/mfa/verify', ensureAuthenticated, validate(mfaVerifyBody, 'body'),
       userId: req.user._id,
       username: req.user.discordUsername,
       error: error.message,
-      stack: error.stack
+      stack: error.stack,
+      correlationId: req.correlationId
     });
 
     if (error.message.includes('Rate limit exceeded')) {
-      return res.status(429).json({
-        success: false,
-        error: error.message,
-        code: 'RATE_LIMIT_EXCEEDED'
-      });
+      throw new AppError(
+        'Too many attempts',
+        429,
+        ErrorCodes.RATE_LIMIT_EXCEEDED,
+        { userId: req.user._id }
+      );
     }
 
-    res.status(500).json({
-      success: false,
-      error: 'Failed to verify MFA',
-      message: error.message
-    });
+    throw new AppError(
+      'Failed to verify MFA',
+      500,
+      ErrorCodes.INTERNAL_SERVER_ERROR,
+      { userId: req.user._id }
+    );
   }
 });
 
