@@ -829,7 +829,7 @@ describe('Error Handler', () => {
 
 ---
 
-## US6: Performance Monitoring & Alerting (3/12 COMPLETE) (12 tasks, 10 hours)
+## US6: Performance Monitoring & Alerting (4/12 COMPLETE) (12 tasks, 10 hours)
 
 ### US6-T01: Create Performance Tracking Middleware [TDD] ✅ COMPLETE
 **File**: src/middleware/performance-tracker.js
@@ -890,14 +890,39 @@ describe('Error Handler', () => {
 
 ---
 
-### US6-T04: Configure Slow Query Alerts
-**File**: src/utils/alerts.js  
-**Effort**: 1h  
-**Depends**: US6-T03  
+### US6-T04: Configure Slow Query Alerts ✅ COMPLETE
+**Files**: src/utils/alerts.js, src/utils/analytics-query-logger.js, .env.example
+**Effort**: 1h
+**Depends**: US6-T03
 **Acceptance**:
-- Alert if query >2000ms avg
-- Include query pattern and recommendation
-- Send to Slack #alerts channel
+- [X] Alert if query >2000ms avg
+- [X] Include query pattern and recommendation
+- [X] Send to Slack #alerts channel
+
+**Implementation Details**:
+- Created src/utils/alerts.js (294 lines): AlertsService class
+  - sendSlowQueryAlert: Main alert method with query details and recommendations
+  - sendToSlack: Slack webhook integration with markdown formatting
+  - sendToDiscord: Discord webhook fallback with embeds
+  - Alert deduplication with 5-minute cooldown per pattern
+  - Graceful handling when webhooks not configured
+- Modified src/utils/analytics-query-logger.js:
+  - Added checkAndSendSlowQueryAlert method (checks avgTime > 2000ms)
+  - Integrated alert check in updatePattern method
+  - Minimum 5 executions before alerting (avoids noise)
+  - Lazy-loads alerts service (prevents circular dependencies)
+  - Fire-and-forget pattern (non-blocking operation)
+- Updated .env.example:
+  - Added SLACK_ALERTS_WEBHOOK_URL configuration
+  - Documentation for performance alert webhooks
+- Features:
+  - Alerts triggered when query pattern avgTime > 2000ms
+  - Includes query type, collection, execution count, avgTime
+  - Generates optimization recommendations via getOptimizationRecommendation
+  - Deduplication prevents spam (5-min cooldown per query pattern)
+  - Non-blocking: doesn't disrupt query logging if alert fails
+- All 16 US6-T01 tests still passing ✅
+- Commit: 220df93
 
 ---
 
