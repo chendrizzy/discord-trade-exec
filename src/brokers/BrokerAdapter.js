@@ -4,6 +4,8 @@
  * to ensure consistent behavior across different brokers
  */
 
+const logger = require('../utils/logger');
+
 class BrokerAdapter {
   constructor(credentials, options = {}) {
     this.credentials = credentials;
@@ -12,6 +14,32 @@ class BrokerAdapter {
     this.brokerName = 'base';
     this.brokerType = 'unknown'; // 'stock' or 'crypto'
     this.isTestnet = options.isTestnet || false;
+
+    // Guard against sandbox mode in production
+    this._validateNotProductionSandbox();
+  }
+
+  /**
+   * Validate that sandbox/testnet mode is not used in production
+   * @private
+   * @throws {Error} If in production and sandbox mode is enabled without explicit override
+   */
+  _validateNotProductionSandbox() {
+    if (process.env.NODE_ENV === 'production' && this.isTestnet && process.env.BROKER_ALLOW_SANDBOX !== 'true') {
+      const error = new Error(
+        `${this.brokerName || 'Broker'}: Sandbox/testnet mode is not allowed in production. ` +
+        `Please use live credentials or set BROKER_ALLOW_SANDBOX=true explicitly for testing.`
+      );
+      logger.error('[BrokerAdapter] Production sandbox usage prevented', {
+        brokerName: this.brokerName,
+        brokerType: this.brokerType,
+        nodeEnv: process.env.NODE_ENV,
+        isTestnet: this.isTestnet,
+        brokerAllowSandbox: process.env.BROKER_ALLOW_SANDBOX,
+        errorMessage: error.message
+      });
+      throw error;
+    }
   }
 
   /**

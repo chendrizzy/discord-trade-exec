@@ -44,6 +44,24 @@ class EtradeAdapter extends BrokerAdapter {
 
     this.brokerName = 'etrade';
     this.brokerType = 'stock';
+
+    // Guard against sandbox mode in production
+    if (process.env.NODE_ENV === 'production' && options.sandbox && process.env.BROKER_ALLOW_SANDBOX !== 'true') {
+      const error = new Error(
+        'E*TRADE: Sandbox mode is not allowed in production. ' +
+        'Please use live credentials or set BROKER_ALLOW_SANDBOX=true explicitly for testing.'
+      );
+      const logger = require('../../utils/logger');
+      logger.error('[EtradeAdapter] Production sandbox usage prevented', {
+        brokerName: 'etrade',
+        nodeEnv: process.env.NODE_ENV,
+        sandbox: options.sandbox,
+        brokerAllowSandbox: process.env.BROKER_ALLOW_SANDBOX,
+        errorMessage: error.message
+      });
+      throw error;
+    }
+
     this.baseURL = options.sandbox ? 'https://etwssandbox.etrade.com' : 'https://api.etrade.com';
 
     // OAuth 1.0a credentials

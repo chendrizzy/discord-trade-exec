@@ -68,6 +68,20 @@ class BinanceAdapter extends BrokerAdapter {
 
       // Use testnet if specified
       if (credentials.testnet) {
+        // Guard against sandbox mode in production
+        if (process.env.NODE_ENV === 'production' && process.env.BROKER_ALLOW_SANDBOX !== 'true') {
+          const error = new Error(
+            'Binance: Sandbox/testnet mode is not allowed in production. ' +
+            'Please use live credentials or set BROKER_ALLOW_SANDBOX=true explicitly for testing.'
+          );
+          logger.error('[BinanceAdapter] Production sandbox usage prevented', {
+            brokerName: 'binance',
+            nodeEnv: process.env.NODE_ENV,
+            brokerAllowSandbox: process.env.BROKER_ALLOW_SANDBOX,
+            errorMessage: error.message
+          });
+          throw error;
+        }
         this.exchange.setSandboxMode(true);
         logger.info('[BinanceAdapter] Using Binance testnet');
       }
