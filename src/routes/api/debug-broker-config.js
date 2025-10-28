@@ -8,6 +8,8 @@ const express = require('express');
 const router = express.Router();
 const User = require('../../models/User');
 const { ensureAuthenticated } = require('../../middleware/auth');
+const { AppError, ErrorCodes } = require('../../middleware/errorHandler');
+const logger = require('../../utils/logger');
 
 router.get('/debug-broker-config', ensureAuthenticated, async (req, res) => {
   try {
@@ -29,10 +31,18 @@ router.get('/debug-broker-config', ensureAuthenticated, async (req, res) => {
       }
     });
   } catch (error) {
-    res.status(500).json({
-      success: false,
-      error: error.message
+    logger.error('Error fetching broker config debug info:', {
+      error: error.message,
+      stack: error.stack,
+      userId: req.user?.id,
+      correlationId: req.correlationId
     });
+    throw new AppError(
+      'Failed to fetch debug information',
+      500,
+      ErrorCodes.INTERNAL_SERVER_ERROR,
+      { userId: req.user?.id }
+    );
   }
 });
 
