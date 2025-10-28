@@ -14,7 +14,6 @@
  */
 
 const logger = require('../utils/logger');
-const { getCorrelationId } = require('../utils/logger');
 const { getConfig, isProduction } = require('../config/env');
 const errorNotificationService = require('../services/ErrorNotificationService');
 
@@ -262,7 +261,7 @@ function errorHandler(err, req, res, next) {
   appError.message = sanitizeErrorMessage(appError);
 
   // Get correlation ID from AsyncLocalStorage or request
-  const correlationId = getCorrelationId() || req.correlationId;
+  const correlationId = logger.getCorrelationId() || req.correlationId;
 
   // Prepare error data for logging and notifications
   const errorData = {
