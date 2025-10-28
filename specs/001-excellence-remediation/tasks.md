@@ -1225,24 +1225,43 @@ describe('Error Handler', () => {
 
 ---
 
-### US7-T07: Run OWASP ZAP Scan
-**Effort**: 1h  
-**Depends**: US7-T03  
+### US7-T07: Run OWASP ZAP Scan ❌ BLOCKED - TOOLING NOT INSTALLED
+**Effort**: 1h (scan) + 1h (tooling setup) = 2h total
+**Depends**: US7-T03
 **Acceptance**:
-- Run automated scan
-- Fix all high/critical vulnerabilities
-- Document results
+- [ ] Run automated scan
+- [ ] Fix all high/critical vulnerabilities
+- [ ] Document results
+
+**Status**: BLOCKED - OWASP ZAP not installed on system
+
+**Verification**:
+```bash
+which zap-cli || which zaproxy
+# Result: zap-cli not found, zaproxy not found
+```
+
+**Installation Required**:
+1. Install OWASP ZAP via Homebrew: `brew install --cask owasp-zap`
+2. Or use Docker: `docker pull owasp/zap2docker-stable`
+3. Configure ZAP baseline scan for application
+4. Start application server (PORT 3000)
+5. Run scan: `zap-cli quick-scan --self-contained http://localhost:3000`
+
+**Estimated Effort**: 1h installation + configuration, 1h scan execution and vulnerability review
 
 ---
 
-### US7-T08: Update CI/CD Security Checks
-**File**: .github/workflows/security.yml  
-**Effort**: 30min  
-**Depends**: US7-T07  
+### US7-T08: Update CI/CD Security Checks ❌ BLOCKED - DEPENDS ON US7-T07
+**File**: .github/workflows/security.yml
+**Effort**: 30min
+**Depends**: US7-T07
 **Acceptance**:
-- Run OWASP ZAP in CI
-- Fail if high/critical vulnerabilities
-- Run npm audit
+- [ ] Run OWASP ZAP in CI
+- [ ] Fail if high/critical vulnerabilities
+- [ ] Run npm audit
+
+**Status**: BLOCKED - Cannot implement CI/CD security checks until US7-T07 (OWASP ZAP scan) is unblocked and completed
 
 ---
 
