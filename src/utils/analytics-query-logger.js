@@ -143,6 +143,11 @@ class QueryPatternLogger {
     }
     pattern.cacheHitRate = pattern.cacheHits / pattern.count;
 
+    // US6-T04: Check for slow query patterns (>2000ms avg) and send alert
+    if (pattern.avgTime > 2000) {
+      this.checkAndSendSlowQueryAlert(pattern, patternKey);
+    }
+
     // Limit cache size
     if (this.patterns.size > this.PATTERN_CACHE_SIZE) {
       this.cleanupOldestPatterns();
@@ -430,6 +435,43 @@ class QueryPatternLogger {
   cleanupHourlyData() {
     const oneHourAgo = Date.now() - (60 * 60 * 1000);
     this.slowQueriesPerHour = this.slowQueriesPerHour.filter(q => q.timestamp > oneHourAgo);
+  }
+
+  /**
+   * Check and send slow query alert (US6-T04)
+   * Sends webhook alert if query pattern avgTime > 2000ms
+   * @param {Object} pattern - Query pattern statistics
+   * @param {string} patternKey - Pattern key for deduplication
+   * @private
+   */
+  checkAndSendSlowQueryAlert(pattern, patternKey) {
+    // Only alert if we have enough data (at least 5 executions)
+    if (pattern.count < 5) {
+      return;
+    }
+
+    // Lazy-load alerts service to avoid circular dependencies
+    const { getAlertsService } = require('./alerts');
+    const alertsService = getAlertsService();
+
+    // Get optimization recommendation
+    const recommendation = this.getOptimizationRecommendation(pattern);
+
+    // Send alert (fire-and-forget, don't block)
+    alertsService.sendSlowQueryAlert({
+      queryType: pattern.queryType,
+      params: pattern.paramStructure,
+      avgTime: Math.round(pattern.avgTime),
+      count: pattern.count,
+      collection: pattern.collection || 'unknown',
+      recommendation
+    }).catch(error => {
+      // Log error but don't throw (don't disrupt query logging)
+      queryLogger.error('Failed to send slow query alert', {
+        error: error.message,
+        pattern: patternKey
+      });
+    });
   }
 
   /**
