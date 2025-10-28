@@ -685,13 +685,17 @@ describe('Error Handler', () => {
 
 ---
 
-### US5-T05: Test Mock Guards
-**File**: tests/unit/utils/env-validator.test.js  
-**Effort**: 30min  
-**Depends**: US5-T03  
+### US5-T05: Test Mock Guards ✅ COMPLETE
+**File**: tests/unit/utils/env-validator.test.js
+**Effort**: 30min
+**Depends**: US5-T03
 **Acceptance**:
-- Test production fails with BILLING_PROVIDER=mock
-- Test development allows mocks
+- [X] Test production fails with BILLING_PROVIDER=mock (7 tests)
+- [X] Test development allows mocks (4 tests)
+- [X] Test mock detection (7 tests)
+- [X] Test environment summary (3 tests)
+- [X] Test health check integration scenarios (2 tests)
+- [X] All 26 tests passing
 
 ---
 
