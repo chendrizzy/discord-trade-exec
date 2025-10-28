@@ -829,37 +829,40 @@ describe('Error Handler', () => {
 
 ---
 
-## US6: Performance Monitoring & Alerting (12 tasks, 10 hours)
+## US6: Performance Monitoring & Alerting (2/12 COMPLETE) (12 tasks, 10 hours)
 
-### US6-T01: Create Performance Tracking Middleware [TDD]
-**File**: src/middleware/performance-tracker.js  
-**Effort**: 2h  
+### US6-T01: Create Performance Tracking Middleware [TDD] ✅ COMPLETE
+**File**: src/middleware/performance-tracker.js
+**Effort**: 2h
 **Acceptance**:
-- Track response time for all requests
-- Store p50/p95/p99 in memory (1-hour window)
-- Expose /api/metrics/performance endpoint
-- Alert if p95 >200ms for 5 minutes
+- [X] Track response time for all requests
+- [X] Store p50/p95/p99 in memory (1-hour window)
+- [X] Expose /api/metrics/performance endpoint
+- [X] Alert if p95 >200ms for 5 minutes
 
-**Test First**:
-```javascript
-// tests/integration/middleware/performance-tracker.test.js
-describe('Performance Tracker', () => {
-  it('should track response times');
-  it('should calculate p95 correctly');
-  it('should expose metrics endpoint');
-  it('should alert on slow responses');
-});
-```
+**Implementation Details**:
+- Created src/middleware/performance-tracker.js (259 lines)
+- Created tests/integration/middleware/performance-tracker.test.js (407 lines)
+- 16/16 tests passing ✅
+- Commit: c32cf78
 
 ---
 
-### US6-T02: Instrument All API Routes
-**Files**: src/routes/api/*.js  
-**Effort**: 2h  
-**Depends**: US6-T01  
+### US6-T02: Instrument All API Routes ✅ COMPLETE
+**Files**: src/app.js, src/routes/api/metrics.js
+**Effort**: 2h
+**Depends**: US6-T01
 **Acceptance**:
-- Performance middleware registered on all routes
-- Metrics tagged by endpoint, method, status code
+- [X] Performance middleware registered on all routes
+- [X] Metrics tagged by endpoint, method, status code
+
+**Implementation Details**:
+- Added performanceTracker.middleware to app.js (global registration)
+- Added GET /api/metrics/performance endpoint to metrics.js
+- Middleware tracks all HTTP requests automatically
+- Response times tagged by endpoint, method, status code
+- All 16 US6-T01 tests still passing ✅
+- Commit: 08f31fe
 
 ---
 
