@@ -31,6 +31,7 @@ const {
 const AlpacaAdapter = require('../../brokers/adapters/AlpacaAdapter');
 const SchwabAdapter = require('../../brokers/adapters/SchwabAdapter');
 const logger = require('../../utils/logger');
+const { AppError, ErrorCodes } = require('../../middleware/errorHandler');
 
 // Store OAuth state temporarily (in production, use Redis)
 const oauthStates = new Map();
@@ -113,8 +114,27 @@ router.get('/initiate/:brokerKey', validate(initiateOAuthParams, 'params'), asyn
     // Redirect to broker's OAuth page
     res.redirect(authUrl);
   } catch (error) {
-    logger.error('[OAuth Initiate] Error:', { error: error.message, stack: error.stack });
-    return sendError(res, `Failed to initiate OAuth: ${error.message}`, 500);
+
+    logger.error('[OAuth Initiate] Error:', {
+
+      error: error.message,
+
+      stack: error.stack,
+
+      correlationId: req.correlationId
+
+    });
+
+    throw new AppError(
+
+      'Operation failed',
+
+      500,
+
+      ErrorCodes.INTERNAL_SERVER_ERROR
+
+    );
+
   }
 });
 
@@ -410,8 +430,27 @@ router.post('/disconnect/:brokerKey', validate(disconnectOAuthParams, 'params'),
 
     return sendSuccess(res, { message: `${brokerKey} disconnected successfully` });
   } catch (error) {
-    logger.error('[OAuth Disconnect] Error:', { error: error.message, stack: error.stack });
-    return sendError(res, `Failed to disconnect: ${error.message}`, 500);
+
+    logger.error('[OAuth Disconnect] Error:', {
+
+      error: error.message,
+
+      stack: error.stack,
+
+      correlationId: req.correlationId
+
+    });
+
+    throw new AppError(
+
+      'Operation failed',
+
+      500,
+
+      ErrorCodes.INTERNAL_SERVER_ERROR
+
+    );
+
   }
 });
 

@@ -11,6 +11,7 @@ const { auditLog } = require('../../middleware/auditLogger');
 const { apiLimiter } = require('../../middleware/rateLimiter');
 const BaseRepository = require('../../repositories/BaseRepository');
 const logger = require('../../utils/logger');
+const { AppError, ErrorCodes } = require('../../middleware/errorHandler');
 
 // Apply rate limiting and tenant auth to all routes
 router.use(apiLimiter);
@@ -250,12 +251,27 @@ router.get('/stats', ownerOnly, auditLog('admin.dashboard_view', 'Community'), a
       timestamp: now.toISOString()
     });
   } catch (error) {
-    logger.error('Admin stats API error:', { error: error.message, stack: error.stack });
-    res.status(500).json({
-      success: false,
-      error: 'Failed to fetch admin statistics',
-      message: error.message
+
+    logger.error('Admin stats API error:', {
+
+      error: error.message,
+
+      stack: error.stack,
+
+      correlationId: req.correlationId
+
     });
+
+    throw new AppError(
+
+      'Operation failed',
+
+      500,
+
+      ErrorCodes.INTERNAL_SERVER_ERROR
+
+    );
+
   }
 });
 
@@ -316,12 +332,27 @@ router.get('/users', ownerOnly, auditLog('admin.user_list', 'User'), async (req,
       }
     });
   } catch (error) {
-    logger.error('Admin users list API error:', { error: error.message, stack: error.stack });
-    res.status(500).json({
-      success: false,
-      error: 'Failed to fetch users',
-      message: error.message
+
+    logger.error('Admin users list API error:', {
+
+      error: error.message,
+
+      stack: error.stack,
+
+      correlationId: req.correlationId
+
     });
+
+    throw new AppError(
+
+      'Operation failed',
+
+      500,
+
+      ErrorCodes.INTERNAL_SERVER_ERROR
+
+    );
+
   }
 });
 
@@ -377,12 +408,27 @@ router.patch(
         message: `User ${user.discordUsername} role updated to ${communityRole}`
       });
     } catch (error) {
-      logger.error('Admin toggle API error:', { error: error.message, stack: error.stack });
-      res.status(500).json({
-        success: false,
-        error: 'Failed to update admin status',
-        message: error.message
+
+      logger.error('Admin toggle API error:', {
+
+        error: error.message,
+
+        stack: error.stack,
+
+        correlationId: req.correlationId
+
       });
+
+      throw new AppError(
+
+        'Operation failed',
+
+        500,
+
+        ErrorCodes.INTERNAL_SERVER_ERROR
+
+      );
+
     }
   }
 );

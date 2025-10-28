@@ -15,6 +15,7 @@ const { validate } = require('../../middleware/validation');
 const { sendSuccess, sendError, sendValidationError, sendNotFound } = require('../../utils/api-response');
 const signalSubscriptionService = require('../../services/SignalSubscriptionService');
 const logger = require('../../utils/logger');
+const { AppError, ErrorCodes } = require('../../middleware/errorHandler');
 
 // Apply rate limiting
 router.use(apiLimiter);
@@ -62,8 +63,27 @@ router.post(
 
       return sendSuccess(res, result.subscription, `Successfully subscribed to ${result.subscription.providerName}`);
     } catch (error) {
-      logger.error('[Signal Subscription API] Error subscribing to provider:', { error: error.message, stack: error.stack });
-      return sendError(res, 'Failed to subscribe to signal provider', 500, { message: error.message });
+
+      logger.error('[Signal Subscription API] Error subscribing to provider:', {
+
+        error: error.message,
+
+        stack: error.stack,
+
+        correlationId: req.correlationId
+
+      });
+
+      throw new AppError(
+
+        'Operation failed',
+
+        500,
+
+        ErrorCodes.INTERNAL_SERVER_ERROR
+
+      );
+
     }
   }
 );
@@ -90,8 +110,27 @@ router.delete(
 
       return sendSuccess(res, null, result.message);
     } catch (error) {
-      logger.error('[Signal Subscription API] Error unsubscribing from provider:', { error: error.message, stack: error.stack });
-      return sendError(res, 'Failed to unsubscribe from signal provider', 500, { message: error.message });
+
+      logger.error('[Signal Subscription API] Error unsubscribing from provider:', {
+
+        error: error.message,
+
+        stack: error.stack,
+
+        correlationId: req.correlationId
+
+      });
+
+      throw new AppError(
+
+        'Operation failed',
+
+        500,
+
+        ErrorCodes.INTERNAL_SERVER_ERROR
+
+      );
+
     }
   }
 );
@@ -124,8 +163,27 @@ router.put(
         `Subscription settings updated for ${result.subscription.channelName}`
       );
     } catch (error) {
-      logger.error('[Signal Subscription API] Error updating subscription settings:', { error: error.message, stack: error.stack });
-      return sendError(res, 'Failed to update subscription settings', 500, { message: error.message });
+
+      logger.error('[Signal Subscription API] Error updating subscription settings:', {
+
+        error: error.message,
+
+        stack: error.stack,
+
+        correlationId: req.correlationId
+
+      });
+
+      throw new AppError(
+
+        'Operation failed',
+
+        500,
+
+        ErrorCodes.INTERNAL_SERVER_ERROR
+
+      );
+
     }
   }
 );
@@ -147,8 +205,27 @@ router.get('/', extractTenantMiddleware, auditLog('signal_subscription.view', 'U
 
     return sendSuccess(res, result.subscriptions, `${result.subscriptions.length} active subscription(s) found`);
   } catch (error) {
-    logger.error('[Signal Subscription API] Error fetching subscriptions:', { error: error.message, stack: error.stack });
-    return sendError(res, 'Failed to fetch signal subscriptions', 500, { message: error.message });
+
+    logger.error('[Signal Subscription API] Error fetching subscriptions:', {
+
+      error: error.message,
+
+      stack: error.stack,
+
+      correlationId: req.correlationId
+
+    });
+
+    throw new AppError(
+
+      'Operation failed',
+
+      500,
+
+      ErrorCodes.INTERNAL_SERVER_ERROR
+
+    );
+
   }
 });
 
@@ -183,8 +260,27 @@ router.get(
         `${result.providers.length} available provider(s) found`
       );
     } catch (error) {
-      logger.error('[Signal Subscription API] Error fetching available providers:', { error: error.message, stack: error.stack });
-      return sendError(res, 'Failed to fetch available signal providers', 500, { message: error.message });
+
+      logger.error('[Signal Subscription API] Error fetching available providers:', {
+
+        error: error.message,
+
+        stack: error.stack,
+
+        correlationId: req.correlationId
+
+      });
+
+      throw new AppError(
+
+        'Operation failed',
+
+        500,
+
+        ErrorCodes.INTERNAL_SERVER_ERROR
+
+      );
+
     }
   }
 );
@@ -234,8 +330,27 @@ router.get(
         'Provider details retrieved successfully'
       );
     } catch (error) {
-      logger.error('[Signal Subscription API] Error fetching provider details:', { error: error.message, stack: error.stack });
-      return sendError(res, 'Failed to fetch provider details', 500, { message: error.message });
+
+      logger.error('[Signal Subscription API] Error fetching provider details:', {
+
+        error: error.message,
+
+        stack: error.stack,
+
+        correlationId: req.correlationId
+
+      });
+
+      throw new AppError(
+
+        'Operation failed',
+
+        500,
+
+        ErrorCodes.INTERNAL_SERVER_ERROR
+
+      );
+
     }
   }
 );

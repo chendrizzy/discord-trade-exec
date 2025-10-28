@@ -19,6 +19,7 @@ const User = require('../../models/User');
 const { sendSuccess, sendError, sendValidationError, sendNotFound } = require('../../utils/api-response');
 const cacheService = require('../../services/CacheService');
 const logger = require('../../utils/logger');
+const { AppError, ErrorCodes } = require('../../middleware/errorHandler');
 
 // Apply general API rate limiting
 router.use(apiLimiter);
@@ -159,8 +160,27 @@ router.get('/', ensureAuthenticated, async (req, res) => {
       exchanges
     });
   } catch (error) {
-    logger.error('Error fetching exchanges:', { error: error.message, stack: error.stack });
-    return sendError(res, 'Failed to fetch exchanges');
+
+    logger.error('Error fetching exchanges:', {
+
+      error: error.message,
+
+      stack: error.stack,
+
+      correlationId: req.correlationId
+
+    });
+
+    throw new AppError(
+
+      'Operation failed',
+
+      500,
+
+      ErrorCodes.INTERNAL_SERVER_ERROR
+
+    );
+
   }
 });
 
@@ -231,8 +251,27 @@ router.post('/', ensureAuthenticated, validate(createExchangeBody, 'body'), asyn
       }
     });
   } catch (error) {
-    logger.error('Error adding exchange:', { error: error.message, stack: error.stack });
-    return sendError(res, 'Failed to add exchange', 500, { details: error.message });
+
+    logger.error('Error adding exchange:', {
+
+      error: error.message,
+
+      stack: error.stack,
+
+      correlationId: req.correlationId
+
+    });
+
+    throw new AppError(
+
+      'Operation failed',
+
+      500,
+
+      ErrorCodes.INTERNAL_SERVER_ERROR
+
+    );
+
   }
 });
 
@@ -262,8 +301,27 @@ router.delete('/:id', ensureAuthenticated, validate(deleteExchangeParams, 'param
       message: `${exchangeName} removed successfully`
     });
   } catch (error) {
-    logger.error('Error removing exchange:', { error: error.message, stack: error.stack });
-    return sendError(res, 'Failed to remove exchange');
+
+    logger.error('Error removing exchange:', {
+
+      error: error.message,
+
+      stack: error.stack,
+
+      correlationId: req.correlationId
+
+    });
+
+    throw new AppError(
+
+      'Operation failed',
+
+      500,
+
+      ErrorCodes.INTERNAL_SERVER_ERROR
+
+    );
+
   }
 });
 
@@ -315,8 +373,27 @@ router.post('/:id/validate', ensureAuthenticated, validate(validateExchangeParam
       }
     });
   } catch (error) {
-    logger.error('Error validating exchange:', { error: error.message, stack: error.stack });
-    return sendError(res, 'Failed to validate exchange', 500, { details: error.message });
+
+    logger.error('Error validating exchange:', {
+
+      error: error.message,
+
+      stack: error.stack,
+
+      correlationId: req.correlationId
+
+    });
+
+    throw new AppError(
+
+      'Operation failed',
+
+      500,
+
+      ErrorCodes.INTERNAL_SERVER_ERROR
+
+    );
+
   }
 });
 
@@ -345,8 +422,27 @@ router.patch('/:id/toggle', ensureAuthenticated, validate(toggleExchangeParams, 
       isActive: exchange.isActive
     });
   } catch (error) {
-    logger.error('Error toggling exchange:', { error: error.message, stack: error.stack });
-    return sendError(res, 'Failed to toggle exchange');
+
+    logger.error('Error toggling exchange:', {
+
+      error: error.message,
+
+      stack: error.stack,
+
+      correlationId: req.correlationId
+
+    });
+
+    throw new AppError(
+
+      'Operation failed',
+
+      500,
+
+      ErrorCodes.INTERNAL_SERVER_ERROR
+
+    );
+
   }
 });
 
@@ -412,8 +508,27 @@ router.post('/cache-invalidate', ensureAuthenticated, validate(cacheInvalidateBo
       timestamp: new Date().toISOString()
     });
   } catch (error) {
-    logger.error('Error invalidating cache:', { error: error.message, stack: error.stack });
-    return sendError(res, 'Failed to invalidate cache', 500, { details: error.message });
+
+    logger.error('Error invalidating cache:', {
+
+      error: error.message,
+
+      stack: error.stack,
+
+      correlationId: req.correlationId
+
+    });
+
+    throw new AppError(
+
+      'Operation failed',
+
+      500,
+
+      ErrorCodes.INTERNAL_SERVER_ERROR
+
+    );
+
   }
 });
 
@@ -624,8 +739,27 @@ router.get('/compare-fees', ensureAuthenticated, exchangeApiLimiter, validate(co
       errors: errors.length > 0 ? errors : undefined
     });
   } catch (error) {
-    logger.error('Error comparing exchange fees:', { error: error.message, stack: error.stack });
-    return sendError(res, 'Failed to compare exchange fees', 500, { details: error.message });
+
+    logger.error('Error comparing exchange fees:', {
+
+      error: error.message,
+
+      stack: error.stack,
+
+      correlationId: req.correlationId
+
+    });
+
+    throw new AppError(
+
+      'Operation failed',
+
+      500,
+
+      ErrorCodes.INTERNAL_SERVER_ERROR
+
+    );
+
   }
 });
 

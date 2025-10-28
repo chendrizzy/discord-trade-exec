@@ -11,6 +11,7 @@ const BaseRepository = require('../../repositories/BaseRepository');
 const { sendSuccess, sendError, sendValidationError, sendNotFound } = require('../../utils/api-response');
 const logger = require('../../utils/logger');
 
+const { AppError, ErrorCodes } = require('../../middleware/errorHandler');
 // Init repository
 const providerRepository = new BaseRepository(SignalProvider);
 
@@ -82,8 +83,27 @@ router.get('/', async (req, res) => {
       }))
     });
   } catch (error) {
-    logger.error('Error fetching providers:', { error: error.message, stack: error.stack });
-    return sendError(res, 'Failed to fetch signal providers');
+
+    logger.error('Error fetching providers:', {
+
+      error: error.message,
+
+      stack: error.stack,
+
+      correlationId: req.correlationId
+
+    });
+
+    throw new AppError(
+
+      'Operation failed',
+
+      500,
+
+      ErrorCodes.INTERNAL_SERVER_ERROR
+
+    );
+
   }
 });
 
@@ -118,8 +138,27 @@ router.get('/:providerId', async (req, res) => {
       }
     });
   } catch (error) {
-    logger.error('Error fetching provider:', { error: error.message, stack: error.stack });
-    return sendError(res, 'Failed to fetch provider details');
+
+    logger.error('Error fetching provider:', {
+
+      error: error.message,
+
+      stack: error.stack,
+
+      correlationId: req.correlationId
+
+    });
+
+    throw new AppError(
+
+      'Operation failed',
+
+      500,
+
+      ErrorCodes.INTERNAL_SERVER_ERROR
+
+    );
+
   }
 });
 
@@ -167,8 +206,27 @@ router.post(
         message: `Subscribed to ${provider.name} successfully`
       });
     } catch (error) {
-      logger.error('Error subscribing to provider:', { error: error.message, stack: error.stack });
-      return sendError(res, 'Failed to subscribe to provider');
+
+      logger.error('Error subscribing to provider:', {
+
+        error: error.message,
+
+        stack: error.stack,
+
+        correlationId: req.correlationId
+
+      });
+
+      throw new AppError(
+
+        'Operation failed',
+
+        500,
+
+        ErrorCodes.INTERNAL_SERVER_ERROR
+
+      );
+
     }
   }
 );
@@ -205,8 +263,27 @@ router.post(
         message: `Unsubscribed from ${provider.name} successfully`
       });
     } catch (error) {
-      logger.error('Error unsubscribing from provider:', { error: error.message, stack: error.stack });
-      return sendError(res, 'Failed to unsubscribe from provider');
+
+      logger.error('Error unsubscribing from provider:', {
+
+        error: error.message,
+
+        stack: error.stack,
+
+        correlationId: req.correlationId
+
+      });
+
+      throw new AppError(
+
+        'Operation failed',
+
+        500,
+
+        ErrorCodes.INTERNAL_SERVER_ERROR
+
+      );
+
     }
   }
 );
@@ -247,8 +324,27 @@ router.post(
         rating: provider.rating.toFixed(1)
       });
     } catch (error) {
-      logger.error('Error adding review:', { error: error.message, stack: error.stack });
-      return sendError(res, 'Failed to add review');
+
+      logger.error('Error adding review:', {
+
+        error: error.message,
+
+        stack: error.stack,
+
+        correlationId: req.correlationId
+
+      });
+
+      throw new AppError(
+
+        'Operation failed',
+
+        500,
+
+        ErrorCodes.INTERNAL_SERVER_ERROR
+
+      );
+
     }
   }
 );
@@ -285,8 +381,27 @@ router.get(
         })
       });
     } catch (error) {
-      logger.error('Error fetching subscriptions:', { error: error.message, stack: error.stack });
-      return sendError(res, 'Failed to fetch subscriptions');
+
+      logger.error('Error fetching subscriptions:', {
+
+        error: error.message,
+
+        stack: error.stack,
+
+        correlationId: req.correlationId
+
+      });
+
+      throw new AppError(
+
+        'Operation failed',
+
+        500,
+
+        ErrorCodes.INTERNAL_SERVER_ERROR
+
+      );
+
     }
   }
 );
@@ -326,8 +441,27 @@ router.put(
         provider: req.user.tradingConfig.signalProviders[providerIndex]
       });
     } catch (error) {
-      logger.error('Error updating provider settings:', { error: error.message, stack: error.stack });
-      return sendError(res, 'Failed to update provider settings');
+
+      logger.error('Error updating provider settings:', {
+
+        error: error.message,
+
+        stack: error.stack,
+
+        correlationId: req.correlationId
+
+      });
+
+      throw new AppError(
+
+        'Operation failed',
+
+        500,
+
+        ErrorCodes.INTERNAL_SERVER_ERROR
+
+      );
+
     }
   }
 );

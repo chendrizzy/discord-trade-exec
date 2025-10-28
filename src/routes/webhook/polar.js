@@ -23,6 +23,7 @@ const Community = require('../../models/Community');
 const User = require('../../models/User');
 const SecurityAudit = require('../../models/SecurityAudit');
 const logger = require('../../utils/logger');
+const { AppError, ErrorCodes } = require('../../middleware/errorHandler');
 
 const WEBHOOK_EVENT_LIMIT = parseInt(process.env.POLAR_WEBHOOK_EVENT_LIMIT || '50', 10);
 const webhookEvents = [];
@@ -117,8 +118,27 @@ router.post('/', express.raw({ type: 'application/json' }), async (req, res) => 
     // Acknowledge receipt
     res.json({ received: true, eventType });
   } catch (error) {
-    logger.error('[Polar Webhook] Error processing webhook:', { error: error.message, stack: error.stack });
-    res.status(500).json({ error: 'Webhook processing failed' });
+
+    logger.error('[Polar Webhook] Error processing webhook:', {
+
+      error: error.message,
+
+      stack: error.stack,
+
+      correlationId: req.correlationId
+
+    });
+
+    throw new AppError(
+
+      'Operation failed',
+
+      500,
+
+      ErrorCodes.INTERNAL_SERVER_ERROR
+
+    );
+
   }
 });
 

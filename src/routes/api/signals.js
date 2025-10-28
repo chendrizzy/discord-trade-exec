@@ -19,6 +19,7 @@ const signalQualityTracker = require('../../services/signal-quality-tracker');
 const BaseRepository = require('../../repositories/BaseRepository');
 const { sendSuccess, sendError, sendNotFound } = require('../../utils/api-response');
 const logger = require('../../utils/logger');
+const { AppError, ErrorCodes } = require('../../middleware/errorHandler');
 
 // Apply rate limiting to all signal quality routes
 router.use(apiLimiter);
@@ -60,8 +61,27 @@ router.get(
 
       res.json({ success: true, data: qualityAnalysis });
     } catch (error) {
-      logger.error('Error fetching signal quality:', { error: error.message, stack: error.stack });
-      return sendError(res, 'Failed to analyze signal quality', 500, { message: error.message });
+
+      logger.error('Error fetching signal quality:', {
+
+        error: error.message,
+
+        stack: error.stack,
+
+        correlationId: req.correlationId
+
+      });
+
+      throw new AppError(
+
+        'Operation failed',
+
+        500,
+
+        ErrorCodes.INTERNAL_SERVER_ERROR
+
+      );
+
     }
   }
 );
@@ -98,8 +118,27 @@ router.post(
 
       res.json({ success: true, data: qualityAnalysis, message: 'Signal quality updated successfully' });
     } catch (error) {
-      logger.error('Error updating signal quality:', { error: error.message, stack: error.stack });
-      return sendError(res, 'Failed to update signal quality', 500, { message: error.message });
+
+      logger.error('Error updating signal quality:', {
+
+        error: error.message,
+
+        stack: error.stack,
+
+        correlationId: req.correlationId
+
+      });
+
+      throw new AppError(
+
+        'Operation failed',
+
+        500,
+
+        ErrorCodes.INTERNAL_SERVER_ERROR
+
+      );
+
     }
   }
 );
@@ -141,8 +180,27 @@ router.get(
         }
       });
     } catch (error) {
-      logger.error('Error fetching provider leaderboard:', { error: error.message, stack: error.stack });
-      return sendError(res, 'Failed to generate provider leaderboard', 500, { message: error.message });
+
+      logger.error('Error fetching provider leaderboard:', {
+
+        error: error.message,
+
+        stack: error.stack,
+
+        correlationId: req.correlationId
+
+      });
+
+      throw new AppError(
+
+        'Operation failed',
+
+        500,
+
+        ErrorCodes.INTERNAL_SERVER_ERROR
+
+      );
+
     }
   }
 );

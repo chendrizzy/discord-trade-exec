@@ -12,6 +12,7 @@ const { getMetricsInstance } = require('../../utils/analytics-metrics');
 const { getAlertsInstance } = require('../../utils/analytics-alerts');
 const { getQueryLoggerInstance } = require('../../utils/analytics-query-logger');
 const { getCacheInstance } = require('../../utils/analytics-cache');
+const { AppError, ErrorCodes } = require('../../middleware/errorHandler');
 
 // Get singleton instances
 const revenueMetrics = getRevenueMetricsInstance();
@@ -91,12 +92,27 @@ router.get('/mrr', requireAdmin, async (req, res) => {
       cached: result.fromCache
     });
   } catch (error) {
-    logger.error('Error fetching MRR', { error: error.message, stack: error.stack });
-    res.status(500).json({
-      success: false,
-      error: 'Failed to fetch MRR',
-      message: error.message
+
+    logger.error('Error fetching MRR', {
+
+      error: error.message,
+
+      stack: error.stack,
+
+      correlationId: req.correlationId
+
     });
+
+    throw new AppError(
+
+      'Operation failed',
+
+      500,
+
+      ErrorCodes.INTERNAL_SERVER_ERROR
+
+    );
+
   }
 });
 
@@ -113,12 +129,27 @@ router.get('/arr', requireAdmin, async (req, res) => {
       data: arr
     });
   } catch (error) {
-    logger.error('Error fetching ARR', { error: error.message, stack: error.stack });
-    res.status(500).json({
-      success: false,
-      error: 'Failed to fetch ARR',
-      message: error.message
+
+    logger.error('Error fetching ARR', {
+
+      error: error.message,
+
+      stack: error.stack,
+
+      correlationId: req.correlationId
+
     });
+
+    throw new AppError(
+
+      'Operation failed',
+
+      500,
+
+      ErrorCodes.INTERNAL_SERVER_ERROR
+
+    );
+
   }
 });
 
@@ -137,12 +168,27 @@ router.get('/ltv', requireAdmin, async (req, res) => {
       cached: result.fromCache
     });
   } catch (error) {
-    logger.error('Error fetching LTV', { error: error.message, stack: error.stack });
-    res.status(500).json({
-      success: false,
-      error: 'Failed to fetch LTV',
-      message: error.message
+
+    logger.error('Error fetching LTV', {
+
+      error: error.message,
+
+      stack: error.stack,
+
+      correlationId: req.correlationId
+
     });
+
+    throw new AppError(
+
+      'Operation failed',
+
+      500,
+
+      ErrorCodes.INTERNAL_SERVER_ERROR
+
+    );
+
   }
 });
 
@@ -168,12 +214,27 @@ router.get('/churn', requireAdmin, async (req, res) => {
       data: churn
     });
   } catch (error) {
-    logger.error('Error fetching churn rate', { error: error.message, stack: error.stack });
-    res.status(500).json({
-      success: false,
-      error: 'Failed to fetch churn rate',
-      message: error.message
+
+    logger.error('Error fetching churn rate', {
+
+      error: error.message,
+
+      stack: error.stack,
+
+      correlationId: req.correlationId
+
     });
+
+    throw new AppError(
+
+      'Operation failed',
+
+      500,
+
+      ErrorCodes.INTERNAL_SERVER_ERROR
+
+    );
+
   }
 });
 
@@ -202,12 +263,27 @@ router.get('/churn-risks', requireAdmin, async (req, res) => {
       }
     });
   } catch (error) {
-    logger.error('Error fetching churn risks', { error: error.message, stack: error.stack });
-    res.status(500).json({
-      success: false,
-      error: 'Failed to fetch churn risks',
-      message: error.message
+
+    logger.error('Error fetching churn risks', {
+
+      error: error.message,
+
+      stack: error.stack,
+
+      correlationId: req.correlationId
+
     });
+
+    throw new AppError(
+
+      'Operation failed',
+
+      500,
+
+      ErrorCodes.INTERNAL_SERVER_ERROR
+
+    );
+
   }
 });
 
@@ -244,12 +320,27 @@ router.post('/churn-risk/calculate', requireAdmin, async (req, res) => {
       data: riskAnalysis
     });
   } catch (error) {
-    logger.error('Error calculating churn risk', { error: error.message, stack: error.stack });
-    res.status(500).json({
-      success: false,
-      error: 'Failed to calculate churn risk',
-      message: error.message
+
+    logger.error('Error calculating churn risk', {
+
+      error: error.message,
+
+      stack: error.stack,
+
+      correlationId: req.correlationId
+
     });
+
+    throw new AppError(
+
+      'Operation failed',
+
+      500,
+
+      ErrorCodes.INTERNAL_SERVER_ERROR
+
+    );
+
   }
 });
 
@@ -339,12 +430,27 @@ router.get('/dashboard', requireAdmin, async (req, res) => {
       }
     });
   } catch (error) {
-    logger.error('Error fetching dashboard metrics', { error: error.message, stack: error.stack });
-    res.status(500).json({
-      success: false,
-      error: 'Failed to fetch dashboard metrics',
-      message: error.message
+
+    logger.error('Error fetching dashboard metrics', {
+
+      error: error.message,
+
+      stack: error.stack,
+
+      correlationId: req.correlationId
+
     });
+
+    throw new AppError(
+
+      'Operation failed',
+
+      500,
+
+      ErrorCodes.INTERNAL_SERVER_ERROR
+
+    );
+
   }
 });
 
@@ -368,12 +474,27 @@ router.get('/cohorts/retention', requireAdmin, async (req, res) => {
       data: retentionTable
     });
   } catch (error) {
-    logger.error('Error generating cohort retention table', { error: error.message, stack: error.stack });
-    res.status(500).json({
-      success: false,
-      error: 'Failed to generate retention table',
-      message: error.message
+
+    logger.error('Error generating cohort retention table', {
+
+      error: error.message,
+
+      stack: error.stack,
+
+      correlationId: req.correlationId
+
     });
+
+    throw new AppError(
+
+      'Operation failed',
+
+      500,
+
+      ErrorCodes.INTERNAL_SERVER_ERROR
+
+    );
+
   }
 });
 
@@ -399,12 +520,27 @@ router.get('/cohorts/:cohortId', requireAdmin, async (req, res) => {
       data: analysis
     });
   } catch (error) {
-    logger.error('Error analyzing cohort', { error: error.message, stack: error.stack });
-    res.status(500).json({
-      success: false,
-      error: 'Failed to analyze cohort',
-      message: error.message
+
+    logger.error('Error analyzing cohort', {
+
+      error: error.message,
+
+      stack: error.stack,
+
+      correlationId: req.correlationId
+
     });
+
+    throw new AppError(
+
+      'Operation failed',
+
+      500,
+
+      ErrorCodes.INTERNAL_SERVER_ERROR
+
+    );
+
   }
 });
 
@@ -430,12 +566,27 @@ router.post('/cohorts/compare', requireAdmin, async (req, res) => {
       data: comparison
     });
   } catch (error) {
-    logger.error('Error comparing cohorts', { error: error.message, stack: error.stack });
-    res.status(500).json({
-      success: false,
-      error: 'Failed to compare cohorts',
-      message: error.message
+
+    logger.error('Error comparing cohorts', {
+
+      error: error.message,
+
+      stack: error.stack,
+
+      correlationId: req.correlationId
+
     });
+
+    throw new AppError(
+
+      'Operation failed',
+
+      500,
+
+      ErrorCodes.INTERNAL_SERVER_ERROR
+
+    );
+
   }
 });
 
@@ -461,12 +612,27 @@ router.get('/metrics', requireAdmin, async (req, res) => {
       data: metrics
     });
   } catch (error) {
-    logger.error('Error fetching analytics metrics', { error: error.message, stack: error.stack });
-    res.status(500).json({
-      success: false,
-      error: 'Failed to fetch analytics metrics',
-      message: error.message
+
+    logger.error('Error fetching analytics metrics', {
+
+      error: error.message,
+
+      stack: error.stack,
+
+      correlationId: req.correlationId
+
     });
+
+    throw new AppError(
+
+      'Operation failed',
+
+      500,
+
+      ErrorCodes.INTERNAL_SERVER_ERROR
+
+    );
+
   }
 });
 
@@ -487,12 +653,27 @@ router.get('/metrics/slow-queries', requireAdmin, async (req, res) => {
       }
     });
   } catch (error) {
-    logger.error('Error fetching slow queries', { error: error.message, stack: error.stack });
-    res.status(500).json({
-      success: false,
-      error: 'Failed to fetch slow queries',
-      message: error.message
+
+    logger.error('Error fetching slow queries', {
+
+      error: error.message,
+
+      stack: error.stack,
+
+      correlationId: req.correlationId
+
     });
+
+    throw new AppError(
+
+      'Operation failed',
+
+      500,
+
+      ErrorCodes.INTERNAL_SERVER_ERROR
+
+    );
+
   }
 });
 
@@ -559,12 +740,27 @@ router.get('/health', requireAdmin, async (req, res) => {
       data: health
     });
   } catch (error) {
-    logger.error('Error checking analytics health', { error: error.message, stack: error.stack });
-    res.status(500).json({
-      success: false,
-      error: 'Failed to check analytics health',
-      message: error.message
+
+    logger.error('Error checking analytics health', {
+
+      error: error.message,
+
+      stack: error.stack,
+
+      correlationId: req.correlationId
+
     });
+
+    throw new AppError(
+
+      'Operation failed',
+
+      500,
+
+      ErrorCodes.INTERNAL_SERVER_ERROR
+
+    );
+
   }
 });
 
@@ -591,12 +787,27 @@ router.get('/alerts', requireAdmin, async (req, res) => {
       data: alerts
     });
   } catch (error) {
-    logger.error('Error fetching alerts', { error: error.message, stack: error.stack });
-    res.status(500).json({
-      success: false,
-      error: 'Failed to fetch alerts',
-      message: error.message
+
+    logger.error('Error fetching alerts', {
+
+      error: error.message,
+
+      stack: error.stack,
+
+      correlationId: req.correlationId
+
     });
+
+    throw new AppError(
+
+      'Operation failed',
+
+      500,
+
+      ErrorCodes.INTERNAL_SERVER_ERROR
+
+    );
+
   }
 });
 
@@ -624,12 +835,27 @@ router.get('/query-patterns', requireAdmin, async (req, res) => {
       }
     });
   } catch (error) {
-    logger.error('Error fetching query patterns', { error: error.message, stack: error.stack });
-    res.status(500).json({
-      success: false,
-      error: 'Failed to fetch query patterns',
-      message: error.message
+
+    logger.error('Error fetching query patterns', {
+
+      error: error.message,
+
+      stack: error.stack,
+
+      correlationId: req.correlationId
+
     });
+
+    throw new AppError(
+
+      'Operation failed',
+
+      500,
+
+      ErrorCodes.INTERNAL_SERVER_ERROR
+
+    );
+
   }
 });
 
@@ -646,12 +872,27 @@ router.get('/optimization-report', requireAdmin, async (req, res) => {
       data: report
     });
   } catch (error) {
-    logger.error('Error generating optimization report', { error: error.message, stack: error.stack });
-    res.status(500).json({
-      success: false,
-      error: 'Failed to generate optimization report',
-      message: error.message
+
+    logger.error('Error generating optimization report', {
+
+      error: error.message,
+
+      stack: error.stack,
+
+      correlationId: req.correlationId
+
     });
+
+    throw new AppError(
+
+      'Operation failed',
+
+      500,
+
+      ErrorCodes.INTERNAL_SERVER_ERROR
+
+    );
+
   }
 });
 

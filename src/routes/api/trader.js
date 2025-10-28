@@ -14,6 +14,7 @@ const redis = require('../../services/redis');
 const BillingProviderFactory = require('../../services/billing/BillingProviderFactory');
 const logger = require('../../utils/logger');
 const { validate } = require('../../middleware/validation');
+const { AppError, ErrorCodes } = require('../../middleware/errorHandler');
 const {
   followSignalParams,
   followSignalBody,
@@ -259,8 +260,27 @@ router.get('/overview', overviewLimiter, validate(overviewQuery, 'query'), async
 
     res.json(overview);
   } catch (error) {
-    logger.error('[Trader API] Error fetching overview:', { error: error.message, stack: error.stack });
-    res.status(500).json({ error: 'Failed to fetch trader overview' });
+
+    logger.error('[Trader API] Error fetching overview:', {
+
+      error: error.message,
+
+      stack: error.stack,
+
+      correlationId: req.correlationId
+
+    });
+
+    throw new AppError(
+
+      'Operation failed',
+
+      500,
+
+      ErrorCodes.INTERNAL_SERVER_ERROR
+
+    );
+
   }
 });
 
@@ -453,8 +473,27 @@ router.get('/signals', dashboardLimiter, validate(signalsQuery, 'query'), async 
 
     res.json({ providers: filteredProviders });
   } catch (error) {
-    logger.error('[Trader API] Error fetching signal providers:', { error: error.message, stack: error.stack });
-    res.status(500).json({ error: 'Failed to fetch signal providers' });
+
+    logger.error('[Trader API] Error fetching signal providers:', {
+
+      error: error.message,
+
+      stack: error.stack,
+
+      correlationId: req.correlationId
+
+    });
+
+    throw new AppError(
+
+      'Operation failed',
+
+      500,
+
+      ErrorCodes.INTERNAL_SERVER_ERROR
+
+    );
+
   }
 });
 
@@ -675,8 +714,27 @@ router.get('/trades', tradesLimiter, validate(tradesQuery, 'query'), async (req,
       }
     });
   } catch (error) {
-    logger.error('[Trader API] Error fetching trades:', { error: error.message, stack: error.stack });
-    res.status(500).json({ error: 'Failed to fetch trades' });
+
+    logger.error('[Trader API] Error fetching trades:', {
+
+      error: error.message,
+
+      stack: error.stack,
+
+      correlationId: req.correlationId
+
+    });
+
+    throw new AppError(
+
+      'Operation failed',
+
+      500,
+
+      ErrorCodes.INTERNAL_SERVER_ERROR
+
+    );
+
   }
 });
 
@@ -797,8 +855,27 @@ router.get('/analytics/performance', analyticsLimiter, validate(analyticsPerform
 
     res.json(data);
   } catch (error) {
-    logger.error('[Trader API] Error fetching analytics:', { error: error.message, stack: error.stack });
-    res.status(500).json({ error: 'Failed to fetch analytics' });
+
+    logger.error('[Trader API] Error fetching analytics:', {
+
+      error: error.message,
+
+      stack: error.stack,
+
+      correlationId: req.correlationId
+
+    });
+
+    throw new AppError(
+
+      'Operation failed',
+
+      500,
+
+      ErrorCodes.INTERNAL_SERVER_ERROR
+
+    );
+
   }
 });
 
@@ -840,8 +917,27 @@ router.get('/risk-profile', dashboardLimiter, async (req, res) => {
       data: response
     });
   } catch (error) {
-    logger.error('[Trader API] Error fetching risk profile:', { error: error.message, stack: error.stack });
-    res.status(500).json({ error: 'Failed to fetch risk profile' });
+
+    logger.error('[Trader API] Error fetching risk profile:', {
+
+      error: error.message,
+
+      stack: error.stack,
+
+      correlationId: req.correlationId
+
+    });
+
+    throw new AppError(
+
+      'Operation failed',
+
+      500,
+
+      ErrorCodes.INTERNAL_SERVER_ERROR
+
+    );
+
   }
 });
 
@@ -1061,8 +1157,27 @@ router.get('/notifications', dashboardLimiter, async (req, res) => {
       }
     });
   } catch (error) {
-    logger.error('[Trader API] Error fetching notification preferences:', { error: error.message, stack: error.stack });
-    res.status(500).json({ error: 'Failed to fetch notification preferences' });
+
+    logger.error('[Trader API] Error fetching notification preferences:', {
+
+      error: error.message,
+
+      stack: error.stack,
+
+      correlationId: req.correlationId
+
+    });
+
+    throw new AppError(
+
+      'Operation failed',
+
+      500,
+
+      ErrorCodes.INTERNAL_SERVER_ERROR
+
+    );
+
   }
 });
 
@@ -1195,8 +1310,27 @@ router.post('/notifications/test', dashboardLimiter, async (req, res) => {
       notification: historyEntry
     });
   } catch (error) {
-    logger.error('[Trader API] Error sending test notification:', { error: error.message, stack: error.stack });
-    res.status(500).json({ error: 'Failed to send test notification' });
+
+    logger.error('[Trader API] Error sending test notification:', {
+
+      error: error.message,
+
+      stack: error.stack,
+
+      correlationId: req.correlationId
+
+    });
+
+    throw new AppError(
+
+      'Operation failed',
+
+      500,
+
+      ErrorCodes.INTERNAL_SERVER_ERROR
+
+    );
+
   }
 });
 
@@ -1230,8 +1364,27 @@ router.get('/subscription', dashboardLimiter, async (req, res) => {
 
     res.json(subscription);
   } catch (error) {
-    logger.error('[Trader API] Error fetching subscription:', { error: error.message, stack: error.stack });
-    res.status(500).json({ error: 'Failed to fetch subscription information' });
+
+    logger.error('[Trader API] Error fetching subscription:', {
+
+      error: error.message,
+
+      stack: error.stack,
+
+      correlationId: req.correlationId
+
+    });
+
+    throw new AppError(
+
+      'Operation failed',
+
+      500,
+
+      ErrorCodes.INTERNAL_SERVER_ERROR
+
+    );
+
   }
 });
 

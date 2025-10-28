@@ -12,6 +12,7 @@ const { overviewLimiter, analyticsLimiter, dashboardLimiter } = require('../../m
 const redis = require('../../services/redis');
 const discord = require('../../services/discord');
 const logger = require('../../utils/logger');
+const { AppError, ErrorCodes } = require('../../middleware/errorHandler');
 
 // Apply community admin authorization to all routes
 router.use(requireCommunityAdmin);
@@ -258,8 +259,27 @@ router.get('/overview', overviewLimiter, async (req, res) => {
 
     res.json(overview);
   } catch (error) {
-    logger.error('[Community API] Error fetching overview:', { error: error.message, stack: error.stack });
-    res.status(500).json({ error: 'Failed to fetch community overview' });
+
+    logger.error('[Community API] Error fetching overview:', {
+
+      error: error.message,
+
+      stack: error.stack,
+
+      correlationId: req.correlationId
+
+    });
+
+    throw new AppError(
+
+      'Operation failed',
+
+      500,
+
+      ErrorCodes.INTERNAL_SERVER_ERROR
+
+    );
+
   }
 });
 
@@ -366,8 +386,27 @@ router.get('/members', dashboardLimiter, async (req, res) => {
       }
     });
   } catch (error) {
-    logger.error('[Community API] Error fetching members:', { error: error.message, stack: error.stack });
-    res.status(500).json({ error: 'Failed to fetch members' });
+
+    logger.error('[Community API] Error fetching members:', {
+
+      error: error.message,
+
+      stack: error.stack,
+
+      correlationId: req.correlationId
+
+    });
+
+    throw new AppError(
+
+      'Operation failed',
+
+      500,
+
+      ErrorCodes.INTERNAL_SERVER_ERROR
+
+    );
+
   }
 });
 
@@ -497,8 +536,27 @@ router.post('/members/:id/role', dashboardLimiter, async (req, res) => {
       }
     });
   } catch (error) {
-    logger.error('[Community API] Error updating member role:', { error: error.message, stack: error.stack });
-    res.status(500).json({ error: 'Failed to update member role' });
+
+    logger.error('[Community API] Error updating member role:', {
+
+      error: error.message,
+
+      stack: error.stack,
+
+      correlationId: req.correlationId
+
+    });
+
+    throw new AppError(
+
+      'Operation failed',
+
+      500,
+
+      ErrorCodes.INTERNAL_SERVER_ERROR
+
+    );
+
   }
 });
 
@@ -575,8 +633,27 @@ router.get('/signals', dashboardLimiter, async (req, res) => {
 
     res.json({ providers: providersWithStats });
   } catch (error) {
-    logger.error('[Community API] Error fetching signal providers:', { error: error.message, stack: error.stack });
-    res.status(500).json({ error: 'Failed to fetch signal providers' });
+
+    logger.error('[Community API] Error fetching signal providers:', {
+
+      error: error.message,
+
+      stack: error.stack,
+
+      correlationId: req.correlationId
+
+    });
+
+    throw new AppError(
+
+      'Operation failed',
+
+      500,
+
+      ErrorCodes.INTERNAL_SERVER_ERROR
+
+    );
+
   }
 });
 
@@ -639,8 +716,27 @@ router.put('/signals/:id', async (req, res) => {
       }
     });
   } catch (error) {
-    logger.error('[Community API] Error updating signal provider:', { error: error.message, stack: error.stack });
-    res.status(500).json({ error: 'Failed to update signal provider' });
+
+    logger.error('[Community API] Error updating signal provider:', {
+
+      error: error.message,
+
+      stack: error.stack,
+
+      correlationId: req.correlationId
+
+    });
+
+    throw new AppError(
+
+      'Operation failed',
+
+      500,
+
+      ErrorCodes.INTERNAL_SERVER_ERROR
+
+    );
+
   }
 });
 
@@ -758,8 +854,27 @@ router.get('/analytics/performance', analyticsLimiter, async (req, res) => {
 
     res.json(data);
   } catch (error) {
-    logger.error('[Community API] Error fetching analytics:', { error: error.message, stack: error.stack });
-    res.status(500).json({ error: 'Failed to fetch analytics' });
+
+    logger.error('[Community API] Error fetching analytics:', {
+
+      error: error.message,
+
+      stack: error.stack,
+
+      correlationId: req.correlationId
+
+    });
+
+    throw new AppError(
+
+      'Operation failed',
+
+      500,
+
+      ErrorCodes.INTERNAL_SERVER_ERROR
+
+    );
+
   }
 });
 

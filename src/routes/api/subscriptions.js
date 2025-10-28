@@ -15,6 +15,7 @@ const { validate } = require('../../middleware/validation');
 const { sendSuccess, sendError, sendValidationError, sendNotFound } = require('../../utils/api-response');
 const subscriptionManager = require('../../services/subscription-manager');
 const logger = require('../../utils/logger');
+const { AppError, ErrorCodes } = require('../../middleware/errorHandler');
 
 // Apply rate limiting
 router.use(apiLimiter);
@@ -50,8 +51,27 @@ router.get('/status', extractTenantMiddleware, auditLog('subscription.view', 'Us
 
     return sendSuccess(res, result.subscription, 'Subscription status retrieved successfully');
   } catch (error) {
-    logger.error('[Subscription API] Error fetching subscription status:', { error: error.message, stack: error.stack });
-    return sendError(res, 'Failed to fetch subscription status', 500, { message: error.message });
+
+    logger.error('[Subscription API] Error fetching subscription status:', {
+
+      error: error.message,
+
+      stack: error.stack,
+
+      correlationId: req.correlationId
+
+    });
+
+    throw new AppError(
+
+      'Operation failed',
+
+      500,
+
+      ErrorCodes.INTERNAL_SERVER_ERROR
+
+    );
+
   }
 });
 
@@ -107,8 +127,27 @@ router.post(
         'Subscription cancelled successfully'
       );
     } catch (error) {
-      logger.error('[Subscription API] Error cancelling subscription:', { error: error.message, stack: error.stack });
-      return sendError(res, 'Failed to cancel subscription', 500, { message: error.message });
+
+      logger.error('[Subscription API] Error cancelling subscription:', {
+
+        error: error.message,
+
+        stack: error.stack,
+
+        correlationId: req.correlationId
+
+      });
+
+      throw new AppError(
+
+        'Operation failed',
+
+        500,
+
+        ErrorCodes.INTERNAL_SERVER_ERROR
+
+      );
+
     }
   }
 );
@@ -150,8 +189,27 @@ router.post(
         `User upgraded from ${result.user.previousTier} to ${result.user.newTier}`
       );
     } catch (error) {
-      logger.error('[Subscription API] Error upgrading subscription:', { error: error.message, stack: error.stack });
-      return sendError(res, 'Failed to upgrade subscription', 500, { message: error.message });
+
+      logger.error('[Subscription API] Error upgrading subscription:', {
+
+        error: error.message,
+
+        stack: error.stack,
+
+        correlationId: req.correlationId
+
+      });
+
+      throw new AppError(
+
+        'Operation failed',
+
+        500,
+
+        ErrorCodes.INTERNAL_SERVER_ERROR
+
+      );
+
     }
   }
 );
@@ -196,8 +254,27 @@ router.get('/limits', extractTenantMiddleware, auditLog('subscription.limits', '
       'Subscription limits retrieved successfully'
     );
   } catch (error) {
-    logger.error('[Subscription API] Error fetching subscription limits:', { error: error.message, stack: error.stack });
-    return sendError(res, 'Failed to fetch subscription limits', 500, { message: error.message });
+
+    logger.error('[Subscription API] Error fetching subscription limits:', {
+
+      error: error.message,
+
+      stack: error.stack,
+
+      correlationId: req.correlationId
+
+    });
+
+    throw new AppError(
+
+      'Operation failed',
+
+      500,
+
+      ErrorCodes.INTERNAL_SERVER_ERROR
+
+    );
+
   }
 });
 
