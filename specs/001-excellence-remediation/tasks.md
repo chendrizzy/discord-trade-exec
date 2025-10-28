@@ -829,7 +829,7 @@ describe('Error Handler', () => {
 
 ---
 
-## US6: Performance Monitoring & Alerting (2/12 COMPLETE) (12 tasks, 10 hours)
+## US6: Performance Monitoring & Alerting (3/12 COMPLETE) (12 tasks, 10 hours)
 
 ### US6-T01: Create Performance Tracking Middleware [TDD] ✅ COMPLETE
 **File**: src/middleware/performance-tracker.js
@@ -866,13 +866,27 @@ describe('Error Handler', () => {
 
 ---
 
-### US6-T03: Integrate QueryPatternLogger
-**File**: src/utils/analytics-query-logger.js  
-**Effort**: 1h  
+### US6-T03: Integrate QueryPatternLogger ✅ COMPLETE
+**Files**: src/utils/analytics-query-logger.js, src/config/database.js
+**Effort**: 1h
 **Acceptance**:
-- Log all database queries >100ms
-- Include query pattern, execution time, collection
-- Alert if >10 slow queries/hour
+- [X] Log all database queries >100ms
+- [X] Include query pattern, execution time, collection
+- [X] Alert if >10 slow queries/hour
+
+**Implementation Details**:
+- Updated SLOW_QUERY_THRESHOLD from 1000ms to 100ms
+- Added collection name tracking to logQuery method and pattern statistics
+- Implemented hourly slow query tracking mechanism:
+  - trackSlowQuery: Records slow queries with 1-hour rolling window
+  - triggerSlowQueryAlert: Warns when >10 slow queries/hour
+  - cleanupHourlyData: Periodic cleanup of old query data
+- Added comprehensive Mongoose query hooks in database.js
+  - Tracks: find, findOne, updateOne, updateMany, deleteOne, deleteMany, countDocuments, aggregate
+  - Records query type, params, execution time, collection, result size, timestamp
+  - Automatically logs all database queries >100ms with collection context
+- All US6-T01 tests still passing (16/16) ✅
+- Commit: 6fcbade
 
 ---
 
