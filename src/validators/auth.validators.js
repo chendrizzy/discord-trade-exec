@@ -109,6 +109,17 @@ const mfaVerifyBody = z.object({
 });
 
 /**
+ * MFA Backup Codes Regenerate
+ * POST /api/auth/mfa/backup-codes/regenerate
+ */
+const mfaRegenerateBackupCodesBody = z.object({
+  token: z
+    .string()
+    .length(6, 'TOTP token must be 6 digits')
+    .regex(/^\d{6}$/, 'TOTP token must be numeric')
+});
+
+/**
  * Security: Prototype Pollution Prevention
  *
  * Automatically applied by sanitizeObject in validation middleware,
@@ -129,5 +140,6 @@ module.exports = {
   refreshBrokerOAuthParams,
   mfaEnableBody,
   mfaDisableBody,
-  mfaVerifyBody
+  mfaVerifyBody,
+  mfaRegenerateBackupCodesBody
 };
