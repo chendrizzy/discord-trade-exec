@@ -16,6 +16,7 @@
 const logger = require('../utils/logger');
 const { getCorrelationId } = require('../utils/logger');
 const { getConfig } = require('../config/env');
+const errorNotificationService = require('../services/ErrorNotificationService');
 
 const config = getConfig();
 
@@ -264,8 +265,8 @@ function errorHandler(err, req, res, next) {
   // Get correlation ID from AsyncLocalStorage or request
   const correlationId = getCorrelationId() || req.correlationId;
 
-  // Log error with correlation ID and sanitized context
-  logger.error('Request error', {
+  // Prepare error data for logging and notifications
+  const errorData = {
     correlationId,
     error: err.message,
     errorCode: appError.code,
@@ -277,6 +278,15 @@ function errorHandler(err, req, res, next) {
     // NEVER log full stack traces to prevent information leakage
     // Stack is captured by Winston transport for file logs only
     stackPreview: err.stack ? err.stack.split('\n').slice(0, 3).join('\n') : undefined
+  };
+
+  // Log error with correlation ID and sanitized context
+  logger.error('Request error', errorData);
+
+  // Send Discord notification for critical errors (async, non-blocking)
+  errorNotificationService.notify(errorData).catch(notifyError => {
+    // Silently fail - don't let notification errors affect response
+    logger.debug('Discord notification failed', { error: notifyError.message });
   });
 
   // Send error response (never include stack in response, even in dev)
@@ -316,6 +326,11 @@ process.on('unhandledRejection', (reason, promise) => {
     type: 'UnhandledRejection'
   });
 
+  // Send Discord notification (async, non-blocking)
+  errorNotificationService.notifyUnhandledRejection(reason, promise).catch(err => {
+    logger.debug('Discord notification failed for unhandled rejection', { error: err.message });
+  });
+
   // Send to Sentry if configured
   if (config.SENTRY_DSN) {
     // Sentry.captureException(reason);
@@ -332,13 +347,21 @@ process.on('uncaughtException', error => {
     type: 'UncaughtException'
   });
 
-  // Send to Sentry if configured
-  if (config.SENTRY_DSN) {
-    // Sentry.captureException(error);
-  }
+  // Send Discord notification (must complete before exit)
+  errorNotificationService
+    .notifyUncaughtException(error)
+    .catch(err => {
+      logger.debug('Discord notification failed for uncaught exception', { error: err.message });
+    })
+    .finally(() => {
+      // Send to Sentry if configured
+      if (config.SENTRY_DSN) {
+        // Sentry.captureException(error);
+      }
 
-  // Exit process - let PM2/Docker restart
-  process.exit(1);
+      // Exit process - let PM2/Docker restart
+      setTimeout(() => process.exit(1), 100); // Small delay to ensure notification completes
+    });
 });
 
 module.exports = {

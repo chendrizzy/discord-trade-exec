@@ -32,6 +32,7 @@ const requiredEnvVars = {
   DISCORD_REDIRECT_URI: { required: true },
   DISCORD_BOT_TOKEN: { required: true, sensitive: true },
   DISCORD_GUILD_ID: { required: false }, // Optional: for guild-specific features
+  DISCORD_ERROR_WEBHOOK_URL: { required: false, sensitive: true }, // Optional: for critical error notifications
 
   // Encryption
   ENCRYPTION_KEY: { required: true, sensitive: true, minLength: 64 }, // 32 bytes hex = 64 chars
