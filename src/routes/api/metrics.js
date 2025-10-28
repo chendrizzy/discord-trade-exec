@@ -15,6 +15,7 @@ if (typeof ensureAdmin !== 'function') {
 }
 const { apiLimiter } = require('../../middleware/rateLimiter');
 const performanceTracker = require('../../PerformanceTracker');
+const responseTimeTracker = require('../../middleware/performance-tracker');
 const logger = require('../../utils/logger');
 const { AppError, ErrorCodes } = require('../../middleware/errorHandler');
 const { validate } = require('../../middleware/validation');
@@ -58,6 +59,13 @@ router.get('/', ensureAuthenticated, (req, res) => {
 
   }
 });
+
+/**
+ * GET /api/metrics/performance
+ * Get HTTP response time metrics (p50/p95/p99) (US6-T01)
+ * Requires: Authentication
+ */
+router.get('/performance', ensureAuthenticated, responseTimeTracker.metricsEndpoint);
 
 /**
  * GET /api/metrics/health

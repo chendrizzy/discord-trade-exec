@@ -24,6 +24,7 @@ const { passport } = require('./middleware/auth');
 const logger = require('./utils/logger');
 const correlationMiddleware = require('./middleware/correlation');
 const loggingMiddleware = require('./middleware/logging');
+const performanceTracker = require('./middleware/performance-tracker');
 const { errorHandler, notFoundHandler } = require('./middleware/errorHandler');
 
 // Route imports
@@ -110,6 +111,9 @@ function createApp(options = {}) {
 
   // Request/Response logging middleware
   app.use(loggingMiddleware);
+
+  // Performance tracking middleware (US6-T01)
+  app.use(performanceTracker.middleware);
 
   // Session configuration
   app.use(
