@@ -42,21 +42,54 @@ jobs:
           SESSION_SECRET: test-session-secret-for-zap-scan
           DISCORD_CLIENT_ID: test-client-id
           DISCORD_CLIENT_SECRET: test-client-secret
-          DISCORD_REDIRECT_URI: http://localhost:3000/api/auth/callback
+          DISCORD_REDIRECT_URI: http://localhost:5001/api/auth/callback
           MONGODB_URI: mongodb://localhost:27017/test-security-scan
         run: |
           npm start &
-          timeout 60 bash -c 'until curl -f http://localhost:3000/health; do sleep 2; done' || exit 1
+          timeout 60 bash -c 'until curl -f http://localhost:5001/health; do sleep 2; done' || exit 1
           echo "Application is ready for scanning"
 
       - name: OWASP ZAP Baseline Scan
         uses: zaproxy/action-baseline@v0.11.0
         with:
-          target: 'http://localhost:3000'
+          target: 'http://localhost:5001'
           rules_file_name: '.zap/rules.tsv'
           allow_issue_writing: true
           artifact_name: 'zap-scan-report'
-          fail_action: ${{ github.event_name == 'pull_request' && 'true' || 'false' }}
+          fail_action: true  # US7-T08: Always fail on high/critical vulnerabilities
+
+      - name: Run npm audit
+        run: |
+          echo "Running npm audit for dependency vulnerabilities..."
+          npm audit --audit-level=high --json > npm-audit-report.json || true
+
+          # Parse audit results
+          CRITICAL=$(jq '.metadata.vulnerabilities.critical // 0' npm-audit-report.json)
+          HIGH=$(jq '.metadata.vulnerabilities.high // 0' npm-audit-report.json)
+          MODERATE=$(jq '.metadata.vulnerabilities.moderate // 0' npm-audit-report.json)
+          LOW=$(jq '.metadata.vulnerabilities.low // 0' npm-audit-report.json)
+
+          echo "📊 Dependency Vulnerability Report:"
+          echo "  Critical: $CRITICAL"
+          echo "  High: $HIGH"
+          echo "  Moderate: $MODERATE"
+          echo "  Low: $LOW"
+
+          # US7-T08: Fail if high/critical vulnerabilities found
+          if [ "$CRITICAL" -gt 0 ] || [ "$HIGH" -gt 0 ]; then
+            echo "❌ FAILED: Found $CRITICAL critical and $HIGH high severity vulnerabilities in dependencies"
+            exit 1
+          else
+            echo "✅ PASSED: No critical or high severity vulnerabilities found"
+          fi
+
+      - name: Upload npm audit report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: npm-audit-report
+          path: npm-audit-report.json
+          retention-days: 30
 
       - name: Upload ZAP Scan Report
         if: always()
@@ -134,17 +167,17 @@ jobs:
           SESSION_SECRET: test-session-secret-for-zap-scan
           DISCORD_CLIENT_ID: test-client-id
           DISCORD_CLIENT_SECRET: test-client-secret
-          DISCORD_REDIRECT_URI: http://localhost:3000/api/auth/callback
+          DISCORD_REDIRECT_URI: http://localhost:5001/api/auth/callback
           MONGODB_URI: mongodb://localhost:27017/test-security-scan
         run: |
           npm start &
-          timeout 60 bash -c 'until curl -f http://localhost:3000/health; do sleep 2; done' || exit 1
+          timeout 60 bash -c 'until curl -f http://localhost:5001/health; do sleep 2; done' || exit 1
           echo "Application ready for full scan"
 
       - name: OWASP ZAP Full Scan
         uses: zaproxy/action-full-scan@v0.10.0
         with:
-          target: 'http://localhost:3000'
+          target: 'http://localhost:5001'
           rules_file_name: '.zap/rules.tsv'
           allow_issue_writing: false
           artifact_name: 'zap-full-scan-report'

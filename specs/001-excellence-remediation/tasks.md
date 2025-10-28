@@ -1092,7 +1092,7 @@ describe('Error Handler', () => {
 
 ---
 
-## US7: Security Validation Completeness ✅ 8/9 COMPLETE (9 tasks, 8 hours)
+## US7: Security Validation Completeness ✅ 9/9 COMPLETE (9 tasks, 8 hours)
 
 ### US7-T01: Audit All Routes for Validation ✅ COMPLETE
 **Effort**: 2h
@@ -1285,16 +1285,27 @@ describe('Error Handler', () => {
 
 ---
 
-### US7-T08: Update CI/CD Security Checks
-**File**: .github/workflows/security.yml
+### US7-T08: Update CI/CD Security Checks ✅ COMPLETE
+**File**: .github/workflows/security-scan.yml
 **Effort**: 30min
 **Depends**: US7-T07
 **Acceptance**:
-- [ ] Run OWASP ZAP in CI
-- [ ] Fail if high/critical vulnerabilities
-- [ ] Run npm audit
+- [X] Run OWASP ZAP in CI
+- [X] Fail if high/critical vulnerabilities
+- [X] Run npm audit
 
-**Status**: Ready for implementation (US7-T07 complete)
+**Implementation Details**:
+- Enhanced OWASP ZAP workflow with `fail_action: true` (always block on vulnerabilities, not just PRs)
+- Added npm audit security check with critical/high severity blocking (lines 61-84)
+- npm audit parses JSON output with jq, extracts severity counts, exits 1 if critical/high found
+- Added npm audit report artifact upload with 30-day retention (lines 86-92)
+- Fixed port references from 3000 to 5001 to match actual application server port
+- Dual-layer security enforcement: Application security (ZAP) + Dependency security (npm audit)
+
+**Security Gates**:
+1. **OWASP ZAP**: Blocks builds on application vulnerabilities (high/critical)
+2. **npm audit**: Blocks builds on dependency vulnerabilities (critical/high)
+3. Allows moderate/low severity findings (meets acceptance criteria)
 
 ---
 
