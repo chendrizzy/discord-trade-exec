@@ -81,7 +81,6 @@ router.get('/revenue', validate(revenueQuery, 'query'), requireAdmin, async (req
     metricsTracker.recordError(tracker, error);
     logger.error('Error fetching slow queries', {
       error: error.message,
-      stack: error.stack
     });
     res.status(500).json({
       success: false,
@@ -111,7 +110,6 @@ router.get('/mrr', validate(revenueQuery, 'query'), requireAdmin, async (req, re
 
       error: error.message,
 
-      stack: error.stack,
 
       correlationId: req.correlationId
 
@@ -148,7 +146,6 @@ router.get('/arr', validate(revenueQuery, 'query'), requireAdmin, async (req, re
 
       error: error.message,
 
-      stack: error.stack,
 
       correlationId: req.correlationId
 
@@ -187,7 +184,6 @@ router.get('/ltv', validate(revenueQuery, 'query'), requireAdmin, async (req, re
 
       error: error.message,
 
-      stack: error.stack,
 
       correlationId: req.correlationId
 
@@ -227,7 +223,6 @@ router.get('/churn', validate(churnQuery, 'query'), requireAdmin, async (req, re
 
       error: error.message,
 
-      stack: error.stack,
 
       correlationId: req.correlationId
 
@@ -276,7 +271,6 @@ router.get('/churn-risks', validate(churnRisksQuery, 'query'), requireAdmin, asy
 
       error: error.message,
 
-      stack: error.stack,
 
       correlationId: req.correlationId
 
@@ -327,7 +321,6 @@ router.post('/churn-risk/calculate', validate(churnRiskCalculateBody, 'body'), r
 
       error: error.message,
 
-      stack: error.stack,
 
       correlationId: req.correlationId
 
@@ -437,7 +430,6 @@ router.get('/dashboard', requireAdmin, async (req, res) => {
 
       error: error.message,
 
-      stack: error.stack,
 
       correlationId: req.correlationId
 
@@ -481,7 +473,6 @@ router.get('/cohorts/retention', validate(cohortRetentionQuery, 'query'), requir
 
       error: error.message,
 
-      stack: error.stack,
 
       correlationId: req.correlationId
 
@@ -527,7 +518,6 @@ router.get('/cohorts/:cohortId', validate(cohortDetailParams, 'params'), require
 
       error: error.message,
 
-      stack: error.stack,
 
       correlationId: req.correlationId
 
@@ -567,7 +557,6 @@ router.post('/cohorts/compare', validate(cohortCompareBody, 'body'), requireAdmi
 
       error: error.message,
 
-      stack: error.stack,
 
       correlationId: req.correlationId
 
@@ -613,7 +602,6 @@ router.get('/metrics', validate(metricsExportQuery, 'query'), requireAdmin, asyn
 
       error: error.message,
 
-      stack: error.stack,
 
       correlationId: req.correlationId
 
@@ -654,7 +642,6 @@ router.get('/metrics/slow-queries', validate(slowQueriesQuery, 'query'), require
 
       error: error.message,
 
-      stack: error.stack,
 
       correlationId: req.correlationId
 
@@ -741,7 +728,6 @@ router.get('/health', requireAdmin, async (req, res) => {
 
       error: error.message,
 
-      stack: error.stack,
 
       correlationId: req.correlationId
 
@@ -788,7 +774,6 @@ router.get('/alerts', validate(alertsQuery, 'query'), requireAdmin, async (req, 
 
       error: error.message,
 
-      stack: error.stack,
 
       correlationId: req.correlationId
 
@@ -836,7 +821,6 @@ router.get('/query-patterns', validate(queryPatternsQuery, 'query'), requireAdmi
 
       error: error.message,
 
-      stack: error.stack,
 
       correlationId: req.correlationId
 
@@ -873,7 +857,6 @@ router.get('/optimization-report', requireAdmin, async (req, res) => {
 
       error: error.message,
 
-      stack: error.stack,
 
       correlationId: req.correlationId
 

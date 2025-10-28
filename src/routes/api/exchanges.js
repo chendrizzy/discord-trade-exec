@@ -165,7 +165,6 @@ router.get('/', ensureAuthenticated, async (req, res) => {
 
       error: error.message,
 
-      stack: error.stack,
 
       correlationId: req.correlationId
 
@@ -256,7 +255,6 @@ router.post('/', ensureAuthenticated, validate(createExchangeBody, 'body'), asyn
 
       error: error.message,
 
-      stack: error.stack,
 
       correlationId: req.correlationId
 
@@ -306,7 +304,6 @@ router.delete('/:id', ensureAuthenticated, validate(deleteExchangeParams, 'param
 
       error: error.message,
 
-      stack: error.stack,
 
       correlationId: req.correlationId
 
@@ -378,7 +375,6 @@ router.post('/:id/validate', ensureAuthenticated, validate(validateExchangeParam
 
       error: error.message,
 
-      stack: error.stack,
 
       correlationId: req.correlationId
 
@@ -427,7 +423,6 @@ router.patch('/:id/toggle', ensureAuthenticated, validate(toggleExchangeParams, 
 
       error: error.message,
 
-      stack: error.stack,
 
       correlationId: req.correlationId
 
@@ -513,7 +508,6 @@ router.post('/cache-invalidate', ensureAuthenticated, validate(cacheInvalidateBo
 
       error: error.message,
 
-      stack: error.stack,
 
       correlationId: req.correlationId
 
@@ -676,7 +670,6 @@ router.get('/compare-fees', ensureAuthenticated, exchangeApiLimiter, validate(co
         logger.error('[Exchanges] Error comparing fees', {
           exchange: exchange.name,
           error: error.message,
-          stack: error.stack
         });
         errors.push({
           exchange: exchange.name,
@@ -744,7 +737,6 @@ router.get('/compare-fees', ensureAuthenticated, exchangeApiLimiter, validate(co
 
       error: error.message,
 
-      stack: error.stack,
 
       correlationId: req.correlationId
 

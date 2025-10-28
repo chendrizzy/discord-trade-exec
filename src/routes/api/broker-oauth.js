@@ -119,7 +119,6 @@ router.get('/initiate/:brokerKey', validate(initiateOAuthParams, 'params'), asyn
 
       error: error.message,
 
-      stack: error.stack,
 
       correlationId: req.correlationId
 
@@ -377,7 +376,7 @@ router.get('/callback/:brokerKey', oauthCallbackLimiter, validate(oauthCallbackP
       </html>
     `);
   } catch (error) {
-    logger.error('[OAuth Callback] Error:', { error: error.message, stack: error.stack });
+    logger.error('[OAuth Callback] Error:', { error: error.message });
     res.send(`
       <!DOCTYPE html>
       <html>
@@ -435,7 +434,6 @@ router.post('/disconnect/:brokerKey', validate(disconnectOAuthParams, 'params'),
 
       error: error.message,
 
-      stack: error.stack,
 
       correlationId: req.correlationId
 

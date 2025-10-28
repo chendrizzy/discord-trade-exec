@@ -56,7 +56,6 @@ router.get('/status', extractTenantMiddleware, auditLog('subscription.view', 'Us
 
       error: error.message,
 
-      stack: error.stack,
 
       correlationId: req.correlationId
 
@@ -132,7 +131,6 @@ router.post(
 
         error: error.message,
 
-        stack: error.stack,
 
         correlationId: req.correlationId
 
@@ -194,7 +192,6 @@ router.post(
 
         error: error.message,
 
-        stack: error.stack,
 
         correlationId: req.correlationId
 
@@ -259,7 +256,6 @@ router.get('/limits', extractTenantMiddleware, auditLog('subscription.limits', '
 
       error: error.message,
 
-      stack: error.stack,
 
       correlationId: req.correlationId
 

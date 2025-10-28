@@ -68,7 +68,6 @@ router.post(
 
         error: error.message,
 
-        stack: error.stack,
 
         correlationId: req.correlationId
 
@@ -115,7 +114,6 @@ router.delete(
 
         error: error.message,
 
-        stack: error.stack,
 
         correlationId: req.correlationId
 
@@ -168,7 +166,6 @@ router.put(
 
         error: error.message,
 
-        stack: error.stack,
 
         correlationId: req.correlationId
 
@@ -210,7 +207,6 @@ router.get('/', extractTenantMiddleware, auditLog('signal_subscription.view', 'U
 
       error: error.message,
 
-      stack: error.stack,
 
       correlationId: req.correlationId
 
@@ -265,7 +261,6 @@ router.get(
 
         error: error.message,
 
-        stack: error.stack,
 
         correlationId: req.correlationId
 
@@ -335,7 +330,6 @@ router.get(
 
         error: error.message,
 
-        stack: error.stack,
 
         correlationId: req.correlationId
 

@@ -151,7 +151,6 @@ router.get('/', ensureAuthenticated, (req, res) => {
   } catch (error) {
     logger.error('[BrokerAPI] Error listing brokers:', {
       error: error.message,
-      stack: error.stack,
       correlationId: req.correlationId
     });
     throw new AppError(
@@ -198,7 +197,6 @@ router.get('/:brokerKey', ensureAuthenticated, validate(getBrokerParams, 'params
   } catch (error) {
     logger.error('[BrokerAPI] Error fetching broker info:', {
       error: error.message,
-      stack: error.stack,
       brokerKey: req.params.brokerKey,
       correlationId: req.correlationId
     });
@@ -255,7 +253,6 @@ router.post('/test', ensureAuthenticated, validate(testBrokerBody, 'body'), asyn
   } catch (error) {
     logger.error('[BrokerAPI] Error testing connection:', {
       error: error.message,
-      stack: error.stack,
       brokerKey: req.body.brokerKey,
       correlationId: req.correlationId
     });
@@ -301,7 +298,7 @@ router.post('/test/:brokerKey', ensureAuthenticated, checkBrokerRateLimit(), val
         brokerConfig.credentials
       );
     } catch (error) {
-      logger.error('[BrokerAPI] Failed to decrypt credentials:', { error: error.message, stack: error.stack });
+      logger.error('[BrokerAPI] Failed to decrypt credentials:', { error: error.message });
       return sendError(res, 'Failed to decrypt credentials', 500, {
         message: 'Decryption service error. Please check AWS KMS configuration.'
       });
@@ -344,7 +341,6 @@ router.post('/test/:brokerKey', ensureAuthenticated, checkBrokerRateLimit(), val
   } catch (error) {
     logger.error('[BrokerAPI] Error testing configured broker:', {
       error: error.message,
-      stack: error.stack,
       brokerKey: req.params.brokerKey,
       userId: req.user.id,
       correlationId: req.correlationId
@@ -413,7 +409,7 @@ router.post('/configure', ensureAuthenticated, requirePremiumBroker, checkBroker
     try {
       encryptedCredentials = await encryptionService.encryptCredential(user.communityId.toString(), credentials);
     } catch (error) {
-      logger.error('[BrokerAPI] Failed to encrypt credentials:', { error: error.message, stack: error.stack });
+      logger.error('[BrokerAPI] Failed to encrypt credentials:', { error: error.message });
       return sendError(res, 'Failed to encrypt credentials', 500, {
         message: 'Encryption service error. Please check AWS KMS configuration.'
       });
@@ -458,7 +454,6 @@ router.post('/configure', ensureAuthenticated, requirePremiumBroker, checkBroker
   } catch (error) {
     logger.error('[BrokerAPI] Error saving configuration:', {
       error: error.message,
-      stack: error.stack,
       brokerKey: req.body.brokerKey,
       userId: req.user.id,
       correlationId: req.correlationId
@@ -520,7 +515,6 @@ router.get('/user/configured', ensureAuthenticated, async (req, res) => {
   } catch (error) {
     logger.error('[BrokerAPI] Error fetching configured brokers:', {
       error: error.message,
-      stack: error.stack,
       userId: req.user.id,
       correlationId: req.correlationId
     });
@@ -569,7 +563,6 @@ router.delete('/user/:brokerKey', ensureAuthenticated, validate(deleteUserBroker
   } catch (error) {
     logger.error('[BrokerAPI] Error removing broker config:', {
       error: error.message,
-      stack: error.stack,
       brokerKey: req.params.brokerKey,
       userId: req.user.id,
       correlationId: req.correlationId
@@ -633,7 +626,6 @@ router.post('/compare', ensureAuthenticated, validate(compareBrokersBody, 'body'
   } catch (error) {
     logger.error('[BrokerAPI] Error comparing fees:', {
       error: error.message,
-      stack: error.stack,
       symbol: req.body.symbol,
       userId: req.user.id,
       correlationId: req.correlationId
@@ -684,7 +676,6 @@ router.post('/recommend', ensureAuthenticated, validate(recommendBrokerBody, 'bo
   } catch (error) {
     logger.error('[BrokerAPI] Error getting recommendation:', {
       error: error.message,
-      stack: error.stack,
       requirements: req.body.requirements,
       userId: req.user.id,
       correlationId: req.correlationId

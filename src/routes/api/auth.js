@@ -76,7 +76,6 @@ router.get('/broker/:broker/authorize', ensureAuthenticated, validate(brokerAuth
       broker: req.params.broker,
       userId: req.user.id,
       error: error.message,
-      stack: error.stack,
       correlationId: req.correlationId
     });
     throw new AppError(
@@ -177,7 +176,6 @@ router.get('/brokers/status', ensureAuthenticated, async (req, res) => {
     logger.error('Failed to fetch OAuth2 broker status', {
       userId: req.user.id,
       error: error.message,
-      stack: error.stack,
       correlationId: req.correlationId
     });
     throw new AppError(
@@ -286,7 +284,6 @@ router.get('/callback', validate(oauthCallbackQuery, 'query'), async (req, res) 
   } catch (error) {
     logger.error('OAuth2 callback failed', {
       error: error.message,
-      stack: error.stack,
       state: req.query.state,
       ip: req.ip,
       correlationId: req.correlationId
@@ -391,7 +388,6 @@ router.post('/callback', validate(oauthCallbackBody, 'body'), async (req, res) =
   } catch (error) {
     logger.error('OAuth2 callback failed (POST)', {
       error: error.message,
-      stack: error.stack,
       code: req.body.code ? 'present' : 'missing',
       state: req.body.state,
       ip: req.ip,
@@ -450,7 +446,6 @@ router.delete('/brokers/:broker/oauth', ensureAuthenticated, validate(deleteBrok
       broker: req.params.broker,
       userId: req.user.id,
       error: error.message,
-      stack: error.stack,
       correlationId: req.correlationId
     });
     throw new AppError(
@@ -504,7 +499,6 @@ router.post('/brokers/:broker/oauth/refresh', ensureAuthenticated, validate(refr
       broker: req.params.broker,
       userId: req.user.id,
       error: error.message,
-      stack: error.stack,
       correlationId: req.correlationId
     });
     throw new AppError(
@@ -550,7 +544,6 @@ router.post('/mfa/setup', ensureAuthenticated, async (req, res) => {
       userId: req.user._id,
       username: req.user.discordUsername,
       error: error.message,
-      stack: error.stack,
       correlationId: req.correlationId
     });
 
@@ -615,7 +608,6 @@ router.post('/mfa/enable', ensureAuthenticated, validate(mfaEnableBody, 'body'),
       userId: req.user._id,
       username: req.user.discordUsername,
       error: error.message,
-      stack: error.stack,
       correlationId: req.correlationId
     });
 
@@ -702,7 +694,6 @@ router.post('/mfa/disable', ensureAuthenticated, validate(mfaDisableBody, 'body'
       userId: req.user._id,
       username: req.user.discordUsername,
       error: error.message,
-      stack: error.stack,
       correlationId: req.correlationId
     });
 
@@ -777,7 +768,6 @@ router.post('/mfa/backup-codes/regenerate', validate(mfaRegenerateBackupCodesBod
       userId: req.user._id,
       username: req.user.discordUsername,
       error: error.message,
-      stack: error.stack,
       correlationId: req.correlationId
     });
 
@@ -840,7 +830,6 @@ router.get('/mfa/status', ensureAuthenticated, async (req, res) => {
       userId: req.user._id,
       username: req.user.discordUsername,
       error: error.message,
-      stack: error.stack,
       correlationId: req.correlationId
     });
 
@@ -949,7 +938,6 @@ router.post('/mfa/verify', ensureAuthenticated, validate(mfaVerifyBody, 'body'),
       userId: req.user._id,
       username: req.user.discordUsername,
       error: error.message,
-      stack: error.stack,
       correlationId: req.correlationId
     });
 

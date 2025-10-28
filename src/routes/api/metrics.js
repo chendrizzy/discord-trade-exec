@@ -41,7 +41,6 @@ router.get('/', ensureAuthenticated, (req, res) => {
 
       error: error.message,
 
-      stack: error.stack,
 
       correlationId: req.correlationId
 
@@ -76,7 +75,6 @@ router.get('/health', (req, res) => {
 
       error: error.message,
 
-      stack: error.stack,
 
       correlationId: req.correlationId
 
@@ -110,7 +108,6 @@ router.get('/webhooks', ensureAuthenticated, (req, res) => {
 
       error: error.message,
 
-      stack: error.stack,
 
       correlationId: req.correlationId
 
@@ -144,7 +141,6 @@ router.get('/trades', ensureAuthenticated, (req, res) => {
 
       error: error.message,
 
-      stack: error.stack,
 
       correlationId: req.correlationId
 
@@ -178,7 +174,6 @@ router.get('/database', ensureAuthenticated, (req, res) => {
 
       error: error.message,
 
-      stack: error.stack,
 
       correlationId: req.correlationId
 
@@ -219,7 +214,6 @@ router.get('/database/profiling', ensureAuthenticated, async (req, res) => {
 
       error: error.message,
 
-      stack: error.stack,
 
       correlationId: req.correlationId
 
@@ -253,7 +247,6 @@ router.get('/api', ensureAuthenticated, (req, res) => {
 
       error: error.message,
 
-      stack: error.stack,
 
       correlationId: req.correlationId
 
@@ -287,7 +280,6 @@ router.get('/mfa', ensureAuthenticated, (req, res) => {
 
       error: error.message,
 
-      stack: error.stack,
 
       correlationId: req.correlationId
 
@@ -321,7 +313,6 @@ router.get('/system', ensureAuthenticated, (req, res) => {
 
       error: error.message,
 
-      stack: error.stack,
 
       correlationId: req.correlationId
 
@@ -355,7 +346,6 @@ router.get('/rate-limiting', ensureAuthenticated, (req, res) => {
 
       error: error.message,
 
-      stack: error.stack,
 
       correlationId: req.correlationId
 
@@ -398,7 +388,6 @@ router.get('/custom/:name', validate(customMetricNameParams, 'params'), ensureAu
 
       error: error.message,
 
-      stack: error.stack,
 
       correlationId: req.correlationId
 
@@ -440,7 +429,6 @@ router.post('/custom', validate(customMetricRecordBody, 'body'), ensureAuthentic
 
       error: error.message,
 
-      stack: error.stack,
 
       correlationId: req.correlationId
 
@@ -477,7 +465,6 @@ router.post('/reset', ensureAdmin, (req, res) => {
 
       error: error.message,
 
-      stack: error.stack,
 
       correlationId: req.correlationId
 
@@ -557,7 +544,6 @@ router.get('/export', ensureAuthenticated, (req, res) => {
 
       error: error.message,
 
-      stack: error.stack,
 
       correlationId: req.correlationId
 

@@ -96,7 +96,6 @@ router.get('/', validate(providerListQuery, 'query'), async (req, res) => {
 
       error: error.message,
 
-      stack: error.stack,
 
       correlationId: req.correlationId
 
@@ -151,7 +150,6 @@ router.get('/:providerId', validate(providerIdParams, 'params'), async (req, res
 
       error: error.message,
 
-      stack: error.stack,
 
       correlationId: req.correlationId
 
@@ -220,7 +218,6 @@ router.post(
 
         error: error.message,
 
-        stack: error.stack,
 
         correlationId: req.correlationId
 
@@ -278,7 +275,6 @@ router.post(
 
         error: error.message,
 
-        stack: error.stack,
 
         correlationId: req.correlationId
 
@@ -338,7 +334,6 @@ router.post(
 
         error: error.message,
 
-        stack: error.stack,
 
         correlationId: req.correlationId
 
@@ -395,7 +390,6 @@ router.get(
 
         error: error.message,
 
-        stack: error.stack,
 
         correlationId: req.correlationId
 
@@ -457,7 +451,6 @@ router.put(
 
         error: error.message,
 
-        stack: error.stack,
 
         correlationId: req.correlationId
 

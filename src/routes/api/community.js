@@ -264,7 +264,6 @@ router.get('/overview', overviewLimiter, async (req, res) => {
 
       error: error.message,
 
-      stack: error.stack,
 
       correlationId: req.correlationId
 
@@ -391,7 +390,6 @@ router.get('/members', dashboardLimiter, async (req, res) => {
 
       error: error.message,
 
-      stack: error.stack,
 
       correlationId: req.correlationId
 
@@ -541,7 +539,6 @@ router.post('/members/:id/role', dashboardLimiter, async (req, res) => {
 
       error: error.message,
 
-      stack: error.stack,
 
       correlationId: req.correlationId
 
@@ -638,7 +635,6 @@ router.get('/signals', dashboardLimiter, async (req, res) => {
 
       error: error.message,
 
-      stack: error.stack,
 
       correlationId: req.correlationId
 
@@ -721,7 +717,6 @@ router.put('/signals/:id', async (req, res) => {
 
       error: error.message,
 
-      stack: error.stack,
 
       correlationId: req.correlationId
 
@@ -859,7 +854,6 @@ router.get('/analytics/performance', analyticsLimiter, async (req, res) => {
 
       error: error.message,
 
-      stack: error.stack,
 
       correlationId: req.correlationId
 
@@ -1005,7 +999,7 @@ router.get('/subscription', dashboardLimiter, async (req, res) => {
       }
     });
   } catch (error) {
-    logger.error('[Community API] Error fetching subscription:', { error: error.message, stack: error.stack });
+    logger.error('[Community API] Error fetching subscription:', { error: error.message });
 
     // Handle Polar-specific errors
     if (error.message?.includes('Polar')) {

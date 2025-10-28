@@ -33,7 +33,6 @@ router.get('/debug-broker-config', ensureAuthenticated, async (req, res) => {
   } catch (error) {
     logger.error('Error fetching broker config debug info:', {
       error: error.message,
-      stack: error.stack,
       userId: req.user?.id,
       correlationId: req.correlationId
     });

@@ -265,7 +265,6 @@ router.get('/overview', overviewLimiter, validate(overviewQuery, 'query'), async
 
       error: error.message,
 
-      stack: error.stack,
 
       correlationId: req.correlationId
 
@@ -478,7 +477,6 @@ router.get('/signals', dashboardLimiter, validate(signalsQuery, 'query'), async 
 
       error: error.message,
 
-      stack: error.stack,
 
       correlationId: req.correlationId
 
@@ -606,7 +604,7 @@ router.post('/signals/:id/follow', validate(followSignalParams, 'params'), valid
       });
     }
   } catch (error) {
-    logger.error('[Trader API] Error updating signal subscription:', { error: error.message, stack: error.stack });
+    logger.error('[Trader API] Error updating signal subscription:', { error: error.message });
 
     // Handle duplicate key errors (shouldn't happen with findOne first, but defensive)
     if (error.code === 11000) {
@@ -719,7 +717,6 @@ router.get('/trades', tradesLimiter, validate(tradesQuery, 'query'), async (req,
 
       error: error.message,
 
-      stack: error.stack,
 
       correlationId: req.correlationId
 
@@ -860,7 +857,6 @@ router.get('/analytics/performance', analyticsLimiter, validate(analyticsPerform
 
       error: error.message,
 
-      stack: error.stack,
 
       correlationId: req.correlationId
 
@@ -922,7 +918,6 @@ router.get('/risk-profile', dashboardLimiter, async (req, res) => {
 
       error: error.message,
 
-      stack: error.stack,
 
       correlationId: req.correlationId
 
@@ -1090,7 +1085,7 @@ router.put('/risk-profile', dashboardLimiter, validate(updateRiskProfileBody, 'b
       }
     });
   } catch (error) {
-    logger.error('[Trader API] Error updating risk profile:', { error: error.message, stack: error.stack });
+    logger.error('[Trader API] Error updating risk profile:', { error: error.message });
 
     // Handle Mongoose validation errors
     if (error.name === 'ValidationError') {
@@ -1162,7 +1157,6 @@ router.get('/notifications', dashboardLimiter, async (req, res) => {
 
       error: error.message,
 
-      stack: error.stack,
 
       correlationId: req.correlationId
 
@@ -1261,7 +1255,7 @@ router.put('/notifications', dashboardLimiter, validate(updateNotificationsBody,
       preferences: updatedUser.preferences.notifications
     });
   } catch (error) {
-    logger.error('[Trader API] Error updating notification preferences:', { error: error.message, stack: error.stack });
+    logger.error('[Trader API] Error updating notification preferences:', { error: error.message });
 
     // Handle Mongoose validation errors
     if (error.name === 'ValidationError') {
@@ -1315,7 +1309,6 @@ router.post('/notifications/test', dashboardLimiter, async (req, res) => {
 
       error: error.message,
 
-      stack: error.stack,
 
       correlationId: req.correlationId
 
@@ -1369,7 +1362,6 @@ router.get('/subscription', dashboardLimiter, async (req, res) => {
 
       error: error.message,
 
-      stack: error.stack,
 
       correlationId: req.correlationId
 

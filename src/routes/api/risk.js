@@ -52,7 +52,6 @@ router.get('/settings', ensureAuthenticated, async (req, res) => {
   } catch (error) {
     logger.error('Error fetching risk settings:', {
       error: error.message,
-      stack: error.stack,
       userId: req.user.id,
       correlationId: req.correlationId
     });
@@ -184,7 +183,6 @@ router.put('/settings', ensureAuthenticated, validate(updateRiskSettingsBody, 'b
   } catch (error) {
     logger.error('Error updating risk settings:', {
       error: error.message,
-      stack: error.stack,
       userId: req.user.id,
       settings: req.body,
       correlationId: req.correlationId
@@ -227,7 +225,6 @@ router.post('/calculate-position', ensureAuthenticated, validate(calculatePositi
   } catch (error) {
     logger.error('Error calculating position size:', {
       error: error.message,
-      stack: error.stack,
       userId: req.user.id,
       params: req.body,
       correlationId: req.correlationId
@@ -261,7 +258,6 @@ router.get('/daily-loss', ensureAuthenticated, async (req, res) => {
   } catch (error) {
     logger.error('Error checking daily loss:', {
       error: error.message,
-      stack: error.stack,
       userId: req.user.id,
       correlationId: req.correlationId
     });
@@ -288,7 +284,6 @@ router.post('/daily-loss/reset', ensureAuthenticated, async (req, res) => {
   } catch (error) {
     logger.error('Error resetting daily loss:', {
       error: error.message,
-      stack: error.stack,
       userId: req.user.id,
       correlationId: req.correlationId
     });

@@ -133,7 +133,6 @@ router.get(
     } catch (error) {
       logger.error('Trade history API error:', {
         error: error.message,
-        stack: error.stack,
         userId: req.tenant.userId,
         filters: req.query,
         correlationId: req.correlationId
@@ -177,7 +176,6 @@ router.get('/:tradeId', extractTenantMiddleware, auditLog('trade.view', 'Trade')
   } catch (error) {
     logger.error('Trade detail API error:', {
       error: error.message,
-      stack: error.stack,
       tradeId: req.params.tradeId,
       userId: req.tenant.userId,
       correlationId: req.correlationId
@@ -220,7 +218,6 @@ router.get('/stats/summary', extractTenantMiddleware, auditLog('trade.stats', 'T
   } catch (error) {
     logger.error('Trade stats API error:', {
       error: error.message,
-      stack: error.stack,
       userId: req.tenant.userId,
       correlationId: req.correlationId
     });
@@ -284,7 +281,6 @@ router.post(
     } catch (error) {
       logger.error('[Trade Execution API] Error executing trade:', {
         error: error.message,
-        stack: error.stack,
         userId: req.tenant.userId,
         signal: req.body,
         correlationId: req.correlationId
@@ -328,7 +324,6 @@ router.post(
     } catch (error) {
       logger.error('[Trade Execution API] Error closing trade:', {
         error: error.message,
-        stack: error.stack,
         tradeId: req.params.tradeId,
         userId: req.tenant.userId,
         exitPrice: req.body.exitPrice,
@@ -367,7 +362,6 @@ router.delete(
     } catch (error) {
       logger.error('[Trade Execution API] Error cancelling trade:', {
         error: error.message,
-        stack: error.stack,
         tradeId: req.params.tradeId,
         userId: req.tenant.userId,
         correlationId: req.correlationId
@@ -401,7 +395,6 @@ router.get('/active', extractTenantMiddleware, auditLog('trade.view_active', 'Tr
   } catch (error) {
     logger.error('[Trade Execution API] Error fetching active trades:', {
       error: error.message,
-      stack: error.stack,
       userId: req.tenant.userId,
       correlationId: req.correlationId
     });
@@ -447,7 +440,6 @@ router.get('/history', extractTenantMiddleware, auditLog('trade.view_history', '
   } catch (error) {
     logger.error('[Trade Execution API] Error fetching trade history:', {
       error: error.message,
-      stack: error.stack,
       userId: req.tenant.userId,
       timeframe: req.query.timeframe,
       correlationId: req.correlationId

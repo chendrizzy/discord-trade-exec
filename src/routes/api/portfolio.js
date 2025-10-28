@@ -79,7 +79,6 @@ router.get('/', ensureAuthenticated, async (req, res) => {
   } catch (error) {
     logger.error('Portfolio API error:', {
       error: error.message,
-      stack: error.stack,
       userId: req.user._id,
       correlationId: req.correlationId
     });
@@ -149,7 +148,6 @@ async function calculateTotalPortfolioValue(user) {
       logger.error('[Portfolio] Error fetching balance from exchange', {
         exchange: exchangeConfig.name,
         error: error.message,
-        stack: error.stack
       });
       // Continue with other exchanges even if one fails
     }
@@ -249,7 +247,6 @@ router.post('/refresh', ensureAuthenticated, async (req, res) => {
   } catch (error) {
     logger.error('Portfolio refresh error:', {
       error: error.message,
-      stack: error.stack,
       userId: req.user._id,
       correlationId: req.correlationId
     });

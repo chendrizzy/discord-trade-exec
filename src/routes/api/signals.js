@@ -66,7 +66,6 @@ router.get(
 
         error: error.message,
 
-        stack: error.stack,
 
         correlationId: req.correlationId
 
@@ -123,7 +122,6 @@ router.post(
 
         error: error.message,
 
-        stack: error.stack,
 
         correlationId: req.correlationId
 
@@ -185,7 +183,6 @@ router.get(
 
         error: error.message,
 
-        stack: error.stack,
 
         correlationId: req.correlationId
 

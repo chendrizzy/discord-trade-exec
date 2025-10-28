@@ -262,7 +262,6 @@ router.get('/stats', ownerOnly, auditLog('admin.dashboard_view', 'Community'), a
 
       error: error.message,
 
-      stack: error.stack,
 
       correlationId: req.correlationId
 
@@ -343,7 +342,6 @@ router.get('/users', validate(adminUsersQuery, 'query'), ownerOnly, auditLog('ad
 
       error: error.message,
 
-      stack: error.stack,
 
       correlationId: req.correlationId
 
@@ -414,7 +412,6 @@ router.patch(
 
         error: error.message,
 
-        stack: error.stack,
 
         correlationId: req.correlationId
 
