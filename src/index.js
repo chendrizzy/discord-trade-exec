@@ -8,6 +8,10 @@ const config = loadAndValidateConfig();
 const { validateEnvironment } = require('./utils/env-validation');
 validateEnvironment();
 
+// Run enhanced environment validation (US5-T03)
+const EnvValidator = require('./utils/env-validator');
+EnvValidator.validate();
+
 // External dependencies
 const mongoose = require('mongoose');
 
