@@ -598,7 +598,7 @@ const user = await User.create({
 
 ---
 
-## US4: Production-Grade Error Handling ✅ 5/10 COMPLETE (10 tasks, 8 hours)
+## US4: Production-Grade Error Handling ✅ 6/10 COMPLETE (10 tasks, 8 hours)
 
 ### US4-T01: Update Error Handler Middleware [TDD] ✅ COMPLETE
 **File**: src/middleware/errorHandler.js
@@ -735,14 +735,27 @@ describe('Error Handler', () => {
 
 ---
 
-### US4-T10: Test Error Sanitization
-**File**: tests/integration/errors/sanitization.test.js  
-**Effort**: 30min  
-**Depends**: US4-T01  
+### US4-T10: Test Error Sanitization ✅ COMPLETE
+**File**: tests/integration/errors/sanitization.test.js
+**Effort**: 30min
+**Depends**: US4-T01
 **Acceptance**:
-- Test 500 error response (no stack trace)
-- Test 400 error response (validation details)
-- Test correlation ID in logs
+- [X] Test 500 error response (no stack trace) - 3 tests
+- [X] Test 400 error response (validation details) - 3 tests
+- [X] Test correlation ID in logs - 4 tests
+- [X] Test internal stack trace logging - 1 test
+
+**Implementation Details**:
+- Created comprehensive test suite with 11 tests covering all error sanitization scenarios
+- Test categories:
+  - 500 Error Response Sanitization (3 tests): Internal server errors, database errors, broker errors
+  - 400 Error Response with Validation Details (3 tests): Validation errors, invalid input, missing fields
+  - Correlation ID Logging (4 tests): 500 errors, 400 errors, request context, user context
+  - Stack Trace Logging (1 test): Internal logging only, never in response
+- Fixed logger mock to include getCorrelationId function
+- Fixed false positive stack trace detection by using specific regex patterns
+- All 11 tests passing ✅
+- Commit: 58bbf94
 
 ---
 
