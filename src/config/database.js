@@ -87,6 +87,9 @@ async function connect() {
       await enableSlowQueryProfiling();
     }
 
+    // Set up query pattern logging middleware (US6-T03)
+    setupQueryPatternLogging();
+
     return mongoose.connection;
   } catch (error) {
     logger.error('[Database] MongoDB connection failed', {
@@ -435,6 +438,174 @@ async function getProfilingStats() {
       error: error.message
     };
   }
+}
+
+/**
+ * Set up query pattern logging middleware (US6-T03)
+ * Instruments all Mongoose queries to track performance
+ */
+function setupQueryPatternLogging() {
+  const { getQueryLoggerInstance } = require('../utils/analytics-query-logger');
+  const queryLogger = getQueryLoggerInstance();
+
+  logger.info('🔍 Setting up query pattern logging middleware (US6-T03)');
+
+  // Hook into all query operations
+  mongoose.plugin(schema => {
+    // Track find operations
+    schema.pre('find', function() {
+      this._startTime = Date.now();
+    });
+
+    schema.post('find', function(result) {
+      if (this._startTime) {
+        const executionTime = Date.now() - this._startTime;
+        queryLogger.logQuery({
+          queryType: 'find',
+          params: this.getFilter(),
+          executionTime,
+          collection: this.mongooseCollection?.name || 'unknown',
+          resultSize: Array.isArray(result) ? result.length : 0,
+          timestamp: new Date()
+        });
+      }
+    });
+
+    // Track findOne operations
+    schema.pre('findOne', function() {
+      this._startTime = Date.now();
+    });
+
+    schema.post('findOne', function(result) {
+      if (this._startTime) {
+        const executionTime = Date.now() - this._startTime;
+        queryLogger.logQuery({
+          queryType: 'findOne',
+          params: this.getFilter(),
+          executionTime,
+          collection: this.mongooseCollection?.name || 'unknown',
+          resultSize: result ? 1 : 0,
+          timestamp: new Date()
+        });
+      }
+    });
+
+    // Track update operations
+    schema.pre('updateOne', function() {
+      this._startTime = Date.now();
+    });
+
+    schema.post('updateOne', function(result) {
+      if (this._startTime) {
+        const executionTime = Date.now() - this._startTime;
+        queryLogger.logQuery({
+          queryType: 'updateOne',
+          params: this.getFilter(),
+          executionTime,
+          collection: this.mongooseCollection?.name || 'unknown',
+          resultSize: result?.modifiedCount || 0,
+          timestamp: new Date()
+        });
+      }
+    });
+
+    // Track updateMany operations
+    schema.pre('updateMany', function() {
+      this._startTime = Date.now();
+    });
+
+    schema.post('updateMany', function(result) {
+      if (this._startTime) {
+        const executionTime = Date.now() - this._startTime;
+        queryLogger.logQuery({
+          queryType: 'updateMany',
+          params: this.getFilter(),
+          executionTime,
+          collection: this.mongooseCollection?.name || 'unknown',
+          resultSize: result?.modifiedCount || 0,
+          timestamp: new Date()
+        });
+      }
+    });
+
+    // Track deleteOne operations
+    schema.pre('deleteOne', function() {
+      this._startTime = Date.now();
+    });
+
+    schema.post('deleteOne', function(result) {
+      if (this._startTime) {
+        const executionTime = Date.now() - this._startTime;
+        queryLogger.logQuery({
+          queryType: 'deleteOne',
+          params: this.getFilter(),
+          executionTime,
+          collection: this.mongooseCollection?.name || 'unknown',
+          resultSize: result?.deletedCount || 0,
+          timestamp: new Date()
+        });
+      }
+    });
+
+    // Track deleteMany operations
+    schema.pre('deleteMany', function() {
+      this._startTime = Date.now();
+    });
+
+    schema.post('deleteMany', function(result) {
+      if (this._startTime) {
+        const executionTime = Date.now() - this._startTime;
+        queryLogger.logQuery({
+          queryType: 'deleteMany',
+          params: this.getFilter(),
+          executionTime,
+          collection: this.mongooseCollection?.name || 'unknown',
+          resultSize: result?.deletedCount || 0,
+          timestamp: new Date()
+        });
+      }
+    });
+
+    // Track countDocuments operations
+    schema.pre('countDocuments', function() {
+      this._startTime = Date.now();
+    });
+
+    schema.post('countDocuments', function(result) {
+      if (this._startTime) {
+        const executionTime = Date.now() - this._startTime;
+        queryLogger.logQuery({
+          queryType: 'countDocuments',
+          params: this.getFilter(),
+          executionTime,
+          collection: this.mongooseCollection?.name || 'unknown',
+          resultSize: result || 0,
+          timestamp: new Date()
+        });
+      }
+    });
+
+    // Track aggregate operations
+    schema.pre('aggregate', function() {
+      this._startTime = Date.now();
+    });
+
+    schema.post('aggregate', function(result) {
+      if (this._startTime) {
+        const executionTime = Date.now() - this._startTime;
+        queryLogger.logQuery({
+          queryType: 'aggregate',
+          params: { pipeline: this.pipeline ? this.pipeline() : [] },
+          executionTime,
+          collection: this.mongooseCollection?.name || 'unknown',
+          resultSize: Array.isArray(result) ? result.length : 0,
+          timestamp: new Date()
+        });
+      }
+    });
+  });
+
+  logger.info('✅ Query pattern logging middleware configured for all models');
 }
 
 module.exports = {

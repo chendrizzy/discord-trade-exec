@@ -26,11 +26,18 @@ class QueryPatternLogger {
   constructor() {
     this.patterns = new Map();
     this.PATTERN_CACHE_SIZE = 1000;
-    this.SLOW_QUERY_THRESHOLD = 1000; // 1 second
+    this.SLOW_QUERY_THRESHOLD = 100; // 100ms (US6-T03)
 
     // Pattern aggregation intervals
     this.hourlyPatterns = [];
     this.dailyPatterns = [];
+
+    // Hourly slow query tracking for US6-T03
+    this.slowQueriesPerHour = [];
+    this.slowQueryAlertThreshold = 10;
+
+    // Start hourly cleanup interval
+    this.hourlyCleanupInterval = setInterval(() => this.cleanupHourlyData(), 60 * 60 * 1000);
   }
 
   /**
@@ -45,7 +52,8 @@ class QueryPatternLogger {
       userId,
       timestamp = new Date(),
       resultSize = 0,
-      cacheHit = false
+      cacheHit = false,
+      collection = 'unknown'  // US6-T03: Add collection tracking
     } = queryInfo;
 
     // Create query pattern key
@@ -58,7 +66,8 @@ class QueryPatternLogger {
       executionTime,
       resultSize,
       cacheHit,
-      timestamp
+      timestamp,
+      collection  // US6-T03: Include collection in pattern data
     });
 
     // Log to file
@@ -70,11 +79,14 @@ class QueryPatternLogger {
       userId,
       resultSize,
       cacheHit,
-      patternKey
+      patternKey,
+      collection  // US6-T03: Include collection in log entry
     };
 
     if (executionTime > this.SLOW_QUERY_THRESHOLD) {
       queryLogger.warn('Slow query detected', logEntry);
+      // US6-T03: Track slow query for hourly alerting
+      this.trackSlowQuery(logEntry);
     } else {
       queryLogger.info('Query executed', logEntry);
     }
@@ -111,7 +123,8 @@ class QueryPatternLogger {
         firstSeen: queryData.timestamp,
         lastSeen: queryData.timestamp,
         queryType: queryData.queryType,
-        paramStructure: Object.keys(queryData.params || {}).sort()
+        paramStructure: Object.keys(queryData.params || {}).sort(),
+        collection: queryData.collection  // US6-T03: Track collection name
       });
     }
 
@@ -375,10 +388,64 @@ class QueryPatternLogger {
   }
 
   /**
+   * Track slow query for hourly alerting (US6-T03)
+   * @private
+   */
+  trackSlowQuery(queryInfo) {
+    const now = Date.now();
+    this.slowQueriesPerHour.push({ timestamp: now, query: queryInfo });
+
+    // Remove entries older than 1 hour
+    const oneHourAgo = now - (60 * 60 * 1000);
+    this.slowQueriesPerHour = this.slowQueriesPerHour.filter(q => q.timestamp > oneHourAgo);
+
+    // Check if alert threshold exceeded
+    if (this.slowQueriesPerHour.length > this.slowQueryAlertThreshold) {
+      this.triggerSlowQueryAlert();
+    }
+  }
+
+  /**
+   * Trigger slow query alert (US6-T03)
+   * @private
+   */
+  triggerSlowQueryAlert() {
+    const logger = require('./logger');
+    logger.warn('Slow query alert: >10 slow queries in last hour', {
+      count: this.slowQueriesPerHour.length,
+      threshold: this.slowQueryAlertThreshold,
+      recentQueries: this.slowQueriesPerHour.slice(-5).map(q => ({
+        queryType: q.query.queryType,
+        collection: q.query.collection,
+        executionTime: q.query.executionTime,
+        timestamp: q.query.timestamp
+      }))
+    });
+  }
+
+  /**
+   * Clean up hourly data (US6-T03)
+   * @private
+   */
+  cleanupHourlyData() {
+    const oneHourAgo = Date.now() - (60 * 60 * 1000);
+    this.slowQueriesPerHour = this.slowQueriesPerHour.filter(q => q.timestamp > oneHourAgo);
+  }
+
+  /**
    * Reset pattern cache
    */
   reset() {
     this.patterns.clear();
+  }
+
+  /**
+   * Shutdown cleanup intervals
+   */
+  shutdown() {
+    if (this.hourlyCleanupInterval) {
+      clearInterval(this.hourlyCleanupInterval);
+    }
   }
 }
 
