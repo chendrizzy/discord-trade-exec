@@ -12,6 +12,14 @@ const { sendSuccess, sendError, sendValidationError, sendNotFound } = require('.
 const logger = require('../../utils/logger');
 
 const { AppError, ErrorCodes } = require('../../middleware/errorHandler');
+const { validate } = require('../../middleware/validation');
+const {
+  providerListQuery,
+  providerIdParams,
+  providerReviewBody,
+  channelIdParams,
+  userProviderConfigBody
+} = require('../../validators/providers.validators');
 // Init repository
 const providerRepository = new BaseRepository(SignalProvider);
 
@@ -19,7 +27,7 @@ const providerRepository = new BaseRepository(SignalProvider);
 router.use(apiLimiter);
 
 // Get all signal providers (public leaderboard)
-router.get('/', async (req, res) => {
+router.get('/', validate(providerListQuery, 'query'), async (req, res) => {
   try {
     const {
       limit = 20,
@@ -108,7 +116,7 @@ router.get('/', async (req, res) => {
 });
 
 // Get single provider details
-router.get('/:providerId', async (req, res) => {
+router.get('/:providerId', validate(providerIdParams, 'params'), async (req, res) => {
   try {
     const provider = await SignalProvider.findOne({
       providerId: req.params.providerId
@@ -165,6 +173,7 @@ router.get('/:providerId', async (req, res) => {
 // Subscribe to a provider
 router.post(
   '/:providerId/subscribe',
+  validate(providerIdParams, 'params'),
   extractTenantMiddleware,
   auditLog('signal.provider_subscribe', 'SignalProvider'),
   async (req, res) => {
@@ -234,6 +243,7 @@ router.post(
 // Unsubscribe from a provider
 router.post(
   '/:providerId/unsubscribe',
+  validate(providerIdParams, 'params'),
   extractTenantMiddleware,
   auditLog('signal.provider_unsubscribe', 'SignalProvider'),
   async (req, res) => {
@@ -291,16 +301,15 @@ router.post(
 // Add review/rating
 router.post(
   '/:providerId/review',
+  validate(providerIdParams, 'params'),
+  validate(providerReviewBody, 'body'),
   extractTenantMiddleware,
   auditLog('signal.provider_review', 'SignalProvider'),
   async (req, res) => {
     try {
       const { rating, comment } = req.body;
 
-      if (!rating || rating < 1 || rating > 5) {
-        return sendValidationError(res, 'Rating must be between 1 and 5');
-      }
-
+      // Rating validation handled by Zod middleware
       const provider = await SignalProvider.findOne({
         providerId: req.params.providerId
       });
@@ -409,6 +418,8 @@ router.get(
 // Update provider settings for user
 router.put(
   '/user/providers/:channelId',
+  validate(channelIdParams, 'params'),
+  validate(userProviderConfigBody, 'body'),
   extractTenantMiddleware,
   auditLog('signal.provider_settings', 'SignalProvider'),
   async (req, res) => {

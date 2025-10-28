@@ -13,6 +13,20 @@ const { getAlertsInstance } = require('../../utils/analytics-alerts');
 const { getQueryLoggerInstance } = require('../../utils/analytics-query-logger');
 const { getCacheInstance } = require('../../utils/analytics-cache');
 const { AppError, ErrorCodes } = require('../../middleware/errorHandler');
+const { validate } = require('../../middleware/validation');
+const {
+  revenueQuery,
+  churnQuery,
+  churnRisksQuery,
+  churnRiskCalculateBody,
+  cohortRetentionQuery,
+  cohortDetailParams,
+  cohortCompareBody,
+  metricsExportQuery,
+  slowQueriesQuery,
+  alertsQuery,
+  queryPatternsQuery
+} = require('../../validators/analytics.validators');
 
 // Get singleton instances
 const revenueMetrics = getRevenueMetricsInstance();
@@ -35,7 +49,7 @@ const requireAdmin = (req, res, next) => {
  * GET /api/analytics/revenue
  * Get comprehensive revenue metrics (MRR, ARR, LTV, churn)
  */
-router.get('/revenue', requireAdmin, async (req, res) => {
+router.get('/revenue', validate(revenueQuery, 'query'), requireAdmin, async (req, res) => {
   const tracker = metricsTracker.startQuery('revenue', req.query);
   const queryStartTime = Date.now();
 
@@ -81,7 +95,7 @@ router.get('/revenue', requireAdmin, async (req, res) => {
  * GET /api/analytics/mrr
  * Get Monthly Recurring Revenue breakdown
  */
-router.get('/mrr', requireAdmin, async (req, res) => {
+router.get('/mrr', validate(revenueQuery, 'query'), requireAdmin, async (req, res) => {
   try {
     // Use Redis cache wrapper
     const result = await cache.wrap(cache.prefixes.MRR, () => revenueMetrics.calculateMRR(), {}, cache.ttls.MRR);
@@ -120,7 +134,7 @@ router.get('/mrr', requireAdmin, async (req, res) => {
  * GET /api/analytics/arr
  * Get Annual Recurring Revenue
  */
-router.get('/arr', requireAdmin, async (req, res) => {
+router.get('/arr', validate(revenueQuery, 'query'), requireAdmin, async (req, res) => {
   try {
     const arr = await revenueMetrics.calculateARR();
 
@@ -157,7 +171,7 @@ router.get('/arr', requireAdmin, async (req, res) => {
  * GET /api/analytics/ltv
  * Get Customer Lifetime Value metrics
  */
-router.get('/ltv', requireAdmin, async (req, res) => {
+router.get('/ltv', validate(revenueQuery, 'query'), requireAdmin, async (req, res) => {
   try {
     // Use Redis cache wrapper
     const result = await cache.wrap(cache.prefixes.LTV, () => revenueMetrics.calculateLTV(), {}, cache.ttls.LTV);
@@ -196,17 +210,11 @@ router.get('/ltv', requireAdmin, async (req, res) => {
  * GET /api/analytics/churn
  * Get churn rate for specified period
  */
-router.get('/churn', requireAdmin, async (req, res) => {
+router.get('/churn', validate(churnQuery, 'query'), requireAdmin, async (req, res) => {
   try {
     const { startDate, endDate } = req.query;
 
-    if (!startDate || !endDate) {
-      return res.status(400).json({
-        success: false,
-        error: 'startDate and endDate query parameters required'
-      });
-    }
-
+    // Date validation handled by Zod middleware
     const churn = await revenueMetrics.calculateChurnRate(new Date(startDate), new Date(endDate));
 
     res.json({
@@ -242,7 +250,7 @@ router.get('/churn', requireAdmin, async (req, res) => {
  * GET /api/analytics/churn-risks
  * Get users at high risk of churning
  */
-router.get('/churn-risks', requireAdmin, async (req, res) => {
+router.get('/churn-risks', validate(churnRisksQuery, 'query'), requireAdmin, async (req, res) => {
   try {
     const { minRiskLevel = 'high', limit = 50 } = req.query;
 
@@ -291,17 +299,11 @@ router.get('/churn-risks', requireAdmin, async (req, res) => {
  * POST /api/analytics/churn-risk/calculate
  * Calculate churn risk for specific user
  */
-router.post('/churn-risk/calculate', requireAdmin, async (req, res) => {
+router.post('/churn-risk/calculate', validate(churnRiskCalculateBody, 'body'), requireAdmin, async (req, res) => {
   try {
     const { userId } = req.body;
 
-    if (!userId) {
-      return res.status(400).json({
-        success: false,
-        error: 'userId required in request body'
-      });
-    }
-
+    // userId validation handled by Zod middleware
     const user = await User.findById(userId).select(
       'subscription stats lastLogin createdAt supportTickets brokerConnections'
     );
@@ -458,7 +460,7 @@ router.get('/dashboard', requireAdmin, async (req, res) => {
  * GET /api/analytics/cohorts/retention
  * Get cohort retention table
  */
-router.get('/cohorts/retention', requireAdmin, async (req, res) => {
+router.get('/cohorts/retention', validate(cohortRetentionQuery, 'query'), requireAdmin, async (req, res) => {
   try {
     const { startDate, endDate, period = 'month', metric = 'login' } = req.query;
 
@@ -502,7 +504,7 @@ router.get('/cohorts/retention', requireAdmin, async (req, res) => {
  * GET /api/analytics/cohorts/:cohortId
  * Get detailed analysis for a specific cohort
  */
-router.get('/cohorts/:cohortId', requireAdmin, async (req, res) => {
+router.get('/cohorts/:cohortId', validate(cohortDetailParams, 'params'), requireAdmin, async (req, res) => {
   try {
     const { cohortId } = req.params;
 
@@ -548,17 +550,11 @@ router.get('/cohorts/:cohortId', requireAdmin, async (req, res) => {
  * POST /api/analytics/cohorts/compare
  * Compare multiple cohorts
  */
-router.post('/cohorts/compare', requireAdmin, async (req, res) => {
+router.post('/cohorts/compare', validate(cohortCompareBody, 'body'), requireAdmin, async (req, res) => {
   try {
     const { cohortIds } = req.body;
 
-    if (!Array.isArray(cohortIds) || cohortIds.length === 0) {
-      return res.status(400).json({
-        success: false,
-        error: 'cohortIds array required in request body'
-      });
-    }
-
+    // cohortIds validation handled by Zod middleware
     const comparison = await cohortAnalyzer.compareCohorts(cohortIds);
 
     res.json({
@@ -594,7 +590,7 @@ router.post('/cohorts/compare', requireAdmin, async (req, res) => {
  * GET /api/analytics/metrics
  * Get analytics query performance metrics
  */
-router.get('/metrics', requireAdmin, async (req, res) => {
+router.get('/metrics', validate(metricsExportQuery, 'query'), requireAdmin, async (req, res) => {
   try {
     const { format = 'summary' } = req.query;
 
@@ -640,7 +636,7 @@ router.get('/metrics', requireAdmin, async (req, res) => {
  * GET /api/analytics/metrics/slow-queries
  * Get slow query analysis
  */
-router.get('/metrics/slow-queries', requireAdmin, async (req, res) => {
+router.get('/metrics/slow-queries', validate(slowQueriesQuery, 'query'), requireAdmin, async (req, res) => {
   try {
     const { severity } = req.query;
     const slowQueries = metricsTracker.getSlowQueries(severity);
@@ -768,7 +764,7 @@ router.get('/health', requireAdmin, async (req, res) => {
  * GET /api/analytics/alerts
  * Get alert history and active alerts
  */
-router.get('/alerts', requireAdmin, async (req, res) => {
+router.get('/alerts', validate(alertsQuery, 'query'), requireAdmin, async (req, res) => {
   try {
     const { limit = 50, severity } = req.query;
 
@@ -815,7 +811,7 @@ router.get('/alerts', requireAdmin, async (req, res) => {
  * GET /api/analytics/query-patterns
  * Get query patterns and frequency analysis
  */
-router.get('/query-patterns', requireAdmin, async (req, res) => {
+router.get('/query-patterns', validate(queryPatternsQuery, 'query'), requireAdmin, async (req, res) => {
   try {
     const { limit = 50, type = 'frequent' } = req.query;
 

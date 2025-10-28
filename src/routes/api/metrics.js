@@ -17,6 +17,11 @@ const { apiLimiter } = require('../../middleware/rateLimiter');
 const performanceTracker = require('../../PerformanceTracker');
 const logger = require('../../utils/logger');
 const { AppError, ErrorCodes } = require('../../middleware/errorHandler');
+const { validate } = require('../../middleware/validation');
+const {
+  customMetricNameParams,
+  customMetricRecordBody
+} = require('../../validators/metrics.validators');
 
 // Apply rate limiting to all routes
 router.use(apiLimiter);
@@ -374,7 +379,7 @@ router.get('/rate-limiting', ensureAuthenticated, (req, res) => {
  * Get specific custom metric
  * Requires: Authentication
  */
-router.get('/custom/:name', ensureAuthenticated, (req, res) => {
+router.get('/custom/:name', validate(customMetricNameParams, 'params'), ensureAuthenticated, (req, res) => {
   try {
     const metrics = performanceTracker.getMetrics();
     const metricName = req.params.name;
@@ -418,16 +423,11 @@ router.get('/custom/:name', ensureAuthenticated, (req, res) => {
  * Requires: Authentication
  * Body: { name: string, value: number }
  */
-router.post('/custom', ensureAuthenticated, (req, res) => {
+router.post('/custom', validate(customMetricRecordBody, 'body'), ensureAuthenticated, (req, res) => {
   try {
     const { name, value } = req.body;
 
-    if (!name || typeof value !== 'number') {
-      return res.status(400).json({
-        error: 'Missing required fields: name (string) and value (number)'
-      });
-    }
-
+    // Validation handled by Zod middleware
     performanceTracker.recordCustomMetric(name, value);
 
     res.json({

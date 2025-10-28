@@ -12,6 +12,12 @@ const { apiLimiter } = require('../../middleware/rateLimiter');
 const BaseRepository = require('../../repositories/BaseRepository');
 const logger = require('../../utils/logger');
 const { AppError, ErrorCodes } = require('../../middleware/errorHandler');
+const { validate } = require('../../middleware/validation');
+const {
+  adminUsersQuery,
+  adminUserRoleParams,
+  adminUserRoleBody
+} = require('../../validators/admin.validators');
 
 // Apply rate limiting and tenant auth to all routes
 router.use(apiLimiter);
@@ -280,7 +286,7 @@ router.get('/stats', ownerOnly, auditLog('admin.dashboard_view', 'Community'), a
  * @desc    Get paginated list of all users with search and filtering
  * @access  Admin only (Multi-Tenant)
  */
-router.get('/users', ownerOnly, auditLog('admin.user_list', 'User'), async (req, res) => {
+router.get('/users', validate(adminUsersQuery, 'query'), ownerOnly, auditLog('admin.user_list', 'User'), async (req, res) => {
   try {
     const page = Math.max(1, parseInt(req.query.page) || 1);
     const limit = Math.min(100, Math.max(1, parseInt(req.query.limit) || 20));
@@ -363,6 +369,8 @@ router.get('/users', ownerOnly, auditLog('admin.user_list', 'User'), async (req,
  */
 router.patch(
   '/users/:userId/role',
+  validate(adminUserRoleParams, 'params'),
+  validate(adminUserRoleBody, 'body'),
   ownerOnly,
   auditLog('user.role_change', 'User', { captureBefore: true, captureAfter: true }),
   async (req, res) => {
@@ -370,14 +378,7 @@ router.patch(
       const { userId } = req.params;
       const { communityRole } = req.body;
 
-      if (!['admin', 'trader', 'viewer'].includes(communityRole)) {
-        return res.status(400).json({
-          success: false,
-          error: 'Invalid role. Must be: admin, trader, or viewer'
-        });
-      }
-
-      // Tenant-scoped query
+      // Tenant-scoped query (validation handled by Zod middleware)
       const user = await userRepository.findById(userId);
 
       if (!user) {

@@ -25,7 +25,8 @@ const {
   refreshBrokerOAuthParams,
   mfaEnableBody,
   mfaDisableBody,
-  mfaVerifyBody
+  mfaVerifyBody,
+  mfaRegenerateBackupCodesBody
 } = require('../../validators/auth.validators');
 
 // Initialize MFA service
@@ -753,20 +754,12 @@ router.post('/mfa/disable', ensureAuthenticated, validate(mfaDisableBody, 'body'
  * @throws {400} Invalid token
  * @throws {400} MFA not enabled
  */
-router.post('/mfa/backup-codes/regenerate', ensureAuthenticated, async (req, res) => {
+router.post('/mfa/backup-codes/regenerate', validate(mfaRegenerateBackupCodesBody, 'body'), ensureAuthenticated, async (req, res) => {
   try {
     const userId = req.user._id;
     const { token } = req.body;
 
-    // Validate token provided
-    if (!token || !/^\d{6}$/.test(token)) {
-      return res.status(400).json({
-        success: false,
-        error: 'Invalid token format. Must be 6 digits.',
-        code: 'INVALID_TOKEN_FORMAT'
-      });
-    }
-
+    // Token validation handled by Zod middleware
     const result = await mfaService.regenerateBackupCodes(userId, token);
 
     logger.info('Backup codes regenerated', {
