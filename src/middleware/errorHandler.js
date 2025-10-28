@@ -16,51 +16,7 @@
 const logger = require('../utils/logger');
 const { getConfig, isProduction } = require('../config/env');
 const errorNotificationService = require('../services/ErrorNotificationService');
-
-/**
- * Standard error codes
- */
-const ErrorCodes = {
-  // Authentication & Authorization (40x)
-  UNAUTHORIZED: 'UNAUTHORIZED',
-  FORBIDDEN: 'FORBIDDEN',
-  INVALID_TOKEN: 'INVALID_TOKEN',
-  TOKEN_EXPIRED: 'TOKEN_EXPIRED',
-
-  // Validation (40x)
-  VALIDATION_ERROR: 'VALIDATION_ERROR',
-  INVALID_INPUT: 'INVALID_INPUT',
-  MISSING_REQUIRED_FIELD: 'MISSING_REQUIRED_FIELD',
-
-  // Resources (40x)
-  NOT_FOUND: 'NOT_FOUND',
-  RESOURCE_NOT_FOUND: 'RESOURCE_NOT_FOUND',
-  DUPLICATE_RESOURCE: 'DUPLICATE_RESOURCE',
-
-  // Rate Limiting (429)
-  RATE_LIMIT_EXCEEDED: 'RATE_LIMIT_EXCEEDED',
-
-  // Broker Errors (50x)
-  BROKER_ERROR: 'BROKER_ERROR',
-  BROKER_CONNECTION_FAILED: 'BROKER_CONNECTION_FAILED',
-  BROKER_AUTH_FAILED: 'BROKER_AUTH_FAILED',
-  INSUFFICIENT_FUNDS: 'INSUFFICIENT_FUNDS',
-  MARKET_CLOSED: 'MARKET_CLOSED',
-
-  // Database Errors (50x)
-  DATABASE_ERROR: 'DATABASE_ERROR',
-  DATABASE_CONNECTION_FAILED: 'DATABASE_CONNECTION_FAILED',
-
-  // External Service Errors (50x)
-  EXTERNAL_SERVICE_ERROR: 'EXTERNAL_SERVICE_ERROR',
-  DISCORD_API_ERROR: 'DISCORD_API_ERROR',
-  POLAR_API_ERROR: 'POLAR_API_ERROR',
-
-  // Server Errors (50x)
-  INTERNAL_SERVER_ERROR: 'INTERNAL_SERVER_ERROR',
-  SERVICE_UNAVAILABLE: 'SERVICE_UNAVAILABLE',
-  CONFIGURATION_ERROR: 'CONFIGURATION_ERROR'
-};
+const { ErrorCodes } = require('../constants/ErrorCodes');
 
 /**
  * Custom application error class
