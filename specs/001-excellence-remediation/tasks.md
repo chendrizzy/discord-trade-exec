@@ -483,15 +483,18 @@ const user = await User.create({
 
 ---
 
-### US3-T04: Add CSRF Protection Tests [TDD] [P]
-**File**: tests/integration/routes/auth-csrf.test.js  
-**Effort**: 1h  
-**Depends**: US3-T01  
+### US3-T04: Add CSRF Protection Tests [TDD] [P] ❌ BLOCKED
+**File**: tests/integration/routes/auth-csrf.test.js
+**Effort**: 1h
+**Depends**: US3-T01
+**Blocker**: Requires CSRF middleware implementation in src/app.js (csurf or custom)
 **Acceptance**:
-- Test missing CSRF token (403)
-- Test invalid CSRF token (403)
-- Test CSRF token rotation (200)
-- 5 new tests, all passing
+- [ ] Test missing CSRF token (403) - 5 tests written but skipped
+- [ ] Test invalid CSRF token (403) - Waiting for middleware
+- [ ] Test CSRF token rotation (200) - Waiting for middleware
+- [ ] 5 tests passing (currently all skipped)
+
+**Status**: Test file exists with 5 comprehensive test scenarios, but all tests are skipped pending CSRF middleware implementation. Requires infrastructure work before tests can be enabled.
 
 ---
 
