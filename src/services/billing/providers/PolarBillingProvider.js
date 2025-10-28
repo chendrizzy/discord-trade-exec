@@ -39,12 +39,35 @@ class PolarBillingProvider extends BillingProvider {
   }
 
   /**
+   * Validate that mock methods are not used in production
+   * @private
+   * @param {string} methodName - Name of the method attempting to use mock data
+   * @throws {Error} If in production and BILLING_PROVIDER is not explicitly set to 'mock'
+   */
+  _validateNotProductionMock(methodName) {
+    if (process.env.NODE_ENV === 'production' && process.env.BILLING_PROVIDER !== 'mock') {
+      const error = new Error(
+        `${methodName}: Mock billing methods are not allowed in production. ` +
+        `Please configure POLAR_ACCESS_TOKEN or set BILLING_PROVIDER=mock explicitly.`
+      );
+      logger.error('[PolarBillingProvider] Production mock usage prevented', {
+        method: methodName,
+        nodeEnv: process.env.NODE_ENV,
+        billingProvider: process.env.BILLING_PROVIDER,
+        errorMessage: error.message
+      });
+      throw error;
+    }
+  }
+
+  /**
    * Get active subscription for a customer
    * @param {string} customerId - Polar customer UUID
    * @returns {Promise<Subscription|null>}
    */
   async getSubscription(customerId) {
     if (!this.client || !customerId) {
+      this._validateNotProductionMock('getSubscription');
       logger.info('[PolarBillingProvider] Returning mock subscription (Polar not configured)');
       return this._getMockSubscription(customerId);
     }
@@ -82,6 +105,7 @@ class PolarBillingProvider extends BillingProvider {
    */
   async getCustomer(customerId) {
     if (!this.client || !customerId) {
+      this._validateNotProductionMock('getCustomer');
       logger.info('[PolarBillingProvider] Returning mock customer');
       return {
         id: customerId,
@@ -120,6 +144,7 @@ class PolarBillingProvider extends BillingProvider {
    */
   async createCustomerPortalSession(customerId, returnUrl) {
     if (!this.client) {
+      this._validateNotProductionMock('createCustomerPortalSession');
       return {
         id: '550e8400-mock-4000-b000-portalsession',
         url: `https://polar.sh/portal/mock?customer=${customerId}&return_url=${encodeURIComponent(returnUrl)}`
@@ -156,6 +181,7 @@ class PolarBillingProvider extends BillingProvider {
    */
   async createCheckoutSession(productId, successUrl, customerEmail, metadata = {}) {
     if (!this.client || !productId) {
+      this._validateNotProductionMock('createCheckoutSession');
       return {
         id: '550e8400-mock-4000-b000-checkoutsession',
         url: `https://polar.sh/checkout/mock?product=${productId}&success_url=${encodeURIComponent(successUrl)}&email=${encodeURIComponent(customerEmail)}`,
@@ -199,6 +225,7 @@ class PolarBillingProvider extends BillingProvider {
    */
   async getProduct(productId) {
     if (!this.client) {
+      this._validateNotProductionMock('getProduct');
       return this._getMockProduct(productId);
     }
 
@@ -224,6 +251,7 @@ class PolarBillingProvider extends BillingProvider {
    */
   async listProducts() {
     if (!this.client || !this.organizationId) {
+      this._validateNotProductionMock('listProducts');
       logger.info('[PolarBillingProvider] Returning mock products');
       return [
         this._getMockProduct('550e8400-mock-4000-b000-product1', 'Professional Plan - Monthly', 'professional', 9900),
@@ -254,6 +282,7 @@ class PolarBillingProvider extends BillingProvider {
    */
   async cancelSubscription(subscriptionId) {
     if (!this.client) {
+      this._validateNotProductionMock('cancelSubscription');
       return {
         id: subscriptionId,
         status: 'canceled',
@@ -289,6 +318,7 @@ class PolarBillingProvider extends BillingProvider {
    */
   async updateSubscription(subscriptionId, updates) {
     if (!this.client) {
+      this._validateNotProductionMock('updateSubscription');
       return this._getMockSubscription(subscriptionId);
     }
 
@@ -399,6 +429,7 @@ class PolarBillingProvider extends BillingProvider {
    * @private
    */
   _getMockSubscription(customerId) {
+    this._validateNotProductionMock('_getMockSubscription');
     return {
       id: '550e8400-mock-4000-b000-subscription1',
       customerId,
@@ -421,6 +452,7 @@ class PolarBillingProvider extends BillingProvider {
    * @private
    */
   _getMockProduct(productId, name = 'Professional Plan - Monthly', tier = 'professional', amount = 9900) {
+    this._validateNotProductionMock('_getMockProduct');
     return {
       id: productId,
       name,
