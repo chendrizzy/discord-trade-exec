@@ -12,6 +12,7 @@ const {
   sendNotFound,
   sendUnauthorized
 } = require('../../utils/api-response');
+const { AppError, ErrorCodes } = require('../../middleware/errorHandler');
 
 // Analytics
 const analyticsEventService = require('../../services/analytics/AnalyticsEventService');
@@ -148,8 +149,16 @@ router.get('/', ensureAuthenticated, (req, res) => {
       stats: BrokerFactory.getStats()
     });
   } catch (error) {
-    logger.error('[BrokerAPI] Error listing brokers:', { error: error.message, stack: error.stack });
-    return sendError(res, error.message);
+    logger.error('[BrokerAPI] Error listing brokers:', {
+      error: error.message,
+      stack: error.stack,
+      correlationId: req.correlationId
+    });
+    throw new AppError(
+      'Failed to list brokers',
+      500,
+      ErrorCodes.INTERNAL_SERVER_ERROR
+    );
   }
 });
 
@@ -187,8 +196,18 @@ router.get('/:brokerKey', ensureAuthenticated, validate(getBrokerParams, 'params
       }
     });
   } catch (error) {
-    logger.error('[BrokerAPI] Error fetching broker info:', { error: error.message, stack: error.stack });
-    return sendError(res, error.message);
+    logger.error('[BrokerAPI] Error fetching broker info:', {
+      error: error.message,
+      stack: error.stack,
+      brokerKey: req.params.brokerKey,
+      correlationId: req.correlationId
+    });
+    throw new AppError(
+      'Failed to fetch broker information',
+      500,
+      ErrorCodes.BROKER_ERROR,
+      { broker: req.params.brokerKey }
+    );
   }
 });
 
@@ -234,10 +253,18 @@ router.post('/test', ensureAuthenticated, validate(testBrokerBody, 'body'), asyn
       balance: result.balance
     });
   } catch (error) {
-    logger.error('[BrokerAPI] Error testing connection:', { error: error.message, stack: error.stack });
-    return sendError(res, 'Connection test failed. Please check your credentials and try again.', 500, {
-      details: error.message
+    logger.error('[BrokerAPI] Error testing connection:', {
+      error: error.message,
+      stack: error.stack,
+      brokerKey: req.body.brokerKey,
+      correlationId: req.correlationId
     });
+    throw new AppError(
+      'Connection test failed',
+      500,
+      ErrorCodes.BROKER_CONNECTION_FAILED,
+      { broker: req.body.brokerKey }
+    );
   }
 });
 
@@ -315,10 +342,19 @@ router.post('/test/:brokerKey', ensureAuthenticated, checkBrokerRateLimit(), val
       balance: result.balance
     });
   } catch (error) {
-    logger.error('[BrokerAPI] Error testing configured broker:', { error: error.message, stack: error.stack });
-    return sendError(res, 'Connection test failed. Please try again.', 500, {
-      details: error.message
+    logger.error('[BrokerAPI] Error testing configured broker:', {
+      error: error.message,
+      stack: error.stack,
+      brokerKey: req.params.brokerKey,
+      userId: req.user.id,
+      correlationId: req.correlationId
     });
+    throw new AppError(
+      'Connection test failed',
+      500,
+      ErrorCodes.BROKER_CONNECTION_FAILED,
+      { broker: req.params.brokerKey, userId: req.user.id }
+    );
   }
 });
 
@@ -420,8 +456,19 @@ router.post('/configure', ensureAuthenticated, requirePremiumBroker, checkBroker
       }
     });
   } catch (error) {
-    logger.error('[BrokerAPI] Error saving configuration:', { error: error.message, stack: error.stack });
-    return sendError(res, error.message);
+    logger.error('[BrokerAPI] Error saving configuration:', {
+      error: error.message,
+      stack: error.stack,
+      brokerKey: req.body.brokerKey,
+      userId: req.user.id,
+      correlationId: req.correlationId
+    });
+    throw new AppError(
+      'Failed to save broker configuration',
+      500,
+      ErrorCodes.BROKER_ERROR,
+      { broker: req.body.brokerKey, userId: req.user.id }
+    );
   }
 });
 
@@ -471,8 +518,18 @@ router.get('/user/configured', ensureAuthenticated, async (req, res) => {
       brokers: brokersWithInfo
     });
   } catch (error) {
-    logger.error('[BrokerAPI] Error fetching configured brokers:', { error: error.message, stack: error.stack });
-    return sendError(res, error.message);
+    logger.error('[BrokerAPI] Error fetching configured brokers:', {
+      error: error.message,
+      stack: error.stack,
+      userId: req.user.id,
+      correlationId: req.correlationId
+    });
+    throw new AppError(
+      'Failed to fetch configured brokers',
+      500,
+      ErrorCodes.INTERNAL_SERVER_ERROR,
+      { userId: req.user.id }
+    );
   }
 });
 
@@ -510,8 +567,19 @@ router.delete('/user/:brokerKey', ensureAuthenticated, validate(deleteUserBroker
       message: `${brokerInfo?.name || brokerKey} disconnected successfully`
     });
   } catch (error) {
-    logger.error('[BrokerAPI] Error removing broker config:', { error: error.message, stack: error.stack });
-    return sendError(res, error.message);
+    logger.error('[BrokerAPI] Error removing broker config:', {
+      error: error.message,
+      stack: error.stack,
+      brokerKey: req.params.brokerKey,
+      userId: req.user.id,
+      correlationId: req.correlationId
+    });
+    throw new AppError(
+      'Failed to remove broker configuration',
+      500,
+      ErrorCodes.BROKER_ERROR,
+      { broker: req.params.brokerKey, userId: req.user.id }
+    );
   }
 });
 
@@ -563,8 +631,19 @@ router.post('/compare', ensureAuthenticated, validate(compareBrokersBody, 'body'
       comparison
     });
   } catch (error) {
-    logger.error('[BrokerAPI] Error comparing fees:', { error: error.message, stack: error.stack });
-    return sendError(res, error.message);
+    logger.error('[BrokerAPI] Error comparing fees:', {
+      error: error.message,
+      stack: error.stack,
+      symbol: req.body.symbol,
+      userId: req.user.id,
+      correlationId: req.correlationId
+    });
+    throw new AppError(
+      'Failed to compare broker fees',
+      500,
+      ErrorCodes.BROKER_ERROR,
+      { symbol: req.body.symbol, userId: req.user.id }
+    );
   }
 });
 
@@ -603,8 +682,19 @@ router.post('/recommend', ensureAuthenticated, validate(recommendBrokerBody, 'bo
       }
     });
   } catch (error) {
-    logger.error('[BrokerAPI] Error getting recommendation:', { error: error.message, stack: error.stack });
-    return sendError(res, error.message);
+    logger.error('[BrokerAPI] Error getting recommendation:', {
+      error: error.message,
+      stack: error.stack,
+      requirements: req.body.requirements,
+      userId: req.user.id,
+      correlationId: req.correlationId
+    });
+    throw new AppError(
+      'Failed to get broker recommendation',
+      500,
+      ErrorCodes.BROKER_ERROR,
+      { requirements: req.body.requirements, userId: req.user.id }
+    );
   }
 });
 
