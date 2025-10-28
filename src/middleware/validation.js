@@ -362,13 +362,58 @@ function validateBody(schema) {
 }
 
 /**
+ * Check for prototype pollution keys recursively
+ * Returns the dangerous key if found, null otherwise
+ */
+function checkPrototypePollution(obj, path = '') {
+  if (obj === null || obj === undefined || typeof obj !== 'object') {
+    return null;
+  }
+
+  const keys = Object.keys(obj);
+  for (const key of keys) {
+    const currentPath = path ? `${path}.${key}` : key;
+
+    // Check for dangerous keys
+    if (key === '__proto__' || key === 'constructor' || key === 'prototype') {
+      return { key, path: currentPath };
+    }
+
+    // Recursively check nested objects and arrays
+    if (typeof obj[key] === 'object' && obj[key] !== null) {
+      const found = checkPrototypePollution(obj[key], currentPath);
+      if (found) return found;
+    }
+  }
+
+  return null;
+}
+
+/**
  * Zod validation middleware
  * Validates request body/query/params against a Zod schema
+ * Includes prototype pollution prevention
  */
 function validate(schema, source = 'body') {
   return (req, res, next) => {
     try {
       const data = source === 'query' ? req.query : source === 'params' ? req.params : req.body;
+
+      // Check for prototype pollution BEFORE validation
+      const pollutionCheck = checkPrototypePollution(data);
+      if (pollutionCheck) {
+        return res.status(400).json({
+          success: false,
+          error: 'Security validation failed',
+          code: 'PROTOTYPE_POLLUTION_DETECTED',
+          details: [
+            {
+              field: pollutionCheck.path,
+              message: `Dangerous key '${pollutionCheck.key}' detected. This key is not allowed for security reasons.`
+            }
+          ]
+        });
+      }
 
       const result = schema.safeParse(data);
 
