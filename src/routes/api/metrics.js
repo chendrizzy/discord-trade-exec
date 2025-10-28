@@ -537,10 +537,10 @@ router.post('/reset', ensureAdmin, (req, res) => {
 
 /**
  * GET /api/metrics/export
- * Export metrics in Prometheus format
- * Requires: Authentication
+ * Export metrics in Prometheus format (US6-T06-T10)
+ * Requires: Admin authentication
  */
-router.get('/export', ensureAuthenticated, (req, res) => {
+router.get('/export', ensureAdmin, (req, res) => {
   try {
     const metrics = performanceTracker.getMetrics();
 

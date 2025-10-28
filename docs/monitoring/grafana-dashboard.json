@@ -1,0 +1,377 @@
+{
+  "dashboard": {
+    "title": "Discord Trade Executor - Performance Dashboard",
+    "tags": ["discord", "trading", "performance"],
+    "timezone": "browser",
+    "schemaVersion": 38,
+    "version": 1,
+    "refresh": "30s",
+    "time": {
+      "from": "now-1h",
+      "to": "now"
+    },
+    "panels": [
+      {
+        "id": 1,
+        "gridPos": {"h": 8, "w": 12, "x": 0, "y": 0},
+        "type": "graph",
+        "title": "HTTP Response Times (Percentiles)",
+        "targets": [
+          {
+            "expr": "discord_webhooks_response_time_p50",
+            "legendFormat": "p50 - Webhooks",
+            "refId": "A"
+          },
+          {
+            "expr": "discord_webhooks_response_time_p95",
+            "legendFormat": "p95 - Webhooks",
+            "refId": "B"
+          },
+          {
+            "expr": "discord_webhooks_response_time_p99",
+            "legendFormat": "p99 - Webhooks",
+            "refId": "C"
+          }
+        ],
+        "yaxes": [
+          {"format": "ms", "label": "Response Time"},
+          {"format": "short"}
+        ],
+        "alert": {
+          "conditions": [
+            {
+              "evaluator": {"params": [200], "type": "gt"},
+              "operator": {"type": "and"},
+              "query": {"params": ["B", "5m", "now"]},
+              "reducer": {"params": [], "type": "avg"},
+              "type": "query"
+            }
+          ],
+          "executionErrorState": "alerting",
+          "frequency": "1m",
+          "handler": 1,
+          "name": "High p95 Response Time",
+          "noDataState": "no_data",
+          "notifications": []
+        }
+      },
+      {
+        "id": 2,
+        "gridPos": {"h": 8, "w": 12, "x": 12, "y": 0},
+        "type": "graph",
+        "title": "System Resource Usage",
+        "targets": [
+          {
+            "expr": "discord_system_memory_heap_used / 1024 / 1024",
+            "legendFormat": "Heap Used (MB)",
+            "refId": "A"
+          },
+          {
+            "expr": "discord_system_memory_rss / 1024 / 1024",
+            "legendFormat": "RSS (MB)",
+            "refId": "B"
+          },
+          {
+            "expr": "discord_system_cpu_user_percent",
+            "legendFormat": "CPU User %",
+            "refId": "C"
+          }
+        ],
+        "yaxes": [
+          {"format": "short", "label": "Memory (MB) / CPU %"},
+          {"format": "short"}
+        ]
+      },
+      {
+        "id": 3,
+        "gridPos": {"h": 6, "w": 6, "x": 0, "y": 8},
+        "type": "stat",
+        "title": "Webhook Success Rate",
+        "targets": [
+          {
+            "expr": "discord_webhooks_success_rate * 100",
+            "refId": "A"
+          }
+        ],
+        "options": {
+          "graphMode": "area",
+          "orientation": "auto",
+          "reduceOptions": {
+            "values": false,
+            "calcs": ["lastNotNull"]
+          },
+          "textMode": "auto"
+        },
+        "fieldConfig": {
+          "defaults": {
+            "unit": "percent",
+            "thresholds": {
+              "mode": "absolute",
+              "steps": [
+                {"value": null, "color": "red"},
+                {"value": 95, "color": "yellow"},
+                {"value": 99, "color": "green"}
+              ]
+            }
+          }
+        }
+      },
+      {
+        "id": 4,
+        "gridPos": {"h": 6, "w": 6, "x": 6, "y": 8},
+        "type": "stat",
+        "title": "Trade Success Rate",
+        "targets": [
+          {
+            "expr": "discord_trades_success_rate * 100",
+            "refId": "A"
+          }
+        ],
+        "options": {
+          "graphMode": "area",
+          "orientation": "auto",
+          "reduceOptions": {
+            "values": false,
+            "calcs": ["lastNotNull"]
+          },
+          "textMode": "auto"
+        },
+        "fieldConfig": {
+          "defaults": {
+            "unit": "percent",
+            "thresholds": {
+              "mode": "absolute",
+              "steps": [
+                {"value": null, "color": "red"},
+                {"value": 90, "color": "yellow"},
+                {"value": 98, "color": "green"}
+              ]
+            }
+          }
+        }
+      },
+      {
+        "id": 5,
+        "gridPos": {"h": 6, "w": 6, "x": 12, "y": 8},
+        "type": "stat",
+        "title": "Database Success Rate",
+        "targets": [
+          {
+            "expr": "(discord_database_queries_successful / discord_database_queries_total) * 100",
+            "refId": "A"
+          }
+        ],
+        "options": {
+          "graphMode": "area",
+          "orientation": "auto",
+          "reduceOptions": {
+            "values": false,
+            "calcs": ["lastNotNull"]
+          },
+          "textMode": "auto"
+        },
+        "fieldConfig": {
+          "defaults": {
+            "unit": "percent",
+            "thresholds": {
+              "mode": "absolute",
+              "steps": [
+                {"value": null, "color": "red"},
+                {"value": 95, "color": "yellow"},
+                {"value": 99, "color": "green"}
+              ]
+            }
+          }
+        }
+      },
+      {
+        "id": 6,
+        "gridPos": {"h": 6, "w": 6, "x": 18, "y": 8},
+        "type": "stat",
+        "title": "System Uptime",
+        "targets": [
+          {
+            "expr": "discord_system_uptime_seconds / 3600",
+            "refId": "A"
+          }
+        ],
+        "options": {
+          "graphMode": "none",
+          "orientation": "auto",
+          "reduceOptions": {
+            "values": false,
+            "calcs": ["lastNotNull"]
+          },
+          "textMode": "auto"
+        },
+        "fieldConfig": {
+          "defaults": {
+            "unit": "h",
+            "thresholds": {
+              "mode": "absolute",
+              "steps": [
+                {"value": null, "color": "green"}
+              ]
+            }
+          }
+        }
+      },
+      {
+        "id": 7,
+        "gridPos": {"h": 8, "w": 12, "x": 0, "y": 14},
+        "type": "graph",
+        "title": "Trade Execution Performance",
+        "targets": [
+          {
+            "expr": "discord_trades_execution_time_avg",
+            "legendFormat": "Avg Execution Time",
+            "refId": "A"
+          },
+          {
+            "expr": "discord_trades_execution_time_p95",
+            "legendFormat": "p95 Execution Time",
+            "refId": "B"
+          },
+          {
+            "expr": "rate(discord_trades_total[5m]) * 60",
+            "legendFormat": "Trades per Minute",
+            "refId": "C"
+          }
+        ],
+        "yaxes": [
+          {"format": "ms", "label": "Execution Time / Rate"},
+          {"format": "short"}
+        ]
+      },
+      {
+        "id": 8,
+        "gridPos": {"h": 8, "w": 12, "x": 12, "y": 14},
+        "type": "graph",
+        "title": "Database Query Performance",
+        "targets": [
+          {
+            "expr": "discord_database_query_time_avg",
+            "legendFormat": "Avg Query Time",
+            "refId": "A"
+          },
+          {
+            "expr": "discord_database_query_time_p95",
+            "legendFormat": "p95 Query Time",
+            "refId": "B"
+          },
+          {
+            "expr": "rate(discord_database_queries_total[5m]) * 60",
+            "legendFormat": "Queries per Minute",
+            "refId": "C"
+          }
+        ],
+        "yaxes": [
+          {"format": "ms", "label": "Query Time / Rate"},
+          {"format": "short"}
+        ],
+        "alert": {
+          "conditions": [
+            {
+              "evaluator": {"params": [2000], "type": "gt"},
+              "operator": {"type": "and"},
+              "query": {"params": ["B", "5m", "now"]},
+              "reducer": {"params": [], "type": "avg"},
+              "type": "query"
+            }
+          ],
+          "executionErrorState": "alerting",
+          "frequency": "1m",
+          "handler": 1,
+          "name": "Slow Database Queries",
+          "noDataState": "no_data",
+          "notifications": []
+        }
+      },
+      {
+        "id": 9,
+        "gridPos": {"h": 8, "w": 12, "x": 0, "y": 22},
+        "type": "graph",
+        "title": "API Call Performance",
+        "targets": [
+          {
+            "expr": "discord_api_response_time_avg",
+            "legendFormat": "Avg Response Time",
+            "refId": "A"
+          },
+          {
+            "expr": "discord_api_response_time_p95",
+            "legendFormat": "p95 Response Time",
+            "refId": "B"
+          },
+          {
+            "expr": "rate(discord_api_calls_total[5m]) * 60",
+            "legendFormat": "API Calls per Minute",
+            "refId": "C"
+          }
+        ],
+        "yaxes": [
+          {"format": "ms", "label": "Response Time / Rate"},
+          {"format": "short"}
+        ]
+      },
+      {
+        "id": 10,
+        "gridPos": {"h": 8, "w": 12, "x": 12, "y": 22},
+        "type": "graph",
+        "title": "Request Failures Over Time",
+        "targets": [
+          {
+            "expr": "rate(discord_webhooks_failed[5m]) * 60",
+            "legendFormat": "Webhook Failures/min",
+            "refId": "A"
+          },
+          {
+            "expr": "rate(discord_trades_failed[5m]) * 60",
+            "legendFormat": "Trade Failures/min",
+            "refId": "B"
+          },
+          {
+            "expr": "rate(discord_database_queries_failed[5m]) * 60",
+            "legendFormat": "DB Query Failures/min",
+            "refId": "C"
+          },
+          {
+            "expr": "rate(discord_api_calls_failed[5m]) * 60",
+            "legendFormat": "API Call Failures/min",
+            "refId": "D"
+          }
+        ],
+        "yaxes": [
+          {"format": "short", "label": "Failures per Minute"},
+          {"format": "short"}
+        ]
+      },
+      {
+        "id": 11,
+        "gridPos": {"h": 6, "w": 8, "x": 0, "y": 30},
+        "type": "table",
+        "title": "Current Metrics Summary",
+        "targets": [
+          {
+            "expr": "discord_system_active_requests",
+            "format": "table",
+            "instant": true,
+            "refId": "A"
+          }
+        ],
+        "transformations": [
+          {
+            "id": "organize",
+            "options": {
+              "excludeByName": {"Time": true},
+              "indexByName": {},
+              "renameByName": {
+                "Value": "Active Requests"
+              }
+            }
+          }
+        ]
+      }
+    ]
+  }
+}
