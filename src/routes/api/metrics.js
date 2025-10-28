@@ -2,8 +2,10 @@
 const express = require('express');
 
 const router = express.Router();
+const logger = require('../../utils/logger');
 const { ensureAuthenticated } = require('../../middleware/auth');
 const { ensureAdmin } = require('../../middleware/admin');
+const { ensureAdminJWT } = require('../../middleware/jwtAdmin');
 
 // Verify ensureAdmin is properly loaded
 if (typeof ensureAdmin !== 'function') {
@@ -16,7 +18,6 @@ if (typeof ensureAdmin !== 'function') {
 const { apiLimiter } = require('../../middleware/rateLimiter');
 const performanceTracker = require('../../PerformanceTracker');
 const responseTimeTracker = require('../../middleware/performance-tracker');
-const logger = require('../../utils/logger');
 const { AppError, ErrorCodes } = require('../../middleware/errorHandler');
 const { validate } = require('../../middleware/validation');
 const {
@@ -63,16 +64,16 @@ router.get('/', ensureAuthenticated, (req, res) => {
 /**
  * GET /api/metrics/performance
  * Get HTTP response time metrics (p50/p95/p99) (US6-T01, US6-T05)
- * Requires: Admin authentication
+ * Requires: Admin authentication via JWT Bearer token
  */
-router.get('/performance', ensureAdmin, responseTimeTracker.metricsEndpoint);
+router.get('/performance', ensureAdminJWT, responseTimeTracker.metricsEndpoint);
 
 /**
  * GET /api/metrics/queries
  * Get slow query statistics and patterns (US6-T05)
- * Requires: Admin authentication
+ * Requires: Admin authentication via JWT Bearer token
  */
-router.get('/queries', ensureAdmin, (req, res) => {
+router.get('/queries', ensureAdminJWT, (req, res) => {
   try {
     // Get query logger instance
     const { getQueryLoggerInstance } = require('../../utils/analytics-query-logger');
@@ -502,9 +503,9 @@ router.post('/custom', validate(customMetricRecordBody, 'body'), ensureAuthentic
 /**
  * POST /api/metrics/reset
  * Reset all metrics (admin only)
- * Requires: Admin authentication
+ * Requires: Admin authentication via JWT Bearer token
  */
-router.post('/reset', ensureAdmin, (req, res) => {
+router.post('/reset', ensureAdminJWT, (req, res) => {
   try {
     performanceTracker.reset();
     res.json({
@@ -538,9 +539,9 @@ router.post('/reset', ensureAdmin, (req, res) => {
 /**
  * GET /api/metrics/export
  * Export metrics in Prometheus format (US6-T06-T10)
- * Requires: Admin authentication
+ * Requires: Admin authentication via JWT Bearer token
  */
-router.get('/export', ensureAdmin, (req, res) => {
+router.get('/export', ensureAdminJWT, (req, res) => {
   try {
     const metrics = performanceTracker.getMetrics();
 
