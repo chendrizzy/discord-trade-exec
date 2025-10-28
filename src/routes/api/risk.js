@@ -10,6 +10,7 @@ const {
   calculatePositionBody
 } = require('../../validators/risk.validators');
 const logger = require('../../utils/logger');
+const { AppError, ErrorCodes } = require('../../middleware/errorHandler');
 
 // Apply rate limiting
 router.use(apiLimiter);
@@ -49,11 +50,18 @@ router.get('/settings', ensureAuthenticated, async (req, res) => {
       }
     });
   } catch (error) {
-    logger.error('Error fetching risk settings:', { error: error.message, stack: error.stack });
-    res.status(500).json({
-      success: false,
-      error: 'Failed to fetch risk settings'
+    logger.error('Error fetching risk settings:', {
+      error: error.message,
+      stack: error.stack,
+      userId: req.user.id,
+      correlationId: req.correlationId
     });
+    throw new AppError(
+      'Failed to fetch risk settings',
+      500,
+      ErrorCodes.INTERNAL_SERVER_ERROR,
+      { userId: req.user.id }
+    );
   }
 });
 
@@ -174,11 +182,19 @@ router.put('/settings', ensureAuthenticated, validate(updateRiskSettingsBody, 'b
       settings: riskSettings
     });
   } catch (error) {
-    logger.error('Error updating risk settings:', { error: error.message, stack: error.stack });
-    res.status(500).json({
-      success: false,
-      error: 'Failed to update risk settings'
+    logger.error('Error updating risk settings:', {
+      error: error.message,
+      stack: error.stack,
+      userId: req.user.id,
+      settings: req.body,
+      correlationId: req.correlationId
     });
+    throw new AppError(
+      'Failed to update risk settings',
+      500,
+      ErrorCodes.INTERNAL_SERVER_ERROR,
+      { userId: req.user.id }
+    );
   }
 });
 
@@ -209,11 +225,19 @@ router.post('/calculate-position', ensureAuthenticated, validate(calculatePositi
       }
     });
   } catch (error) {
-    logger.error('Error calculating position size:', { error: error.message, stack: error.stack });
-    res.status(500).json({
-      success: false,
-      error: 'Failed to calculate position size'
+    logger.error('Error calculating position size:', {
+      error: error.message,
+      stack: error.stack,
+      userId: req.user.id,
+      params: req.body,
+      correlationId: req.correlationId
     });
+    throw new AppError(
+      'Failed to calculate position size',
+      500,
+      ErrorCodes.INTERNAL_SERVER_ERROR,
+      { userId: req.user.id }
+    );
   }
 });
 
@@ -235,11 +259,18 @@ router.get('/daily-loss', ensureAuthenticated, async (req, res) => {
       }
     });
   } catch (error) {
-    logger.error('Error checking daily loss:', { error: error.message, stack: error.stack });
-    res.status(500).json({
-      success: false,
-      error: 'Failed to check daily loss'
+    logger.error('Error checking daily loss:', {
+      error: error.message,
+      stack: error.stack,
+      userId: req.user.id,
+      correlationId: req.correlationId
     });
+    throw new AppError(
+      'Failed to check daily loss',
+      500,
+      ErrorCodes.INTERNAL_SERVER_ERROR,
+      { userId: req.user.id }
+    );
   }
 });
 
@@ -255,11 +286,18 @@ router.post('/daily-loss/reset', ensureAuthenticated, async (req, res) => {
       message: 'Daily loss counter reset successfully'
     });
   } catch (error) {
-    logger.error('Error resetting daily loss:', { error: error.message, stack: error.stack });
-    res.status(500).json({
-      success: false,
-      error: 'Failed to reset daily loss'
+    logger.error('Error resetting daily loss:', {
+      error: error.message,
+      stack: error.stack,
+      userId: req.user.id,
+      correlationId: req.correlationId
     });
+    throw new AppError(
+      'Failed to reset daily loss',
+      500,
+      ErrorCodes.INTERNAL_SERVER_ERROR,
+      { userId: req.user.id }
+    );
   }
 });
 
