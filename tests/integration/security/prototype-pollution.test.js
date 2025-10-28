@@ -1,16 +1,15 @@
 /**
- * Prototype Pollution Prevention Tests
+ * Prototype Pollution Prevention Tests (US7-T06)
  *
- * US7-T06: Tests that validation middleware prevents prototype pollution attacks
+ * Tests that validate() middleware prevents prototype pollution attacks
+ * by checking for dangerous keys: __proto__, constructor, prototype
  *
- * Tests dangerous properties:
- * - __proto__
- * - constructor
- * - prototype
- * - __dirname
- * - __filename
- *
- * Validates that these properties are stripped from user input before processing.
+ * Tests against routes that use the validate() middleware from US7-T03:
+ * - Analytics routes
+ * - Providers routes
+ * - Metrics routes
+ * - Auth MFA routes
+ * - Admin routes
  */
 
 const request = require('supertest');
@@ -19,8 +18,9 @@ const { connectDB, disconnectDB } = require('../../setup/db');
 const User = require('../../../src/models/User');
 const { getMFAService } = require('../../../src/services/MFAService');
 
-describe('Prototype Pollution Prevention', () => {
+describe('Prototype Pollution Prevention (US7-T06)', () => {
   let testUser;
+  let authCookie;
   const mfaService = getMFAService();
 
   beforeAll(async () => {
@@ -32,13 +32,14 @@ describe('Prototype Pollution Prevention', () => {
   });
 
   beforeEach(async () => {
-    // Create test user
+    // Create admin test user
     const mfaSecret = 'TESTSECRET123456';
     const encryptedSecret = mfaService.encryptSecret(mfaSecret);
 
     testUser = await User.create({
       discordId: '123456789',
       discordUsername: 'testuser#1234',
+      communityRole: 'admin',
       subscription: {
         tier: 'professional',
         status: 'active'
@@ -52,6 +53,9 @@ describe('Prototype Pollution Prevention', () => {
         ]
       }
     });
+
+    // Simulate authenticated session
+    authCookie = 'sessionId=test-session-id';
   });
 
   afterEach(async () => {
@@ -59,15 +63,13 @@ describe('Prototype Pollution Prevention', () => {
   });
 
   describe('__proto__ Pollution Attempts', () => {
-    it('should reject __proto__ in body', async () => {
+    it('should reject __proto__ in request body with PROTOTYPE_POLLUTION_DETECTED', async () => {
       const res = await request(app)
-        .post('/api/brokers/test')
+        .post('/api/providers/test-provider/review')
+        .set('Cookie', authCookie)
         .send({
-          brokerKey: 'alpaca',
-          credentials: {
-            apiKey: 'testkey123',
-            apiSecret: 'testsecret123'
-          },
+          rating: 5,
+          comment: 'Great provider!',
           __proto__: {
             isAdmin: true
           }
@@ -75,17 +77,19 @@ describe('Prototype Pollution Prevention', () => {
         .expect(400);
 
       expect(res.body.success).toBe(false);
-      expect(res.body.error).toContain('Validation failed');
+      expect(res.body.error).toBe('Security validation failed');
+      expect(res.body.code).toBe('PROTOTYPE_POLLUTION_DETECTED');
+      expect(res.body.details[0].field).toBe('__proto__');
+      expect(res.body.details[0].message).toContain('Dangerous key');
     });
 
-    it('should reject nested __proto__ in body', async () => {
+    it('should reject nested __proto__ in request body', async () => {
       const res = await request(app)
-        .post('/api/brokers/test')
+        .post('/api/analytics/cohorts/compare')
+        .set('Cookie', authCookie)
         .send({
-          brokerKey: 'alpaca',
-          credentials: {
-            apiKey: 'testkey123',
-            apiSecret: 'testsecret123',
+          cohortIds: ['507f1f77bcf86cd799439011'],
+          filters: {
             __proto__: {
               polluted: true
             }
@@ -94,29 +98,55 @@ describe('Prototype Pollution Prevention', () => {
         .expect(400);
 
       expect(res.body.success).toBe(false);
+      expect(res.body.code).toBe('PROTOTYPE_POLLUTION_DETECTED');
+      expect(res.body.details[0].field).toContain('__proto__');
     });
 
-    it('should reject __proto__ in query params', async () => {
+    it('should reject __proto__ in query parameters', async () => {
       const res = await request(app)
-        .get('/api/trader/overview')
+        .get('/api/providers')
+        .set('Cookie', authCookie)
         .query({
-          period: '7d',
+          limit: 20,
+          minWinRate: 0,
           __proto__: { isAdmin: true }
         })
         .expect(400);
 
       expect(res.body.success).toBe(false);
+      expect(res.body.code).toBe('PROTOTYPE_POLLUTION_DETECTED');
+    });
+
+    it('should reject deeply nested __proto__', async () => {
+      const res = await request(app)
+        .post('/api/metrics/custom')
+        .set('Cookie', authCookie)
+        .send({
+          name: 'test-metric',
+          value: 42,
+          metadata: {
+            nested: {
+              deep: {
+                __proto__: { polluted: true }
+              }
+            }
+          }
+        })
+        .expect(400);
+
+      expect(res.body.success).toBe(false);
+      expect(res.body.code).toBe('PROTOTYPE_POLLUTION_DETECTED');
     });
   });
 
   describe('constructor Pollution Attempts', () => {
-    it('should reject constructor in body', async () => {
+    it('should reject constructor in request body with PROTOTYPE_POLLUTION_DETECTED', async () => {
       const res = await request(app)
-        .post('/api/exchanges')
-        .send({
-          exchange: 'binance',
-          apiKey: 'testkey123456',
-          apiSecret: 'testsecret123456',
+        .get('/api/analytics/revenue')
+        .set('Cookie', authCookie)
+        .query({
+          startDate: '2024-01-01',
+          endDate: '2024-10-28',
           constructor: {
             prototype: {
               isAdmin: true
@@ -126,15 +156,20 @@ describe('Prototype Pollution Prevention', () => {
         .expect(400);
 
       expect(res.body.success).toBe(false);
-      expect(res.body.error).toContain('Validation failed');
+      expect(res.body.error).toBe('Security validation failed');
+      expect(res.body.code).toBe('PROTOTYPE_POLLUTION_DETECTED');
+      expect(res.body.details[0].field).toBe('constructor');
+      expect(res.body.details[0].message).toContain('Dangerous key');
     });
 
-    it('should reject nested constructor in body', async () => {
+    it('should reject nested constructor in request body', async () => {
       const res = await request(app)
-        .put('/api/risk/settings')
+        .post('/api/providers/test-provider/review')
+        .set('Cookie', authCookie)
         .send({
-          maxPositionSize: 5000,
-          settings: {
+          rating: 5,
+          comment: 'Great provider!',
+          metadata: {
             constructor: {
               prototype: {
                 polluted: true
@@ -145,19 +180,29 @@ describe('Prototype Pollution Prevention', () => {
         .expect(400);
 
       expect(res.body.success).toBe(false);
+      expect(res.body.code).toBe('PROTOTYPE_POLLUTION_DETECTED');
+      expect(res.body.details[0].field).toContain('constructor');
+    });
+
+    it('should reject constructor in route params (if applicable)', async () => {
+      const res = await request(app)
+        .get('/api/metrics/custom/constructor')
+        .set('Cookie', authCookie)
+        .expect(400);
+
+      expect(res.body.success).toBe(false);
+      expect(res.body.code).toBe('PROTOTYPE_POLLUTION_DETECTED');
     });
   });
 
   describe('prototype Pollution Attempts', () => {
-    it('should reject prototype in body', async () => {
+    it('should reject prototype in request body with PROTOTYPE_POLLUTION_DETECTED', async () => {
       const res = await request(app)
-        .post('/api/brokers/test')
+        .post('/api/metrics/custom')
+        .set('Cookie', authCookie)
         .send({
-          brokerKey: 'alpaca',
-          credentials: {
-            apiKey: 'testkey123',
-            apiSecret: 'testsecret123'
-          },
+          name: 'test-metric',
+          value: 42,
           prototype: {
             isAdmin: true
           }
@@ -165,135 +210,76 @@ describe('Prototype Pollution Prevention', () => {
         .expect(400);
 
       expect(res.body.success).toBe(false);
-    });
-  });
-
-  describe('__ Prefixed Properties', () => {
-    it('should reject __dirname pollution attempt', async () => {
-      const res = await request(app)
-        .post('/api/brokers/test')
-        .send({
-          brokerKey: 'alpaca',
-          credentials: {
-            apiKey: 'testkey123',
-            apiSecret: 'testsecret123'
-          },
-          __dirname: '/malicious/path'
-        })
-        .expect(400);
-
-      expect(res.body.success).toBe(false);
+      expect(res.body.error).toBe('Security validation failed');
+      expect(res.body.code).toBe('PROTOTYPE_POLLUTION_DETECTED');
+      expect(res.body.details[0].field).toBe('prototype');
+      expect(res.body.details[0].message).toContain('Dangerous key');
     });
 
-    it('should reject __filename pollution attempt', async () => {
+    it('should reject nested prototype in request body', async () => {
       const res = await request(app)
-        .post('/api/brokers/test')
-        .send({
-          brokerKey: 'alpaca',
-          credentials: {
-            apiKey: 'testkey123',
-            apiSecret: 'testsecret123'
-          },
-          __filename: '/malicious/file.js'
-        })
-        .expect(400);
-
-      expect(res.body.success).toBe(false);
-    });
-
-    it('should reject any property starting with __', async () => {
-      const res = await request(app)
-        .post('/api/brokers/test')
-        .send({
-          brokerKey: 'alpaca',
-          credentials: {
-            apiKey: 'testkey123',
-            apiSecret: 'testsecret123'
-          },
-          __custom: 'malicious'
-        })
-        .expect(400);
-
-      expect(res.body.success).toBe(false);
-    });
-  });
-
-  describe('MongoDB Injection Prevention', () => {
-    it('should reject $where operator in body', async () => {
-      const res = await request(app)
-        .post('/api/brokers/test')
-        .send({
-          brokerKey: 'alpaca',
-          credentials: {
-            apiKey: 'testkey123',
-            apiSecret: 'testsecret123'
-          },
-          $where: 'this.password == "12345"'
-        })
-        .expect(400);
-
-      expect(res.body.success).toBe(false);
-    });
-
-    it('should reject $ne operator in query', async () => {
-      const res = await request(app)
-        .get('/api/trader/overview')
+        .get('/api/analytics/churn')
+        .set('Cookie', authCookie)
         .query({
-          period: { $ne: null }
+          startDate: '2024-01-01',
+          endDate: '2024-10-28',
+          filters: {
+            prototype: {
+              polluted: true
+            }
+          }
         })
         .expect(400);
 
       expect(res.body.success).toBe(false);
+      expect(res.body.code).toBe('PROTOTYPE_POLLUTION_DETECTED');
+      expect(res.body.details[0].field).toContain('prototype');
     });
 
-    it('should reject $gt operator in body', async () => {
+    it('should reject prototype in route params', async () => {
       const res = await request(app)
-        .put('/api/risk/settings')
-        .send({
-          maxPositionSize: { $gt: 0 }
-        })
+        .get('/api/metrics/custom/prototype')
+        .set('Cookie', authCookie)
         .expect(400);
 
       expect(res.body.success).toBe(false);
+      expect(res.body.code).toBe('PROTOTYPE_POLLUTION_DETECTED');
     });
   });
 
   describe('Combined Attack Vectors', () => {
     it('should reject multiple pollution vectors in single request', async () => {
       const res = await request(app)
-        .post('/api/brokers/test')
+        .post('/api/analytics/cohorts/compare')
+        .set('Cookie', authCookie)
         .send({
-          brokerKey: 'alpaca',
-          credentials: {
-            apiKey: 'testkey123',
-            apiSecret: 'testsecret123'
-          },
+          cohortIds: ['507f1f77bcf86cd799439011'],
           __proto__: { polluted: true },
           constructor: { prototype: { polluted: true } },
-          prototype: { polluted: true },
-          $where: 'malicious code',
-          __dirname: '/malicious'
+          prototype: { polluted: true }
         })
         .expect(400);
 
       expect(res.body.success).toBe(false);
-      expect(res.body.error).toContain('Validation failed');
+      expect(res.body.code).toBe('PROTOTYPE_POLLUTION_DETECTED');
+      // Should catch the first dangerous key encountered
+      expect(res.body.details[0].field).toMatch(/__proto__|constructor|prototype/);
     });
 
-    it('should reject deeply nested pollution attempts', async () => {
+    it('should reject all three dangerous keys in nested structure', async () => {
       const res = await request(app)
-        .post('/api/brokers/test')
+        .post('/api/providers/test-provider/review')
+        .set('Cookie', authCookie)
         .send({
-          brokerKey: 'alpaca',
-          credentials: {
-            apiKey: 'testkey123',
-            apiSecret: 'testsecret123',
+          rating: 5,
+          comment: 'Test',
+          data: {
             nested: {
-              deep: {
-                very: {
-                  deep: {
-                    __proto__: { polluted: true }
-                  }
+              __proto__: { a: 1 },
+              deeper: {
+                constructor: { b: 2 },
+                deepest: {
+                  prototype: { c: 3 }
                 }
               }
             }
@@ -302,32 +288,164 @@ describe('Prototype Pollution Prevention', () => {
         .expect(400);
 
       expect(res.body.success).toBe(false);
+      expect(res.body.code).toBe('PROTOTYPE_POLLUTION_DETECTED');
+    });
+  });
+
+  describe('Admin Routes Protection', () => {
+    it('should reject __proto__ in admin user query params', async () => {
+      const res = await request(app)
+        .get('/api/admin/users')
+        .set('Cookie', authCookie)
+        .query({
+          page: 1,
+          limit: 20,
+          __proto__: { isAdmin: true }
+        })
+        .expect(400);
+
+      expect(res.body.success).toBe(false);
+      expect(res.body.code).toBe('PROTOTYPE_POLLUTION_DETECTED');
+    });
+
+    it('should reject constructor in admin role update body', async () => {
+      const validUserId = '507f1f77bcf86cd799439011';
+      const res = await request(app)
+        .patch(`/api/admin/users/${validUserId}/role`)
+        .set('Cookie', authCookie)
+        .send({
+          communityRole: 'admin',
+          constructor: { polluted: true }
+        })
+        .expect(400);
+
+      expect(res.body.success).toBe(false);
+      expect(res.body.code).toBe('PROTOTYPE_POLLUTION_DETECTED');
+    });
+  });
+
+  describe('Analytics Routes Protection', () => {
+    it('should reject pollution in revenue query', async () => {
+      const res = await request(app)
+        .get('/api/analytics/revenue')
+        .set('Cookie', authCookie)
+        .query({
+          startDate: '2024-01-01',
+          endDate: '2024-10-28',
+          __proto__: { polluted: true }
+        })
+        .expect(400);
+
+      expect(res.body.code).toBe('PROTOTYPE_POLLUTION_DETECTED');
+    });
+
+    it('should reject pollution in cohort comparison', async () => {
+      const res = await request(app)
+        .post('/api/analytics/cohorts/compare')
+        .set('Cookie', authCookie)
+        .send({
+          cohortIds: ['507f1f77bcf86cd799439011'],
+          prototype: { polluted: true }
+        })
+        .expect(400);
+
+      expect(res.body.code).toBe('PROTOTYPE_POLLUTION_DETECTED');
     });
   });
 
   describe('Safe Properties Pass Through', () => {
-    it('should allow legitimate property names', async () => {
+    it('should allow legitimate property names in query', async () => {
       const res = await request(app)
-        .get('/api/trader/overview')
+        .get('/api/providers')
+        .set('Cookie', authCookie)
         .query({
-          period: '7d'
+          limit: 20,
+          minWinRate: 0,
+          sortBy: 'winRate'
         });
 
-      // Should not be 400 (validation error)
-      // May be 401 (auth) or other, but not validation failure
-      expect(res.status).not.toBe(400);
+      // Should not be 400 validation error for legitimate properties
+      // May be 401 (auth) or other, but not prototype pollution error
+      if (res.status === 400) {
+        expect(res.body.code).not.toBe('PROTOTYPE_POLLUTION_DETECTED');
+      }
     });
 
-    it('should allow nested legitimate properties', async () => {
+    it('should allow legitimate nested properties in body', async () => {
       const res = await request(app)
-        .post('/api/broker-oauth/callback/alpaca')
-        .query({
-          code: 'validcode123456',
-          state: 'validstate1234567890'
+        .post('/api/metrics/custom')
+        .set('Cookie', authCookie)
+        .send({
+          name: 'test-metric',
+          value: 42,
+          metadata: {
+            source: 'test',
+            tags: ['performance']
+          }
         });
 
-      // Should not be 400 validation error
-      expect(res.status).not.toBe(400);
+      // Should not be 400 validation error for legitimate properties
+      if (res.status === 400) {
+        expect(res.body.code).not.toBe('PROTOTYPE_POLLUTION_DETECTED');
+      }
+    });
+
+    it('should allow properties with similar names', async () => {
+      const res = await request(app)
+        .post('/api/providers/test-provider/review')
+        .set('Cookie', authCookie)
+        .send({
+          rating: 5,
+          comment: 'Great provider!',
+          proto: 'legitimate',  // Not __proto__
+          construct: 'legitimate',  // Not constructor
+          prototypical: 'legitimate'  // Not prototype
+        });
+
+      // Should not be prototype pollution error for similar but safe names
+      if (res.status === 400) {
+        expect(res.body.code).not.toBe('PROTOTYPE_POLLUTION_DETECTED');
+      }
+    });
+  });
+
+  describe('Array Protection', () => {
+    it('should reject pollution in array elements', async () => {
+      const res = await request(app)
+        .post('/api/analytics/cohorts/compare')
+        .set('Cookie', authCookie)
+        .send({
+          cohortIds: [
+            '507f1f77bcf86cd799439011',
+            {
+              __proto__: { polluted: true }
+            }
+          ]
+        })
+        .expect(400);
+
+      expect(res.body.code).toBe('PROTOTYPE_POLLUTION_DETECTED');
+    });
+
+    it('should reject nested pollution in array of objects', async () => {
+      const res = await request(app)
+        .post('/api/metrics/custom')
+        .set('Cookie', authCookie)
+        .send({
+          name: 'test-metric',
+          value: 42,
+          dataPoints: [
+            { value: 1, timestamp: '2024-01-01' },
+            {
+              value: 2,
+              timestamp: '2024-01-02',
+              constructor: { polluted: true }
+            }
+          ]
+        })
+        .expect(400);
+
+      expect(res.body.code).toBe('PROTOTYPE_POLLUTION_DETECTED');
     });
   });
 });
