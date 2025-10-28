@@ -624,13 +624,42 @@ const user = await User.create({
 
 ---
 
-### US3-T12: Update .c8rc.json Thresholds
-**File**: .c8rc.json  
-**Effort**: 15min  
-**Depends**: US3-T05, US3-T07, US3-T09, US3-T11  
+### US3-T12: Update .c8rc.json Thresholds ⚠️ DEFERRED - DEPENDENCIES INCOMPLETE
+**File**: .c8rc.json
+**Effort**: 15min
+**Depends**: US3-T05, US3-T07, US3-T09, US3-T11
 **Acceptance**:
-- Set lines: 100, functions: 100, branches: 100 for auth/billing/risk modules
-- CI/CD fails if coverage drops below thresholds
+- [ ] Set lines: 100, functions: 100, branches: 100 for auth/billing/risk modules
+- [ ] CI/CD fails if coverage drops below thresholds
+
+**Status**: DEFERRED - Cannot set 100% thresholds when actual coverage is below target
+
+**Current Coverage Reality**:
+- **Auth Routes** (US3-T05): 58.21% lines, 63.75% branches - Gap: 41.79%
+- **Auth Middleware** (US3-T07): 82.23% lines - Gap: 17.77%
+- **Billing** (US3-T09): 67.85% lines - Gap: 32.15%
+- **Risk** (US3-T11): 90.6% lines - Gap: 9.4%
+
+**Decision Rationale**:
+Setting 100% thresholds when actual coverage is 58-91% would:
+1. **Cause immediate CI/CD failures** on all builds
+2. **Misrepresent quality** by setting aspirational goals as enforcement thresholds
+3. **Violate best practices** (thresholds should match achieved levels)
+4. **Block all development** until coverage gaps are closed
+
+**Recommended Approach**:
+1. **Keep current 80% global thresholds** - Already in .c8rc.json (lines 15-18)
+2. **Complete US3-T13-T30** (20h effort) - Add missing test coverage
+3. **Update US3-T12** after actual 100% coverage achieved
+4. **Document gap** as technical debt requiring US3-T13-T30 completion
+
+**Alternative (Not Recommended)**:
+Set thresholds to current achieved levels (auth: 58%, billing: 68%, risk: 91%) for regression prevention only. This would establish baseline protection but abandon 100% coverage goal.
+
+**Next Steps**:
+- Defer US3-T12 until dependencies truly complete at 100%
+- Prioritize US3-T13-T30 for actual coverage improvements
+- Re-evaluate US3-T12 when auth/billing/risk reach 100%
 
 ---
 
