@@ -15,10 +15,8 @@
 
 const logger = require('../utils/logger');
 const { getCorrelationId } = require('../utils/logger');
-const { getConfig } = require('../config/env');
+const { getConfig, isProduction } = require('../config/env');
 const errorNotificationService = require('../services/ErrorNotificationService');
-
-const config = getConfig();
 
 /**
  * Standard error codes
@@ -116,7 +114,8 @@ function createErrorResponse(error, includeStack = false) {
  */
 function sanitizeErrorMessage(error) {
   // Don't expose internal error details in production
-  if (config.isProduction && !error.isOperational) {
+  // Use isProduction() function for runtime check instead of cached config
+  if (isProduction() && !error.isOperational) {
     return 'An unexpected error occurred. Please try again later.';
   }
 
@@ -332,6 +331,7 @@ process.on('unhandledRejection', (reason, promise) => {
   });
 
   // Send to Sentry if configured
+  const config = getConfig();
   if (config.SENTRY_DSN) {
     // Sentry.captureException(reason);
   }
@@ -355,6 +355,7 @@ process.on('uncaughtException', error => {
     })
     .finally(() => {
       // Send to Sentry if configured
+      const config = getConfig();
       if (config.SENTRY_DSN) {
         // Sentry.captureException(error);
       }

@@ -9,10 +9,20 @@ const axios = require('axios');
 const logger = require('../utils/logger');
 const { getConfig } = require('../config/env');
 
-const config = getConfig();
-
 class ErrorNotificationService {
   constructor() {
+    // Handle test environment where config may not be fully initialized
+    let config = {};
+    try {
+      config = getConfig();
+    } catch (error) {
+      // In test environment, config may fail - use defaults
+      config = {
+        DISCORD_ERROR_WEBHOOK_URL: null,
+        isProduction: false
+      };
+    }
+
     this.webhookUrl = config.DISCORD_ERROR_WEBHOOK_URL;
     this.enabled = !!this.webhookUrl && config.isProduction;
     this.rateLimitMap = new Map(); // Track notification frequency per error type
