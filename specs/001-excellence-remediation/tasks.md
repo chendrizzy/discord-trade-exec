@@ -643,45 +643,45 @@ describe('Error Handler', () => {
 
 ---
 
-## US5: Development Mock Elimination (6 tasks, 4 hours)
+## US5: Development Mock Elimination (6 tasks, 4 hours) - ✅ 4/6 COMPLETE
 
-### US5-T01: Guard PolarBillingProvider Mocks
-**File**: src/services/PolarBillingProvider.js  
-**Effort**: 1h  
+### US5-T01: Guard PolarBillingProvider Mocks ✅ COMPLETE
+**File**: src/services/PolarBillingProvider.js
+**Effort**: 1h
 **Acceptance**:
-- _getMockSubscription() only callable if BILLING_PROVIDER=mock
-- Throw error in production if mock method called
-- Add env validation
+- [X] _getMockSubscription() only callable if BILLING_PROVIDER=mock
+- [X] Throw error in production if mock method called
+- [X] Add env validation
 
 ---
 
-### US5-T02: Guard Broker Sandbox Mocks
-**Files**: src/adapters/*.js  
-**Effort**: 1h  
+### US5-T02: Guard Broker Sandbox Mocks ✅ COMPLETE
+**Files**: src/brokers/BrokerAdapter.js, src/brokers/adapters/*.js
+**Effort**: 1h
 **Acceptance**:
-- Sandbox mode only if NODE_ENV=development
-- Production throws error if sandbox enabled
+- [X] Sandbox mode only if NODE_ENV=development
+- [X] Production throws error if sandbox enabled
 
 ---
 
-### US5-T03: Add Environment Validation
-**File**: src/utils/env-validator.js  
-**Effort**: 1h  
+### US5-T03: Add Environment Validation ✅ COMPLETE
+**File**: src/utils/env-validator.js
+**Effort**: 1h
 **Acceptance**:
-- Validate required env vars on startup
-- Fail fast if production misconfigured
-- Check: NODE_ENV, BILLING_PROVIDER, DATABASE_URL
+- [X] Validate required env vars on startup
+- [X] Fail fast if production misconfigured
+- [X] Check: NODE_ENV, BILLING_PROVIDER, DATABASE_URL
 
 ---
 
-### US5-T04: Create Health Check for Mock Detection
-**File**: src/routes/health.js  
-**Effort**: 30min  
-**Depends**: US5-T01, US5-T02  
+### US5-T04: Create Health Check for Mock Detection ✅ COMPLETE
+**File**: src/app.js (health endpoint)
+**Effort**: 30min
+**Depends**: US5-T01, US5-T02
 **Acceptance**:
-- /health endpoint checks for active mocks
-- Returns 500 if mocks detected in production
-- Include mock detection in CI/CD
+- [X] /health endpoint checks for active mocks
+- [X] Returns 500 if mocks detected in production
+- [X] Include mock detection in CI/CD
 
 ---
 
