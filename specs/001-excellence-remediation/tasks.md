@@ -829,7 +829,7 @@ describe('Error Handler', () => {
 
 ---
 
-## US6: Performance Monitoring & Alerting (4/12 COMPLETE) (12 tasks, 10 hours)
+## US6: Performance Monitoring & Alerting (5/12 COMPLETE) (12 tasks, 10 hours)
 
 ### US6-T01: Create Performance Tracking Middleware [TDD] ✅ COMPLETE
 **File**: src/middleware/performance-tracker.js
@@ -926,14 +926,38 @@ describe('Error Handler', () => {
 
 ---
 
-### US6-T05: Create Performance Dashboard Endpoint
-**File**: src/routes/api/metrics.js  
-**Effort**: 2h  
-**Depends**: US6-T01, US6-T03  
+### US6-T05: Create Performance Dashboard Endpoint ✅ COMPLETE
+**File**: src/routes/api/metrics.js
+**Effort**: 2h
+**Depends**: US6-T01, US6-T03
 **Acceptance**:
-- GET /api/metrics/performance returns p50/p95/p99
-- GET /api/metrics/queries returns slow query stats
-- Protected by admin auth
+- [X] GET /api/metrics/performance returns p50/p95/p99
+- [X] GET /api/metrics/queries returns slow query stats
+- [X] Protected by admin auth
+
+**Implementation Details**:
+- Modified GET /api/metrics/performance (line 68):
+  - Changed authentication from `ensureAuthenticated` to `ensureAdmin`
+  - Updated comment to reference US6-T05
+  - Now requires admin role for access
+- Added GET /api/metrics/queries (lines 70-112):
+  - Lazy-loads QueryPatternLogger singleton instance
+  - Returns slowest 20 query patterns via getSlowestPatterns(20)
+  - Returns top 50 frequent patterns via getFrequentPatterns(50)
+  - Includes summary statistics:
+    - totalSlowPatterns: count of patterns in slowest list
+    - criticalPatterns: patterns with avgTime > 5000ms
+    - needsCaching: patterns with Redis caching recommendations
+  - Each pattern includes:
+    - queryType, paramStructure, count, avgTime, maxTime
+    - avgResultSize (for slow patterns)
+    - recommendation (optimization suggestions for slow patterns)
+    - cacheHitRate (for frequent patterns)
+  - Protected by ensureAdmin middleware
+  - Error handling with AppError and correlation ID logging
+- All acceptance criteria met ✅
+- All 16 US6-T01 regression tests passing ✅
+- Commit: acc5a2e
 
 ---
 
