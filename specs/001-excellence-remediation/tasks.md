@@ -598,7 +598,7 @@ const user = await User.create({
 
 ---
 
-## US4: Production-Grade Error Handling ✅ 4/10 COMPLETE (10 tasks, 8 hours)
+## US4: Production-Grade Error Handling ✅ 5/10 COMPLETE (10 tasks, 8 hours)
 
 ### US4-T01: Update Error Handler Middleware [TDD] ✅ COMPLETE
 **File**: src/middleware/errorHandler.js
@@ -706,13 +706,32 @@ describe('Error Handler', () => {
 
 ---
 
-### US4-T09: Add Critical Error Discord Notifications
-**File**: src/utils/discord-alerts.js  
-**Effort**: 30min  
+### US4-T09: Add Critical Error Discord Notifications ✅ COMPLETE
+**File**: src/services/ErrorNotificationService.js (better location than originally specified)
+**Effort**: 30min
 **Acceptance**:
-- Send Discord webhook on 5xx errors
-- Include correlation ID, endpoint, error code
-- Rate limit: 1 alert per endpoint per 5 minutes
+- [X] Send Discord webhook on 5xx errors - Line 64-66: checks statusCode >= 500
+- [X] Include correlation ID, endpoint, error code - Lines 88-156: all fields included in Discord embed
+- [X] Rate limit: 1 alert per endpoint per 5 minutes - Lines 28-29, 196-201: 5-minute cooldown implemented
+
+**Implementation Details**:
+- Full-featured ErrorNotificationService class with singleton pattern (line 266)
+- Rate limiting using Map with errorCode + path as unique key
+- Critical error detection for 5xx errors and specific error codes
+- Rich Discord embed with color-coded severity
+- Graceful failure handling (non-blocking)
+- Integration with errorHandler middleware (errorHandler.js:241-244)
+- Includes environment context, user/community IDs, stack preview
+- Handles uncaught exceptions and unhandled rejections
+
+**Key Features**:
+- Only sends notifications in production (line 27)
+- Configurable webhook URL via DISCORD_ERROR_WEBHOOK_URL env var
+- 5-second timeout for webhook calls
+- Debug logging for rate-limited notifications
+- Unique error keys: `${errorCode}_${endpoint path}`
+
+**Note**: Implementation exists at src/services/ErrorNotificationService.js, which follows better service-oriented architecture than the originally specified utils location.
 
 ---
 
