@@ -256,6 +256,7 @@ function createApp(options = {}) {
   // Health check
   app.get('/health', async (req, res) => {
     const RedisService = require('./services/redis');
+    const EnvValidator = require('./utils/env-validator');
 
     const health = {
       status: 'healthy',
@@ -269,6 +270,17 @@ function createApp(options = {}) {
       health.redis = await RedisService.getStats();
     } catch (err) {
       health.redis = { mode: 'error', error: err.message };
+    }
+
+    // Check for mock/sandbox configurations (US5-T04)
+    const mockDetection = EnvValidator.detectMocks();
+    health.mocks = mockDetection;
+
+    // If production has dangerous mock configurations, mark as unhealthy
+    if (mockDetection.isDangerous) {
+      health.status = 'unhealthy';
+      health.error = 'Mock/sandbox configurations detected in production environment';
+      return res.status(500).json(health);
     }
 
     res.json(health);
