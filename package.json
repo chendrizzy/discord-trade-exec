@@ -132,5 +132,30 @@
   "overrides": {
     "glob": "^10.4.5",
     "axios": "^1.12.2"
+  },
+  "c8": {
+    "all": true,
+    "include": [
+      "src/**/*.js"
+    ],
+    "exclude": [
+      "src/**/*.test.js",
+      "src/**/*.spec.js",
+      "tests/**",
+      "**/*.config.js",
+      "**/*.setup.js"
+    ],
+    "reporter": [
+      "text",
+      "lcov",
+      "html",
+      "json-summary"
+    ],
+    "check-coverage": true,
+    "lines": 75,
+    "functions": 75,
+    "branches": 70,
+    "statements": 75,
+    "per-file": false
   }
 }

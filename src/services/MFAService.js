@@ -256,18 +256,18 @@ class MFAService {
    * // User must save backup codes securely
    */
   async enableMFA(userId, token) {
-    // Verify TOTP token first
+    // Fetch user with MFA secret first to check status
+    const user = await User.findById(userId).select('+mfa.secret');
+
+    // Check if already enabled (do this BEFORE verifying token)
+    if (user.mfa.enabled) {
+      throw new Error('MFA is already enabled for this user');
+    }
+
+    // Verify TOTP token
     const isValid = await this.verifyTOTP(userId, token);
     if (!isValid) {
       throw new Error('Invalid TOTP token. Please try again.');
-    }
-
-    // Fetch user with MFA secret
-    const user = await User.findById(userId).select('+mfa.secret');
-
-    // Check if already enabled
-    if (user.mfa.enabled) {
-      throw new Error('MFA is already enabled for this user');
     }
 
     // Generate backup codes
@@ -322,18 +322,18 @@ class MFAService {
    * const result = await mfaService.disableMFA(userId, '123456');
    */
   async disableMFA(userId, token) {
-    // Verify TOTP token first
+    // Fetch user first to check status
+    const user = await User.findById(userId).select('+mfa.secret');
+
+    // Check if MFA enabled (do this BEFORE verifying token)
+    if (!user.mfa?.enabled) {
+      throw new Error('MFA is not enabled for this user');
+    }
+
+    // Verify TOTP token
     const isValid = await this.verifyTOTP(userId, token);
     if (!isValid) {
       throw new Error('Invalid TOTP token. Cannot disable MFA without verification.');
-    }
-
-    // Fetch user
-    const user = await User.findById(userId).select('+mfa.secret');
-
-    // Check if MFA enabled
-    if (!user.mfa?.enabled) {
-      throw new Error('MFA is not enabled for this user');
     }
 
     // Clear all MFA data
@@ -379,18 +379,18 @@ class MFAService {
    * // Display result.backupCodes to user (one-time only)
    */
   async regenerateBackupCodes(userId, token) {
-    // Verify TOTP token first
+    // Fetch user first to check status
+    const user = await User.findById(userId);
+
+    // Check if MFA enabled (do this BEFORE verifying token)
+    if (!user.mfa?.enabled) {
+      throw new Error('MFA is not enabled for this user');
+    }
+
+    // Verify TOTP token
     const isValid = await this.verifyTOTP(userId, token);
     if (!isValid) {
       throw new Error('Invalid TOTP token. Cannot regenerate backup codes without verification.');
-    }
-
-    // Fetch user
-    const user = await User.findById(userId);
-
-    // Check if MFA enabled
-    if (!user.mfa?.enabled) {
-      throw new Error('MFA is not enabled for this user');
     }
 
     // Generate new backup codes
@@ -474,6 +474,9 @@ class MFAService {
         backupCode.used = true;
         backupCode.usedAt = new Date();
         user.mfa.lastVerified = new Date();
+
+        // Mark nested array as modified for Mongoose to detect changes
+        user.markModified('mfa.backupCodes');
 
         await user.save();
 
@@ -645,7 +648,9 @@ class MFAService {
    * @throws {Error} Rate limit exceeded (429)
    */
   checkRateLimit(userId) {
-    const attempts = this.attemptCache.get(userId);
+    // Convert ObjectId to string for Map key
+    const userIdStr = userId.toString();
+    const attempts = this.attemptCache.get(userIdStr);
 
     if (!attempts) {
       return; // No attempts yet
@@ -676,11 +681,13 @@ class MFAService {
    * @param {boolean} success - Whether attempt was successful
    */
   recordAttempt(userId, success) {
-    let attempts = this.attemptCache.get(userId);
+    // Convert ObjectId to string for Map key
+    const userIdStr = userId.toString();
+    let attempts = this.attemptCache.get(userIdStr);
 
     if (!attempts) {
       attempts = [];
-      this.attemptCache.set(userId, attempts);
+      this.attemptCache.set(userIdStr, attempts);
     }
 
     attempts.push({
@@ -693,7 +700,7 @@ class MFAService {
       attempt => Date.now() - attempt.timestamp < this.rateLimitWindow
     );
 
-    this.attemptCache.set(userId, recentAttempts);
+    this.attemptCache.set(userIdStr, recentAttempts);
   }
 
   /**
@@ -704,7 +711,7 @@ class MFAService {
    * @private
    */
   startRateLimitCleanup() {
-    setInterval(
+    this.cleanupInterval = setInterval(
       () => {
         const now = Date.now();
 
@@ -729,6 +736,20 @@ class MFAService {
       },
       5 * 60 * 1000
     ); // Every 5 minutes
+  }
+
+  /**
+   * Shutdown MFA Service
+   *
+   * Clears the rate limit cleanup interval.
+   * Should be called during graceful shutdown or in test teardown.
+   */
+  shutdown() {
+    if (this.cleanupInterval) {
+      clearInterval(this.cleanupInterval);
+      this.cleanupInterval = null;
+      logger.info('[MFAService] Shutdown complete - cleanup interval cleared');
+    }
   }
 
   /**

@@ -42,21 +42,22 @@ class AppError extends Error {
  */
 function createErrorResponse(error, includeStack = false) {
   const response = {
-    error: {
-      message: error.message,
-      code: error.code || ErrorCodes.INTERNAL_SERVER_ERROR,
-      timestamp: new Date().toISOString()
-    }
+    success: false,
+    error: error.message,
+    code: error.code || ErrorCodes.INTERNAL_SERVER_ERROR
   };
+
+  // Add timestamp
+  response.timestamp = new Date().toISOString();
 
   // Add details if available
   if (error.details) {
-    response.error.details = error.details;
+    response.details = error.details;
   }
 
   // Add stack trace in development
   if (includeStack && error.stack) {
-    response.error.stack = error.stack;
+    response.stack = error.stack;
   }
 
   return response;

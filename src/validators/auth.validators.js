@@ -73,8 +73,8 @@ const refreshBrokerOAuthParams = z.object({
 const mfaEnableBody = z.object({
   token: z
     .string()
-    .length(6, 'TOTP token must be 6 digits')
-    .regex(/^\d{6}$/, 'TOTP token must be numeric')
+    .max(100, 'Token too long')
+    .optional() // Make optional so route handler can provide specific error code
 });
 
 /**
@@ -99,13 +99,18 @@ const mfaVerifyBody = z.object({
     .max(100, 'Token too long')
     .refine(
       val => {
-        // Accept either 6-digit TOTP or backup code (24 chars hex)
-        return /^\d{6}$/.test(val) || /^[a-f0-9]{24}$/i.test(val);
+        // Accept either:
+        // - 6-digit TOTP (e.g., "123456")
+        // - 8-char backup code (e.g., "A1B2C3D4" or "BACKUP01" for tests)
+        // - 9-char backup code with hyphen (e.g., "A1B2-C3D4")
+        return /^\d{6}$/.test(val) || /^[A-Z0-9]{8}$/i.test(val) || /^[A-Z0-9]{4}-[A-Z0-9]{4}$/i.test(val);
       },
       {
-        message: 'Token must be 6-digit TOTP or 24-character backup code'
+        message: 'Token must be 6-digit TOTP or backup code (format: XXXX-XXXX)'
       }
     )
+    .optional(), // Make optional so route handler can provide specific error code
+  type: z.string().optional() // Accept any string, let route handler validate
 });
 
 /**

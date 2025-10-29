@@ -94,9 +94,9 @@ jobs:
         run: npm run test:integration -- --coverage --collectCoverageFrom='src/**/*.js'
         continue-on-error: false
       
-      - name: Generate full coverage report
-        run: npm test -- --coverage --coverageReporters=json-summary --coverageReporters=lcov --coverageReporters=text
-      
+      - name: Generate full coverage report with thresholds
+        run: npm run test:coverage
+
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v4
         with:
