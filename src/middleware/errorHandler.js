@@ -196,11 +196,14 @@ function normalizeError(error) {
   }
 
   // Generic error - wrap in AppError
-  return new AppError(
+  // Mark as non-operational so production sanitizes the message
+  const appError = new AppError(
     error.message || 'An error occurred',
     getStatusCode(error),
     error.code || ErrorCodes.INTERNAL_SERVER_ERROR
   );
+  appError.isOperational = false; // Generic errors are not operational (programming errors)
+  return appError;
 }
 
 /**
