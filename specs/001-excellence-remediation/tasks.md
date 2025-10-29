@@ -665,7 +665,12 @@ Set thresholds to current achieved levels (auth: 58%, billing: 68%, risk: 91%) f
 **Detailed Breakdown**: See `docs/reports/analysis/US3-T13-T30_BREAKDOWN.md`
 
 **Task Groups**:
-1. **Group 1 (T13-T16)**: Auth Routes completion (4h) - OAuth refresh, broker states, rate limiting, MFA
+1. **Group 1 (T13-T16)**: ✅ **COMPLETE** (Commit: 3d1dc2f) - Auth Routes completion (4h) - OAuth refresh, broker states, rate limiting, MFA
+   - US3-T13: OAuth2 token refresh edge cases (5 tests) ✅
+   - US3-T14: Broker connection state transitions (4 tests) ✅
+   - US3-T15: OAuth2 rate limiting & error recovery (4 tests) ✅
+   - US3-T16: MFA session management (4 tests) ✅
+   - **Total**: 17 tests added, all passing
 2. **Group 2 (T17-T19)**: Auth Middleware completion (3h) - JWT validation, session failures, RBAC matrix
 3. **Group 3 (T20-T22)**: Billing Provider completion (3h) - Polar API paths, payment states, webhook security
 4. **Group 4 (T23-T26)**: Infrastructure modules (5h) - Broker adapters, factory, performance tracker, rate limiter
