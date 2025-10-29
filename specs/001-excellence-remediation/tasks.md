@@ -660,11 +660,26 @@ Set thresholds to current achieved levels (auth: 58%, billing: 68%, risk: 91%) f
 ---
 
 ### US3-T13-T30: Additional Test Coverage Tasks [P]
-**Effort**: 20h  
-**Description**: Cover remaining modules (exchanges, providers, portfolio, analytics)  
-**Acceptance**:
-- Each module: 100% coverage
-- All edge cases tested
+**Effort**: 20h (18 tasks, ~1.1h each)
+**Description**: Close coverage gaps across auth routes, middleware, billing, brokers, and services
+**Detailed Breakdown**: See `docs/reports/analysis/US3-T13-T30_BREAKDOWN.md`
+
+**Task Groups**:
+1. **Group 1 (T13-T16)**: Auth Routes completion (4h) - OAuth refresh, broker states, rate limiting, MFA
+2. **Group 2 (T17-T19)**: Auth Middleware completion (3h) - JWT validation, session failures, RBAC matrix
+3. **Group 3 (T20-T22)**: Billing Provider completion (3h) - Polar API paths, payment states, webhook security
+4. **Group 4 (T23-T26)**: Infrastructure modules (5h) - Broker adapters, factory, performance tracker, rate limiter
+5. **Group 5 (T27-T30)**: Additional services (5h) - Encryption, error handler, audit logger, WebSocket
+
+**Expected Coverage Improvements**:
+- Auth routes: 65.84% → 90% (+24%)
+- Auth middleware: 82.23% → 95% (+13%)
+- Billing provider: 67.85% → 95% (+27%)
+- Infrastructure: 0-20% → 80% (+60-80%)
+- Overall project: Current → 90-95%
+
+**Total New Tests**: ~75 tests
+**Implementation Priority**: Groups 1-3 (High), Group 4 (Medium), Group 5 (Standard)
 
 ---
 
