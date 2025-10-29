@@ -317,6 +317,73 @@ describe('Integration Test: OAuth2 Authentication Flow', () => {
       const user = await User.findById(testUser._id);
       expect(user.tradingConfig.oauthTokens.has('alpaca')).toBe(false);
     });
+
+    it('should handle OAuth error parameter (user denied authorization) - lines 207-224', async () => {
+      const response = await request(app)
+        .get('/api/v1/auth/broker/alpaca/callback')
+        .set('Cookie', authCookie)
+        .query({
+          error: 'access_denied',
+          error_description: 'User cancelled the authorization',
+          state: mockState
+        })
+        .expect(302); // Redirect
+
+      // Verify redirect to dashboard with error message
+      expect(response.headers.location).toMatch(/\/dashboard\?oauth_error=/);
+      expect(decodeURIComponent(response.headers.location)).toMatch(/Authorization cancelled/i);
+
+      // Verify tokens NOT saved
+      const user = await User.findById(testUser._id);
+      expect(user.tradingConfig.oauthTokens.has('alpaca')).toBe(false);
+    });
+
+    it('should handle OAuth server_error parameter - lines 207-224', async () => {
+      const response = await request(app)
+        .get('/api/v1/auth/broker/alpaca/callback')
+        .set('Cookie', authCookie)
+        .query({
+          error: 'server_error',
+          error_description: 'Broker server unavailable',
+          state: mockState
+        })
+        .expect(302); // Redirect
+
+      // Verify redirect with server error message
+      expect(response.headers.location).toMatch(/\/dashboard\?oauth_error=/);
+      expect(decodeURIComponent(response.headers.location)).toMatch(/Broker server error/i);
+    });
+
+    it('should handle OAuth invalid_request error - lines 207-224', async () => {
+      const response = await request(app)
+        .get('/api/v1/auth/broker/alpaca/callback')
+        .set('Cookie', authCookie)
+        .query({
+          error: 'invalid_request',
+          state: mockState
+        })
+        .expect(302); // Redirect
+
+      // Verify redirect with invalid request message
+      expect(response.headers.location).toMatch(/\/dashboard\?oauth_error=/);
+      expect(decodeURIComponent(response.headers.location)).toMatch(/Invalid request/i);
+    });
+
+    it('should handle OAuth custom error with error_description - lines 207-224', async () => {
+      const response = await request(app)
+        .get('/api/v1/auth/broker/alpaca/callback')
+        .set('Cookie', authCookie)
+        .query({
+          error: 'custom_error',
+          error_description: 'Custom error from broker',
+          state: mockState
+        })
+        .expect(302); // Redirect
+
+      // Verify redirect includes custom error description
+      expect(response.headers.location).toMatch(/\/dashboard\?oauth_error=/);
+      expect(decodeURIComponent(response.headers.location)).toMatch(/Custom error from broker/i);
+    });
   });
 
   describe('Token Refresh Mechanism', () => {
@@ -914,6 +981,80 @@ describe('Integration Test: OAuth2 Authentication Flow', () => {
       expect(updatedUser.tradingConfig.oauthTokens.has('alpaca')).toBe(false);
       expect(updatedUser.tradingConfig.oauthTokens.has('schwab')).toBe(true);
       expect(updatedUser.tradingConfig.oauthTokens.has('ibkr')).toBe(true);
+    });
+
+    it('should handle broker revocation failure (database error) - lines 444-457', async () => {
+      // Mock User.save() to throw error
+      const originalSave = User.prototype.save;
+      User.prototype.save = jest.fn().mockRejectedValueOnce(new Error('Database connection lost'));
+
+      const response = await request(app)
+        .delete('/api/v1/auth/brokers/alpaca/oauth')
+        .set('Cookie', authCookie)
+        .expect(500);
+
+      expect(response.body.success).toBe(false);
+      expect(response.body.error).toMatch(/Failed to revoke broker connection/i);
+      expect(response.body.errorCode).toBe('BROKER_ERROR');
+
+      // Restore original save method
+      User.prototype.save = originalSave;
+    });
+
+    it('should manually refresh OAuth2 token successfully - lines 470-489', async () => {
+      // Mock successful token refresh
+      const refreshSpy = jest.spyOn(oauth2Service, 'refreshAccessToken').mockResolvedValueOnce({
+        accessToken: 'new_access_token',
+        refreshToken: 'new_refresh_token',
+        expiresAt: new Date(Date.now() + 7200 * 1000),
+        tokenType: 'Bearer'
+      });
+
+      const response = await request(app)
+        .post('/api/v1/auth/brokers/alpaca/oauth/refresh')
+        .set('Cookie', authCookie)
+        .expect(200);
+
+      expect(response.body.success).toBe(true);
+      expect(response.body.expiresAt).toBeDefined();
+      expect(refreshSpy).toHaveBeenCalledWith('alpaca', testUser._id.toString());
+
+      refreshSpy.mockRestore();
+    });
+
+    it('should reject manual refresh for non-OAuth2 broker - lines 476-481', async () => {
+      const response = await request(app)
+        .post('/api/v1/auth/brokers/tradier/oauth/refresh')
+        .set('Cookie', authCookie)
+        .expect(400);
+
+      expect(response.body.success).toBe(false);
+      expect(response.body.error).toMatch(/does not support OAuth2/i);
+    });
+
+    it('should handle manual refresh with expired refresh token - lines 484', async () => {
+      // Mock refresh failure (expired refresh token)
+      const refreshSpy = jest.spyOn(oauth2Service, 'refreshAccessToken').mockRejectedValueOnce(
+        new Error('Refresh token expired or invalid')
+      );
+
+      const response = await request(app)
+        .post('/api/v1/auth/brokers/alpaca/oauth/refresh')
+        .set('Cookie', authCookie)
+        .expect(500);
+
+      expect(response.body.success).toBe(false);
+      expect(response.body.error).toBeDefined();
+
+      refreshSpy.mockRestore();
+    });
+
+    it('should reject manual refresh without authentication - lines 470', async () => {
+      const response = await request(app)
+        .post('/api/v1/auth/brokers/alpaca/oauth/refresh')
+        .expect(401);
+
+      expect(response.body.success).toBe(false);
     });
   });
 
