@@ -44,7 +44,7 @@ function createErrorResponse(error, includeStack = false) {
   const response = {
     success: false,
     error: error.message,
-    code: error.code || ErrorCodes.INTERNAL_SERVER_ERROR
+    errorCode: error.code || ErrorCodes.INTERNAL_SERVER_ERROR
   };
 
   // Add timestamp
