@@ -16,3 +16,32 @@ Use `@/openspec/AGENTS.md` to learn:
 Keep this managed block so 'openspec update' can refresh the instructions.
 
 <!-- OPENSPEC:END -->
+
+## Documentation Storage Guidelines
+
+Per AGENTS.md, ALL documentation, reports, summaries, and analysis files MUST be stored in the `docs/` directory structure:
+
+```
+docs/
+├── diagrams/          # Visual aids (flowcharts, architecture)
+├── guides/            # Process and workflow guidelines
+├── plans/             # Planning documents
+├── reports/
+│   ├── summaries/     # Feature/change summaries
+│   ├── analysis/      # Technical analysis (e.g., coverage reports)
+│   └── status/        # Project status reports
+└── deployment/        # Deployment processes and notes
+```
+
+**NEVER put documentation/reports in:**
+- ❌ Root directory
+- ❌ `documentation/` directory
+- ❌ `openspec/` directory (reserved for specs)
+
+**ALWAYS put documentation in:**
+- ✅ `docs/reports/analysis/` for coverage reports, technical analysis
+- ✅ `docs/reports/summaries/` for feature/change summaries
+- ✅ `docs/reports/status/` for project status reports
+- ✅ `docs/diagrams/` for visual aids
+- ✅ `docs/guides/` for process guides
+- ✅ `docs/plans/` for planning documents
