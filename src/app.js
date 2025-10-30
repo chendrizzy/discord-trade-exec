@@ -95,7 +95,7 @@ function createApp(options = {}) {
       origin: process.env.DASHBOARD_URL || 'http://localhost:3000',
       credentials: true,
       methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE'],
-      allowedHeaders: ['Content-Type', 'Authorization']
+      allowedHeaders: ['Content-Type', 'Authorization', 'X-CSRF-Token']
     })
   );
 

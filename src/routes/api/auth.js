@@ -1013,4 +1013,42 @@ router.post('/mfa/verify', ensureAuthenticated, validate(mfaVerifyBody, 'body'),
   }
 });
 
+/**
+ * GET /api/v1/auth/csrf-token
+ *
+ * Get CSRF token for the current session.
+ * Token must be included in X-CSRF-Token header for state-changing requests.
+ *
+ * @returns {Object} { success: true, csrfToken: string }
+ */
+router.get('/csrf-token', (req, res) => {
+  const { getOrCreateToken } = require('../../middleware/csrf');
+
+  if (!req.session) {
+    return res.status(500).json({
+      success: false,
+      error: 'Session not initialized',
+      code: ErrorCodes.INTERNAL_SERVER_ERROR
+    });
+  }
+
+  try {
+    const csrfToken = getOrCreateToken(req);
+
+    res.status(200).json({
+      success: true,
+      csrfToken,
+      usage: 'Include this token in X-CSRF-Token header for POST/PUT/DELETE requests'
+    });
+  } catch (error) {
+    logger.error('Failed to generate CSRF token', { error: error.message });
+
+    res.status(500).json({
+      success: false,
+      error: 'Failed to generate CSRF token',
+      code: ErrorCodes.INTERNAL_SERVER_ERROR
+    });
+  }
+});
+
 module.exports = router;

@@ -95,6 +95,18 @@ const ErrorCodeDefinitions = {
     message: 'Your session has expired. Please log in again.'
   },
 
+  CSRF_TOKEN_MISSING: {
+    code: 'CSRF_TOKEN_MISSING',
+    statusCode: 403,
+    message: 'CSRF token required for this request. Include X-CSRF-Token header.'
+  },
+
+  CSRF_TOKEN_INVALID: {
+    code: 'CSRF_TOKEN_INVALID',
+    statusCode: 403,
+    message: 'Invalid CSRF token. Please refresh the page and try again.'
+  },
+
   // ============================================================================
   // VALIDATION ERRORS (40x)
   // ============================================================================
@@ -549,7 +561,9 @@ function getErrorCodesByCategory() {
       'FORBIDDEN',
       'INSUFFICIENT_PERMISSIONS',
       'ACCOUNT_SUSPENDED',
-      'ACCOUNT_LOCKED'
+      'ACCOUNT_LOCKED',
+      'CSRF_TOKEN_MISSING',
+      'CSRF_TOKEN_INVALID'
     ],
     validation: [
       'VALIDATION_ERROR',
