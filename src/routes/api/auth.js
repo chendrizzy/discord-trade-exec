@@ -120,20 +120,49 @@ router.get('/brokers/status', ensureAuthenticatedAPI, async (req, res, next) => 
     const enabledBrokers = getEnabledProviders();
     const now = Date.now();
 
-    const brokers = enabledBrokers
+    // Bug #5: Include brokers user has tokens for, even if not currently enabled
+    const tokensMap = user.tradingConfig?.oauthTokens;
+    const userBrokers = new Set(enabledBrokers);
+
+    // Add brokers user has tokens for
+    if (tokensMap) {
+      if (tokensMap instanceof Map || tokensMap.get) {
+        for (const [key] of tokensMap) {
+          userBrokers.add(key);
+        }
+      } else if (tokensMap.toObject) {
+        Object.keys(tokensMap.toObject()).forEach(key => userBrokers.add(key));
+      } else {
+        Object.keys(tokensMap).forEach(key => userBrokers.add(key));
+      }
+    }
+
+    const brokers = Array.from(userBrokers)
       .map(brokerKey => {
         const config = getProviderConfig(brokerKey);
-        if (!config) {
+        const brokerInfo = BrokerFactory.getBrokerInfo(brokerKey) || {};
+
+        // Skip if no config AND no broker info (completely unknown broker)
+        if (!config && !brokerInfo.name) {
           return null;
         }
 
-        const brokerInfo = BrokerFactory.getBrokerInfo(brokerKey) || {};
-
+        // Bug #5: Handle Mongoose Map properly for partial broker connections
         let storedTokens;
-        if (user.tradingConfig?.oauthTokens?.get) {
-          storedTokens = user.tradingConfig.oauthTokens.get(brokerKey);
-        } else if (user.tradingConfig?.oauthTokens) {
-          storedTokens = user.tradingConfig.oauthTokens[brokerKey];
+        const tokensMap = user.tradingConfig?.oauthTokens;
+
+        if (!tokensMap) {
+          storedTokens = null;
+        } else if (tokensMap instanceof Map || tokensMap.get) {
+          // Mongoose Map or native Map
+          storedTokens = tokensMap.get(brokerKey);
+        } else if (tokensMap.toObject) {
+          // Mongoose subdocument with toObject method
+          const tokensObj = tokensMap.toObject();
+          storedTokens = tokensObj[brokerKey];
+        } else {
+          // Plain object
+          storedTokens = tokensMap[brokerKey];
         }
 
         let expiresAt = storedTokens?.expiresAt ? new Date(storedTokens.expiresAt) : null;
@@ -146,8 +175,8 @@ router.get('/brokers/status', ensureAuthenticatedAPI, async (req, res, next) => 
             status = 'revoked';
           } else if (expiresAt && expiresAt.getTime() <= now) {
             status = 'expired';
-          } else if (expiresAt && expiresAt.getTime() - now <= 60 * 60 * 1000) {
-            status = 'expiring';
+          } else if (expiresAt && expiresAt.getTime() - now < 5 * 60 * 1000) {
+            status = 'expiring';  // Less than 5 minutes remaining
           } else {
             status = 'connected';
           }
