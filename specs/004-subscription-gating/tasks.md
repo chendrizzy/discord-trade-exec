@@ -136,7 +136,7 @@ Per plan.md structure:
 - [X] T036 [US2] Register middleware with Discord.js command handler
 - [X] T037 [US2] Add performance monitoring for <2s verification SLA in access control service
 - [X] T038 [US2] Add structured logging for subscription verification attempts
-- [ ] T039 [US2] Verify all US2 tests pass (unit, integration)
+- [x] T039 [US2] Verify all US2 tests pass (unit, integration)
 
 **Checkpoint**: Subscribers can use bot in gated servers - core gating mechanism works for authorized users
 

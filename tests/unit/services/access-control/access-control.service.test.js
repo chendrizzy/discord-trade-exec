@@ -49,7 +49,7 @@ describe('AccessControlService - Unit Tests', () => {
     mockSubscriptionProvider = new DiscordSubscriptionProvider();
 
     // Add verifyUserSubscription mock method (auto-mock doesn't include it)
-    mockSubscriptionProvider.verifyUserSubscription = jest.fn();
+    mockSubscriptionProvider.verifySubscription = jest.fn();
 
     // Initialize service under test
     accessControlService = new AccessControlService(
@@ -112,7 +112,7 @@ describe('AccessControlService - Unit Tests', () => {
       expect(result.cacheHit).toBe(false); // Open access doesn't use cache
 
       // ASSERT: Should not call subscription provider
-      expect(mockSubscriptionProvider.verifyUserSubscription).not.toHaveBeenCalled();
+      expect(mockSubscriptionProvider.verifySubscription).not.toHaveBeenCalled();
 
       // ASSERT: Should complete quickly
       expect(elapsedTime).toBeLessThan(100);
@@ -169,7 +169,7 @@ describe('AccessControlService - Unit Tests', () => {
       expect(result.reason).toBe('verified_subscription');
 
       // ASSERT: Should NOT call subscription provider
-      expect(mockSubscriptionProvider.verifyUserSubscription).not.toHaveBeenCalled();
+      expect(mockSubscriptionProvider.verifySubscription).not.toHaveBeenCalled();
 
       // ASSERT: Should be VERY fast (<10ms per requirement)
       expect(elapsedTime).toBeLessThan(10);
@@ -204,7 +204,7 @@ describe('AccessControlService - Unit Tests', () => {
       expect(result.reason).toBe('no_subscription');
 
       // Should not call provider
-      expect(mockSubscriptionProvider.verifyUserSubscription).not.toHaveBeenCalled();
+      expect(mockSubscriptionProvider.verifySubscription).not.toHaveBeenCalled();
     });
   });
 
@@ -221,8 +221,11 @@ describe('AccessControlService - Unit Tests', () => {
       // ARRANGE: Cache miss
       mockCacheService.get.mockResolvedValue(null);
 
-      // ARRANGE: Provider returns subscription verified (boolean)
-      mockSubscriptionProvider.verifyUserSubscription.mockResolvedValue(true);
+      // ARRANGE: Provider returns subscription verified (object with hasAccess)
+      mockSubscriptionProvider.verifySubscription.mockResolvedValue({
+        hasAccess: true,
+        matchingRoles: ['role123']
+      });
 
       mockCacheService.set.mockResolvedValue(undefined);
 
@@ -242,7 +245,7 @@ describe('AccessControlService - Unit Tests', () => {
       expect(result.reason).toBe('verified_subscription');
 
       // ASSERT: Should call provider with correct parameters
-      expect(mockSubscriptionProvider.verifyUserSubscription).toHaveBeenCalledWith(
+      expect(mockSubscriptionProvider.verifySubscription).toHaveBeenCalledWith(
         '1234567890123456789',
         '9876543210987654321',
         ['role123', 'role456']
@@ -275,8 +278,11 @@ describe('AccessControlService - Unit Tests', () => {
       // ARRANGE: Cache miss
       mockCacheService.get.mockResolvedValue(null);
 
-      // ARRANGE: Provider returns no subscription (boolean)
-      mockSubscriptionProvider.verifyUserSubscription.mockResolvedValue(false);
+      // ARRANGE: Provider returns no subscription (object with hasAccess: false)
+      mockSubscriptionProvider.verifySubscription.mockResolvedValue({
+        hasAccess: false,
+        reason: 'no_subscription'
+      });
 
       mockCacheService.set.mockResolvedValue(undefined);
 
@@ -355,8 +361,11 @@ describe('AccessControlService - Unit Tests', () => {
         new Error('Redis connection failed')
       );
 
-      // ARRANGE: Provider works (fallback)
-      mockSubscriptionProvider.verifyUserSubscription.mockResolvedValue(true);
+      // ARRANGE: Provider works (fallback) - must return object with hasAccess
+      mockSubscriptionProvider.verifySubscription.mockResolvedValue({
+        hasAccess: true,
+        matchingRoles: ['role123']
+      });
 
       mockCacheService.set.mockResolvedValue(undefined);
 
@@ -372,7 +381,7 @@ describe('AccessControlService - Unit Tests', () => {
       expect(result.cacheHit).toBe(false);
 
       // Should log error but not throw
-      expect(mockSubscriptionProvider.verifyUserSubscription).toHaveBeenCalled();
+      expect(mockSubscriptionProvider.verifySubscription).toHaveBeenCalled();
     });
 
     it('should use cached status on provider timeout (graceful degradation)', async () => {
@@ -384,15 +393,17 @@ describe('AccessControlService - Unit Tests', () => {
         requiredRoleIds: ['role123']
       });
 
-      // ARRANGE: Cache returns stale but valid entry
-      mockCacheService.get.mockResolvedValue({
-        hasAccess: true,
-        reason: 'verified_subscription',
-        cacheHit: false
-      });
+      // ARRANGE: Cache miss on first call, then returns stale data on second call
+      mockCacheService.get
+        .mockResolvedValueOnce(null)  // First call: cache miss
+        .mockResolvedValueOnce({      // Second call: stale cache
+          hasAccess: true,
+          reason: 'verified_subscription',
+          cacheHit: false
+        });
 
       // ARRANGE: Provider times out
-      mockSubscriptionProvider.verifyUserSubscription.mockRejectedValue(
+      mockSubscriptionProvider.verifySubscription.mockRejectedValue(
         new Error('Discord API timeout')
       );
 
@@ -422,7 +433,7 @@ describe('AccessControlService - Unit Tests', () => {
       mockCacheService.get.mockResolvedValue(null);
 
       // ARRANGE: Provider fails
-      mockSubscriptionProvider.verifyUserSubscription.mockRejectedValue(
+      mockSubscriptionProvider.verifySubscription.mockRejectedValue(
         new Error('Discord API unavailable')
       );
 
@@ -530,7 +541,7 @@ describe('AccessControlService - Unit Tests', () => {
 
       mockCacheService.get.mockResolvedValue(null);
 
-      mockSubscriptionProvider.verifyUserSubscription.mockResolvedValue(true);
+      mockSubscriptionProvider.verifySubscription.mockResolvedValue(true);
 
       mockCacheService.set.mockResolvedValue(undefined);
 
