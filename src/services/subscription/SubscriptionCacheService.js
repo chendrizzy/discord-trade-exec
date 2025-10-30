@@ -18,6 +18,8 @@
  * @see specs/004-subscription-gating/contracts/subscription-verification-api.md
  */
 
+const logger = require('@utils/logger');
+
 // Discord snowflake validation pattern (17-19 digits)
 const DISCORD_SNOWFLAKE_PATTERN = /^\d{17,19}$/;
 
@@ -37,6 +39,9 @@ class SubscriptionCacheService {
     }
 
     this.redisClient = redisClient;
+    logger.info('SubscriptionCacheService initialized', {
+      ttlSeconds: CACHE_TTL_SECONDS
+    });
   }
 
   /**
@@ -109,6 +114,8 @@ class SubscriptionCacheService {
    * @throws {Error} If cache operation fails
    */
   async get(guildId, userId) {
+    const startTime = Date.now();
+
     // Validate inputs
     this._validateSnowflake(guildId, 'guild');
     this._validateSnowflake(userId, 'user');
@@ -116,13 +123,24 @@ class SubscriptionCacheService {
     try {
       const cacheKey = this._getCacheKey(guildId, userId);
       const cached = await this.redisClient.get(cacheKey);
+      const duration = Date.now() - startTime;
 
       if (!cached) {
+        logger.debug('Cache miss', { guildId, userId, duration });
         return null;
       }
 
+      logger.debug('Cache hit', { guildId, userId, duration });
       return this._parseCacheData(cached);
     } catch (error) {
+      const duration = Date.now() - startTime;
+      logger.error('Cache get error', {
+        error: error.message,
+        stack: error.stack,
+        guildId,
+        userId,
+        duration
+      });
       throw new Error(`Cache error: ${error.message}`);
     }
   }
@@ -137,6 +155,8 @@ class SubscriptionCacheService {
    * @throws {Error} If cache operation fails
    */
   async set(guildId, userId, result) {
+    const startTime = Date.now();
+
     // Validate inputs
     this._validateSnowflake(guildId, 'guild');
     this._validateSnowflake(userId, 'user');
@@ -146,7 +166,23 @@ class SubscriptionCacheService {
       const serialized = this._serializeCacheData(result);
 
       await this.redisClient.setEx(cacheKey, CACHE_TTL_SECONDS, serialized);
+      const duration = Date.now() - startTime;
+
+      logger.debug('Cache write success', {
+        guildId,
+        userId,
+        hasAccess: result.hasAccess,
+        duration
+      });
     } catch (error) {
+      const duration = Date.now() - startTime;
+      logger.error('Cache set error', {
+        error: error.message,
+        stack: error.stack,
+        guildId,
+        userId,
+        duration
+      });
       throw new Error(`Cache error: ${error.message}`);
     }
   }
@@ -160,14 +196,32 @@ class SubscriptionCacheService {
    * @throws {Error} If cache operation fails
    */
   async invalidate(guildId, userId) {
+    const startTime = Date.now();
+
     // Validate inputs
     this._validateSnowflake(guildId, 'guild');
     this._validateSnowflake(userId, 'user');
 
     try {
       const cacheKey = this._getCacheKey(guildId, userId);
-      await this.redisClient.del(cacheKey);
+      const result = await this.redisClient.del(cacheKey);
+      const duration = Date.now() - startTime;
+
+      logger.debug('Cache invalidation', {
+        guildId,
+        userId,
+        keysDeleted: result,
+        duration
+      });
     } catch (error) {
+      const duration = Date.now() - startTime;
+      logger.error('Cache invalidation error', {
+        error: error.message,
+        stack: error.stack,
+        guildId,
+        userId,
+        duration
+      });
       throw new Error(`Cache error: ${error.message}`);
     }
   }
@@ -181,11 +235,14 @@ class SubscriptionCacheService {
    * @throws {Error} If cache operation fails
    */
   async getBatch(guildId, userIds) {
+    const startTime = Date.now();
+
     // Validate guild ID
     this._validateSnowflake(guildId, 'guild');
 
     // Handle empty array
     if (!userIds || userIds.length === 0) {
+      logger.debug('Batch get with empty user list', { guildId });
       return new Map();
     }
 
@@ -213,8 +270,29 @@ class SubscriptionCacheService {
         }
       }
 
+      const duration = Date.now() - startTime;
+      const hitCount = resultMap.size;
+      const missCount = userIds.length - hitCount;
+
+      logger.debug('Batch cache operation', {
+        guildId,
+        totalRequested: userIds.length,
+        hits: hitCount,
+        misses: missCount,
+        hitRate: ((hitCount / userIds.length) * 100).toFixed(1) + '%',
+        duration
+      });
+
       return resultMap;
     } catch (error) {
+      const duration = Date.now() - startTime;
+      logger.error('Batch cache error', {
+        error: error.message,
+        stack: error.stack,
+        guildId,
+        userCount: userIds.length,
+        duration
+      });
       throw new Error(`Cache error: ${error.message}`);
     }
   }

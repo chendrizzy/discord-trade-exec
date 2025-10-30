@@ -19,6 +19,8 @@
  * @see specs/004-subscription-gating/contracts/subscription-verification-api.md
  */
 
+const logger = require('@utils/logger');
+
 // Discord snowflake validation pattern (17-19 digits)
 const DISCORD_SNOWFLAKE_PATTERN = /^\d{17,19}$/;
 
@@ -41,6 +43,8 @@ class ServerConfigurationService {
 
     // In-memory cache: Map<guildId, config>
     this.cache = new Map();
+
+    logger.info('ServerConfigurationService initialized');
   }
 
   /**
@@ -92,6 +96,8 @@ class ServerConfigurationService {
    * @throws {Error} If database operation fails
    */
   async getConfig(guildId) {
+    const startTime = Date.now();
+
     // Validate input
     this._validateSnowflake(guildId, 'guild');
 
@@ -101,18 +107,24 @@ class ServerConfigurationService {
 
       // Validate cache integrity - ensure it's an object with expected structure
       if (typeof cached === 'object' && cached !== null && cached.guildId) {
+        const duration = Date.now() - startTime;
+        logger.debug('Configuration cache hit', { guildId, duration });
         return cached;
       }
 
       // Cache corrupted - clear it and fetch from DB
+      logger.warn('Cache corruption detected, invalidating', { guildId });
       this.cache.delete(guildId);
     }
 
     try {
       // Fetch from database
+      logger.debug('Configuration cache miss, fetching from DB', { guildId });
       const config = await this.configModel.findOne({ guildId });
+      const duration = Date.now() - startTime;
 
       if (!config) {
+        logger.debug('No configuration found for guild', { guildId, duration });
         return null;
       }
 
@@ -127,8 +139,21 @@ class ServerConfigurationService {
       // Cache the result
       this.cache.set(guildId, plainConfig);
 
+      logger.debug('Configuration fetched and cached', {
+        guildId,
+        accessMode: plainConfig.accessMode,
+        duration
+      });
+
       return plainConfig;
     } catch (error) {
+      const duration = Date.now() - startTime;
+      logger.error('Configuration fetch error', {
+        error: error.message,
+        stack: error.stack,
+        guildId,
+        duration
+      });
       throw new Error(`Database error: ${error.message}`);
     }
   }
@@ -144,6 +169,8 @@ class ServerConfigurationService {
    * @throws {Error} If creation fails or validation fails
    */
   async createConfig(guildId, accessMode, requiredRoleIds, modifiedBy) {
+    const startTime = Date.now();
+
     // Validate inputs
     this._validateSnowflake(guildId, 'guild');
     this._validateAccessMode(accessMode);
@@ -179,13 +206,38 @@ class ServerConfigurationService {
       if (plainConfig.accessControlMode) {
         plainConfig.accessMode = plainConfig.accessControlMode;
       }
+
+      const duration = Date.now() - startTime;
+      logger.info('Configuration created', {
+        guildId,
+        accessMode,
+        roleCount: requiredRoleIds?.length || 0,
+        modifiedBy,
+        duration
+      });
+
       return plainConfig;
     } catch (error) {
+      const duration = Date.now() - startTime;
+
       // Handle duplicate key error
       if (error.message.includes('E11000') || error.message.includes('duplicate key')) {
+        logger.warn('Duplicate configuration creation attempted', {
+          guildId,
+          modifiedBy,
+          duration
+        });
         throw new Error(`Configuration for guild ${guildId} already exists`);
       }
 
+      logger.error('Configuration creation error', {
+        error: error.message,
+        stack: error.stack,
+        guildId,
+        accessMode,
+        modifiedBy,
+        duration
+      });
       throw new Error(`Database error: ${error.message}`);
     }
   }
@@ -200,6 +252,8 @@ class ServerConfigurationService {
    * @throws {Error} If update fails or guild not found
    */
   async updateConfig(guildId, updates, modifiedBy) {
+    const startTime = Date.now();
+
     // Validate inputs
     this._validateSnowflake(guildId, 'guild');
     this._validateSnowflake(modifiedBy, 'user');
@@ -245,6 +299,12 @@ class ServerConfigurationService {
       );
 
       if (!config) {
+        const duration = Date.now() - startTime;
+        logger.warn('Configuration update attempted for non-existent guild', {
+          guildId,
+          modifiedBy,
+          duration
+        });
         throw new Error(`Guild ${guildId} not found`);
       }
 
@@ -256,13 +316,45 @@ class ServerConfigurationService {
       if (plainConfig.accessControlMode) {
         plainConfig.accessMode = plainConfig.accessControlMode;
       }
+
+      const duration = Date.now() - startTime;
+
+      // Log changes (simplified - just log what was updated)
+      const changes = {};
+      if (updates.accessMode) {
+        changes.accessMode = updates.accessMode;
+      }
+      if (updates.requiredRoleIds) {
+        changes.requiredRoleIdsCount = updates.requiredRoleIds.length;
+      }
+      if (updates.isActive !== undefined) {
+        changes.isActive = updates.isActive;
+      }
+
+      logger.info('Configuration updated', {
+        guildId,
+        modifiedBy,
+        changes,
+        duration
+      });
+
       return plainConfig;
     } catch (error) {
+      const duration = Date.now() - startTime;
+
       // Re-throw "not found" errors
       if (error.message.includes('not found')) {
         throw error;
       }
 
+      logger.error('Configuration update error', {
+        error: error.message,
+        stack: error.stack,
+        guildId,
+        modifiedBy,
+        updates,
+        duration
+      });
       throw new Error(`Database error: ${error.message}`);
     }
   }

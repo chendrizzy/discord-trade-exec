@@ -19,6 +19,7 @@
 
 const { SubscriptionProvider } = require('./SubscriptionProvider');
 const { SubscriptionVerificationError } = require('./SubscriptionVerificationError');
+const logger = require('@utils/logger');
 
 // Discord snowflake validation pattern (17-19 digits)
 const DISCORD_SNOWFLAKE_PATTERN = /^\d{17,19}$/;
@@ -38,6 +39,7 @@ class DiscordSubscriptionProvider extends SubscriptionProvider {
     }
 
     this.client = client;
+    logger.info('DiscordSubscriptionProvider initialized');
   }
 
   /**
@@ -73,10 +75,17 @@ class DiscordSubscriptionProvider extends SubscriptionProvider {
 
       // Fetch if not in cache
       if (!guild) {
+        logger.debug('Guild cache miss, fetching from Discord API', { guildId });
+        const startTime = Date.now();
         guild = await this.client.guilds.fetch(guildId);
+        const duration = Date.now() - startTime;
+        logger.debug('Guild fetched from Discord API', { guildId, duration });
+      } else {
+        logger.debug('Guild cache hit', { guildId });
       }
 
       if (!guild) {
+        logger.warn('Guild not found', { guildId });
         throw new SubscriptionVerificationError(
           'Guild not found',
           'GUILD_NOT_FOUND',
@@ -89,6 +98,12 @@ class DiscordSubscriptionProvider extends SubscriptionProvider {
       if (error instanceof SubscriptionVerificationError) {
         throw error;
       }
+
+      logger.error('Guild fetch error', {
+        error: error.message,
+        stack: error.stack,
+        guildId
+      });
 
       throw new SubscriptionVerificationError(
         'Guild not found',
@@ -111,11 +126,18 @@ class DiscordSubscriptionProvider extends SubscriptionProvider {
   async verifySubscription(guildId, userId, requiredRoleIds) {
     const startTime = Date.now();
 
+    logger.debug('Starting subscription verification', {
+      guildId,
+      userId,
+      requiredRoleCount: requiredRoleIds?.length
+    });
+
     // Validate inputs
     this._validateSnowflake(guildId, 'guild');
     this._validateSnowflake(userId, 'user');
 
     if (!Array.isArray(requiredRoleIds) || requiredRoleIds.length === 0) {
+      logger.warn('Invalid required role IDs', { guildId, userId });
       throw new SubscriptionVerificationError(
         'Required role IDs array cannot be empty',
         'INVALID_INPUT',
@@ -133,7 +155,11 @@ class DiscordSubscriptionProvider extends SubscriptionProvider {
       const guild = await this._getGuild(guildId);
 
       // Fetch member
+      logger.debug('Fetching guild member', { guildId, userId });
+      const memberStartTime = Date.now();
       const member = await guild.members.fetch(userId);
+      const memberFetchDuration = Date.now() - memberStartTime;
+      logger.debug('Guild member fetched', { guildId, userId, duration: memberFetchDuration });
 
       // Get user's role IDs
       const userRoleIds = Array.from(member.roles.cache.keys());
@@ -143,6 +169,14 @@ class DiscordSubscriptionProvider extends SubscriptionProvider {
 
       const hasAccess = matchingRoles.length > 0;
       const apiLatency = Date.now() - startTime;
+
+      logger.info('Subscription verification complete', {
+        guildId,
+        userId,
+        hasAccess,
+        matchingRoleCount: matchingRoles.length,
+        apiLatency
+      });
 
       return {
         hasAccess,
@@ -155,13 +189,29 @@ class DiscordSubscriptionProvider extends SubscriptionProvider {
       };
 
     } catch (error) {
+      const apiLatency = Date.now() - startTime;
+
       // Handle Discord API errors
       if (error instanceof SubscriptionVerificationError) {
+        logger.warn('Subscription verification error', {
+          error: error.message,
+          code: error.code,
+          guildId,
+          userId,
+          apiLatency
+        });
         throw error;
       }
 
       // Discord error codes
       if (error.code === 10007) {  // Unknown Member
+        logger.warn('User not found in guild', {
+          error: error.message,
+          code: error.code,
+          guildId,
+          userId,
+          apiLatency
+        });
         throw new SubscriptionVerificationError(
           'User not found in guild',
           'USER_NOT_FOUND',
@@ -171,6 +221,13 @@ class DiscordSubscriptionProvider extends SubscriptionProvider {
       }
 
       if (error.code === 50013) {  // Missing Permissions
+        logger.error('Bot lacks permissions to fetch member', {
+          error: error.message,
+          code: error.code,
+          guildId,
+          userId,
+          apiLatency
+        });
         throw new SubscriptionVerificationError(
           'Bot lacks permissions to fetch member',
           'DISCORD_API_ERROR',
@@ -181,6 +238,12 @@ class DiscordSubscriptionProvider extends SubscriptionProvider {
 
       // Timeout errors
       if (error.message?.toLowerCase().includes('timeout')) {
+        logger.warn('Discord API timeout', {
+          error: error.message,
+          guildId,
+          userId,
+          apiLatency
+        });
         throw new SubscriptionVerificationError(
           'Discord API timeout',
           'TIMEOUT',
@@ -190,6 +253,14 @@ class DiscordSubscriptionProvider extends SubscriptionProvider {
       }
 
       // Generic error
+      logger.error('Discord API error', {
+        error: error.message,
+        stack: error.stack,
+        code: error.code,
+        guildId,
+        userId,
+        apiLatency
+      });
       throw new SubscriptionVerificationError(
         'Subscription verification failed',
         'DISCORD_API_ERROR',
