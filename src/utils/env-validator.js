@@ -28,12 +28,12 @@ class EnvValidator {
       errors.push(`NODE_ENV has invalid value: "${nodeEnv}". Must be "development", "test", or "production"`);
     }
 
-    // 2. Validate DATABASE_URL
-    if (!process.env.DATABASE_URL) {
+    // 2. Validate DATABASE_URL (support both DATABASE_URL and MONGODB_URI)
+    if (!process.env.DATABASE_URL && !process.env.MONGODB_URI) {
       if (nodeEnv === 'production') {
-        errors.push('DATABASE_URL is required in production');
+        errors.push('DATABASE_URL or MONGODB_URI is required in production');
       } else {
-        warnings.push('DATABASE_URL is not set. Database operations will fail.');
+        warnings.push('DATABASE_URL or MONGODB_URI is not set. Database operations will fail.');
       }
     }
 
@@ -185,7 +185,7 @@ class EnvValidator {
       billingProvider: process.env.BILLING_PROVIDER || 'polar',
       hasPolarToken: !!process.env.POLAR_ACCESS_TOKEN,
       hasJwtSecret: !!process.env.JWT_SECRET,
-      hasDatabase: !!process.env.DATABASE_URL,
+      hasDatabase: !!(process.env.DATABASE_URL || process.env.MONGODB_URI),
       brokerAllowSandbox: process.env.BROKER_ALLOW_SANDBOX === 'true',
       discordEnabled: process.env.DISCORD_ENABLED === 'true',
       port: process.env.PORT || 3000
