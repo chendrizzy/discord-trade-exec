@@ -559,12 +559,23 @@ class OAuth2Service {
 
       if (user && user.tradingConfig.oauthTokens.has(broker)) {
         const tokens = user.tradingConfig.oauthTokens.get(broker);
+
+        // Explicitly preserve all token fields and update error fields
+        // Using spread operator on Mongoose Map values doesn't always work correctly
         user.tradingConfig.oauthTokens.set(broker, {
-          ...tokens,
+          accessToken: tokens.accessToken,
+          refreshToken: tokens.refreshToken,
+          expiresAt: tokens.expiresAt,
+          scopes: tokens.scopes,
+          tokenType: tokens.tokenType,
+          connectedAt: tokens.connectedAt || new Date(),
           isValid: false,
           lastRefreshError: errorMessage,
           lastRefreshAttempt: new Date()
         });
+
+        // Mark the path as modified for Mongoose to detect the change
+        user.markModified('tradingConfig.oauthTokens');
         await user.save();
 
         logger.info('[OAuth2Service] Marked tokens invalid', { broker, userId, errorMessage });

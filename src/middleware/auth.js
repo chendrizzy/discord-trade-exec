@@ -117,6 +117,17 @@ function ensureAuthenticated(req, res, next) {
   res.redirect('/auth/discord');
 }
 
+// API-specific authentication middleware that returns 401 instead of redirecting
+function ensureAuthenticatedAPI(req, res, next) {
+  if (req.isAuthenticated()) {
+    return next();
+  }
+  res.status(401).json({
+    success: false,
+    error: 'Authentication required'
+  });
+}
+
 // Middleware to ensure user has active subscription
 function ensureSubscription(req, res, next) {
   if (req.user && req.user.isSubscriptionActive()) {
@@ -213,6 +224,7 @@ function checkMFAPending(req, res, next) {
 module.exports = {
   passport,
   ensureAuthenticated,
+  ensureAuthenticatedAPI,
   ensureSubscription,
   ensureMFAVerified,
   checkMFAPending

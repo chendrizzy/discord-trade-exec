@@ -10,7 +10,7 @@ const express = require('express');
 const router = express.Router();
 const oauth2Service = require('../../services/OAuth2Service');
 const { isOAuth2Broker, getEnabledProviders, getProviderConfig } = require('../../config/oauth2Providers');
-const { ensureAuthenticated } = require('../../middleware/auth');
+const { ensureAuthenticatedAPI } = require('../../middleware/auth');
 const { getMFAService } = require('../../services/MFAService');
 const User = require('../../models/User');
 const { BrokerFactory } = require('../../brokers');
@@ -42,7 +42,7 @@ const mfaService = getMFAService();
  * @param {string} broker - Broker key (alpaca, ibkr, tdameritrade, etrade)
  * @returns {Object} { authorizationURL }
  */
-router.get('/broker/:broker/authorize', ensureAuthenticated, validate(brokerAuthorizeParams, 'params'), (req, res, next) => {
+router.get('/broker/:broker/authorize', ensureAuthenticatedAPI, validate(brokerAuthorizeParams, 'params'), (req, res, next) => {
   try {
     const { broker} = req.params;
 
@@ -67,9 +67,18 @@ router.get('/broker/:broker/authorize', ensureAuthenticated, validate(brokerAuth
       communityId: req.user.communityId
     });
 
-    res.json({
-      success: true,
-      authorizationURL
+    // 🔥 CRITICAL: Save session state before responding
+    // Without this, oauthState won't persist for callback validation
+    req.session.save((err) => {
+      if (err) {
+        logger.error('Failed to save session state', { error: err.message, userId: req.user.id });
+        return next(err);
+      }
+
+      res.json({
+        success: true,
+        authorizationURL
+      });
     });
   } catch (error) {
     logger.error('Authorization URL generation failed', {
@@ -95,7 +104,7 @@ router.get('/broker/:broker/authorize', ensureAuthenticated, validate(brokerAuth
  * @requires Authentication
  * @returns {Object} { success, brokers: [...] }
  */
-router.get('/brokers/status', ensureAuthenticated, async (req, res, next) => {
+router.get('/brokers/status', ensureAuthenticatedAPI, async (req, res, next) => {
   try {
     const user = await User.findById(req.user.id);
 
@@ -411,7 +420,7 @@ router.post('/callback', validate(oauthCallbackBody, 'body'), async (req, res, n
  * @param {string} broker - Broker key
  * @returns {Object} { success, message }
  */
-router.delete('/brokers/:broker/oauth', ensureAuthenticated, validate(deleteBrokerOAuthParams, 'params'), async (req, res, next) => {
+router.delete('/brokers/:broker/oauth', ensureAuthenticatedAPI, validate(deleteBrokerOAuthParams, 'params'), async (req, res, next) => {
   try {
     const { broker } = req.params;
     const userId = req.user.id;
@@ -467,7 +476,7 @@ router.delete('/brokers/:broker/oauth', ensureAuthenticated, validate(deleteBrok
  * @param {string} broker - Broker key
  * @returns {Object} { success, expiresAt }
  */
-router.post('/brokers/:broker/oauth/refresh', ensureAuthenticated, validate(refreshBrokerOAuthParams, 'params'), async (req, res, next) => {
+router.post('/brokers/:broker/oauth/refresh', ensureAuthenticatedAPI, validate(refreshBrokerOAuthParams, 'params'), async (req, res, next) => {
   try {
     const { broker } = req.params;
     const userId = req.user.id;
@@ -524,7 +533,7 @@ router.post('/brokers/:broker/oauth/refresh', ensureAuthenticated, validate(refr
  * @returns {Object} { secret, qrCode, manualEntry, message }
  * @throws {400} MFA already enabled
  */
-router.post('/mfa/setup', ensureAuthenticated, async (req, res, next) => {
+router.post('/mfa/setup', ensureAuthenticatedAPI, async (req, res, next) => {
   try {
     const userId = req.user._id;
 
@@ -580,7 +589,7 @@ router.post('/mfa/setup', ensureAuthenticated, async (req, res, next) => {
  * @throws {400} Invalid token
  * @throws {400} MFA already enabled
  */
-router.post('/mfa/enable', ensureAuthenticated, validate(mfaEnableBody, 'body'), async (req, res, next) => {
+router.post('/mfa/enable', ensureAuthenticatedAPI, validate(mfaEnableBody, 'body'), async (req, res, next) => {
   try {
     const userId = req.user._id;
     const { token } = req.body;
@@ -669,7 +678,7 @@ router.post('/mfa/enable', ensureAuthenticated, validate(mfaEnableBody, 'body'),
  * @throws {400} Invalid token
  * @throws {400} MFA not enabled
  */
-router.post('/mfa/disable', ensureAuthenticated, validate(mfaDisableBody, 'body'), async (req, res, next) => {
+router.post('/mfa/disable', ensureAuthenticatedAPI, validate(mfaDisableBody, 'body'), async (req, res, next) => {
   try {
     const userId = req.user._id;
     const { token } = req.body;
@@ -763,7 +772,7 @@ router.post('/mfa/disable', ensureAuthenticated, validate(mfaDisableBody, 'body'
  * @throws {400} Invalid token
  * @throws {400} MFA not enabled
  */
-router.post('/mfa/backup-codes/regenerate', validate(mfaRegenerateBackupCodesBody, 'body'), ensureAuthenticated, async (req, res, next) => {
+router.post('/mfa/backup-codes/regenerate', validate(mfaRegenerateBackupCodesBody, 'body'), ensureAuthenticatedAPI, async (req, res, next) => {
   try {
     const userId = req.user._id;
     const { token } = req.body;
@@ -841,7 +850,7 @@ router.post('/mfa/backup-codes/regenerate', validate(mfaRegenerateBackupCodesBod
  * @requires Authentication
  * @returns {Object} { enabled, verifiedAt, lastVerified, backupCodesRemaining, warning }
  */
-router.get('/mfa/status', ensureAuthenticated, async (req, res, next) => {
+router.get('/mfa/status', ensureAuthenticatedAPI, async (req, res, next) => {
   try {
     const userId = req.user._id;
 
@@ -887,7 +896,7 @@ router.get('/mfa/status', ensureAuthenticated, async (req, res, next) => {
  * @throws {403} MFA not required
  * @throws {429} Rate limit exceeded
  */
-router.post('/mfa/verify', ensureAuthenticated, validate(mfaVerifyBody, 'body'), async (req, res, next) => {
+router.post('/mfa/verify', ensureAuthenticatedAPI, validate(mfaVerifyBody, 'body'), async (req, res, next) => {
   try {
     const userId = req.user._id;
     const { token, type } = req.body;

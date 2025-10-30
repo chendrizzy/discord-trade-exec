@@ -134,6 +134,12 @@ describe('Integration Test: OAuth2 Authentication Flow', () => {
       });
     }
 
+    // Clear MFAService rate limit cache to prevent state pollution between tests
+    const mfaService = getMFAService();
+    if (mfaService && mfaService.attemptCache) {
+      mfaService.attemptCache.clear();
+    }
+
     // Reset axios mock
     axios.post.mockReset();
     axios.get.mockReset();
@@ -205,7 +211,7 @@ describe('Integration Test: OAuth2 Authentication Flow', () => {
 
   describe('OAuth2 Callback Handling', () => {
     let testUser;
-    let authCookie;
+    let authAgent;
     let mockState;
 
     beforeEach(async () => {
@@ -222,13 +228,13 @@ describe('Integration Test: OAuth2 Authentication Flow', () => {
       });
 
       // Generate authorization URL to get valid state
-      const agent = request.agent(app);
-      await agent.post('/api/auth/login/mock').send({ userId: testUser._id.toString() });
+      // 🔥 CRITICAL: Use persistent agent to maintain session across requests
+      authAgent = request.agent(app);
+      await authAgent.post('/api/auth/login/mock').send({ userId: testUser._id.toString() });
 
-      const authResponse = await agent.get('/api/v1/auth/broker/alpaca/authorize');
+      const authResponse = await authAgent.get('/api/v1/auth/broker/alpaca/authorize');
       const authURL = new URL(authResponse.body.authorizationURL);
       mockState = authURL.searchParams.get('state');
-      authCookie = agent.jar.getCookies({ path: '/' });
 
       // Mock successful token exchange
       axios.post.mockResolvedValueOnce({
@@ -252,10 +258,11 @@ describe('Integration Test: OAuth2 Authentication Flow', () => {
     });
 
     it('should handle OAuth2 callback successfully', async () => {
-      const response = await request(app)
-        .get('/api/v1/auth/callback')
-        .set('Cookie', authCookie)
-        .query({
+      // 🔥 CRITICAL: Use same agent to maintain session state
+      // Use POST endpoint which returns JSON instead of redirect
+      const response = await authAgent
+        .post('/api/v1/auth/callback')
+        .send({
           code: 'mock_authorization_code',
           state: mockState
         })
@@ -279,10 +286,9 @@ describe('Integration Test: OAuth2 Authentication Flow', () => {
     });
 
     it('should reject callback with invalid state (CSRF protection)', async () => {
-      const response = await request(app)
-        .get('/api/v1/auth/callback')
-        .set('Cookie', authCookie)
-        .query({
+      const response = await authAgent
+        .post('/api/v1/auth/callback')
+        .send({
           code: 'mock_authorization_code',
           state: 'invalid_state_parameter'
         })
@@ -297,10 +303,9 @@ describe('Integration Test: OAuth2 Authentication Flow', () => {
     });
 
     it('should reject callback with missing authorization code', async () => {
-      const response = await request(app)
-        .get('/api/v1/auth/callback')
-        .set('Cookie', authCookie)
-        .query({
+      const response = await authAgent
+        .post('/api/v1/auth/callback')
+        .send({
           state: mockState
           // Missing code
         })
@@ -311,13 +316,13 @@ describe('Integration Test: OAuth2 Authentication Flow', () => {
     });
 
     it('should handle token exchange errors gracefully', async () => {
-      // Mock token exchange failure
+      // Reset beforeEach success mock and set up failure mock
+      axios.post.mockReset();
       axios.post.mockRejectedValueOnce(new Error('OAuth provider error: Invalid code'));
 
-      const response = await request(app)
-        .get('/api/v1/auth/callback')
-        .set('Cookie', authCookie)
-        .query({
+      const response = await authAgent
+        .post('/api/v1/auth/callback')
+        .send({
           code: 'invalid_authorization_code',
           state: mockState
         })
@@ -332,9 +337,8 @@ describe('Integration Test: OAuth2 Authentication Flow', () => {
     });
 
     it('should handle OAuth error parameter (user denied authorization) - lines 207-224', async () => {
-      const response = await request(app)
+      const response = await authAgent
         .get('/api/v1/auth/callback')
-        .set('Cookie', authCookie)
         .query({
           error: 'access_denied',
           error_description: 'User cancelled the authorization',
@@ -352,9 +356,8 @@ describe('Integration Test: OAuth2 Authentication Flow', () => {
     });
 
     it('should handle OAuth server_error parameter - lines 207-224', async () => {
-      const response = await request(app)
+      const response = await authAgent
         .get('/api/v1/auth/callback')
-        .set('Cookie', authCookie)
         .query({
           error: 'server_error',
           error_description: 'Broker server unavailable',
@@ -368,9 +371,8 @@ describe('Integration Test: OAuth2 Authentication Flow', () => {
     });
 
     it('should handle OAuth invalid_request error - lines 207-224', async () => {
-      const response = await request(app)
+      const response = await authAgent
         .get('/api/v1/auth/callback')
-        .set('Cookie', authCookie)
         .query({
           error: 'invalid_request',
           state: mockState
@@ -383,9 +385,8 @@ describe('Integration Test: OAuth2 Authentication Flow', () => {
     });
 
     it('should handle OAuth custom error with error_description - lines 207-224', async () => {
-      const response = await request(app)
+      const response = await authAgent
         .get('/api/v1/auth/callback')
-        .set('Cookie', authCookie)
         .query({
           error: 'custom_error',
           error_description: 'Custom error from broker',
