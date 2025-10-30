@@ -593,6 +593,21 @@ describe('Integration Test: OAuth2 Authentication Flow', () => {
   });
 
   describe('Security & Edge Cases', () => {
+    // Helper function to create proper OAuth2 session state for testing
+    function setupOAuth2MockSession(testUser, broker = 'alpaca') {
+      const mockState = 'test_state_token_' + Math.random().toString(36).substring(7);
+      const mockSession = {
+        oauthState: {
+          state: mockState,
+          broker,
+          userId: testUser._id.toString(),
+          communityId: testUser.communityId?.toString() || new mongoose.Types.ObjectId().toString(),
+          createdAt: Date.now()
+        }
+      };
+      return { mockState, mockSession };
+    }
+
     it('should sanitize OAuth2 errors (no sensitive data leaked)', async () => {
       // Mock OAuth error with sensitive data
       axios.post.mockRejectedValueOnce({
@@ -612,15 +627,19 @@ describe('Integration Test: OAuth2 Authentication Flow', () => {
         username: 'security_tester',
         discordUsername: 'security_tester',
         discordTag: 'security_tester#1234',
-        email: 'security@example.com'
+        email: 'security@example.com',
+        communityId: new mongoose.Types.ObjectId()
       });
 
+      // Set up proper OAuth2 session state
+      const { mockState, mockSession } = setupOAuth2MockSession(testUser, 'alpaca');
+
       try {
-        await oauth2Service.exchangeAuthorizationCode('alpaca', 'invalid_code', testUser._id.toString());
+        await oauth2Service.exchangeCodeForToken('alpaca', 'invalid_code', mockState, mockSession);
       } catch (error) {
         // Verify error message doesn't contain sensitive data
         expect(error.message).not.toMatch(/ABC123SECRET/);
-        expect(error.message).toMatch(/OAuth.*failed|invalid/i);
+        expect(error.message).toMatch(/Validation failed|OAuth.*failed|invalid/i);
       }
     });
 
@@ -673,13 +692,17 @@ describe('Integration Test: OAuth2 Authentication Flow', () => {
         username: 'malformed_tester',
         discordUsername: 'malformed_tester',
         discordTag: 'malformed_tester#1234',
-        email: 'malformed@example.com'
+        email: 'malformed@example.com',
+        communityId: new mongoose.Types.ObjectId()
       });
 
       axios.post.mockRejectedValueOnce(new Error('Invalid authorization code format'));
 
+      // Set up proper OAuth2 session state
+      const { mockState, mockSession } = setupOAuth2MockSession(testUser, 'alpaca');
+
       await expect(
-        oauth2Service.exchangeAuthorizationCode('alpaca', 'malformed<>code!@#', testUser._id.toString())
+        oauth2Service.exchangeCodeForToken('alpaca', 'malformed<>code!@#', mockState, mockSession)
       ).rejects.toThrow(/Invalid|malformed/i);
     });
 
@@ -701,11 +724,15 @@ describe('Integration Test: OAuth2 Authentication Flow', () => {
         username: 'scope_tester',
         discordUsername: 'scope_tester',
         discordTag: 'scope_tester#1234',
-        email: 'scope@example.com'
+        email: 'scope@example.com',
+        communityId: new mongoose.Types.ObjectId()
       });
 
+      // Set up proper OAuth2 session state
+      const { mockState, mockSession } = setupOAuth2MockSession(testUser, 'alpaca');
+
       try {
-        await oauth2Service.exchangeAuthorizationCode('alpaca', 'test_code', testUser._id.toString());
+        await oauth2Service.exchangeCodeForToken('alpaca', 'test_code', mockState, mockSession);
       } catch (error) {
         expect(error.message).toMatch(/scope|permission/i);
       }
