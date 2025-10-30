@@ -175,8 +175,8 @@ router.get('/brokers/status', ensureAuthenticatedAPI, async (req, res, next) => 
             status = 'revoked';
           } else if (expiresAt && expiresAt.getTime() <= now) {
             status = 'expired';
-          } else if (expiresAt && expiresAt.getTime() - now < 5 * 60 * 1000) {
-            status = 'expiring';  // Less than 5 minutes remaining
+          } else if (expiresAt && expiresAt.getTime() - now < 60 * 60 * 1000) {
+            status = 'expiring';  // Less than 1 hour remaining
           } else {
             status = 'connected';
           }

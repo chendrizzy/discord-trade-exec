@@ -964,7 +964,7 @@ describe('Integration Test: OAuth2 Authentication Flow', () => {
               {
                 accessToken: oauth2Service.encryptToken('alpaca_token'),
                 refreshToken: oauth2Service.encryptToken('alpaca_refresh'),
-                expiresAt: new Date(Date.now() + 3600 * 1000),
+                expiresAt: new Date(Date.now() + 2 * 3600 * 1000), // 2 hours - well beyond 1hr expiring threshold
                 isValid: true
               }
             ]
