@@ -1790,7 +1790,7 @@ describe('Integration Test: OAuth2 Authentication Flow', () => {
       const response = await request(app).post('/api/v1/auth/mfa/setup').set('Cookie', authCookie).expect(400);
 
       expect(response.body.success).toBe(false);
-      expect(response.body.code).toBe('VALIDATION_ERROR');
+      expect(response.body.errorCode).toBe('VALIDATION_ERROR');
       expect(response.body.error).toMatch(/already enabled/i);
     });
 
@@ -1843,7 +1843,7 @@ describe('Integration Test: OAuth2 Authentication Flow', () => {
         .expect(400);
 
       expect(response.body.success).toBe(false);
-      expect(response.body.code).toBe('INVALID_TOKEN');
+      expect(response.body.errorCode).toBe('INVALID_TOKEN');
       expect(response.body.error).toMatch(/invalid verification code/i);
 
       // Verify MFA not enabled
@@ -1861,7 +1861,7 @@ describe('Integration Test: OAuth2 Authentication Flow', () => {
 
       expect(response.status).toBe(400);
       expect(response.body.success).toBe(false);
-      expect(response.body.code).toBe('INVALID_TOKEN_FORMAT');
+      expect(response.body.errorCode).toBe('INVALID_TOKEN_FORMAT');
     });
 
     it('should reject MFA enable when already enabled', async () => {
@@ -1875,7 +1875,7 @@ describe('Integration Test: OAuth2 Authentication Flow', () => {
 
       expect(response.status).toBe(400);
       expect(response.body.success).toBe(false);
-      expect(response.body.code).toBe('VALIDATION_ERROR');
+      expect(response.body.errorCode).toBe('VALIDATION_ERROR');
     });
 
     it('should enforce rate limiting on MFA enable attempts', async () => {
@@ -2004,7 +2004,7 @@ describe('Integration Test: OAuth2 Authentication Flow', () => {
         .expect(400);
 
       expect(response.body.success).toBe(false);
-      expect(response.body.code).toBe('INVALID_TOKEN');
+      expect(response.body.errorCode).toBe('INVALID_TOKEN');
 
       // Verify MFA still enabled
       const updatedUser = await User.findById(testUser._id);
@@ -2022,7 +2022,7 @@ describe('Integration Test: OAuth2 Authentication Flow', () => {
 
       expect(response.status).toBe(400);
       expect(response.body.success).toBe(false);
-      expect(response.body.code).toBe('VALIDATION_ERROR');
+      expect(response.body.errorCode).toBe('VALIDATION_ERROR');
     });
 
     it('should enforce rate limiting on MFA disable attempts', async () => {
@@ -2123,7 +2123,7 @@ describe('Integration Test: OAuth2 Authentication Flow', () => {
 
       expect(response.status).toBe(400);
       expect(response.body.success).toBe(false);
-      expect(response.body.code).toBe('INVALID_TOKEN');
+      expect(response.body.errorCode).toBe('INVALID_TOKEN');
 
       // Verify old codes still valid
       const updatedUser = await User.findById(testUser._id);
@@ -2141,7 +2141,7 @@ describe('Integration Test: OAuth2 Authentication Flow', () => {
 
       expect(response.status).toBe(400);
       expect(response.body.success).toBe(false);
-      expect(response.body.code).toBe('VALIDATION_ERROR');
+      expect(response.body.errorCode).toBe('VALIDATION_ERROR');
     }, 30000);
   });
 
@@ -2261,7 +2261,7 @@ describe('Integration Test: OAuth2 Authentication Flow', () => {
         .expect(400);
 
       expect(response.body.success).toBe(false);
-      expect(response.body.code).toBe('INVALID_TOKEN');
+      expect(response.body.errorCode).toBe('INVALID_TOKEN');
     });
 
     it('should reject invalid TOTP token', async () => {
@@ -2272,7 +2272,7 @@ describe('Integration Test: OAuth2 Authentication Flow', () => {
         .expect(400);
 
       expect(response.body.success).toBe(false);
-      expect(response.body.code).toBe('INVALID_TOKEN');
+      expect(response.body.errorCode).toBe('INVALID_TOKEN');
     });
 
     it('should enforce rate limiting on verify attempts with lockout', async () => {
@@ -2427,7 +2427,7 @@ describe('Integration Test: OAuth2 Authentication Flow', () => {
 
       expect(response.status).toBe(400);
       expect(response.body.success).toBe(false);
-      expect(response.body.code).toBe('INVALID_TOKEN_FORMAT');
+      expect(response.body.errorCode).toBe('INVALID_TOKEN_FORMAT');
     });
   });
 
@@ -2499,7 +2499,7 @@ describe('Integration Test: OAuth2 Authentication Flow', () => {
         .expect(403);
 
       expect(response.body.success).toBe(false);
-      expect(response.body.code).toBe('MFA_NOT_ENABLED');
+      expect(response.body.errorCode).toBe('MFA_NOT_ENABLED');
     });
 
     it('should reject verify without token', async () => {
@@ -2510,7 +2510,7 @@ describe('Integration Test: OAuth2 Authentication Flow', () => {
         .expect(400);
 
       expect(response.body.success).toBe(false);
-      expect(response.body.code).toBe('TOKEN_REQUIRED');
+      expect(response.body.errorCode).toBe('TOKEN_REQUIRED');
     });
 
     it('should auto-detect token type (TOTP)', async () => {
@@ -2551,7 +2551,7 @@ describe('Integration Test: OAuth2 Authentication Flow', () => {
         .expect(400);
 
       expect(response.body.success).toBe(false);
-      expect(response.body.code).toBe('INVALID_TYPE');
+      expect(response.body.errorCode).toBe('INVALID_TYPE');
     });
 
     it('should mark session as MFA verified on success', async () => {
@@ -2592,7 +2592,7 @@ describe('Integration Test: OAuth2 Authentication Flow', () => {
         .expect(400);
 
       expect(response.body.success).toBe(false);
-      expect(response.body.code).toBe('INVALID_TOKEN');
+      expect(response.body.errorCode).toBe('INVALID_TOKEN');
     });
 
     it('should handle explicit type parameter for TOTP', async () => {
