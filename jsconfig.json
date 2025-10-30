@@ -1,0 +1,69 @@
+{
+  "compilerOptions": {
+    // Enable strict type checking for JavaScript files
+    "checkJs": true,
+    "strict": true,
+
+    // Module resolution
+    "module": "commonjs",
+    "target": "ES2022",
+    "moduleResolution": "node",
+
+    // Type checking options (strict mode)
+    "noImplicitAny": true,
+    "strictNullChecks": true,
+    "strictFunctionTypes": true,
+    "strictBindCallApply": true,
+    "strictPropertyInitialization": true,
+    "noImplicitThis": true,
+    "alwaysStrict": true,
+
+    // Additional checks
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
+    "noImplicitReturns": true,
+    "noFallthroughCasesInSwitch": true,
+
+    // Interop
+    "esModuleInterop": true,
+    "allowSyntheticDefaultImports": true,
+    "forceConsistentCasingInFileNames": true,
+
+    // Output
+    "noEmit": true,
+
+    // Base URL for module resolution
+    "baseUrl": ".",
+    "paths": {
+      "@/*": ["src/*"],
+      "@models/*": ["src/models/*"],
+      "@services/*": ["src/services/*"],
+      "@middleware/*": ["src/middleware/*"],
+      "@utils/*": ["src/utils/*"],
+      "@config/*": ["src/config/*"]
+    }
+  },
+  "include": [
+    "src/**/*",
+    "tests/**/*"
+  ],
+  "exclude": [
+    "node_modules",
+    "dist",
+    "build",
+    "coverage",
+    ".swarm",
+    ".claude-flow"
+  ],
+  "typeAcquisition": {
+    "enable": true,
+    "include": [
+      "node",
+      "jest",
+      "express",
+      "mongoose",
+      "discord.js",
+      "redis"
+    ]
+  }
+}
