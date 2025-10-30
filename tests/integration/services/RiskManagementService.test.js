@@ -853,3 +853,322 @@ describe('Integration Test: Performance', () => {
     expect(elapsed).toBeLessThan(100);
   });
 });
+
+// ========== COVERAGE COMPLETION TESTS (Target: 100%) ==========
+
+describe('Integration Test: MEDIUM Risk Level Coverage (Line 666)', () => {
+  it('should assign MEDIUM risk level when score is 40-69', async () => {
+    const user = await createTestUser();
+
+    // Signal designed for MEDIUM risk (score ~46):
+    // - 10% position size (10%/10% max * 40 = 40 points)
+    // - 2% stop loss (2%/10% * 30 = 6 points)
+    // - 1x leverage (0 points)
+    // Total: 46 points (MEDIUM)
+    const signal = {
+      symbol: 'SPY',
+      action: 'buy',
+      quantity: 10,  // 10 * $200 = $2000 = 10% of $20k
+      price: 200,
+      stopLoss: 196,  // 2% stop loss
+      leverage: 1
+    };
+
+    const accountInfo = { equity: 20000, cashAvailable: 20000, buyingPower: 20000 };
+
+    const result = await RiskManagementService.validateTrade(user._id.toString(), signal, accountInfo);
+
+    expect(result.riskScore.level).toBe('MEDIUM');
+    expect(result.riskScore.score).toBeGreaterThanOrEqual(40);
+    expect(result.riskScore.score).toBeLessThan(70);
+  });
+});
+
+describe('Integration Test: Multi-Account Equity Aggregation (Lines 795-796)', () => {
+  it('should aggregate equity from multiple broker accounts', async () => {
+    const user = await createTestUser({ maxDailyLossPercent: 5 });
+
+    // Add multiple broker accounts
+    user.brokerAccounts = [
+      { broker: 'alpaca', equity: 10000, isPrimary: true },
+      { broker: 'tradier', equity: 5000, isPrimary: false }
+    ];
+    await user.save();
+
+    await createTestTrade(user._id, { profitLoss: -200, status: 'FILLED' });
+
+    const status = await RiskManagementService.getRiskStatus(user._id.toString());
+
+    // Aggregated equity: 10000 + 5000 = 15000
+    // Daily loss limit: 5% of 15000 = 750
+    expect(parseFloat(status.dailyLossLimit)).toBe(750);
+    expect(status.status).toBe('ACTIVE'); // -200 is below -750 limit
+  });
+});
+
+describe('Integration Test: UNKNOWN Status Coverage (Lines 801-807)', () => {
+  it('should return UNKNOWN status when no broker accounts exist', async () => {
+    const user = await createTestUser();
+
+    // Ensure no broker accounts
+    user.brokerAccounts = [];
+    await user.save();
+
+    const status = await RiskManagementService.getRiskStatus(user._id.toString());
+
+    expect(status.status).toBe('UNKNOWN');
+    expect(status.message).toBe('Account information unavailable');
+  });
+
+  it('should return UNKNOWN status when equity is zero', async () => {
+    const user = await createTestUser();
+
+    user.brokerAccounts = [{ broker: 'alpaca', equity: 0, isPrimary: true }];
+    await user.save();
+
+    const status = await RiskManagementService.getRiskStatus(user._id.toString());
+
+    expect(status.status).toBe('UNKNOWN');
+    expect(status.message).toBe('Account information unavailable');
+  });
+});
+
+describe('Integration Test: Ternary Operator Coverage (Line 809)', () => {
+  it('should return CIRCUIT_BREAKER status when active', async () => {
+    const user = await createTestUser({ circuitBreakerPercent: 10 });
+
+    user.brokerAccounts = [{ broker: 'alpaca', equity: 10000, isPrimary: true }];
+    await user.save();
+
+    // Create loss triggering circuit breaker (10% = -1000)
+    await createTestTrade(user._id, { profitLoss: -1500, status: 'FILLED' });
+
+    const accountInfo = { equity: 10000, cashAvailable: 5000, buyingPower: 10000 };
+
+    // Trigger circuit breaker via validateTrade
+    await RiskManagementService.validateTrade(user._id.toString(), mockSignal, accountInfo);
+
+    const status = await RiskManagementService.getRiskStatus(user._id.toString());
+
+    expect(status.status).toBe('CIRCUIT_BREAKER');
+  });
+
+  it('should return DAILY_LIMIT_EXCEEDED when limit breached', async () => {
+    const user = await createTestUser({ maxDailyLossPercent: 5, circuitBreakerPercent: 20 });
+
+    user.brokerAccounts = [{ broker: 'alpaca', equity: 10000, isPrimary: true }];
+    await user.save();
+
+    // Loss exceeds daily (5% = -500) but not circuit breaker (20% = -2000)
+    await createTestTrade(user._id, { profitLoss: -600, status: 'FILLED' });
+
+    const status = await RiskManagementService.getRiskStatus(user._id.toString());
+
+    expect(status.status).toBe('DAILY_LIMIT_EXCEEDED');
+  });
+
+  it('should return ACTIVE when both limits are OK', async () => {
+    const user = await createTestUser({ maxDailyLossPercent: 5 });
+
+    user.brokerAccounts = [{ broker: 'alpaca', equity: 10000, isPrimary: true }];
+    await user.save();
+
+    // Small loss within limits
+    await createTestTrade(user._id, { profitLoss: -100, status: 'FILLED' });
+
+    const status = await RiskManagementService.getRiskStatus(user._id.toString());
+
+    expect(status.status).toBe('ACTIVE');
+  });
+});
+
+describe('Integration Test: Error Handling Coverage (Lines 493-496, 606-613)', () => {
+  it('should handle discord notification failure gracefully (lines 493-496)', async () => {
+    const discordService = require('../../../src/services/discord');
+    const user = await createTestUser({ circuitBreakerPercent: 10 });
+
+    user.brokerAccounts = [{ broker: 'alpaca', equity: 10000, isPrimary: true }];
+    await user.save();
+
+    // Create large loss to trigger circuit breaker
+    await createTestTrade(user._id, { profitLoss: -1500, status: 'FILLED' });
+
+    // Mock discord service to throw error on next call
+    discordService.sendDirectMessage.mockRejectedValueOnce(new Error('Discord API unavailable'));
+
+    const accountInfo = { equity: 10000, cashAvailable: 5000, buyingPower: 10000 };
+    const signal = { symbol: 'SPY', action: 'buy', quantity: 1, price: 100, stopLoss: 95 };
+
+    // Should not throw despite notification failure (error is caught and logged)
+    const result = await RiskManagementService.validateTrade(user._id.toString(), signal, accountInfo);
+
+    expect(result.approved).toBe(false);
+    expect(RiskManagementService.circuitBreakerActive.has(user._id.toString())).toBe(true);
+  });
+
+  it('should handle broker submission failure in position closure (lines 606-613)', async () => {
+    const TradeExecutionService = require('../../../src/services/TradeExecutionService');
+    const user = await createTestUser({ circuitBreakerPercent: 10 });
+
+    user.brokerAccounts = [{ broker: 'alpaca', equity: 10000, isPrimary: true }];
+    await user.save();
+
+    // Create open position to be closed using helper function with all required fields
+    await createTestPosition(user._id, {
+      symbol: 'SPY',
+      quantity: 10,
+      side: 'LONG',
+      entryPrice: 100,
+      avgPrice: 100,
+      avgEntryPrice: 100,
+      costBasis: 1000, // 10 * 100
+      broker: 'alpaca',
+      status: 'OPEN'
+    });
+
+    // Create large loss to trigger circuit breaker
+    await createTestTrade(user._id, { profitLoss: -1500, status: 'FILLED' });
+
+    // Mock trade execution service constructor to throw error (triggers outer catch at lines 606-613)
+    TradeExecutionService.mockImplementation(() => {
+      throw new Error('Broker service initialization failed');
+    });
+
+    const accountInfo = { equity: 10000, cashAvailable: 5000, buyingPower: 10000 };
+    const signal = { symbol: 'SPY', action: 'buy', quantity: 1, price: 100, stopLoss: 95 };
+
+    // Should throw because broker initialization failure propagates from outer catch block
+    await expect(
+      RiskManagementService.validateTrade(user._id.toString(), signal, accountInfo)
+    ).rejects.toThrow('Broker service initialization failed');
+
+    // Reset mock to default behavior for subsequent tests
+    TradeExecutionService.mockImplementation(() => ({
+      executeTrade: jest.fn().mockResolvedValue({ success: true })
+    }));
+  });
+
+  it('should successfully send emergency notification with admin channel (lines 486-492)', async () => {
+    // Set admin channel environment variable
+    const originalAdminChannel = process.env.ADMIN_DISCORD_CHANNEL;
+    process.env.ADMIN_DISCORD_CHANNEL = 'admin-channel-id';
+
+    const discordService = require('../../../src/services/discord');
+    const user = await createTestUser({ circuitBreakerPercent: 10 });
+
+    user.brokerAccounts = [{ broker: 'alpaca', equity: 10000, isPrimary: true }];
+    await user.save();
+
+    // Create large loss to trigger circuit breaker
+    await createTestTrade(user._id, { profitLoss: -1500, status: 'FILLED' });
+
+    // Ensure discord service resolves successfully (no error)
+    discordService.sendDirectMessage.mockResolvedValue(true);
+    discordService.sendChannelMessage.mockResolvedValue(true);
+
+    const accountInfo = { equity: 10000, cashAvailable: 5000, buyingPower: 10000 };
+    const signal = { symbol: 'SPY', action: 'buy', quantity: 1, price: 100, stopLoss: 95 };
+
+    // Should activate circuit breaker and send notifications successfully
+    const result = await RiskManagementService.validateTrade(user._id.toString(), signal, accountInfo);
+
+    expect(result.approved).toBe(false);
+    expect(RiskManagementService.circuitBreakerActive.has(user._id.toString())).toBe(true);
+    expect(discordService.sendChannelMessage).toHaveBeenCalled(); // Admin channel notification sent
+
+    // Restore original environment
+    process.env.ADMIN_DISCORD_CHANNEL = originalAdminChannel;
+  });
+
+  it('should successfully close positions without errors (lines 601-605)', async () => {
+    const TradeExecutionService = require('../../../src/services/TradeExecutionService');
+    const user = await createTestUser({ circuitBreakerPercent: 10 });
+
+    user.brokerAccounts = [{ broker: 'alpaca', equity: 10000, isPrimary: true }];
+    await user.save();
+
+    // Create open position to be closed
+    await createTestPosition(user._id, {
+      symbol: 'SPY',
+      quantity: 10,
+      side: 'LONG',
+      entryPrice: 100,
+      avgPrice: 100,
+      avgEntryPrice: 100,
+      costBasis: 1000,
+      broker: 'alpaca',
+      status: 'OPEN'
+    });
+
+    // Create large loss to trigger circuit breaker
+    await createTestTrade(user._id, { profitLoss: -1500, status: 'FILLED' });
+
+    // Ensure trade execution succeeds (no error)
+    TradeExecutionService.mockImplementation(() => ({
+      executeTrade: jest.fn().mockResolvedValue({ success: true })
+    }));
+
+    const accountInfo = { equity: 10000, cashAvailable: 5000, buyingPower: 10000 };
+    const signal = { symbol: 'SPY', action: 'buy', quantity: 1, price: 100, stopLoss: 95 };
+
+    // Should activate circuit breaker and close positions successfully
+    const result = await RiskManagementService.validateTrade(user._id.toString(), signal, accountInfo);
+
+    expect(result.approved).toBe(false);
+    expect(RiskManagementService.circuitBreakerActive.has(user._id.toString())).toBe(true);
+  });
+
+  // ========== ADDITIONAL COVERAGE TESTS (100% TARGET) ==========
+
+  it('should throw error when user not found (lines 113-114)', async () => {
+    const invalidUserId = new mongoose.Types.ObjectId().toString();
+    const signal = { symbol: 'AAPL', action: 'buy', quantity: 10, price: 150, stopLoss: 145 };
+    const accountInfo = { equity: 10000, cashAvailable: 5000, buyingPower: 10000 };
+
+    await expect(RiskManagementService.validateTrade(invalidUserId, signal, accountInfo)).rejects.toThrow(`User not found: ${invalidUserId}`);
+  });
+
+  it('should reject trade when position size becomes zero after adjustment (lines 187-197)', async () => {
+    const user = await createTestUser({ maxPositionSizePercent: 10 });
+
+    // Create existing position at max limit (10% of $10000 = $1000)
+    // Existing: 6 shares @ $150 = $900 (close to max $1000)
+    await createTestPosition(user._id, { symbol: 'AAPL', quantity: 6, avgEntryPrice: 150, costBasis: 900, status: 'OPEN' });
+
+    // Try to buy 1 more share @ $150 = $150
+    // Total would be $900 + $150 = $1050 (exceeds $1000 limit)
+    // Available size = floor(($1000 - $900) / $150) = floor(0.66) = 0
+    const signal = { symbol: 'AAPL', action: 'buy', quantity: 1, price: 150, stopLoss: 145 };
+    const accountInfo = { equity: 10000, cashAvailable: 5000, buyingPower: 10000 };
+
+    const result = await RiskManagementService.validateTrade(user._id.toString(), signal, accountInfo);
+
+    expect(result.approved).toBe(false);
+    expect(result.adjustedQuantity).toBe(0);
+    expect(result.reason).toContain('Max position size reached');
+    expect(result.action).toBe('REJECTED');
+    expect(result.riskScore.level).toBe('MEDIUM');
+    expect(result.riskScore.score).toBe(60);
+  });
+
+  it('should approve trade with existing position within limits (lines 259-264)', async () => {
+    const user = await createTestUser({ maxPositionSizePercent: 20 });
+
+    // Create existing position well under max limit (20% of $10000 = $2000)
+    // Existing position: 5 shares @ $150 = $750
+    await createTestPosition(user._id, { symbol: 'AAPL', quantity: 5, avgEntryPrice: 150, costBasis: 750, status: 'OPEN' });
+
+    // New trade: 3 shares @ $150 = $450
+    // Total: $750 + $450 = $1200 (well under $2000 limit)
+    const signal = { symbol: 'AAPL', action: 'buy', quantity: 3, price: 150, stopLoss: 145 };
+    const accountInfo = { equity: 10000, cashAvailable: 5000, buyingPower: 10000 };
+
+    const result = await RiskManagementService.validateTrade(user._id.toString(), signal, accountInfo);
+
+    expect(result.approved).toBe(true);
+    expect(result.adjustedQuantity).toBe(3);
+    expect(result.reason).toBe('Trade approved within risk limits');
+    expect(result.action).toBe('APPROVED');
+  });
+});
+

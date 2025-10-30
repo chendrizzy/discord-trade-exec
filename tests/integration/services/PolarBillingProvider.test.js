@@ -38,6 +38,245 @@ afterEach(() => {
   }
 });
 
+describe('Integration Test: Constructor Initialization', () => {
+  it('should initialize Polar client when POLAR_ACCESS_TOKEN is configured', () => {
+    process.env.POLAR_ACCESS_TOKEN = 'test_access_token_12345';
+    const provider = new PolarBillingProvider();
+    expect(provider.client).not.toBeNull();
+    expect(provider.client).toBeDefined();
+    expect(provider.accessToken).toBe('test_access_token_12345');
+    expect(provider.client).toHaveProperty('subscriptions');
+    expect(provider.client).toHaveProperty('customers');
+    expect(provider.client).toHaveProperty('products');
+  });
+
+  it('should set client to null when POLAR_ACCESS_TOKEN is not configured', () => {
+    delete process.env.POLAR_ACCESS_TOKEN;
+    const provider = new PolarBillingProvider();
+    expect(provider.client).toBeNull();
+    expect(provider.accessToken).toBeUndefined();
+  });
+
+  it('should store organizationId when configured', () => {
+    process.env.POLAR_ACCESS_TOKEN = 'test_access_token_12345';
+    process.env.POLAR_ORGANIZATION_ID = 'org_test_123';
+    const provider = new PolarBillingProvider();
+    expect(provider.organizationId).toBe('org_test_123');
+    expect(provider.client).not.toBeNull();
+  });
+});
+
+describe('Integration Test: Real API Paths - getSubscription', () => {
+  it('should successfully fetch subscription with active subscriptions', async () => {
+    const provider = new PolarBillingProvider();
+    provider.client = { customers: { get: jest.fn() } };
+    const mockCustomerId = 'cust_real_123';
+    const mockPolarResponse = {
+      customer: {
+        id: mockCustomerId,
+        email: 'customer@example.com',
+        name: 'Real Customer',
+        subscriptions: [{
+          id: 'sub_real_456',
+          status: 'active',
+          currentPeriodEnd: '2025-03-01T00:00:00Z',
+          cancelAtPeriodEnd: false,
+          productId: 'prod_real_789',
+          product: { name: 'Professional Plan - Monthly' },
+          price: { priceAmount: 9900, priceCurrency: 'usd', recurringInterval: 'month' }
+        }]
+      }
+    };
+    jest.spyOn(provider.client.customers, 'get').mockResolvedValue(mockPolarResponse);
+    const result = await provider.getSubscription(mockCustomerId);
+    expect(provider.client.customers.get).toHaveBeenCalledWith({ id: mockCustomerId });
+    expect(result.id).toBe('sub_real_456');
+    expect(result.customerId).toBe(mockCustomerId);
+    expect(result.status).toBe('active');
+    expect(result.tier).toBe('professional');
+  });
+
+  it('should return null when customer has empty subscriptions array', async () => {
+    const provider = new PolarBillingProvider();
+    provider.client = { customers: { get: jest.fn() } };
+    const mockPolarResponse = {
+      customer: { id: 'cust_no_subs', email: 'nosubs@example.com', name: 'No Subs', subscriptions: [] }
+    };
+    jest.spyOn(provider.client.customers, 'get').mockResolvedValue(mockPolarResponse);
+    const result = await provider.getSubscription('cust_no_subs');
+    expect(result).toBeNull();
+  });
+
+  it('should handle API errors and throw descriptive error', async () => {
+    const provider = new PolarBillingProvider();
+    provider.client = { customers: { get: jest.fn() } };
+    const apiError = new Error('Polar API: Customer not found');
+    jest.spyOn(provider.client.customers, 'get').mockRejectedValue(apiError);
+    await expect(provider.getSubscription('cust_error')).rejects.toThrow(
+      'Failed to get Polar subscription: Polar API: Customer not found'
+    );
+  });
+});
+
+describe('Integration Test: Real API Paths - getCustomer', () => {
+  it('should successfully fetch customer via client.customers.get', async () => {
+    const provider = new PolarBillingProvider();
+    provider.client = { customers: { get: jest.fn() } };
+    const mockResponse = {
+      customer: { id: 'cust_123', email: 'test@example.com', name: 'Test Customer', createdAt: '2025-01-01T00:00:00Z' }
+    };
+    jest.spyOn(provider.client.customers, 'get').mockResolvedValue(mockResponse);
+    const result = await provider.getCustomer('cust_123');
+    expect(result.id).toBe('cust_123');
+    expect(result.email).toBe('test@example.com');
+    expect(result.createdAt).toBeInstanceOf(Date);
+  });
+
+  it('should handle error in get customer and throw descriptive error', async () => {
+    const provider = new PolarBillingProvider();
+    provider.client = { customers: { get: jest.fn() } };
+    jest.spyOn(provider.client.customers, 'get').mockRejectedValue(new Error('API Error'));
+    await expect(provider.getCustomer('cust_123')).rejects.toThrow('Failed to get Polar customer: API Error');
+  });
+});
+
+describe('Integration Test: Real API Paths - createCustomerPortalSession', () => {
+  it('should successfully create customer portal session', async () => {
+    const provider = new PolarBillingProvider();
+    provider.client = { customerSessions: { create: jest.fn() } };
+    const mockResponse = { customerSession: { id: 'session_123', url: 'https://polar.sh/portal/123' } };
+    jest.spyOn(provider.client.customerSessions, 'create').mockResolvedValue(mockResponse);
+    const result = await provider.createCustomerPortalSession('cust_123', 'https://example.com/return');
+    expect(result.id).toBe('session_123');
+    expect(result.url).toBe('https://polar.sh/portal/123');
+  });
+
+  it('should handle error in create customer portal session', async () => {
+    const provider = new PolarBillingProvider();
+    provider.client = { customerSessions: { create: jest.fn() } };
+    jest.spyOn(provider.client.customerSessions, 'create').mockRejectedValue(new Error('API Error'));
+    await expect(provider.createCustomerPortalSession('cust_123', 'https://example.com')).rejects.toThrow(
+      'Failed to create Polar customer portal session: API Error'
+    );
+  });
+});
+
+describe('Integration Test: Real API Paths - createCheckoutSession', () => {
+  it('should successfully create checkout session with metadata merging', async () => {
+    const provider = new PolarBillingProvider();
+    provider.client = { checkouts: { create: jest.fn() } };
+    const mockResponse = {
+      checkout: { id: 'checkout_123', url: 'https://polar.sh/checkout/123', productId: 'prod_123', customerId: 'cust_123' }
+    };
+    jest.spyOn(provider.client.checkouts, 'create').mockResolvedValue(mockResponse);
+    const result = await provider.createCheckoutSession('prod_123', 'https://example.com/success', 'test@example.com', { userId: '456' });
+    expect(result.id).toBe('checkout_123');
+    expect(provider.client.checkouts.create).toHaveBeenCalledWith(expect.objectContaining({
+      metadata: expect.objectContaining({ source: 'discord-trade-exec', provider: 'polar', userId: '456' })
+    }));
+  });
+
+  it('should handle error in create checkout session', async () => {
+    const provider = new PolarBillingProvider();
+    provider.client = { checkouts: { create: jest.fn() } };
+    jest.spyOn(provider.client.checkouts, 'create').mockRejectedValue(new Error('API Error'));
+    await expect(provider.createCheckoutSession('prod_123', 'https://example.com', 'test@example.com')).rejects.toThrow(
+      'Failed to create Polar checkout session: API Error'
+    );
+  });
+});
+
+describe('Integration Test: Real API Paths - Products', () => {
+  it('should successfully get product via client.products.get', async () => {
+    const provider = new PolarBillingProvider();
+    provider.client = { products: { get: jest.fn() } };
+    const mockResponse = {
+      product: { id: 'prod_123', name: 'Professional Plan', description: 'Professional trading signals', metadata: {}, prices: [] }
+    };
+    jest.spyOn(provider.client.products, 'get').mockResolvedValue(mockResponse);
+    const result = await provider.getProduct('prod_123');
+    expect(result.id).toBe('prod_123');
+    expect(result.name).toBe('Professional Plan');
+  });
+
+  it('should handle error in getProduct', async () => {
+    const provider = new PolarBillingProvider();
+    provider.client = { products: { get: jest.fn() } };
+    jest.spyOn(provider.client.products, 'get').mockRejectedValue(new Error('API Error'));
+    await expect(provider.getProduct('prod_123')).rejects.toThrow('Failed to get Polar product: API Error');
+  });
+
+  it('should successfully list products via client.products.list with organizationId', async () => {
+    const provider = new PolarBillingProvider();
+    provider.client = { products: { list: jest.fn() } };
+    provider.organizationId = 'org_123';
+    const mockResponse = {
+      items: [
+        { id: 'prod_1', name: 'Plan 1', description: '', metadata: {}, prices: [] },
+        { id: 'prod_2', name: 'Plan 2', description: '', metadata: {}, prices: [] }
+      ]
+    };
+    jest.spyOn(provider.client.products, 'list').mockResolvedValue(mockResponse);
+    const result = await provider.listProducts();
+    expect(result).toHaveLength(2);
+    expect(result[0].id).toBe('prod_1');
+  });
+
+  it('should handle error in listProducts', async () => {
+    const provider = new PolarBillingProvider();
+    provider.client = { products: { list: jest.fn() } };
+    provider.organizationId = 'org_123';
+    jest.spyOn(provider.client.products, 'list').mockRejectedValue(new Error('API Error'));
+    await expect(provider.listProducts()).rejects.toThrow('Failed to list Polar products: API Error');
+  });
+});
+
+describe('Integration Test: Real API Paths - Subscriptions', () => {
+  it('should successfully cancel subscription via client.subscriptions.cancel', async () => {
+    const provider = new PolarBillingProvider();
+    provider.client = { subscriptions: { cancel: jest.fn() } };
+    const mockResponse = { subscription: { id: 'sub_123', status: 'canceled', cancelAtPeriodEnd: true } };
+    jest.spyOn(provider.client.subscriptions, 'cancel').mockResolvedValue(mockResponse);
+    const result = await provider.cancelSubscription('sub_123');
+    expect(result.id).toBe('sub_123');
+    expect(result.status).toBe('canceled');
+    expect(result.cancelAtPeriodEnd).toBe(true);
+  });
+
+  it('should handle error in cancelSubscription', async () => {
+    const provider = new PolarBillingProvider();
+    provider.client = { subscriptions: { cancel: jest.fn() } };
+    jest.spyOn(provider.client.subscriptions, 'cancel').mockRejectedValue(new Error('API Error'));
+    await expect(provider.cancelSubscription('sub_123')).rejects.toThrow('Failed to cancel Polar subscription: API Error');
+  });
+
+  it('should successfully update subscription with spread operator', async () => {
+    const provider = new PolarBillingProvider();
+    provider.client = { subscriptions: { update: jest.fn() } };
+    const mockResponse = {
+      subscription: {
+        id: 'sub_123',
+        customerId: 'cust_123',
+        status: 'active',
+        currentPeriodEnd: '2025-03-01T00:00:00Z',
+        product: { name: 'Enterprise Plan' },
+        price: { priceAmount: 29900, priceCurrency: 'usd', recurringInterval: 'month' }
+      }
+    };
+    jest.spyOn(provider.client.subscriptions, 'update').mockResolvedValue(mockResponse);
+    const result = await provider.updateSubscription('sub_123', { productId: 'new_prod' });
+    expect(result.id).toBe('sub_123');
+    expect(result.status).toBe('active');
+  });
+
+  it('should handle error in updateSubscription', async () => {
+    const provider = new PolarBillingProvider();
+    provider.client = { subscriptions: { update: jest.fn() } };
+    jest.spyOn(provider.client.subscriptions, 'update').mockRejectedValue(new Error('API Error'));
+    await expect(provider.updateSubscription('sub_123', {})).rejects.toThrow('Failed to update Polar subscription: API Error');
+  });
+});
+
 describe('Integration Test: Webhook Signature Validation', () => {
   it('should verify valid HMAC-SHA256 signature', () => {
     const provider = new PolarBillingProvider();
@@ -876,5 +1115,473 @@ describe('Integration Test: Subscription State Transitions', () => {
 
     expect(subscription.productId).toBeDefined();
     expect(subscription.productName).toBeDefined();
+  });
+});
+
+describe('Integration Test: updateSubscription Real API Paths', () => {
+  it('should successfully update subscription via client.subscriptions.update with spread operator', async () => {
+    // Create provider with mocked Polar client
+    const provider = new PolarBillingProvider();
+
+    // Mock the Polar client
+    provider.client = {
+      subscriptions: {
+        update: jest.fn()
+      }
+    };
+
+    const subscriptionId = 'sub_123';
+    const updates = {
+      productId: 'new-product-456',
+      quantity: 2
+    };
+
+    const mockPolarResponse = {
+      subscription: {
+        id: subscriptionId,
+        customerId: 'cust_789',
+        status: 'active',
+        currentPeriodEnd: '2025-03-01T00:00:00Z',
+        cancelAtPeriodEnd: false,
+        productId: 'new-product-456',
+        product: {
+          name: 'Enterprise Plan - Monthly'
+        },
+        price: {
+          priceAmount: 29900,
+          priceCurrency: 'usd',
+          recurringInterval: 'month'
+        }
+      }
+    };
+
+    provider.client.subscriptions.update.mockResolvedValue(mockPolarResponse);
+
+    // Execute updateSubscription
+    const result = await provider.updateSubscription(subscriptionId, updates);
+
+    // Verify client.subscriptions.update was called with spread operator (line 327)
+    expect(provider.client.subscriptions.update).toHaveBeenCalledWith({
+      id: subscriptionId,
+      ...updates
+    });
+
+    // Verify mapped subscription is returned (line 331)
+    expect(result).toBeDefined();
+    expect(result.id).toBe(subscriptionId);
+    expect(result.customerId).toBe('cust_789');
+    expect(result.status).toBe('active');
+    expect(result.tier).toBe('enterprise');
+    expect(result.currentPeriodEnd).toBeInstanceOf(Date);
+    expect(result.cancelAtPeriodEnd).toBe(false);
+    expect(result.productId).toBe('new-product-456');
+    expect(result.productName).toBe('Enterprise Plan - Monthly');
+    expect(result.pricing.amount).toBe(29900);
+    expect(result.pricing.currency).toBe('usd');
+    expect(result.pricing.interval).toBe('month');
+  });
+
+  it('should handle error in update subscription and throw descriptive error', async () => {
+    // Create provider with mocked Polar client
+    const provider = new PolarBillingProvider();
+
+    // Mock the Polar client
+    provider.client = {
+      subscriptions: {
+        update: jest.fn()
+      }
+    };
+
+    const subscriptionId = 'sub_invalid';
+    const updates = { productId: 'invalid-product' };
+
+    const mockError = new Error('Subscription not found');
+    mockError.stack = 'Error: Subscription not found\n    at Polar.update';
+
+    provider.client.subscriptions.update.mockRejectedValue(mockError);
+
+    // Execute and expect error (lines 332-339)
+    await expect(provider.updateSubscription(subscriptionId, updates)).rejects.toThrow(
+      'Failed to update Polar subscription: Subscription not found'
+    );
+
+    // Verify client was called
+    expect(provider.client.subscriptions.update).toHaveBeenCalledWith({
+      id: subscriptionId,
+      ...updates
+    });
+  });
+});
+
+describe('Integration Test: createCheckoutSession Real API Paths', () => {
+  it('should successfully create checkout session via client.checkouts.create with metadata merging', async () => {
+    // Create provider with mocked Polar client
+    const provider = new PolarBillingProvider();
+
+    // Mock the Polar client
+    provider.client = {
+      checkouts: {
+        create: jest.fn()
+      }
+    };
+
+    const productId = 'prod_test_123';
+    const successUrl = 'https://example.com/checkout/success';
+    const customerEmail = 'test@example.com';
+    const customMetadata = {
+      communityId: 'community_456',
+      userId: 'user_789'
+    };
+
+    const mockPolarResponse = {
+      checkout: {
+        id: 'checkout_abc123',
+        url: 'https://polar.sh/checkout/abc123',
+        productId: 'prod_test_123',
+        customerId: 'cust_xyz789'
+      }
+    };
+
+    provider.client.checkouts.create.mockResolvedValue(mockPolarResponse);
+
+    // Execute createCheckoutSession (lines 194-210)
+    const result = await provider.createCheckoutSession(
+      productId,
+      successUrl,
+      customerEmail,
+      customMetadata
+    );
+
+    // Verify client.checkouts.create was called with metadata merging (lines 194-203)
+    expect(provider.client.checkouts.create).toHaveBeenCalledWith({
+      productId: 'prod_test_123',
+      successUrl: 'https://example.com/checkout/success',
+      customerEmail: 'test@example.com',
+      metadata: {
+        communityId: 'community_456',
+        userId: 'user_789',
+        source: 'discord-trade-exec',
+        provider: 'polar'
+      }
+    });
+
+    // Verify mapped checkout session is returned (lines 205-210)
+    expect(result).toEqual({
+      id: 'checkout_abc123',
+      url: 'https://polar.sh/checkout/abc123',
+      productId: 'prod_test_123',
+      customerId: 'cust_xyz789'
+    });
+  });
+
+  it('should handle error in create checkout session and throw descriptive error', async () => {
+    // Create provider with mocked Polar client
+    const provider = new PolarBillingProvider();
+
+    // Mock the Polar client
+    provider.client = {
+      checkouts: {
+        create: jest.fn()
+      }
+    };
+
+    const productId = 'prod_invalid';
+    const successUrl = 'https://example.com/checkout/success';
+    const customerEmail = 'invalid@example.com';
+    const metadata = { userId: 'user_123' };
+
+    const mockError = new Error('Product not found or inactive');
+    mockError.stack = 'Error: Product not found or inactive\n    at Polar.checkouts.create';
+
+    provider.client.checkouts.create.mockRejectedValue(mockError);
+
+    // Execute and expect error (lines 211-218)
+    await expect(
+      provider.createCheckoutSession(productId, successUrl, customerEmail, metadata)
+    ).rejects.toThrow('Failed to create Polar checkout session: Product not found or inactive');
+
+    // Verify client was called with metadata including source and provider
+    expect(provider.client.checkouts.create).toHaveBeenCalledWith({
+      productId: 'prod_invalid',
+      successUrl: 'https://example.com/checkout/success',
+      customerEmail: 'invalid@example.com',
+      metadata: {
+        userId: 'user_123',
+        source: 'discord-trade-exec',
+        provider: 'polar'
+      }
+    });
+  });
+});
+
+describe('Integration Test: cancelSubscription Real API Paths', () => {
+  it('should successfully cancel subscription via client.subscriptions.cancel', async () => {
+    // Create provider with mocked Polar client
+    const provider = new PolarBillingProvider();
+
+    // Mock the Polar client
+    provider.client = {
+      subscriptions: {
+        cancel: jest.fn()
+      }
+    };
+
+    const subscriptionId = 'sub_to_cancel_123';
+
+    const mockPolarResponse = {
+      subscription: {
+        id: subscriptionId,
+        status: 'canceled',
+        cancelAtPeriodEnd: true
+      }
+    };
+
+    provider.client.subscriptions.cancel.mockResolvedValue(mockPolarResponse);
+
+    // Execute cancelSubscription (lines 294-302)
+    const result = await provider.cancelSubscription(subscriptionId);
+
+    // Verify client.subscriptions.cancel was called correctly (line 294-296)
+    expect(provider.client.subscriptions.cancel).toHaveBeenCalledWith({
+      id: subscriptionId
+    });
+
+    // Verify returned result matches expected format (lines 298-302)
+    expect(result).toEqual({
+      id: subscriptionId,
+      status: 'canceled',
+      cancelAtPeriodEnd: true
+    });
+  });
+
+  it('should handle error in cancelSubscription and throw descriptive error', async () => {
+    // Create provider with mocked Polar client
+    const provider = new PolarBillingProvider();
+
+    // Mock the Polar client
+    provider.client = {
+      subscriptions: {
+        cancel: jest.fn()
+      }
+    };
+
+    const subscriptionId = 'sub_nonexistent';
+
+    const mockError = new Error('Subscription not found or already canceled');
+    mockError.stack = 'Error: Subscription not found or already canceled\n    at Polar.cancel';
+
+    provider.client.subscriptions.cancel.mockRejectedValue(mockError);
+
+    // Execute and expect error (lines 303-310)
+    await expect(provider.cancelSubscription(subscriptionId)).rejects.toThrow(
+      'Failed to cancel Polar subscription: Subscription not found or already canceled'
+    );
+
+    // Verify client was called
+    expect(provider.client.subscriptions.cancel).toHaveBeenCalledWith({
+      id: subscriptionId
+    });
+  });
+});
+
+describe('Integration Test: getSubscription Real API Paths', () => {
+  it('should successfully fetch subscription with active subscriptions (lines 77-90)', async () => {
+    // Create provider with mocked Polar client
+    const provider = new PolarBillingProvider();
+
+    // Mock the Polar client
+    provider.client = {
+      customers: {
+        get: jest.fn()
+      }
+    };
+
+    const mockCustomerId = 'cust_real_123';
+    const mockPolarResponse = {
+      customer: {
+        id: mockCustomerId,
+        email: 'customer@example.com',
+        name: 'Real Customer',
+        subscriptions: [
+          {
+            id: 'sub_real_456',
+            status: 'active',
+            currentPeriodEnd: '2025-03-01T00:00:00Z',
+            cancelAtPeriodEnd: false,
+            productId: 'prod_real_789',
+            product: {
+              name: 'Professional Plan - Monthly'
+            },
+            price: {
+              priceAmount: 9900,
+              priceCurrency: 'usd',
+              recurringInterval: 'month'
+            }
+          }
+        ]
+      }
+    };
+
+    jest.spyOn(provider.client.customers, 'get').mockResolvedValue(mockPolarResponse);
+
+    // Execute getSubscription (line 77-90)
+    const result = await provider.getSubscription(mockCustomerId);
+
+    // Verify client.customers.get was called correctly (line 77-79)
+    expect(provider.client.customers.get).toHaveBeenCalledWith({ id: mockCustomerId });
+    expect(provider.client.customers.get).toHaveBeenCalledTimes(1);
+
+    // Verify subscription mapping (line 87-90)
+    expect(result).toBeDefined();
+    expect(result.id).toBe('sub_real_456');
+    expect(result.customerId).toBe(mockCustomerId);
+    expect(result.status).toBe('active');
+    expect(result.tier).toBe('professional');
+    expect(result.cancelAtPeriodEnd).toBe(false);
+    expect(result.productId).toBe('prod_real_789');
+    expect(result.productName).toBe('Professional Plan - Monthly');
+    expect(result.pricing.amount).toBe(9900);
+    expect(result.pricing.currency).toBe('usd');
+    expect(result.pricing.interval).toBe('month');
+  });
+
+  it('should return null when customer has empty subscriptions array (lines 83-85)', async () => {
+    // Create provider with mocked Polar client
+    const provider = new PolarBillingProvider();
+
+    // Mock the Polar client
+    provider.client = {
+      customers: {
+        get: jest.fn()
+      }
+    };
+
+    const mockCustomerId = 'cust_no_subs';
+    const mockPolarResponse = {
+      customer: {
+        id: mockCustomerId,
+        email: 'nosubs@example.com',
+        name: 'Customer Without Subscriptions',
+        subscriptions: [] // Empty array triggers line 84
+      }
+    };
+
+    jest.spyOn(provider.client.customers, 'get').mockResolvedValue(mockPolarResponse);
+
+    // Execute getSubscription
+    const result = await provider.getSubscription(mockCustomerId);
+
+    // Verify client was called
+    expect(provider.client.customers.get).toHaveBeenCalledWith({ id: mockCustomerId });
+    expect(provider.client.customers.get).toHaveBeenCalledTimes(1);
+
+    // Verify null is returned (line 84)
+    expect(result).toBeNull();
+  });
+
+  it('should handle API errors and throw descriptive error (lines 91-98)', async () => {
+    // Create provider with mocked Polar client
+    const provider = new PolarBillingProvider();
+
+    // Mock the Polar client
+    provider.client = {
+      customers: {
+        get: jest.fn()
+      }
+    };
+
+    const mockCustomerId = 'cust_error';
+    const apiError = new Error('Polar API: Customer not found');
+    apiError.statusCode = 404;
+    apiError.stack = 'Error: Polar API: Customer not found\n    at Polar.customers.get';
+
+    jest.spyOn(provider.client.customers, 'get').mockRejectedValue(apiError);
+
+    // Execute and expect error (catch block lines 91-98)
+    await expect(provider.getSubscription(mockCustomerId)).rejects.toThrow(
+      'Failed to get Polar subscription: Polar API: Customer not found'
+    );
+
+    // Verify client was called
+    expect(provider.client.customers.get).toHaveBeenCalledWith({ id: mockCustomerId });
+    expect(provider.client.customers.get).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe('Integration Test: getCustomer Real API Paths', () => {
+  it('should successfully fetch customer via client.customers.get and return normalized data', async () => {
+    // Create provider with mocked Polar client
+    const provider = new PolarBillingProvider();
+
+    // Mock the Polar client
+    provider.client = {
+      customers: {
+        get: jest.fn()
+      }
+    };
+
+    const customerId = 'cust_real_123';
+
+    const mockPolarResponse = {
+      customer: {
+        id: 'cust_real_123',
+        email: 'real.customer@example.com',
+        name: 'Real Customer Name',
+        createdAt: '2025-01-15T10:30:00.000Z'
+      }
+    };
+
+    provider.client.customers.get.mockResolvedValue(mockPolarResponse);
+
+    // Execute getCustomer (lines 119-128)
+    const result = await provider.getCustomer(customerId);
+
+    // Verify client.customers.get was called with correct parameters (line 119-121)
+    expect(provider.client.customers.get).toHaveBeenCalledWith({
+      id: customerId
+    });
+
+    // Verify normalized customer data is returned (lines 123-128)
+    expect(result).toBeDefined();
+    expect(result.id).toBe('cust_real_123');
+    expect(result.email).toBe('real.customer@example.com');
+    expect(result.name).toBe('Real Customer Name');
+    expect(result.createdAt).toBeInstanceOf(Date);
+    expect(result.createdAt.toISOString()).toBe('2025-01-15T10:30:00.000Z');
+
+    // Verify response structure matches BillingProvider interface
+    expect(Object.keys(result)).toEqual(['id', 'email', 'name', 'createdAt']);
+  });
+
+  it('should handle error in get customer and throw descriptive error', async () => {
+    // Create provider with mocked Polar client
+    const provider = new PolarBillingProvider();
+
+    // Mock the Polar client
+    provider.client = {
+      customers: {
+        get: jest.fn()
+      }
+    };
+
+    const customerId = 'cust_nonexistent';
+
+    const mockError = new Error('Customer not found');
+    mockError.stack = 'Error: Customer not found\n    at Polar.customers.get';
+
+    provider.client.customers.get.mockRejectedValue(mockError);
+
+    // Execute and expect error (lines 129-136)
+    await expect(provider.getCustomer(customerId)).rejects.toThrow(
+      'Failed to get Polar customer: Customer not found'
+    );
+
+    // Verify client.customers.get was called with correct parameters
+    expect(provider.client.customers.get).toHaveBeenCalledWith({
+      id: customerId
+    });
+
+    // Verify error was called exactly once (single API call)
+    expect(provider.client.customers.get).toHaveBeenCalledTimes(1);
   });
 });

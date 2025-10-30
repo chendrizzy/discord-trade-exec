@@ -198,23 +198,10 @@ class RiskManagementService {
       }
 
       // 7. Check portfolio exposure (use adjusted quantity)
-      const exposureCheck = await this._checkPortfolioExposure(
-        userId,
-        signal,
-        positionSize.quantity,
-        accountInfo.equity,
-        riskConfig
-      );
+      const exposureCheck = await this._checkPortfolioExposure(userId, signal, positionSize.quantity, accountInfo.equity, riskConfig);
 
       if (!exposureCheck.approved) {
-        const result = {
-          approved: false,
-          adjustedQuantity: null,
-          reason: exposureCheck.reason,
-          riskScore: { level: 'HIGH', score: 75, exposure: exposureCheck.exposure },
-          action: 'REJECTED'
-        };
-
+        const result = { approved: false, adjustedQuantity: null, reason: exposureCheck.reason, riskScore: { level: 'HIGH', score: 75, exposure: exposureCheck.exposure }, action: 'REJECTED' };
         await this._auditDecision(userId, signal, result, 'PORTFOLIO_EXPOSURE');
         return result;
       }
@@ -224,38 +211,16 @@ class RiskManagementService {
 
       // 9. Determine action and prepare result
       const wasAdjusted = positionSize.quantity !== signal.quantity;
-      const result = {
-        approved: true,
-        adjustedQuantity: positionSize.quantity,
-        reason: wasAdjusted
-          ? `Position sized adjusted from ${signal.quantity} to ${positionSize.quantity} shares (${positionSize.reason})`
-          : 'Trade approved within risk limits',
-        riskScore,
-        action: wasAdjusted ? 'ADJUSTED' : 'APPROVED',
-        stopLossPrice: positionSize.stopLossPrice,
-        notionalValue: positionSize.quantity * signal.price,
-        portfolioPercent: (((positionSize.quantity * signal.price) / accountInfo.equity) * 100).toFixed(2)
-      };
+      const result = { approved: true, adjustedQuantity: positionSize.quantity, reason: wasAdjusted ? `Position sized adjusted from ${signal.quantity} to ${positionSize.quantity} shares (${positionSize.reason})` : 'Trade approved within risk limits', riskScore, action: wasAdjusted ? 'ADJUSTED' : 'APPROVED', stopLossPrice: positionSize.stopLossPrice, notionalValue: positionSize.quantity * signal.price, portfolioPercent: (((positionSize.quantity * signal.price) / accountInfo.equity) * 100).toFixed(2) };
 
       await this._auditDecision(userId, signal, result, result.action);
 
       const elapsed = Date.now() - startTime;
-      logger.info('Risk validation complete', {
-        userId,
-        symbol: signal.symbol,
-        action: result.action,
-        elapsed: `${elapsed}ms`
-      });
+      logger.info('Risk validation complete', { userId, symbol: signal.symbol, action: result.action, elapsed: `${elapsed}ms` });
 
       return result;
     } catch (error) {
-      logger.error('Risk validation error', {
-        userId,
-        symbol: signal.symbol,
-        error: error.message,
-        stack: error.stack
-      });
-
+      logger.error('Risk validation error', { userId, symbol: signal.symbol, error: error.message, stack: error.stack });
       throw error;
     }
   }
@@ -280,40 +245,22 @@ class RiskManagementService {
     // Check if requested size exceeds max position limit
     if (requestedNotional > maxPositionValue) {
       const adjustedQuantity = Math.floor(maxPositionValue / signal.price);
-      return {
-        quantity: adjustedQuantity,
-        reason: `Max position size ${riskConfig.maxPositionSizePercent}% rule applied`,
-        stopLossPrice: signal.stopLoss || signal.price * (1 - riskConfig.stopLossPercent / 100)
-      };
+      return { quantity: adjustedQuantity, reason: `Max position size ${riskConfig.maxPositionSizePercent}% rule applied`, stopLossPrice: signal.stopLoss || signal.price * (1 - riskConfig.stopLossPercent / 100) };
     }
 
     // Check current positions for symbol
-    const existingPosition = await Position.findOne({
-      userId,
-      symbol: signal.symbol,
-      status: 'OPEN'
-    });
+    const existingPosition = await Position.findOne({ userId, symbol: signal.symbol, status: 'OPEN' });
 
     if (existingPosition) {
       const totalNotional = existingPosition.quantity * existingPosition.avgEntryPrice + requestedNotional;
       if (totalNotional > maxPositionValue) {
-        const availableSize = Math.floor(
-          (maxPositionValue - existingPosition.quantity * existingPosition.avgEntryPrice) / signal.price
-        );
-        return {
-          quantity: Math.max(0, availableSize),
-          reason: `Existing position ${existingPosition.quantity} shares @ $${existingPosition.avgEntryPrice.toFixed(2)}. Max position size reached.`,
-          stopLossPrice: signal.stopLoss || signal.price * (1 - riskConfig.stopLossPercent / 100)
-        };
+        const availableSize = Math.floor((maxPositionValue - existingPosition.quantity * existingPosition.avgEntryPrice) / signal.price);
+        return { quantity: Math.max(0, availableSize), reason: `Existing position ${existingPosition.quantity} shares @ $${existingPosition.avgEntryPrice.toFixed(2)}. Max position size reached.`, stopLossPrice: signal.stopLoss || signal.price * (1 - riskConfig.stopLossPercent / 100) };
       }
     }
 
     // Position size approved as-is
-    return {
-      quantity: signal.quantity,
-      reason: 'Within position size limits',
-      stopLossPrice: signal.stopLoss || signal.price * (1 - riskConfig.stopLossPercent / 100)
-    };
+    return { quantity: signal.quantity, reason: 'Within position size limits', stopLossPrice: signal.stopLoss || signal.price * (1 - riskConfig.stopLossPercent / 100) };
   }
 
   /**
@@ -328,10 +275,7 @@ class RiskManagementService {
    * @private
    */
   async _checkPortfolioExposure(userId, signal, quantity, equity, riskConfig) {
-    const openPositions = await Position.find({
-      userId,
-      status: 'OPEN'
-    });
+    const openPositions = await Position.find({ userId, status: 'OPEN' });
 
     let totalExposure = 0;
     for (const position of openPositions) {
@@ -343,18 +287,10 @@ class RiskManagementService {
     const exposurePercent = (totalWithNew / equity) * 100;
 
     if (exposurePercent > riskConfig.maxPortfolioExposurePercent) {
-      return {
-        approved: false,
-        reason: `Portfolio exposure limit exceeded: ${exposurePercent.toFixed(2)}% > ${riskConfig.maxPortfolioExposurePercent}% max. Current exposure: $${totalExposure.toFixed(2)}, new trade: $${newTradeValue.toFixed(2)}, equity: $${equity.toFixed(2)}.`,
-        exposure: exposurePercent
-      };
+      return { approved: false, reason: `Portfolio exposure limit exceeded: ${exposurePercent.toFixed(2)}% > ${riskConfig.maxPortfolioExposurePercent}% max. Current exposure: $${totalExposure.toFixed(2)}, new trade: $${newTradeValue.toFixed(2)}, equity: $${equity.toFixed(2)}.`, exposure: exposurePercent };
     }
 
-    return {
-      approved: true,
-      reason: `Portfolio exposure within limits: ${exposurePercent.toFixed(2)}%`,
-      exposure: exposurePercent
-    };
+    return { approved: true, reason: `Portfolio exposure within limits: ${exposurePercent.toFixed(2)}%`, exposure: exposurePercent };
   }
 
   /**
@@ -368,11 +304,7 @@ class RiskManagementService {
     const todayStart = new Date();
     todayStart.setUTCHours(0, 0, 0, 0);
 
-    const trades = await Trade.find({
-      userId,
-      createdAt: { $gte: todayStart },
-      status: { $in: ['FILLED', 'PARTIAL'] }
-    });
+    const trades = await Trade.find({ userId, createdAt: { $gte: todayStart }, status: { $in: ['FILLED', 'PARTIAL'] } });
 
     let totalPnL = 0;
     for (const trade of trades) {
@@ -410,35 +342,13 @@ class RiskManagementService {
     const timestamp = new Date();
     this.circuitBreakerActive.set(userId, timestamp);
 
-    logger.error('CIRCUIT BREAKER ACTIVATED', {
-      userId,
-      equity: `$${equity.toFixed(2)}`,
-      dailyPnL: `$${dailyPnL.toFixed(2)}`,
-      drawdown: `${this._calculateIntradayDrawdown(dailyPnL, equity).toFixed(2)}%`,
-      timestamp: timestamp.toISOString()
-    });
+    logger.error('CIRCUIT BREAKER ACTIVATED', { userId, equity: `$${equity.toFixed(2)}`, dailyPnL: `$${dailyPnL.toFixed(2)}`, drawdown: `${this._calculateIntradayDrawdown(dailyPnL, equity).toFixed(2)}%`, timestamp: timestamp.toISOString() });
 
     // Update user account status
-    await User.findByIdAndUpdate(userId, {
-      'accountStatus.trading': false,
-      'accountStatus.circuitBreakerActive': true,
-      'accountStatus.circuitBreakerActivatedAt': timestamp
-    });
+    await User.findByIdAndUpdate(userId, { 'accountStatus.trading': false, 'accountStatus.circuitBreakerActive': true, 'accountStatus.circuitBreakerActivatedAt': timestamp });
 
     // Audit circuit breaker activation
-    await this.auditLog.log({
-      userId,
-      action: 'CIRCUIT_BREAKER_ACTIVATED',
-      category: 'RISK_MANAGEMENT',
-      severity: 'CRITICAL',
-      metadata: {
-        equity,
-        dailyPnL,
-        drawdownPercent: this._calculateIntradayDrawdown(dailyPnL, equity),
-        timestamp
-      },
-      ipAddress: 'system'
-    });
+    await this.auditLog.log({ userId, action: 'CIRCUIT_BREAKER_ACTIVATED', category: 'RISK_MANAGEMENT', severity: 'CRITICAL', metadata: { equity, dailyPnL, drawdownPercent: this._calculateIntradayDrawdown(dailyPnL, equity), timestamp }, ipAddress: 'system' });
 
     // Send emergency notification to user + admin
     await this._sendEmergencyNotification(userId, equity, dailyPnL, 'CIRCUIT_BREAKER');
@@ -470,23 +380,15 @@ class RiskManagementService {
 
       const drawdownPercent = this._calculateIntradayDrawdown(dailyPnL, equity);
 
-      const message =
-        reason === 'CIRCUIT_BREAKER'
-          ? `🚨 EMERGENCY: Circuit breaker triggered! Portfolio down ${drawdownPercent.toFixed(2)}% (${dailyPnL < 0 ? '-' : '+'}$${Math.abs(dailyPnL).toFixed(2)}). All positions are being closed.`
-          : `⚠️ ALERT: Daily loss limit reached (${dailyPnL < 0 ? '-' : '+'}$${Math.abs(dailyPnL).toFixed(2)}). Trading paused until tomorrow.`;
+      const message = reason === 'CIRCUIT_BREAKER' ? `🚨 EMERGENCY: Circuit breaker triggered! Portfolio down ${drawdownPercent.toFixed(2)}% (${dailyPnL < 0 ? '-' : '+'}$${Math.abs(dailyPnL).toFixed(2)}). All positions are being closed.` : `⚠️ ALERT: Daily loss limit reached (${dailyPnL < 0 ? '-' : '+'}$${Math.abs(dailyPnL).toFixed(2)}). Trading paused until tomorrow.`;
 
       // Send Discord DM to user
-      if (user.discordId) {
-        await discordService.sendDirectMessage(user.discordId, message);
-        logger.info('Emergency notification sent to user', { userId, discordId: user.discordId });
-      }
+      if (user.discordId) await discordService.sendDirectMessage(user.discordId, message);
+      if (user.discordId) logger.info('Emergency notification sent to user', { userId, discordId: user.discordId });
 
       // Send notification to admin/support team
       if (process.env.ADMIN_DISCORD_CHANNEL) {
-        await discordService.sendChannelMessage(
-          process.env.ADMIN_DISCORD_CHANNEL,
-          `🚨 CRITICAL RISK EVENT\nUser: ${user.username} (${userId})\n${message}\nEquity: $${equity.toFixed(2)}`
-        );
+        await discordService.sendChannelMessage(process.env.ADMIN_DISCORD_CHANNEL, `🚨 CRITICAL RISK EVENT\nUser: ${user.username} (${userId})\n${message}\nEquity: $${equity.toFixed(2)}`);
       }
 
       logger.info('Emergency notification sent', { userId, reason, drawdownPercent });
@@ -582,33 +484,16 @@ class RiskManagementService {
 
           await tradeExecutor.executeTrade(userId, closeSignal);
 
-          logger.info('Auto-close order submitted successfully', {
-            userId,
-            symbol: position.symbol,
-            reason
-          });
+          logger.info('Auto-close order submitted successfully', { userId, symbol: position.symbol, reason });
         } catch (error) {
-          logger.error('Failed to submit auto-close order', {
-            userId,
-            symbol: position.symbol,
-            error: error.message,
-            reason
-          });
+          logger.error('Failed to submit auto-close order', { userId, symbol: position.symbol, error: error.message, reason });
           // Continue closing other positions even if one fails
         }
       }
 
-      logger.info('Auto-close orders submitted for all positions', {
-        userId,
-        positionCount: positions.length,
-        reason
-      });
+      logger.info('Auto-close orders submitted for all positions', { userId, positionCount: positions.length, reason });
     } catch (error) {
-      logger.error('Failed to submit close orders to brokers', {
-        userId,
-        error: error.message,
-        reason
-      });
+      logger.error('Failed to submit close orders to brokers', { userId, error: error.message, reason });
       throw error;
     }
   }
@@ -654,10 +539,7 @@ class RiskManagementService {
     // Factor in margin/leverage when available
     const leverageMultiplier = signal.leverage || 1;
     const marginPercent = signal.marginUsed ? (signal.marginUsed / equity) * 100 : 0;
-    const leverageScore =
-      leverageMultiplier > 1
-        ? Math.min(30, ((leverageMultiplier - 1) / 4) * 30) // Leverage 1-5x mapped to 0-30 points
-        : Math.min(30, (marginPercent / 50) * 30); // Or use margin utilization if available
+    const leverageScore = leverageMultiplier > 1 ? Math.min(30, ((leverageMultiplier - 1) / 4) * 30) : Math.min(30, (marginPercent / 50) * 30);
     score += leverageScore;
 
     // Determine risk level
