@@ -12,6 +12,7 @@ const oauth2Service = require('../../services/OAuth2Service');
 const { isOAuth2Broker, getEnabledProviders, getProviderConfig } = require('../../config/oauth2Providers');
 const { ensureAuthenticatedAPI } = require('../../middleware/auth');
 const { getMFAService } = require('../../services/MFAService');
+const { oauthAuthorizationLimiter } = require('../../middleware/rateLimiter');
 const User = require('../../models/User');
 const { BrokerFactory } = require('../../brokers');
 const logger = require('../../utils/logger');
@@ -39,10 +40,11 @@ const mfaService = getMFAService();
  * Redirects user to broker's authorization page.
  *
  * @requires Authentication
+ * @requires Rate Limiting (10 requests per 15 minutes)
  * @param {string} broker - Broker key (alpaca, ibkr, tdameritrade, etrade)
  * @returns {Object} { authorizationURL }
  */
-router.get('/broker/:broker/authorize', ensureAuthenticatedAPI, validate(brokerAuthorizeParams, 'params'), (req, res, next) => {
+router.get('/broker/:broker/authorize', ensureAuthenticatedAPI, oauthAuthorizationLimiter, validate(brokerAuthorizeParams, 'params'), (req, res, next) => {
   try {
     const { broker} = req.params;
 
