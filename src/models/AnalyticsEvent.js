@@ -9,7 +9,7 @@ const analyticsEventSchema = new mongoose.Schema({
   userId: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'User',
-    required: true,
+    required: false, // Optional for system-level metrics (e.g., token refresh cycles)
     index: true
   },
   eventType: {
@@ -23,7 +23,8 @@ const analyticsEventSchema = new mongoose.Schema({
       'trade_executed',
       'login',
       'broker_connected',
-      'signal_subscribed'
+      'signal_subscribed',
+      'oauth_token_refresh_cycle' // Token refresh metrics
     ],
     index: true
   },
