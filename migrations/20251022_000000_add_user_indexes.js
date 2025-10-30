@@ -18,12 +18,42 @@ module.exports = {
   async up(db) {
     const collection = db.collection('users');
 
+    // Check and drop existing discordId index if it exists with different name
+    try {
+      const existingIndexes = await collection.indexes();
+      const discordIdIndex = existingIndexes.find(idx =>
+        idx.key && idx.key.discordId === 1 && idx.name !== 'discordId_unique'
+      );
+
+      if (discordIdIndex) {
+        console.log(`[Migration] Dropping existing index: ${discordIdIndex.name}`);
+        await collection.dropIndex(discordIdIndex.name);
+      }
+    } catch (err) {
+      console.log('[Migration] No existing discordId index to drop or error checking:', err.message);
+    }
+
     // Create unique index on discordId
     await collection.createIndex(
       { discordId: 1 },
       { unique: true, name: 'discordId_unique' }
     );
     console.log('[Migration] Created index: discordId_unique');
+
+    // Check and drop existing email index if it exists with different name
+    try {
+      const existingIndexes = await collection.indexes();
+      const emailIndex = existingIndexes.find(idx =>
+        idx.key && idx.key.email === 1 && idx.name !== 'email_unique'
+      );
+
+      if (emailIndex) {
+        console.log(`[Migration] Dropping existing index: ${emailIndex.name}`);
+        await collection.dropIndex(emailIndex.name);
+      }
+    } catch (err) {
+      console.log('[Migration] No existing email index to drop or error checking:', err.message);
+    }
 
     // Create unique index on email
     await collection.createIndex(
