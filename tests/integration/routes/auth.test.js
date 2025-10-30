@@ -151,7 +151,7 @@ describe('Integration Test: OAuth2 Authentication Flow', () => {
 
       // Simulate authenticated session
       const agent = request.agent(app);
-      const loginResponse = await agent.post('/api/v1/auth/test-login').send({ userId: testUser._id.toString() });
+      const loginResponse = await agent.post('/api/auth/login/mock').send({ userId: testUser._id.toString() });
 
       authCookie = loginResponse.headers['set-cookie'];
     });
@@ -210,7 +210,7 @@ describe('Integration Test: OAuth2 Authentication Flow', () => {
 
       // Generate authorization URL to get valid state
       const agent = request.agent(app);
-      await agent.post('/api/v1/auth/test-login').send({ userId: testUser._id.toString() });
+      await agent.post('/api/auth/login/mock').send({ userId: testUser._id.toString() });
 
       const authResponse = await agent.get('/api/v1/auth/broker/alpaca/authorize');
       const authURL = new URL(authResponse.body.authorizationURL);
@@ -538,7 +538,7 @@ describe('Integration Test: OAuth2 Authentication Flow', () => {
 
       // Login and get session cookie
       const agent = request.agent(app);
-      const loginResponse = await agent.post('/api/v1/auth/test-login').send({ userId: testUser._id.toString() });
+      const loginResponse = await agent.post('/api/auth/login/mock').send({ userId: testUser._id.toString() });
 
       authCookie = loginResponse.headers['set-cookie'];
     });
@@ -637,7 +637,7 @@ describe('Integration Test: OAuth2 Authentication Flow', () => {
       });
 
       const agent = request.agent(app);
-      await agent.post('/api/v1/auth/test-login').send({ userId: testUser._id.toString() });
+      await agent.post('/api/auth/login/mock').send({ userId: testUser._id.toString() });
 
       // Make multiple rapid requests
       const requests = [];
