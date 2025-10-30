@@ -20,9 +20,7 @@
 const { SubscriptionProvider } = require('./SubscriptionProvider');
 const { SubscriptionVerificationError } = require('./SubscriptionVerificationError');
 const logger = require('@utils/logger');
-
-// Discord snowflake validation pattern (17-19 digits)
-const DISCORD_SNOWFLAKE_PATTERN = /^\d{17,19}$/;
+const { validateSnowflake } = require('@utils/validators');
 
 class DiscordSubscriptionProvider extends SubscriptionProvider {
   /**
@@ -51,13 +49,7 @@ class DiscordSubscriptionProvider extends SubscriptionProvider {
    * @private
    */
   _validateSnowflake(id, type) {
-    if (!DISCORD_SNOWFLAKE_PATTERN.test(id)) {
-      throw new SubscriptionVerificationError(
-        `Invalid ${type} ID format. Expected 17-19 digit Discord snowflake.`,
-        'INVALID_INPUT',
-        false
-      );
-    }
+    validateSnowflake(id, type);
   }
 
   /**

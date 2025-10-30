@@ -20,9 +20,7 @@
 
 const { SubscriptionProvider } = require('./SubscriptionProvider');
 const { SubscriptionVerificationError } = require('./SubscriptionVerificationError');
-
-// Discord snowflake validation pattern (17-19 digits)
-const DISCORD_SNOWFLAKE_PATTERN = /^\d{17,19}$/;
+const { validateSnowflake } = require('@utils/validators');
 
 class MockSubscriptionProvider extends SubscriptionProvider {
   /**
@@ -42,6 +40,9 @@ class MockSubscriptionProvider extends SubscriptionProvider {
 
     // Map<guildId, errorCode>
     this.simulatedErrors = new Map();
+
+    // Global failure flag (takes precedence over per-guild errors)
+    this.shouldFail = false;
 
     // Initialize with provided state
     if (initialState.guilds) {
@@ -67,13 +68,7 @@ class MockSubscriptionProvider extends SubscriptionProvider {
    * @private
    */
   _validateSnowflake(id, type) {
-    if (!DISCORD_SNOWFLAKE_PATTERN.test(id)) {
-      throw new SubscriptionVerificationError(
-        `Invalid ${type} ID format. Expected 17-19 digit Discord snowflake.`,
-        'INVALID_INPUT',
-        false
-      );
-    }
+    validateSnowflake(id, type);
   }
 
   /**
@@ -84,6 +79,15 @@ class MockSubscriptionProvider extends SubscriptionProvider {
    * @private
    */
   _checkSimulatedError(guildId) {
+    // Check global failure flag first
+    if (this.shouldFail) {
+      throw new SubscriptionVerificationError(
+        'Provider failure (global)',
+        'PROVIDER_ERROR',
+        true
+      );
+    }
+
     const errorCode = this.simulatedErrors.get(guildId);
     if (!errorCode) return;
 
@@ -163,19 +167,29 @@ class MockSubscriptionProvider extends SubscriptionProvider {
   }
 
   /**
-   * Verify if a user has the required subscription/role in a guild
+   * Set global failure flag for testing
    *
-   * @param {string} guildId - Discord guild ID (17-19 digits)
-   * @param {string} userId - Discord user ID (17-19 digits)
-   * @param {string[]} requiredRoleIds - Array of role IDs, user needs ANY of these
-   * @returns {Promise<SubscriptionVerificationResult>} Verification result
-   * @throws {SubscriptionVerificationError} If verification fails
+   * @param {boolean} shouldFail - Whether to simulate provider failure
    */
-  async verifySubscription(guildId, userId, requiredRoleIds) {
-    // Validate inputs
+  setShouldFail(shouldFail) {
+    this.shouldFail = shouldFail;
+  }
+
+  /**
+   * Validate verification inputs (guild, user, and role IDs)
+   *
+   * @param {string} guildId - Discord guild ID
+   * @param {string} userId - Discord user ID
+   * @param {string[]} requiredRoleIds - Array of required role IDs
+   * @throws {SubscriptionVerificationError} If validation fails
+   * @private
+   */
+  _validateVerificationInputs(guildId, userId, requiredRoleIds) {
+    // Validate guild and user IDs
     this._validateSnowflake(guildId, 'guild');
     this._validateSnowflake(userId, 'user');
 
+    // Validate role IDs array
     if (!Array.isArray(requiredRoleIds) || requiredRoleIds.length === 0) {
       throw new SubscriptionVerificationError(
         'Required role IDs array cannot be empty',
@@ -188,6 +202,33 @@ class MockSubscriptionProvider extends SubscriptionProvider {
     for (const roleId of requiredRoleIds) {
       this._validateSnowflake(roleId, 'role');
     }
+  }
+
+  /**
+   * Find roles that match between required and user's roles
+   *
+   * @param {string[]} requiredRoleIds - Required role IDs
+   * @param {string[]} userRoleIds - User's role IDs
+   * @returns {string[]} Matching role IDs
+   * @private
+   */
+  _findMatchingRoles(requiredRoleIds, userRoleIds) {
+    return requiredRoleIds.filter(roleId => userRoleIds.includes(roleId));
+  }
+
+  /**
+   * Verify if a user has the required subscription/role in a guild
+   * Returns boolean for compatibility with AccessControlService
+   *
+   * @param {string} guildId - Discord guild ID (17-19 digits)
+   * @param {string} userId - Discord user ID (17-19 digits)
+   * @param {string[]} requiredRoleIds - Array of role IDs, user needs ANY of these
+   * @returns {Promise<boolean>} True if user has access, false otherwise
+   * @throws {SubscriptionVerificationError} If verification fails
+   */
+  async verifyUserSubscription(guildId, userId, requiredRoleIds) {
+    // Validate inputs
+    this._validateVerificationInputs(guildId, userId, requiredRoleIds);
 
     // Check for simulated errors
     this._checkSimulatedError(guildId);
@@ -196,7 +237,33 @@ class MockSubscriptionProvider extends SubscriptionProvider {
     const userRoleIds = this.mockRoles.get(guildId)?.get(userId) || [];
 
     // Find matching roles
-    const matchingRoles = requiredRoleIds.filter(roleId => userRoleIds.includes(roleId));
+    const matchingRoles = this._findMatchingRoles(requiredRoleIds, userRoleIds);
+
+    // Return boolean: true if user has at least one matching role
+    return matchingRoles.length > 0;
+  }
+
+  /**
+   * Verify if a user has the required subscription/role in a guild (detailed response)
+   *
+   * @param {string} guildId - Discord guild ID (17-19 digits)
+   * @param {string} userId - Discord user ID (17-19 digits)
+   * @param {string[]} requiredRoleIds - Array of role IDs, user needs ANY of these
+   * @returns {Promise<SubscriptionVerificationResult>} Verification result
+   * @throws {SubscriptionVerificationError} If verification fails
+   */
+  async verifySubscription(guildId, userId, requiredRoleIds) {
+    // Validate inputs
+    this._validateVerificationInputs(guildId, userId, requiredRoleIds);
+
+    // Check for simulated errors
+    this._checkSimulatedError(guildId);
+
+    // Get user's roles from mock data
+    const userRoleIds = this.mockRoles.get(guildId)?.get(userId) || [];
+
+    // Find matching roles
+    const matchingRoles = this._findMatchingRoles(requiredRoleIds, userRoleIds);
 
     const hasAccess = matchingRoles.length > 0;
 

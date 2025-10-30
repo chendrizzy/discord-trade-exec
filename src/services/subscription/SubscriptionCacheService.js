@@ -19,9 +19,7 @@
  */
 
 const logger = require('@utils/logger');
-
-// Discord snowflake validation pattern (17-19 digits)
-const DISCORD_SNOWFLAKE_PATTERN = /^\d{17,19}$/;
+const { validateSnowflake } = require('@utils/validators');
 
 // Cache TTL in seconds
 const CACHE_TTL_SECONDS = 60;
@@ -53,10 +51,11 @@ class SubscriptionCacheService {
    * @private
    */
   _validateSnowflake(id, type) {
-    if (!DISCORD_SNOWFLAKE_PATTERN.test(id)) {
-      throw new Error(
-        `Invalid ${type} ID format. Expected 17-19 digit Discord snowflake.`
-      );
+    try {
+      validateSnowflake(id, type);
+    } catch (error) {
+      // Convert SubscriptionVerificationError to generic Error for cache service
+      throw new Error(error.message);
     }
   }
 
