@@ -26,6 +26,24 @@ const DISCORD_SNOWFLAKE_PATTERN = /^\d{17,19}$/;
  * @throws {SubscriptionVerificationError} If ID format is invalid
  */
 function validateSnowflake(id, type) {
+  // H2 FIX: Strict type checking to prevent object coercion attacks
+  if (typeof id !== 'string') {
+    throw new SubscriptionVerificationError(
+      `Invalid ${type} ID format. Expected string, got ${typeof id}.`,
+      'INVALID_INPUT',
+      false
+    );
+  }
+
+  // Prevent objects masquerading as strings via toString()
+  if (Object.prototype.toString.call(id) !== '[object String]') {
+    throw new SubscriptionVerificationError(
+      `Invalid ${type} ID format. Expected primitive string.`,
+      'INVALID_INPUT',
+      false
+    );
+  }
+
   if (!DISCORD_SNOWFLAKE_PATTERN.test(id)) {
     throw new SubscriptionVerificationError(
       `Invalid ${type} ID format. Expected 17-19 digit Discord snowflake.`,
@@ -42,7 +60,17 @@ function validateSnowflake(id, type) {
  * @returns {boolean} True if valid snowflake ID
  */
 function isValidSnowflake(id) {
-  return typeof id === 'string' && DISCORD_SNOWFLAKE_PATTERN.test(id);
+  // H2 FIX: Strict type checking
+  if (typeof id !== 'string') {
+    return false;
+  }
+
+  // Prevent objects masquerading as strings
+  if (Object.prototype.toString.call(id) !== '[object String]') {
+    return false;
+  }
+
+  return DISCORD_SNOWFLAKE_PATTERN.test(id);
 }
 
 module.exports = {

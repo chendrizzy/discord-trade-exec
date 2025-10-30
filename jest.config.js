@@ -23,7 +23,8 @@ module.exports = {
     '^@services/(.*)$': '<rootDir>/src/services/$1',
     '^@middleware/(.*)$': '<rootDir>/src/middleware/$1',
     '^@utils/(.*)$': '<rootDir>/src/utils/$1',
-    '^@config/(.*)$': '<rootDir>/src/config/$1'
+    '^@config/(.*)$': '<rootDir>/src/config/$1',
+    '^@commands/(.*)$': '<rootDir>/src/commands/$1'
   },
   // Global test setup for subscription gating feature
   globals: {
