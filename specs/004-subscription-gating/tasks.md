@@ -98,17 +98,17 @@ Per plan.md structure:
 
 ### Tests for User Story 1 (TDD - write tests FIRST)
 
-- [ ] T022 [P] [US1] Write failing E2E test for setup wizard interaction in tests/e2e/setup-wizard.e2e.spec.ts
-- [ ] T023 [P] [US1] Write failing integration test for setup wizard flow in tests/integration/setup-wizard.integration.spec.ts
+- [X] T022 [P] [US1] Write failing E2E test for setup wizard interaction in tests/e2e/setup-wizard.e2e.spec.js
+- [X] T023 [P] [US1] Write failing integration test for setup wizard flow in tests/integration/setup-wizard/setup-wizard.integration.test.js
 
 ### Implementation for User Story 1
 
-- [ ] T024 [US1] Implement SetupWizardService in src/services/setup-wizard/setup-wizard.service.ts
-- [ ] T025 [US1] Implement /setup configure-access command with button UI in src/commands/setup/configure-access.command.ts
-- [ ] T026 [US1] Add server owner permission verification in setup command handler
-- [ ] T027 [US1] Implement role auto-detection logic (scan for "subscriber", "member", "patron", "supporter" roles)
-- [ ] T028 [US1] Add configuration validation (warn if no subscription system detected)
-- [ ] T029 [US1] Verify all US1 tests pass (E2E and integration)
+- [X] T024 [US1] Implement SetupWizardService in src/services/setup-wizard/SetupWizardService.js
+- [X] T025 [US1] Implement /setup configure-access command with button UI in src/commands/setup/configure-access.command.js
+- [X] T026 [US1] Add server owner permission verification in setup command handler
+- [X] T027 [US1] Implement role auto-detection logic (scan for "subscriber", "member", "patron", "supporter" roles)
+- [X] T028 [US1] Add configuration validation (warn if no subscription system detected)
+- [X] T029 [US1] Verify all US1 tests pass (E2E and integration)
 
 **Checkpoint**: Setup wizard complete - server owners can configure access control on first bot install
 
@@ -124,18 +124,18 @@ Per plan.md structure:
 
 **⚠️ MANDATORY**: Write these tests FIRST, ensure they FAIL before implementation
 
-- [ ] T030 [P] [US2] Write failing tests for AccessControlService.checkAccess() in tests/unit/services/access-control/access-control.service.spec.ts
-- [ ] T031 [P] [US2] Write failing tests for subscription gate middleware in tests/unit/middleware/subscription-gate.middleware.spec.ts
-- [ ] T032 [P] [US2] Write failing integration test for subscriber access flow in tests/integration/subscription-verification.integration.spec.ts
+- [X] T030 [P] [US2] Write failing tests for AccessControlService.checkAccess() in tests/unit/services/access-control/access-control.service.spec.ts
+- [X] T031 [P] [US2] Write failing tests for subscription gate middleware in tests/unit/middleware/subscription-gate.middleware.spec.ts
+- [X] T032 [P] [US2] Write failing integration test for subscriber access flow in tests/integration/subscription-verification.integration.spec.ts
 
 ### Implementation for User Story 2
 
-- [ ] T033 [US2] Implement AccessControlService.checkAccess() method in src/services/access-control/access-control.service.ts
-- [ ] T034 [US2] Implement AccessControlService.invalidateCache() method in src/services/access-control/access-control.service.ts
-- [ ] T035 [US2] Implement subscription gate middleware in src/middleware/subscription-gate.middleware.ts
-- [ ] T036 [US2] Register middleware with Discord.js command handler
-- [ ] T037 [US2] Add performance monitoring for <2s verification SLA in access control service
-- [ ] T038 [US2] Add structured logging for subscription verification attempts
+- [X] T033 [US2] Implement AccessControlService.checkAccess() method in src/services/access-control/access-control.service.ts
+- [X] T034 [US2] Implement AccessControlService.invalidateCache() method in src/services/access-control/access-control.service.ts
+- [X] T035 [US2] Implement subscription gate middleware in src/middleware/subscription-gate.middleware.ts
+- [X] T036 [US2] Register middleware with Discord.js command handler
+- [X] T037 [US2] Add performance monitoring for <2s verification SLA in access control service
+- [X] T038 [US2] Add structured logging for subscription verification attempts
 - [ ] T039 [US2] Verify all US2 tests pass (unit, integration)
 
 **Checkpoint**: Subscribers can use bot in gated servers - core gating mechanism works for authorized users
@@ -195,17 +195,17 @@ Per plan.md structure:
 
 ### Tests for User Story 4 (TDD REQUIRED - configuration persistence)
 
-- [ ] T054 [P] [US4] Write failing tests for configuration updates in tests/unit/services/server-configuration.service.spec.ts
-- [ ] T055 [P] [US4] Write failing E2E test for config command in tests/e2e/access-settings.e2e.spec.ts
+- [x] T054 [P] [US4] Write failing tests for configuration updates in tests/unit/services/server-configuration.service.spec.ts
+- [x] T055 [P] [US4] Write failing E2E test for config command in tests/e2e/access-settings.e2e.spec.ts
 
 ### Implementation for User Story 4
 
-- [ ] T056 [US4] Implement /config access command in src/commands/config/access-settings.command.ts
-- [ ] T057 [US4] Add server owner permission verification in config command handler
-- [ ] T058 [US4] Implement configuration change confirmation message with impact explanation
-- [ ] T059 [US4] Add in-memory cache invalidation on configuration update
-- [ ] T060 [US4] Verify <60 second propagation SLA for config changes (SC-003)
-- [ ] T061 [US4] Verify all US4 tests pass (unit, E2E)
+- [x] T056 [US4] Implement /config access command in src/commands/config/access-settings.command.ts
+- [x] T057 [US4] Add server owner permission verification in config command handler
+- [x] T058 [US4] Implement configuration change confirmation message with impact explanation
+- [x] T059 [US4] Add in-memory cache invalidation on configuration update
+- [x] T060 [US4] Verify <60 second propagation SLA for config changes (SC-003)
+- [x] T061 [US4] Verify all US4 tests pass (unit, E2E)
 
 **Checkpoint**: Server owners can reconfigure access control - meets FR-008
 
@@ -219,14 +219,14 @@ Per plan.md structure:
 
 ### Tests for User Story 5
 
-- [ ] T062 [P] [US5] Write tests for open access mode in tests/unit/services/access-control/access-control.service.spec.ts
-- [ ] T063 [P] [US5] Write integration test for open access flow in tests/integration/subscription-verification.integration.spec.ts
+- [x] T062 [P] [US5] Write tests for open access mode in tests/unit/services/access-control/access-control.service.spec.ts
+- [x] T063 [P] [US5] Write integration test for open access flow in tests/integration/subscription-verification.integration.spec.ts
 
 ### Implementation for User Story 5
 
-- [ ] T064 [US5] Implement open access bypass logic in AccessControlService.checkAccess()
-- [ ] T065 [US5] Add logging for open access mode operations
-- [ ] T066 [US5] Verify all US5 tests pass (unit, integration)
+- [x] T064 [US5] Implement open access bypass logic in AccessControlService.checkAccess()
+- [x] T065 [US5] Add logging for open access mode operations
+- [x] T066 [US5] Verify all US5 tests pass (unit, integration)
 
 **Checkpoint**: Open access mode works correctly - both gating modes fully functional
 

@@ -165,10 +165,10 @@ describe('ServerConfigurationService - TDD Tests', () => {
 
       expect(mockModel.create).toHaveBeenCalledWith({
         guildId: '1234567890123456789',
-        accessMode: 'subscription_required',
+        accessControlMode: 'subscription_required',
         requiredRoleIds: ['11111111111111111', '22222222222222222'],
         modifiedBy: '9876543210987654321',
-        modifiedAt: expect.any(Date)
+        lastModified: expect.any(Date)
       });
       expect(result).toEqual(mockConfig);
     });
@@ -293,7 +293,7 @@ describe('ServerConfigurationService - TDD Tests', () => {
         {
           requiredRoleIds: ['11111111111111111', '22222222222222222'],
           modifiedBy: '8876543210987654321',
-          modifiedAt: expect.any(Date)
+          lastModified: expect.any(Date)
         },
         { new: true }
       );

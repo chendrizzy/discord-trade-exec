@@ -119,6 +119,11 @@ class ServerConfigurationService {
       // Convert Mongoose document to plain object
       const plainConfig = config.toObject ? config.toObject() : config;
 
+      // Map accessControlMode to accessMode for API consistency
+      if (plainConfig.accessControlMode) {
+        plainConfig.accessMode = plainConfig.accessControlMode;
+      }
+
       // Cache the result
       this.cache.set(guildId, plainConfig);
 
@@ -160,17 +165,21 @@ class ServerConfigurationService {
       // Create configuration
       const config = await this.configModel.create({
         guildId,
-        accessMode,
+        accessControlMode: accessMode,
         requiredRoleIds: requiredRoleIds || [],
         modifiedBy,
-        modifiedAt: new Date()
+        lastModified: new Date()
       });
 
       // Invalidate cache (in case there was old data)
       this._invalidateCache(guildId);
 
-      // Convert to plain object
-      return config.toObject ? config.toObject() : config;
+      // Convert to plain object and map field for API consistency
+      const plainConfig = config.toObject ? config.toObject() : config;
+      if (plainConfig.accessControlMode) {
+        plainConfig.accessMode = plainConfig.accessControlMode;
+      }
+      return plainConfig;
     } catch (error) {
       // Handle duplicate key error
       if (error.message.includes('E11000') || error.message.includes('duplicate key')) {
@@ -217,13 +226,20 @@ class ServerConfigurationService {
     }
 
     try {
+      // Map accessMode to accessControlMode for Mongoose model
+      const updateData = { ...updates };
+      if (updateData.accessMode) {
+        updateData.accessControlMode = updateData.accessMode;
+        delete updateData.accessMode;
+      }
+
       // Update configuration
       const config = await this.configModel.findOneAndUpdate(
         { guildId },
         {
-          ...updates,
+          ...updateData,
           modifiedBy,
-          modifiedAt: new Date()
+          lastModified: new Date()
         },
         { new: true }
       );
@@ -235,8 +251,12 @@ class ServerConfigurationService {
       // Invalidate cache
       this._invalidateCache(guildId);
 
-      // Convert to plain object
-      return config.toObject ? config.toObject() : config;
+      // Convert to plain object and map field for API consistency
+      const plainConfig = config.toObject ? config.toObject() : config;
+      if (plainConfig.accessControlMode) {
+        plainConfig.accessMode = plainConfig.accessControlMode;
+      }
+      return plainConfig;
     } catch (error) {
       // Re-throw "not found" errors
       if (error.message.includes('not found')) {
