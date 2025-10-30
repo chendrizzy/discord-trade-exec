@@ -38,6 +38,7 @@ describe('SubscriptionCacheService - TDD Tests', () => {
       setEx: jest.fn(),
       del: jest.fn(),
       mGet: jest.fn(),
+      multi: jest.fn(),
       quit: jest.fn(),
       isOpen: true
     };
@@ -412,6 +413,115 @@ describe('SubscriptionCacheService - TDD Tests', () => {
     });
   });
 
+  describe('setBatch() - Batch Write Operations (T082)', () => {
+    it('should batch write multiple users with pipeline', async () => {
+      const userResults = new Map([
+        ['9876543210987654321', {
+          hasAccess: true,
+          verifiedAt: new Date(),
+          userRoleIds: [],
+          matchingRoles: [],
+          cacheHit: false
+        }],
+        ['8876543210987654321', {
+          hasAccess: false,
+          verifiedAt: new Date(),
+          userRoleIds: [],
+          matchingRoles: [],
+          cacheHit: false
+        }]
+      ]);
+
+      const pipelineMock = {
+        setEx: jest.fn().mockReturnThis(),
+        exec: jest.fn().mockResolvedValue([])
+      };
+      mockRedisClient.multi.mockReturnValue(pipelineMock);
+
+      const count = await service.setBatch('1234567890123456789', userResults);
+
+      expect(count).toBe(2);
+      expect(mockRedisClient.multi).toHaveBeenCalled();
+      expect(pipelineMock.setEx).toHaveBeenCalledTimes(2);
+      expect(pipelineMock.exec).toHaveBeenCalled();
+    });
+
+    it('should return 0 for empty results map', async () => {
+      const userResults = new Map();
+
+      const count = await service.setBatch('1234567890123456789', userResults);
+
+      expect(count).toBe(0);
+      expect(mockRedisClient.multi).not.toHaveBeenCalled();
+    });
+
+    it('should validate guild ID format', async () => {
+      const userResults = new Map([
+        ['9876543210987654321', { hasAccess: true }]
+      ]);
+
+      await expect(service.setBatch('invalid', userResults))
+        .rejects.toThrow('Invalid guild ID format');
+    });
+
+    it('should validate all user IDs in map', async () => {
+      const userResults = new Map([
+        ['invalid', { hasAccess: true }]
+      ]);
+
+      await expect(service.setBatch('1234567890123456789', userResults))
+        .rejects.toThrow('Invalid user ID format');
+    });
+
+    it('should handle pipeline errors gracefully', async () => {
+      const userResults = new Map([
+        ['9876543210987654321', { hasAccess: true }]
+      ]);
+
+      const pipelineMock = {
+        setEx: jest.fn().mockReturnThis(),
+        exec: jest.fn().mockRejectedValue(new Error('Pipeline failed'))
+      };
+      mockRedisClient.multi.mockReturnValue(pipelineMock);
+
+      await expect(service.setBatch('1234567890123456789', userResults))
+        .rejects.toThrow('Cache error: Pipeline failed');
+    });
+  });
+
+  describe('getMetrics() - Performance Monitoring (T082)', () => {
+    it('should return metrics when Redis is connected', async () => {
+      mockRedisClient.isOpen = true;
+
+      const metrics = await service.getMetrics();
+
+      expect(metrics).toEqual({
+        isConnected: true,
+        ttl_seconds: 60,
+        keys_pattern: 'sub:*:*'
+      });
+    });
+
+    it('should handle disconnected Redis client', async () => {
+      mockRedisClient.isOpen = false;
+
+      const metrics = await service.getMetrics();
+
+      expect(metrics.isConnected).toBe(false);
+    });
+
+    it('should handle metrics collection errors', async () => {
+      Object.defineProperty(mockRedisClient, 'isOpen', {
+        get: jest.fn(() => {
+          throw new Error('Connection check failed');
+        })
+      });
+
+      await expect(service.getMetrics())
+        .rejects.toThrow('Metrics error');
+    });
+  });
+
   describe('Performance', () => {
     it('should complete get() operation quickly', async () => {
       mockRedisClient.get.mockResolvedValue(null);
@@ -436,6 +546,31 @@ describe('SubscriptionCacheService - TDD Tests', () => {
 
       const start = Date.now();
       await service.set('1234567890123456789', '9876543210987654321', result);
+      const duration = Date.now() - start;
+
+      expect(duration).toBeLessThan(100);
+    });
+
+    it('should complete setBatch() operation efficiently', async () => {
+      const userResults = new Map();
+      for (let i = 0; i < 10; i++) {
+        userResults.set(`987654321098765432${i}`, {
+          hasAccess: true,
+          verifiedAt: new Date(),
+          userRoleIds: [],
+          matchingRoles: [],
+          cacheHit: false
+        });
+      }
+
+      const pipelineMock = {
+        setEx: jest.fn().mockReturnThis(),
+        exec: jest.fn().mockResolvedValue([])
+      };
+      mockRedisClient.multi.mockReturnValue(pipelineMock);
+
+      const start = Date.now();
+      await service.setBatch('1234567890123456789', userResults);
       const duration = Date.now() - start;
 
       expect(duration).toBeLessThan(100);

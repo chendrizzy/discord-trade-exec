@@ -295,6 +295,76 @@ class SubscriptionCacheService {
       throw new Error(`Cache error: ${error.message}`);
     }
   }
+  /**
+   * Batch set cached statuses for multiple users using Redis pipeline
+   *
+   * @param {string} guildId - Discord guild ID
+   * @param {Map<string, SubscriptionVerificationResult>} userResults - Map of userId to result
+   * @returns {Promise<number>} Number of entries successfully cached
+   */
+  async setBatch(guildId, userResults) {
+    const startTime = Date.now();
+    this._validateSnowflake(guildId, 'guild');
+
+    if (!userResults || userResults.size === 0) {
+      return 0;
+    }
+
+    for (const userId of userResults.keys()) {
+      this._validateSnowflake(userId, 'user');
+    }
+
+    try {
+      const pipeline = this.redisClient.multi();
+
+      for (const [userId, result] of userResults.entries()) {
+        const cacheKey = this._getCacheKey(guildId, userId);
+        const serialized = this._serializeCacheData(result);
+        pipeline.setEx(cacheKey, CACHE_TTL_SECONDS, serialized);
+      }
+
+      await pipeline.exec();
+      const duration = Date.now() - startTime;
+
+      logger.debug('Batch cache write success', {
+        guildId,
+        entriesWritten: userResults.size,
+        duration
+      });
+
+      return userResults.size;
+    } catch (error) {
+      const duration = Date.now() - startTime;
+      logger.error('Batch cache write error', {
+        error: error.message,
+        guildId,
+        duration
+      });
+      throw new Error(`Cache error: ${error.message}`);
+    }
+  }
+
+  /**
+   * Get cache performance metrics for monitoring
+   *
+   * @returns {Promise<Object>} Cache metrics
+   */
+  async getMetrics() {
+    try {
+      const isConnected = this.redisClient.isOpen;
+
+      return {
+        isConnected,
+        ttl_seconds: CACHE_TTL_SECONDS,
+        keys_pattern: 'sub:*:*'
+      };
+    } catch (error) {
+      logger.error('Failed to get cache metrics', {
+        error: error.message
+      });
+      throw new Error(`Metrics error: ${error.message}`);
+    }
+  }
 }
 
 module.exports = { SubscriptionCacheService };
