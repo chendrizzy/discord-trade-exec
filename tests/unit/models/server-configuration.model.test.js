@@ -372,6 +372,9 @@ describe('ServerConfiguration Model - TDD Tests', () => {
     it('should enforce unique guildId constraint', async () => {
       expect(ServerConfiguration).toBeDefined();
 
+      // Ensure indexes are built before testing unique constraint
+      await ServerConfiguration.init();
+
       // Create first config
       const config1 = new ServerConfiguration({
         guildId: '12345678901234567',
