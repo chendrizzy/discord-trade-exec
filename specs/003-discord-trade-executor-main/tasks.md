@@ -116,13 +116,13 @@ Goal: Implement MRR/ARR calculations and basic churn scoring pipeline (offline j
 Independent test: Seed subscriptions -> verify MRR/ARR values and churn scores generated.
 
 - [X] T049 [US5] Implement `src/services/AnalyticsService.js` with MRR/ARR functions — File: `src/services/AnalyticsService.js` (COMPLETE: 625 lines, MRR/ARR/churn/growth/LTV calculations with Redis caching)
-- [ ] T050 [US5] Implement baseline churn scorer script `scripts/analytics/churn_score.js` (batch job) — File: `scripts/analytics/churn_score.js`
-- [ ] T051 [P] [US5] Unit tests for analytics calculations — File: `tests/unit/services/AnalyticsService.test.js`
+- [X] T050 [US5] Implement baseline churn scorer script `scripts/analytics/churn_score.js` (batch job) — File: `scripts/analytics/churn_score.js` (COMPLETE: 12,784 bytes, churn risk scoring, CLI options, risk tiers, daily batch job)
+- [X] T051 [P] [US5] Unit tests for analytics calculations — File: `tests/unit/services/AnalyticsService.test.js` (COMPLETE: 15,347 bytes, MRR/ARR/churn/growth/LTV tests, Redis caching validation)
 
 ### US-010, US-011, US-013 (P3/P3/P1) — Lower priority / infra
-- [ ] T052 [US10] Create placeholder `src/brokers/adapters/BinanceAdapter.js` following the adapter contract (P3) — File: `src/brokers/adapters/BinanceAdapter.js`
-- [ ] T053 [US11] Add data structures for social trading (followers/leaderboard) schema `src/models/SocialProfile.js` (P3) — File: `src/models/SocialProfile.js`
-- [ ] T054 [US13] Prepare Railway deployment manifest `scripts/deploy/railway-deploy.sh` and health-check script `scripts/deployment/validate-websocket-deployment.js` (P1 infra) — Files: `scripts/deploy/railway-deploy.sh`, `scripts/deployment/validate-websocket-deployment.js`
+- [X] T052 [US10] Create placeholder `src/brokers/adapters/BinanceAdapter.js` following the adapter contract (P3) — File: `src/brokers/adapters/BinanceAdapter.js` (COMPLETE: 10,171 bytes, CCXT integration, spot trading, rate limiting, testnet support)
+- [X] T053 [US11] Add data structures for social trading (followers/leaderboard) schema `src/models/SocialProfile.js` (P3) — File: `src/models/SocialProfile.js` (COMPLETE: 9,931 bytes, follower relationships, performance metrics, leaderboard support, privacy controls)
+- [X] T054 [US13] Prepare Railway deployment manifest `scripts/deploy/railway-deploy.sh` and health-check script `scripts/deployment/validate-websocket-deployment.js` (P1 infra) — Files: `scripts/deploy/railway-deploy.sh` (COMPLETE: 12,654 bytes, blue-green deployment, auto-rollback), `scripts/deployment/validate-websocket-deployment.js` (COMPLETE: 14,609 bytes, production validation, WebSocket testing)
 
 ---
 
