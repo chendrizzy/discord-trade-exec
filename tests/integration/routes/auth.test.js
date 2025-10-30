@@ -35,6 +35,7 @@ const axios = require('axios');
 
 describe('Integration Test: OAuth2 Authentication Flow', () => {
   let app;
+  let sessionStore;
 
   beforeAll(async () => {
     // Create Express app with authentication middleware
@@ -43,15 +44,17 @@ describe('Integration Test: OAuth2 Authentication Flow', () => {
     app.use(express.urlencoded({ extended: true }));
 
     // Session middleware with MongoDB store
+    sessionStore = MongoStore.create({
+      mongoUrl: process.env.MONGODB_URI,
+      ttl: 24 * 60 * 60 // 1 day
+    });
+
     app.use(
       session({
         secret: process.env.SESSION_SECRET,
         resave: false,
         saveUninitialized: false,
-        store: MongoStore.create({
-          mongoUrl: process.env.MONGODB_URI,
-          ttl: 24 * 60 * 60 // 1 day
-        }),
+        store: sessionStore,
         cookie: {
           secure: false, // Set to false for testing (HTTP)
           httpOnly: true,
@@ -120,6 +123,16 @@ describe('Integration Test: OAuth2 Authentication Flow', () => {
 
     // Clear database
     await User.deleteMany({});
+
+    // Clear session store to prevent session data leaking between tests
+    if (sessionStore && sessionStore.clear) {
+      await new Promise((resolve, reject) => {
+        sessionStore.clear((err) => {
+          if (err) reject(err);
+          else resolve();
+        });
+      });
+    }
 
     // Reset axios mock
     axios.post.mockReset();
@@ -240,7 +253,7 @@ describe('Integration Test: OAuth2 Authentication Flow', () => {
 
     it('should handle OAuth2 callback successfully', async () => {
       const response = await request(app)
-        .get('/api/v1/auth/broker/alpaca/callback')
+        .get('/api/v1/auth/callback')
         .set('Cookie', authCookie)
         .query({
           code: 'mock_authorization_code',
@@ -267,7 +280,7 @@ describe('Integration Test: OAuth2 Authentication Flow', () => {
 
     it('should reject callback with invalid state (CSRF protection)', async () => {
       const response = await request(app)
-        .get('/api/v1/auth/broker/alpaca/callback')
+        .get('/api/v1/auth/callback')
         .set('Cookie', authCookie)
         .query({
           code: 'mock_authorization_code',
@@ -285,7 +298,7 @@ describe('Integration Test: OAuth2 Authentication Flow', () => {
 
     it('should reject callback with missing authorization code', async () => {
       const response = await request(app)
-        .get('/api/v1/auth/broker/alpaca/callback')
+        .get('/api/v1/auth/callback')
         .set('Cookie', authCookie)
         .query({
           state: mockState
@@ -302,7 +315,7 @@ describe('Integration Test: OAuth2 Authentication Flow', () => {
       axios.post.mockRejectedValueOnce(new Error('OAuth provider error: Invalid code'));
 
       const response = await request(app)
-        .get('/api/v1/auth/broker/alpaca/callback')
+        .get('/api/v1/auth/callback')
         .set('Cookie', authCookie)
         .query({
           code: 'invalid_authorization_code',
@@ -320,7 +333,7 @@ describe('Integration Test: OAuth2 Authentication Flow', () => {
 
     it('should handle OAuth error parameter (user denied authorization) - lines 207-224', async () => {
       const response = await request(app)
-        .get('/api/v1/auth/broker/alpaca/callback')
+        .get('/api/v1/auth/callback')
         .set('Cookie', authCookie)
         .query({
           error: 'access_denied',
@@ -340,7 +353,7 @@ describe('Integration Test: OAuth2 Authentication Flow', () => {
 
     it('should handle OAuth server_error parameter - lines 207-224', async () => {
       const response = await request(app)
-        .get('/api/v1/auth/broker/alpaca/callback')
+        .get('/api/v1/auth/callback')
         .set('Cookie', authCookie)
         .query({
           error: 'server_error',
@@ -356,7 +369,7 @@ describe('Integration Test: OAuth2 Authentication Flow', () => {
 
     it('should handle OAuth invalid_request error - lines 207-224', async () => {
       const response = await request(app)
-        .get('/api/v1/auth/broker/alpaca/callback')
+        .get('/api/v1/auth/callback')
         .set('Cookie', authCookie)
         .query({
           error: 'invalid_request',
@@ -371,7 +384,7 @@ describe('Integration Test: OAuth2 Authentication Flow', () => {
 
     it('should handle OAuth custom error with error_description - lines 207-224', async () => {
       const response = await request(app)
-        .get('/api/v1/auth/broker/alpaca/callback')
+        .get('/api/v1/auth/callback')
         .set('Cookie', authCookie)
         .query({
           error: 'custom_error',
