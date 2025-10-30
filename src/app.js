@@ -21,6 +21,7 @@ const cors = require('cors');
 
 // Internal utilities and services
 const { passport } = require('./middleware/auth');
+const { csrfProtection } = require('./middleware/csrf');
 const logger = require('./utils/logger');
 const correlationMiddleware = require('./middleware/correlation');
 const loggingMiddleware = require('./middleware/logging');
@@ -52,6 +53,7 @@ const polarWebhookRoutes = require('./routes/webhook/polar');
  * @param {Object} options - Configuration options
  * @param {boolean} options.skipPaymentProcessor - Skip payment processor initialization (for testing)
  * @param {boolean} options.skipTradingView - Skip TradingView integration (for testing)
+ * @param {boolean} options.skipCsrf - Skip CSRF protection (for testing)
  * @returns {express.Application} Configured Express app
  */
 function createApp(options = {}) {
@@ -137,6 +139,14 @@ function createApp(options = {}) {
   // Initialize Passport
   app.use(passport.initialize());
   app.use(passport.session());
+
+  // CSRF Protection (US3-T04) - optional for testing
+  if (!options.skipCsrf) {
+    // Applied after session middleware to enable session-bound tokens
+    // Exempts: GET/HEAD/OPTIONS, Bearer auth, webhooks
+    app.use(csrfProtection());
+    logger.info('🛡️ CSRF protection enabled');
+  }
 
   // Initialize Payment Processor (optional for testing)
   if (!options.skipPaymentProcessor) {
