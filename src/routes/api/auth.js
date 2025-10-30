@@ -643,7 +643,7 @@ router.post('/mfa/enable', ensureAuthenticatedAPI, validate(mfaEnableBody, 'body
       return res.status(400).json({
         success: false,
         error: 'Invalid token format. Must be 6 digits.',
-        code: 'INVALID_TOKEN_FORMAT'
+        errorCode: 'INVALID_TOKEN_FORMAT'
       });
     }
 
@@ -732,7 +732,7 @@ router.post('/mfa/disable', ensureAuthenticatedAPI, validate(mfaDisableBody, 'bo
       return res.status(400).json({
         success: false,
         error: 'Invalid token format. Must be 6 digits.',
-        code: 'INVALID_TOKEN_FORMAT'
+        errorCode: 'INVALID_TOKEN_FORMAT'
       });
     }
 
@@ -950,7 +950,7 @@ router.post('/mfa/verify', ensureAuthenticatedAPI, validate(mfaVerifyBody, 'body
       return res.status(400).json({
         success: false,
         error: 'Verification code required',
-        code: 'TOKEN_REQUIRED'
+        errorCode: 'TOKEN_REQUIRED'
       });
     }
 
@@ -959,7 +959,7 @@ router.post('/mfa/verify', ensureAuthenticatedAPI, validate(mfaVerifyBody, 'body
       return res.status(403).json({
         success: false,
         error: 'MFA is not enabled for this account',
-        code: 'MFA_NOT_ENABLED'
+        errorCode: 'MFA_NOT_ENABLED'
       });
     }
 
@@ -982,7 +982,7 @@ router.post('/mfa/verify', ensureAuthenticatedAPI, validate(mfaVerifyBody, 'body
       return res.status(400).json({
         success: false,
         error: 'Invalid token type. Must be "totp" or "backup"',
-        code: 'INVALID_TYPE'
+        errorCode: 'INVALID_TYPE'
       });
     }
 
@@ -997,7 +997,7 @@ router.post('/mfa/verify', ensureAuthenticatedAPI, validate(mfaVerifyBody, 'body
       return res.status(400).json({
         success: false,
         error: 'Invalid verification code',
-        code: 'INVALID_TOKEN'
+        errorCode: 'INVALID_TOKEN'
       });
     }
 
