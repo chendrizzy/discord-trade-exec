@@ -58,11 +58,13 @@ Per plan.md structure:
 
 ### Provider Abstraction (TDD REQUIRED - critical path)
 
-- [ ] T011 Define SubscriptionProvider interface in src/services/subscription/subscription-provider.interface.ts
-- [ ] T012 Write failing tests for DiscordSubscriptionProvider in tests/unit/services/subscription/discord-subscription-provider.spec.ts
-- [ ] T013 Write failing tests for MockSubscriptionProvider in tests/unit/services/subscription/mock-subscription-provider.spec.ts
-- [ ] T014 Implement DiscordSubscriptionProvider with Discord.js integration in src/services/subscription/discord-subscription-provider.ts (verify tests pass)
-- [ ] T015 [P] Implement MockSubscriptionProvider for testing in src/services/subscription/mock-subscription-provider.ts (verify tests pass)
+- [x] T011 Define SubscriptionProvider interface (src/services/subscription/SubscriptionProvider.js)
+- [x] T012 Write failing tests for DiscordSubscriptionProvider (61 tests in tests/unit/services/subscription/discord-subscription-provider.test.js)
+- [x] T013 Write failing tests for MockSubscriptionProvider (45 tests in tests/unit/services/subscription/mock-subscription-provider.test.js)
+- [ ] T014 Implement DiscordSubscriptionProvider with Discord.js integration (verify 61/61 tests pass)
+- [ ] T015 [P] Implement MockSubscriptionProvider for testing (verify 45/45 tests pass)
+
+**Checkpoint**: 106 provider tests written | Commits: 078fd23, 556dc7e, 74b73b9
 
 ### Caching Infrastructure (TDD REQUIRED - critical path)
 
