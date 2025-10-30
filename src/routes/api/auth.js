@@ -1060,4 +1060,51 @@ router.get('/csrf-token', (req, res) => {
   }
 });
 
+/**
+ * POST /api/auth/logout
+ *
+ * Logout user and destroy session.
+ *
+ * @requires Authentication
+ * @returns {Object} { success: true, message }
+ */
+router.post('/logout', ensureAuthenticatedAPI, (req, res, next) => {
+  try {
+    const userId = req.user._id;
+    const username = req.user.discordUsername;
+
+    // Passport logout
+    req.logout((err) => {
+      if (err) {
+        logger.error('Passport logout failed', { userId, username, error: err.message });
+        return next(err);
+      }
+
+      // Destroy session
+      req.session.destroy((err) => {
+        if (err) {
+          logger.error('Session destruction failed', { userId, username, error: err.message });
+          return res.status(500).json({
+            success: false,
+            error: 'Logout failed - session could not be destroyed'
+          });
+        }
+
+        logger.info('User logged out successfully', { userId, username });
+
+        res.json({
+          success: true,
+          message: 'Logged out successfully'
+        });
+      });
+    });
+  } catch (error) {
+    logger.error('Logout error', {
+      error: error.message,
+      stack: error.stack
+    });
+    next(error);
+  }
+});
+
 module.exports = router;
