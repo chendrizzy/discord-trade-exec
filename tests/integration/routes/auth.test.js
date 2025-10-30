@@ -1892,13 +1892,13 @@ describe('Integration Test: OAuth2 Authentication Flow', () => {
       }
 
       // First 5 should be invalid token errors
-      const invalidTokenCount = responses.slice(0, 5).filter(r => r.status === 400 && r.body.code === 'INVALID_TOKEN').length;
+      const invalidTokenCount = responses.slice(0, 5).filter(r => r.status === 400 && r.body.errorCode === 'INVALID_TOKEN').length;
       expect(invalidTokenCount).toBeGreaterThanOrEqual(4);
 
       // 6th should be rate limited
       const lastResponse = responses[5];
       expect(lastResponse.status).toBe(429);
-      expect(lastResponse.body.code).toBe('RATE_LIMIT_EXCEEDED');
+      expect(lastResponse.body.errorCode).toBe('RATE_LIMIT_EXCEEDED');
     }, 45000);
   });
 
@@ -2043,7 +2043,7 @@ describe('Integration Test: OAuth2 Authentication Flow', () => {
       // 6th should be rate limited
       const lastResponse = responses[5];
       expect(lastResponse.status).toBe(429);
-      expect(lastResponse.body.code).toBe('RATE_LIMIT_EXCEEDED');
+      expect(lastResponse.body.errorCode).toBe('RATE_LIMIT_EXCEEDED');
     }, 45000);
   });
 
@@ -2287,13 +2287,13 @@ describe('Integration Test: OAuth2 Authentication Flow', () => {
       }
 
       // First 5 should be invalid token errors
-      const invalidTokenCount = responses.slice(0, 5).filter(r => r.status === 400 && r.body.code === 'INVALID_TOKEN').length;
+      const invalidTokenCount = responses.slice(0, 5).filter(r => r.status === 400 && r.body.errorCode === 'INVALID_TOKEN').length;
       expect(invalidTokenCount).toBeGreaterThanOrEqual(4);
 
       // 6th should be rate limited
       const lastResponse = responses[5];
       expect(lastResponse.status).toBe(429);
-      expect(lastResponse.body.code).toBe('RATE_LIMIT_EXCEEDED');
+      expect(lastResponse.body.errorCode).toBe('RATE_LIMIT_EXCEEDED');
       expect(lastResponse.body.error).toMatch(/too many.*attempts/i);
     });
 
