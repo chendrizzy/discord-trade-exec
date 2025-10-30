@@ -62,6 +62,21 @@ module.exports = {
     );
     console.log('[Migration] Created index: email_unique');
 
+    // Check and drop existing compound index if it exists with different name
+    try {
+      const existingIndexes = await collection.indexes();
+      const compoundIndex = existingIndexes.find(idx =>
+        idx.key && idx.key.communityId === 1 && idx.key['subscription.status'] === 1 && idx.name !== 'community_subscription_status'
+      );
+
+      if (compoundIndex) {
+        console.log(`[Migration] Dropping existing index: ${compoundIndex.name}`);
+        await collection.dropIndex(compoundIndex.name);
+      }
+    } catch (err) {
+      console.log('[Migration] No existing compound index to drop or error checking:', err.message);
+    }
+
     // Create compound index for subscription queries
     await collection.createIndex(
       { communityId: 1, 'subscription.status': 1 },
