@@ -271,30 +271,52 @@ function createApp(options = {}) {
   app.get('/health', async (req, res) => {
     const RedisService = require('./services/redis');
     const EnvValidator = require('./utils/env-validator');
+    const mongoose = require('mongoose');
 
     const health = {
       status: 'healthy',
       timestamp: new Date().toISOString(),
       uptime: process.uptime(),
-      memory: process.memoryUsage()
+      memory: process.memoryUsage(),
+      services: {}
     };
 
     // Include Redis statistics
     try {
       health.redis = await RedisService.getStats();
+      health.services.redis = { status: 'ok', mode: RedisService.getMode() };
     } catch (err) {
       health.redis = { mode: 'error', error: err.message };
+      health.services.redis = { status: 'error', error: err.message };
     }
+
+    // Check MongoDB connection (T076)
+    const mongoState = mongoose.connection.readyState;
+    health.services.mongodb = {
+      status: mongoState === 1 ? 'ok' : 'error',
+      state: ['disconnected', 'connected', 'connecting', 'disconnecting'][mongoState] || 'unknown'
+    };
 
     // Check for mock/sandbox configurations (US5-T04)
     const mockDetection = EnvValidator.detectMocks();
     health.mocks = mockDetection;
+
+    // Determine overall health
+    const servicesHealthy = Object.values(health.services).every(s => s.status === 'ok');
+    const noMockIssues = !mockDetection.isDangerous;
 
     // If production has dangerous mock configurations, mark as unhealthy
     if (mockDetection.isDangerous) {
       health.status = 'unhealthy';
       health.error = 'Mock/sandbox configurations detected in production environment';
       return res.status(500).json(health);
+    }
+
+    // If services unhealthy, mark as degraded
+    if (!servicesHealthy) {
+      health.status = 'degraded';
+      health.error = 'One or more services are unhealthy';
+      return res.status(503).json(health);
     }
 
     res.json(health);
@@ -354,6 +376,82 @@ function createApp(options = {}) {
     });
   });
 
+  // Subscription service health check endpoint (T076)
+  app.get('/health/subscription', async (req, res) => {
+    const mongoose = require('mongoose');
+
+    try {
+      const healthCheck = {
+        status: 'healthy',
+        timestamp: new Date().toISOString(),
+        services: {}
+      };
+
+      // Check MongoDB connection
+      const mongoState = mongoose.connection.readyState;
+      const mongoStates = {
+        0: 'disconnected',
+        1: 'connected',
+        2: 'connecting',
+        3: 'disconnecting'
+      };
+
+      healthCheck.services.mongodb = {
+        status: mongoState === 1 ? 'ok' : 'error',
+        state: mongoStates[mongoState] || 'unknown',
+        readyState: mongoState
+      };
+
+      // Check Redis cache (used by subscription service)
+      try {
+        const RedisService = require('./services/redis');
+        const redisStats = await RedisService.getStats();
+        healthCheck.services.redis = {
+          status: 'ok',
+          mode: RedisService.getMode(),
+          ...redisStats
+        };
+      } catch (err) {
+        healthCheck.services.redis = {
+          status: 'error',
+          error: err.message
+        };
+      }
+
+      // Check ServerConfiguration model
+      try {
+        const ServerConfiguration = require('./models/ServerConfiguration');
+        const configCount = await ServerConfiguration.countDocuments();
+        healthCheck.services.serverConfiguration = {
+          status: 'ok',
+          totalConfigurations: configCount
+        };
+      } catch (err) {
+        healthCheck.services.serverConfiguration = {
+          status: 'error',
+          error: err.message
+        };
+      }
+
+      // Determine overall health
+      const allHealthy = Object.values(healthCheck.services).every(
+        service => service.status === 'ok'
+      );
+
+      healthCheck.status = allHealthy ? 'healthy' : 'unhealthy';
+
+      const statusCode = allHealthy ? 200 : 503;
+      res.status(statusCode).json(healthCheck);
+
+    } catch (error) {
+      res.status(500).json({
+        status: 'error',
+        timestamp: new Date().toISOString(),
+        error: error.message
+      });
+    }
+  });
+
   // API info endpoint
   app.get('/api', (req, res) => {
     res.json({
@@ -387,7 +485,7 @@ function createApp(options = {}) {
           ]
         },
         webhooks: ['/webhook/polar', '/webhook/tradingview'],
-        health: ['/health']
+        health: ['/health', '/health/redis', '/health/oauth2', '/health/subscription']
       },
       features: [
         'Discord OAuth2 authentication',

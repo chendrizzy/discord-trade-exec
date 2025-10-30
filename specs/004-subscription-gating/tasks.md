@@ -255,10 +255,10 @@ Per plan.md structure:
 
 **Purpose**: Final improvements affecting multiple user stories
 
-- [ ] T073 [P] Add performance benchmarks to verify <2s p95 verification SLA (SC-002)
-- [ ] T074 [P] Add load testing with artillery for 1000+ concurrent operations
-- [ ] T075 [P] Review and optimize Discord API rate limit handling
-- [ ] T076 [P] Add health check endpoint for subscription verification service
+- [x] T073 [P] Add performance benchmarks to verify <2s p95 verification SLA (SC-002)
+- [x] T074 [P] Add load testing with artillery for 1000+ concurrent operations
+- [x] T075 [P] Review and optimize Discord API rate limit handling
+- [x] T076 [P] Add health check endpoint for subscription verification service
 - [ ] T077 [P] Create quickstart.md validation tests
 - [ ] T078 [P] Add comprehensive error logging for observability (Principle VI)
 - [ ] T079 Code cleanup and refactoring across all services
