@@ -108,8 +108,8 @@ Independent test: Simulate trade fill -> `trade.filled` broadcasted to user sock
 
 - [X] T045 [US3] Implement `src/websocket/handlers/TradeHandler.js` to emit trade events — File: `src/websocket/handlers/TradeHandler.js` (COMPLETE: 490 lines, 8 event types, MongoDB Change Streams, error sanitization)
 - [X] T046 [US3] Implement `src/websocket/handlers/PortfolioHandler.js` to emit portfolio updates — File: `src/websocket/handlers/PortfolioHandler.js` (COMPLETE: 630 lines, 8 event types, 1Hz throttling, margin warnings)
-- [ ] T047 [P] [US3] Frontend Socket.IO client hook `src/dashboard/services/websocket.js` to handle events (parallelizable) — File: `src/dashboard/services/websocket.js`
-- [ ] T048 [US3] E2E Playwright test: `tests/e2e/trade-execution.spec.js` checks real-time update flow — File: `tests/e2e/trade-execution.spec.js`
+- [X] T047 [P] [US3] Frontend Socket.IO client hook `src/dashboard/services/websocket.js` to handle events (parallelizable) — File: `src/dashboard/services/websocket.js` (COMPLETE: 505 lines, WebSocketService singleton, JWT auth, exponential backoff, React hooks)
+- [X] T048 [US3] E2E Playwright test: `tests/e2e/trade-execution.spec.js` checks real-time update flow — File: `tests/e2e/trade-execution.spec.js` (COMPLETE: 545 lines, 9 comprehensive E2E tests covering trade flow, multi-tab sync, WebSocket resilience)
 
 ### US-005: Analytics Platform & Business Intelligence (P2)
 Goal: Implement MRR/ARR calculations and basic churn scoring pipeline (offline job initially).
