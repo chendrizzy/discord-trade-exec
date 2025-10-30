@@ -315,6 +315,19 @@ router.get('/callback', validate(oauthCallbackQuery, 'query'), async (req, res) 
  */
 router.post('/callback', validate(oauthCallbackBody, 'body'), async (req, res, next) => {
   try {
+    // Bug #3: Enforce HTTPS in production for OAuth2 callbacks
+    if (process.env.NODE_ENV === 'production' && req.protocol !== 'https') {
+      logger.warn('OAuth2 callback rejected: HTTPS required in production', {
+        protocol: req.protocol,
+        ip: req.ip,
+        userAgent: req.get('user-agent')
+      });
+      return res.status(400).json({
+        success: false,
+        error: 'HTTPS required for OAuth2 callbacks in production'
+      });
+    }
+
     const { code, state } = req.body;
 
     // Validate required parameters
