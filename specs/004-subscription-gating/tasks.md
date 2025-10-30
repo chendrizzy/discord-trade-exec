@@ -240,12 +240,12 @@ Per plan.md structure:
 
 ### Implementation for User Story 6
 
-- [ ] T067 [P] [US6] Implement analytics query service in src/services/analytics/access-analytics.service.ts
-- [ ] T068 [US6] Implement /analytics access command in src/commands/analytics/access-stats.command.ts
-- [ ] T069 [US6] Add per-server data isolation in analytics queries
-- [ ] T070 [US6] Create analytics embed template with time-based metrics
-- [ ] T071 [P] [US6] Write integration tests for analytics queries in tests/integration/analytics.integration.spec.ts
-- [ ] T072 [US6] Verify all US6 tests pass
+- [x] T067 [P] [US6] Implement analytics query service in src/services/analytics/AccessAnalyticsService.js
+- [x] T068 [US6] Implement /analytics access command in src/commands/analytics/access-analytics.command.js
+- [x] T069 [US6] Add per-server data isolation in analytics queries (enforced via guildId filtering)
+- [x] T070 [US6] Create analytics embed template with time-based metrics in src/utils/analytics-embed.builder.js
+- [x] T071 [P] [US6] Write integration tests for analytics queries in tests/integration/analytics/access-analytics.integration.test.js
+- [x] T072 [US6] Verify all US6 tests pass (11/11 tests passing)
 
 **Checkpoint**: Analytics available - server owners can make data-driven decisions (nice-to-have feature complete)
 
