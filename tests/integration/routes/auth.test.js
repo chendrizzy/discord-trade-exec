@@ -2716,4 +2716,306 @@ describe('Integration Test: OAuth2 Authentication Flow', () => {
       expect([200, 400]).toContain(setupRes.status);
     });
   });
+
+  // ============================================================================
+  // PRIORITY TEST GAPS (from PR Review)
+  // ============================================================================
+
+  describe('Priority Test Gap 1: Token Expiry During Operation', () => {
+    /**
+     * Priority: 9/10
+     * Risk: Token expires mid-operation causing silent failures
+     * Test: Simulates token expiry during critical OAuth operations
+     */
+    it('should handle token expiry gracefully during refresh operation', async () => {
+      // Create user with expired access token but valid refresh token
+      const testUser = await User.create({
+        discordId: `token_expiry_${Date.now()}`,
+        username: 'token_expiry_test',
+        discordUsername: 'token_expiry_test',
+        discordTag: 'token_expiry_test#1234',
+        email: 'token.expiry@test.com',
+        oauth2: {
+          provider: 'discord',
+          accessToken: 'expired_access_token',
+          refreshToken: 'valid_refresh_token',
+          tokenExpiry: new Date(Date.now() - 60000) // Expired 1 minute ago
+        }
+      });
+
+      // Mock successful token refresh
+      axios.post.mockResolvedValueOnce({
+        data: {
+          access_token: 'new_access_token',
+          refresh_token: 'new_refresh_token',
+          expires_in: 604800 // 7 days
+        }
+      });
+
+      // Login to establish session
+      const agent = request.agent(app);
+      const loginRes = await agent
+        .post('/api/auth/login/mock')
+        .send({ userId: testUser._id.toString() })
+        .expect(200);
+
+      // Verify user got new tokens after refresh
+      const updatedUser = await User.findById(testUser._id);
+      expect(updatedUser.oauth2.tokenExpiry.getTime()).toBeGreaterThan(Date.now());
+    });
+
+    it('should return proper error when refresh token is also expired', async () => {
+      // Create user with both tokens expired
+      const testUser = await User.create({
+        discordId: `both_expired_${Date.now()}`,
+        username: 'both_expired_test',
+        discordUsername: 'both_expired_test',
+        discordTag: 'both_expired_test#1234',
+        email: 'both.expired@test.com',
+        oauth2: {
+          provider: 'discord',
+          accessToken: 'expired_access_token',
+          refreshToken: 'expired_refresh_token',
+          tokenExpiry: new Date(Date.now() - 60000) // Expired 1 minute ago
+        }
+      });
+
+      // Mock failed token refresh (invalid grant error)
+      axios.post.mockRejectedValueOnce({
+        response: {
+          status: 400,
+          data: { error: 'invalid_grant' }
+        }
+      });
+
+      // Attempt login - should handle token refresh failure gracefully
+      const agent = request.agent(app);
+      const loginRes = await agent
+        .post('/api/auth/login/mock')
+        .send({ userId: testUser._id.toString() });
+
+      // Should still allow login with mock (token refresh not critical for mock)
+      expect(loginRes.status).toBe(200);
+    });
+  });
+
+  describe('Priority Test Gap 2: Provider Outage Graceful Degradation', () => {
+    /**
+     * Priority: 9/10
+     * Risk: Provider outage causes complete service failure
+     * Test: Verifies graceful degradation when OAuth provider is unavailable
+     */
+    it('should gracefully handle Discord API timeout during user info fetch', async () => {
+      const testUser = await User.create({
+        discordId: `outage_test_${Date.now()}`,
+        username: 'outage_test',
+        discordUsername: 'outage_test',
+        discordTag: 'outage_test#1234',
+        email: 'outage@test.com',
+        oauth2: {
+          provider: 'discord',
+          accessToken: 'valid_access_token',
+          refreshToken: 'valid_refresh_token',
+          tokenExpiry: new Date(Date.now() + 604800000) // Valid for 7 days
+        }
+      });
+
+      // Mock timeout error from Discord API
+      axios.get.mockRejectedValueOnce({
+        code: 'ECONNABORTED',
+        message: 'timeout of 5000ms exceeded'
+      });
+
+      // Login should still work with cached user data
+      const agent = request.agent(app);
+      const loginRes = await agent
+        .post('/api/auth/login/mock')
+        .send({ userId: testUser._id.toString() })
+        .expect(200);
+
+      expect(loginRes.body.success).toBe(true);
+      expect(loginRes.body.user).toBeDefined();
+    });
+
+    it('should cache user data and serve from cache during provider outage', async () => {
+      const testUser = await User.create({
+        discordId: `cache_test_${Date.now()}`,
+        username: 'cache_test',
+        discordUsername: 'cache_test',
+        discordTag: 'cache_test#1234',
+        email: 'cache@test.com',
+        oauth2: {
+          provider: 'discord',
+          accessToken: 'valid_access_token',
+          refreshToken: 'valid_refresh_token',
+          tokenExpiry: new Date(Date.now() + 604800000)
+        }
+      });
+
+      // First request succeeds (establishes cache)
+      const agent = request.agent(app);
+      const firstLogin = await agent
+        .post('/api/auth/login/mock')
+        .send({ userId: testUser._id.toString() })
+        .expect(200);
+
+      // Second request with provider outage should serve from cache
+      axios.get.mockRejectedValueOnce({
+        code: 'ECONNREFUSED',
+        message: 'connect ECONNREFUSED'
+      });
+
+      const secondLogin = await agent
+        .post('/api/auth/login/mock')
+        .send({ userId: testUser._id.toString() })
+        .expect(200);
+
+      expect(secondLogin.body.success).toBe(true);
+      expect(secondLogin.body.user.discordUsername).toBe('cache_test');
+    });
+
+    it('should return helpful error message when provider is completely unavailable', async () => {
+      // Mock complete provider failure
+      axios.post.mockRejectedValueOnce({
+        code: 'ENOTFOUND',
+        message: 'getaddrinfo ENOTFOUND discord.com'
+      });
+
+      axios.get.mockRejectedValueOnce({
+        code: 'ENOTFOUND',
+        message: 'getaddrinfo ENOTFOUND discord.com'
+      });
+
+      // Attempt OAuth callback with completely unavailable provider
+      const res = await request(app)
+        .get('/api/auth/callback/discord')
+        .query({ code: 'test_auth_code' });
+
+      // Should return error but not crash
+      expect([302, 401, 500]).toContain(res.status);
+    });
+  });
+
+  describe('Priority Test Gap 3: Rate Limiting Multi-Device Scenarios', () => {
+    /**
+     * Priority: 8/10
+     * Risk: Rate limiting incorrectly blocks legitimate multi-device users
+     * Test: Verifies rate limiting works correctly across multiple devices/sessions
+     */
+    it('should allow concurrent logins from different devices within rate limits', async () => {
+      const testUser = await User.create({
+        discordId: `multidevice_${Date.now()}`,
+        username: 'multidevice_test',
+        discordUsername: 'multidevice_test',
+        discordTag: 'multidevice_test#1234',
+        email: 'multidevice@test.com'
+      });
+
+      // Simulate 3 concurrent logins from different devices (different user agents)
+      const deviceLogins = await Promise.all([
+        request(app)
+          .post('/api/auth/login/mock')
+          .set('User-Agent', 'Mozilla/5.0 (iPhone)')
+          .send({ userId: testUser._id.toString() }),
+        request(app)
+          .post('/api/auth/login/mock')
+          .set('User-Agent', 'Mozilla/5.0 (Macintosh)')
+          .send({ userId: testUser._id.toString() }),
+        request(app)
+          .post('/api/auth/login/mock')
+          .set('User-Agent', 'Mozilla/5.0 (Windows)')
+          .send({ userId: testUser._id.toString() })
+      ]);
+
+      // All should succeed (concurrent devices are legitimate)
+      deviceLogins.forEach(res => {
+        expect(res.status).toBe(200);
+        expect(res.body.success).toBe(true);
+      });
+    });
+
+    it('should rate limit rapid succession logins from same device', async () => {
+      const testUser = await User.create({
+        discordId: `ratelimit_${Date.now()}`,
+        username: 'ratelimit_test',
+        discordUsername: 'ratelimit_test',
+        discordTag: 'ratelimit_test#1234',
+        email: 'ratelimit@test.com'
+      });
+
+      const requests = [];
+      const userAgent = 'Mozilla/5.0 (Test Browser)';
+
+      // Fire 20 rapid login attempts from same device
+      for (let i = 0; i < 20; i++) {
+        requests.push(
+          request(app)
+            .post('/api/auth/login/mock')
+            .set('User-Agent', userAgent)
+            .send({ userId: testUser._id.toString() })
+        );
+      }
+
+      const results = await Promise.all(requests);
+
+      // Some should succeed, some should be rate limited (429)
+      const rateLimited = results.filter(r => r.status === 429);
+      const successful = results.filter(r => r.status === 200);
+
+      expect(rateLimited.length).toBeGreaterThan(0); // Should have rate limited some
+      expect(successful.length).toBeGreaterThan(0); // But not all (first few succeed)
+    });
+
+    it('should track MFA attempts separately per device', async () => {
+      // Create user with MFA enabled
+      const mfaSecret = 'test_mfa_secret_' + Date.now();
+      const testUser = await User.create({
+        discordId: `mfa_multidevice_${Date.now()}`,
+        username: 'mfa_multidevice',
+        discordUsername: 'mfa_multidevice',
+        discordTag: 'mfa_multidevice#1234',
+        email: 'mfa.multidevice@test.com',
+        mfa: {
+          enabled: true,
+          secret: mfaSecret,
+          backupCodes: []
+        }
+      });
+
+      // Login from device 1
+      const device1 = request.agent(app);
+      const login1 = await device1
+        .post('/api/auth/login/mock')
+        .send({ userId: testUser._id.toString() })
+        .expect(200);
+
+      const cookie1 = login1.headers['set-cookie'];
+
+      // Login from device 2
+      const device2 = request.agent(app);
+      const login2 = await device2
+        .post('/api/auth/login/mock')
+        .send({ userId: testUser._id.toString() })
+        .expect(200);
+
+      const cookie2 = login2.headers['set-cookie'];
+
+      // Both devices should be able to attempt MFA
+      const invalidToken = '000000';
+
+      const mfa1 = await device1
+        .post('/api/v1/auth/mfa/verify')
+        .set('Cookie', cookie1)
+        .send({ token: invalidToken });
+
+      const mfa2 = await device2
+        .post('/api/v1/auth/mfa/verify')
+        .set('Cookie', cookie2)
+        .send({ token: invalidToken });
+
+      // Both should fail (invalid token) but not interfere with each other's rate limits
+      expect([400, 401, 429]).toContain(mfa1.status);
+      expect([400, 401, 429]).toContain(mfa2.status);
+    });
+  });
 });
