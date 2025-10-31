@@ -595,10 +595,30 @@ describe('Integration Test: OAuth2 Authentication Flow', () => {
     });
 
     it('should reject expired session cookies', async () => {
-      // Simulate expired cookie (beyond maxAge)
-      const expiredCookie = authCookie[0].replace(/Max-Age=\d+/, 'Max-Age=0');
+      // Extract session ID from cookie
+      const sessionIdMatch = authCookie[0].match(/connect\.sid=s%3A([^.]+)\./);
+      expect(sessionIdMatch).toBeTruthy();
+      const sessionId = sessionIdMatch[1];
 
-      await request(app).get('/api/v1/auth/brokers/status').set('Cookie', expiredCookie).expect(401);
+      // Directly manipulate the session in MongoDB to set an expired date
+      // The session store uses the session ID as the key
+      await new Promise((resolve, reject) => {
+        sessionStore.get(sessionId, (err, session) => {
+          if (err) return reject(err);
+          if (!session) return reject(new Error('Session not found'));
+
+          // Set the session cookie expiry to the past
+          session.cookie.expires = new Date(Date.now() - 1000); // 1 second ago
+
+          sessionStore.set(sessionId, session, (err) => {
+            if (err) return reject(err);
+            resolve();
+          });
+        });
+      });
+
+      // Now the session should be rejected as expired
+      await request(app).get('/api/v1/auth/brokers/status').set('Cookie', authCookie).expect(401);
     });
   });
 
@@ -681,17 +701,18 @@ describe('Integration Test: OAuth2 Authentication Flow', () => {
       const agent = request.agent(app);
       await agent.post('/api/auth/login/mock').send({ userId: testUser._id.toString() });
 
-      // Make multiple rapid requests
-      const requests = [];
-      for (let i = 0; i < 20; i++) {
-        requests.push(agent.get('/api/v1/auth/broker/alpaca/authorize'));
+      // Make 15 sequential requests (rate limit is 10 per 15 minutes)
+      // Using sequential requests to avoid ECONNRESET issues with parallel requests
+      const responses = [];
+      for (let i = 0; i < 15; i++) {
+        const response = await agent.get('/api/v1/auth/broker/alpaca/authorize');
+        responses.push(response);
       }
 
-      const responses = await Promise.all(requests);
-
-      // At least some should be rate-limited (429 status)
+      // First 10 should succeed, subsequent ones should be rate-limited (429 status)
       const rateLimitedCount = responses.filter(r => r.status === 429).length;
       expect(rateLimitedCount).toBeGreaterThan(0);
+      expect(rateLimitedCount).toBeLessThanOrEqual(5); // At most 5 rate-limited (15 - 10 = 5)
     });
 
     it('should handle malformed authorization codes', async () => {
