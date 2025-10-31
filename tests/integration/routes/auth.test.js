@@ -115,6 +115,15 @@ describe('Integration Test: OAuth2 Authentication Flow', () => {
     if (mfaService && mfaService.shutdown) {
       mfaService.shutdown();
     }
+
+    // Cleanup rate limiter intervals to prevent open handles
+    const { exchangeCallTracker, brokerCallTracker } = require('../../../src/middleware/rateLimiter');
+    if (exchangeCallTracker && exchangeCallTracker.destroy) {
+      exchangeCallTracker.destroy();
+    }
+    if (brokerCallTracker && brokerCallTracker.destroy) {
+      brokerCallTracker.destroy();
+    }
   });
 
   beforeEach(async () => {
