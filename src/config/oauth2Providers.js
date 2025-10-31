@@ -27,7 +27,9 @@ function validateProviderEnvVars(providerName, clientIdVar, clientSecretVar) {
 }
 
 // Base URL for OAuth2 callbacks
-const BASE_URL = process.env.BASE_URL || 'http://localhost:3000';
+// Bug #3: Enforce HTTPS in production
+const BASE_URL = process.env.BASE_URL ||
+  (process.env.NODE_ENV === 'production' ? 'https://localhost:3000' : 'http://localhost:3000');
 const OAUTH2_CALLBACK_PATH = '/auth/broker/callback';
 
 /**
@@ -142,7 +144,16 @@ function getProviderConfig(broker) {
   if (!config || !config.enabled) {
     return null;
   }
-  return config;
+
+  // Bug #3: Dynamically compute redirectUri based on current NODE_ENV
+  // This ensures HTTPS is used in production even if env changes after module load
+  const currentBaseURL = process.env.BASE_URL ||
+    (process.env.NODE_ENV === 'production' ? 'https://localhost:3000' : 'http://localhost:3000');
+
+  return {
+    ...config,
+    redirectUri: `${currentBaseURL}${OAUTH2_CALLBACK_PATH}`
+  };
 }
 
 /**

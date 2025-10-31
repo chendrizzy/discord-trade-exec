@@ -1,0 +1,382 @@
+/**
+ * ServerConfigurationService - Guild Configuration Management
+ *
+ * Feature: 004-subscription-gating
+ * Phase: 2 (Foundational)
+ * Task: T019 - Implement ServerConfigurationService with in-memory cache
+ *
+ * Purpose: Manage guild subscription configurations with efficient caching
+ *
+ * This service provides:
+ * - Guild configuration CRUD operations
+ * - In-memory caching for fast access
+ * - Cache invalidation on updates
+ * - Discord snowflake validation
+ * - Mongoose integration
+ *
+ * Performance: <10ms for cache hits, <100ms for DB operations
+ *
+ * @see specs/004-subscription-gating/contracts/subscription-verification-api.md
+ */
+
+const logger = require('@utils/logger');
+
+// Discord snowflake validation pattern (17-19 digits)
+const DISCORD_SNOWFLAKE_PATTERN = /^\d{17,19}$/;
+
+// Valid access modes
+const ACCESS_MODES = ['subscription_required', 'open_access'];
+
+class ServerConfigurationService {
+  /**
+   * Create a ServerConfigurationService
+   *
+   * @param {import('mongoose').Model} configModel - Mongoose ServerConfiguration model
+   * @throws {Error} If model is not provided
+   */
+  constructor(configModel) {
+    if (!configModel) {
+      throw new Error('Mongoose model is required');
+    }
+
+    this.configModel = configModel;
+
+    // In-memory cache: Map<guildId, config>
+    this.cache = new Map();
+
+    logger.info('ServerConfigurationService initialized');
+  }
+
+  /**
+   * Validate Discord snowflake ID format
+   *
+   * @param {string} id - ID to validate
+   * @param {string} type - Type of ID (for error message)
+   * @throws {Error} If ID format is invalid
+   * @private
+   */
+  _validateSnowflake(id, type) {
+    if (!DISCORD_SNOWFLAKE_PATTERN.test(id)) {
+      throw new Error(
+        `Invalid ${type} ID format. Expected 17-19 digit Discord snowflake.`
+      );
+    }
+  }
+
+  /**
+   * Validate access mode
+   *
+   * @param {string} mode - Access mode to validate
+   * @throws {Error} If access mode is invalid
+   * @private
+   */
+  _validateAccessMode(mode) {
+    if (!ACCESS_MODES.includes(mode)) {
+      throw new Error(
+        `Invalid access mode: ${mode}. Expected one of: ${ACCESS_MODES.join(', ')}`
+      );
+    }
+  }
+
+  /**
+   * Invalidate cache for a specific guild
+   *
+   * @param {string} guildId - Guild ID to invalidate
+   * @private
+   */
+  _invalidateCache(guildId) {
+    this.cache.delete(guildId);
+  }
+
+  /**
+   * Get configuration for a guild (with in-memory cache)
+   *
+   * @param {string} guildId - Discord guild ID (17-19 digits)
+   * @returns {Promise<Object | null>} Guild configuration or null if not found
+   * @throws {Error} If database operation fails
+   */
+  async getConfig(guildId) {
+    const startTime = Date.now();
+
+    // Validate input
+    this._validateSnowflake(guildId, 'guild');
+
+    // Check cache first
+    if (this.cache.has(guildId)) {
+      const cached = this.cache.get(guildId);
+
+      // Validate cache integrity - ensure it's an object with expected structure
+      if (typeof cached === 'object' && cached !== null && cached.guildId) {
+        const duration = Date.now() - startTime;
+        logger.debug('Configuration cache hit', { guildId, duration });
+        return cached;
+      }
+
+      // Cache corrupted - clear it and fetch from DB
+      logger.warn('Cache corruption detected, invalidating', { guildId });
+      this.cache.delete(guildId);
+    }
+
+    try {
+      // Fetch from database
+      logger.debug('Configuration cache miss, fetching from DB', { guildId });
+      const config = await this.configModel.findOne({ guildId });
+      const duration = Date.now() - startTime;
+
+      if (!config) {
+        logger.debug('No configuration found for guild', { guildId, duration });
+        return null;
+      }
+
+      // Convert Mongoose document to plain object
+      const plainConfig = config.toObject ? config.toObject() : config;
+
+      // Map accessControlMode to accessMode for API consistency
+      if (plainConfig.accessControlMode) {
+        plainConfig.accessMode = plainConfig.accessControlMode;
+      }
+
+      // Cache the result
+      this.cache.set(guildId, plainConfig);
+
+      logger.debug('Configuration fetched and cached', {
+        guildId,
+        accessMode: plainConfig.accessMode,
+        duration
+      });
+
+      return plainConfig;
+    } catch (error) {
+      const duration = Date.now() - startTime;
+      logger.error('Configuration fetch error', {
+        error: error.message,
+        stack: error.stack,
+        guildId,
+        duration
+      });
+      throw new Error(`Database error: ${error.message}`);
+    }
+  }
+
+  /**
+   * Create initial configuration for a new guild
+   *
+   * @param {string} guildId - Discord guild ID (17-19 digits)
+   * @param {'subscription_required' | 'open_access'} accessMode - Access control mode
+   * @param {string[]} requiredRoleIds - Role IDs (required if subscription_required)
+   * @param {string} modifiedBy - Discord user ID of server owner
+   * @returns {Promise<Object>} Created configuration
+   * @throws {Error} If creation fails or validation fails
+   */
+  async createConfig(guildId, accessMode, requiredRoleIds, modifiedBy) {
+    const startTime = Date.now();
+
+    // Validate inputs
+    this._validateSnowflake(guildId, 'guild');
+    this._validateAccessMode(accessMode);
+    this._validateSnowflake(modifiedBy, 'user');
+
+    // Validate requiredRoleIds
+    if (accessMode === 'subscription_required') {
+      if (!Array.isArray(requiredRoleIds) || requiredRoleIds.length === 0) {
+        throw new Error('Required role IDs array cannot be empty for subscription_required mode');
+      }
+
+      // Validate each role ID
+      for (const roleId of requiredRoleIds) {
+        this._validateSnowflake(roleId, 'role');
+      }
+    }
+
+    try {
+      // Create configuration
+      const config = await this.configModel.create({
+        guildId,
+        accessControlMode: accessMode,
+        requiredRoleIds: requiredRoleIds || [],
+        modifiedBy,
+        lastModified: new Date()
+      });
+
+      // Invalidate cache (in case there was old data)
+      this._invalidateCache(guildId);
+
+      // Convert to plain object and map field for API consistency
+      const plainConfig = config.toObject ? config.toObject() : config;
+      if (plainConfig.accessControlMode) {
+        plainConfig.accessMode = plainConfig.accessControlMode;
+      }
+
+      const duration = Date.now() - startTime;
+      logger.info('Configuration created', {
+        guildId,
+        accessMode,
+        roleCount: requiredRoleIds?.length || 0,
+        modifiedBy,
+        duration
+      });
+
+      return plainConfig;
+    } catch (error) {
+      const duration = Date.now() - startTime;
+
+      // Handle duplicate key error
+      if (error.message.includes('E11000') || error.message.includes('duplicate key')) {
+        logger.warn('Duplicate configuration creation attempted', {
+          guildId,
+          modifiedBy,
+          duration
+        });
+        throw new Error(`Configuration for guild ${guildId} already exists`);
+      }
+
+      logger.error('Configuration creation error', {
+        error: error.message,
+        stack: error.stack,
+        guildId,
+        accessMode,
+        modifiedBy,
+        duration
+      });
+      throw new Error(`Database error: ${error.message}`);
+    }
+  }
+
+  /**
+   * Update existing configuration
+   *
+   * @param {string} guildId - Discord guild ID (17-19 digits)
+   * @param {Object} updates - Partial configuration updates
+   * @param {string} modifiedBy - Discord user ID making the change
+   * @returns {Promise<Object>} Updated configuration
+   * @throws {Error} If update fails or guild not found
+   */
+  async updateConfig(guildId, updates, modifiedBy) {
+    const startTime = Date.now();
+
+    // Validate inputs
+    this._validateSnowflake(guildId, 'guild');
+    this._validateSnowflake(modifiedBy, 'user');
+
+    // Prevent updating guildId
+    if (updates.guildId) {
+      throw new Error('Cannot update guild ID');
+    }
+
+    // Validate access mode if being updated
+    if (updates.accessMode) {
+      this._validateAccessMode(updates.accessMode);
+    }
+
+    // Validate role IDs if being updated
+    if (updates.requiredRoleIds) {
+      if (!Array.isArray(updates.requiredRoleIds)) {
+        throw new Error('Required role IDs must be an array');
+      }
+
+      for (const roleId of updates.requiredRoleIds) {
+        this._validateSnowflake(roleId, 'role');
+      }
+    }
+
+    try {
+      // Map accessMode to accessControlMode for Mongoose model
+      const updateData = { ...updates };
+      if (updateData.accessMode) {
+        updateData.accessControlMode = updateData.accessMode;
+        delete updateData.accessMode;
+      }
+
+      // Update configuration
+      const config = await this.configModel.findOneAndUpdate(
+        { guildId },
+        {
+          ...updateData,
+          modifiedBy,
+          lastModified: new Date()
+        },
+        { new: true }
+      );
+
+      if (!config) {
+        const duration = Date.now() - startTime;
+        logger.warn('Configuration update attempted for non-existent guild', {
+          guildId,
+          modifiedBy,
+          duration
+        });
+        throw new Error(`Guild ${guildId} not found`);
+      }
+
+      // Invalidate cache
+      this._invalidateCache(guildId);
+
+      // Convert to plain object and map field for API consistency
+      const plainConfig = config.toObject ? config.toObject() : config;
+      if (plainConfig.accessControlMode) {
+        plainConfig.accessMode = plainConfig.accessControlMode;
+      }
+
+      const duration = Date.now() - startTime;
+
+      // Log changes (simplified - just log what was updated)
+      const changes = {};
+      if (updates.accessMode) {
+        changes.accessMode = updates.accessMode;
+      }
+      if (updates.requiredRoleIds) {
+        changes.requiredRoleIdsCount = updates.requiredRoleIds.length;
+      }
+      if (updates.isActive !== undefined) {
+        changes.isActive = updates.isActive;
+      }
+
+      logger.info('Configuration updated', {
+        guildId,
+        modifiedBy,
+        changes,
+        duration
+      });
+
+      return plainConfig;
+    } catch (error) {
+      const duration = Date.now() - startTime;
+
+      // Re-throw "not found" errors
+      if (error.message.includes('not found')) {
+        throw error;
+      }
+
+      logger.error('Configuration update error', {
+        error: error.message,
+        stack: error.stack,
+        guildId,
+        modifiedBy,
+        updates,
+        duration
+      });
+      throw new Error(`Database error: ${error.message}`);
+    }
+  }
+
+  /**
+   * Check if guild has a configuration
+   *
+   * @param {string} guildId - Discord guild ID (17-19 digits)
+   * @returns {Promise<boolean>} True if config exists
+   * @throws {Error} If database operation fails
+   */
+  async configExists(guildId) {
+    // Validate input
+    this._validateSnowflake(guildId, 'guild');
+
+    try {
+      const result = await this.configModel.exists({ guildId });
+      return result !== null;
+    } catch (error) {
+      throw new Error(`Database error: ${error.message}`);
+    }
+  }
+}
+
+module.exports = { ServerConfigurationService };

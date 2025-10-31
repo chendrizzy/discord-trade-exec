@@ -10,8 +10,9 @@ const express = require('express');
 const router = express.Router();
 const oauth2Service = require('../../services/OAuth2Service');
 const { isOAuth2Broker, getEnabledProviders, getProviderConfig } = require('../../config/oauth2Providers');
-const { ensureAuthenticated } = require('../../middleware/auth');
+const { ensureAuthenticatedAPI } = require('../../middleware/auth');
 const { getMFAService } = require('../../services/MFAService');
+const { oauthAuthorizationLimiter } = require('../../middleware/rateLimiter');
 const User = require('../../models/User');
 const { BrokerFactory } = require('../../brokers');
 const logger = require('../../utils/logger');
@@ -32,6 +33,90 @@ const {
 // Initialize MFA service
 const mfaService = getMFAService();
 
+// ============================================================================
+// HELPER FUNCTIONS
+// ============================================================================
+
+/**
+ * Extract OAuth tokens from Mongoose Map/object
+ * Handles different storage formats consistently
+ */
+function extractOAuthTokens(tokensMap, brokerKey) {
+  if (!tokensMap) return null;
+
+  if (tokensMap instanceof Map || tokensMap.get) {
+    return tokensMap.get(brokerKey);
+  }
+
+  if (tokensMap.toObject) {
+    return tokensMap.toObject()[brokerKey];
+  }
+
+  return tokensMap[brokerKey];
+}
+
+/**
+ * Get broker keys from OAuth tokens map
+ * Handles different storage formats consistently
+ */
+function getBrokerKeys(tokensMap) {
+  if (!tokensMap) return [];
+
+  if (tokensMap instanceof Map || tokensMap.get) {
+    return Array.from(tokensMap.keys());
+  }
+
+  if (tokensMap.toObject) {
+    return Object.keys(tokensMap.toObject());
+  }
+
+  return Object.keys(tokensMap);
+}
+
+/**
+ * Calculate token status based on expiry
+ */
+function calculateTokenStatus(storedTokens, now) {
+  if (!storedTokens) return 'disconnected';
+
+  if (storedTokens.isValid === false) return 'revoked';
+
+  const expiresAt = storedTokens?.expiresAt ? new Date(storedTokens.expiresAt) : null;
+  if (!expiresAt) return 'connected';
+
+  const expiryTime = expiresAt.getTime();
+  if (expiryTime <= now) return 'expired';
+  if (expiryTime - now < 60 * 60 * 1000) return 'expiring';
+
+  return 'connected';
+}
+
+/**
+ * Handle MFA error responses consistently
+ * @param {Error} error - Original error
+ * @param {string} userId - User ID for context
+ * @param {Function} next - Express next middleware
+ * @param {string} defaultMessage - Optional default message for generic errors
+ */
+function createMFAErrorResponse(error, userId, next, defaultMessage = 'Operation failed') {
+  const errorMappings = {
+    'Invalid TOTP token': { message: 'Invalid verification code', status: 400, code: ErrorCodes.INVALID_TOKEN },
+    'already enabled': { message: 'MFA is already enabled', status: 400, code: ErrorCodes.VALIDATION_ERROR },
+    'not enabled': { message: 'MFA is not enabled', status: 400, code: ErrorCodes.VALIDATION_ERROR },
+    'Rate limit exceeded': { message: 'Too many attempts', status: 429, code: ErrorCodes.RATE_LIMIT_EXCEEDED },
+    'too many failed': { message: error.message, status: 429, code: 'ACCOUNT_LOCKED' },
+    'Account locked': { message: error.message, status: 429, code: 'ACCOUNT_LOCKED' }
+  };
+
+  for (const [key, mapping] of Object.entries(errorMappings)) {
+    if (error.message.includes(key)) {
+      return next(new AppError(mapping.message, mapping.status, mapping.code, { userId }));
+    }
+  }
+
+  return next(new AppError(defaultMessage, 500, ErrorCodes.INTERNAL_SERVER_ERROR, { userId }));
+}
+
 /**
  * GET /api/auth/broker/:broker/authorize
  *
@@ -39,10 +124,11 @@ const mfaService = getMFAService();
  * Redirects user to broker's authorization page.
  *
  * @requires Authentication
+ * @requires Rate Limiting (10 requests per 15 minutes)
  * @param {string} broker - Broker key (alpaca, ibkr, tdameritrade, etrade)
  * @returns {Object} { authorizationURL }
  */
-router.get('/broker/:broker/authorize', ensureAuthenticated, validate(brokerAuthorizeParams, 'params'), (req, res, next) => {
+router.get('/broker/:broker/authorize', ensureAuthenticatedAPI, oauthAuthorizationLimiter, validate(brokerAuthorizeParams, 'params'), (req, res, next) => {
   try {
     const { broker} = req.params;
 
@@ -67,9 +153,18 @@ router.get('/broker/:broker/authorize', ensureAuthenticated, validate(brokerAuth
       communityId: req.user.communityId
     });
 
-    res.json({
-      success: true,
-      authorizationURL
+    // 🔥 CRITICAL: Save session state before responding
+    // Without this, oauthState won't persist for callback validation
+    req.session.save((err) => {
+      if (err) {
+        logger.error('Failed to save session state', { error: err.message, userId: req.user.id });
+        return next(err);
+      }
+
+      res.json({
+        success: true,
+        authorizationURL
+      });
     });
   } catch (error) {
     logger.error('Authorization URL generation failed', {
@@ -95,7 +190,7 @@ router.get('/broker/:broker/authorize', ensureAuthenticated, validate(brokerAuth
  * @requires Authentication
  * @returns {Object} { success, brokers: [...] }
  */
-router.get('/brokers/status', ensureAuthenticated, async (req, res, next) => {
+router.get('/brokers/status', ensureAuthenticatedAPI, async (req, res, next) => {
   try {
     const user = await User.findById(req.user.id);
 
@@ -109,38 +204,29 @@ router.get('/brokers/status', ensureAuthenticated, async (req, res, next) => {
     const enabledBrokers = getEnabledProviders();
     const now = Date.now();
 
-    const brokers = enabledBrokers
+    // Bug #5: Include brokers user has tokens for, even if not currently enabled
+    const tokensMap = user.tradingConfig?.oauthTokens;
+    const userBrokerKeys = getBrokerKeys(tokensMap);
+    const userBrokers = new Set([...enabledBrokers, ...userBrokerKeys]);
+
+    const brokers = Array.from(userBrokers)
       .map(brokerKey => {
         const config = getProviderConfig(brokerKey);
-        if (!config) {
+        const brokerInfo = BrokerFactory.getBrokerInfo(brokerKey) || {};
+
+        // Skip if no config AND no broker info (completely unknown broker)
+        if (!config && !brokerInfo.name) {
           return null;
         }
 
-        const brokerInfo = BrokerFactory.getBrokerInfo(brokerKey) || {};
+        // Bug #5: Handle Mongoose Map properly for partial broker connections
+        const storedTokens = extractOAuthTokens(user.tradingConfig?.oauthTokens, brokerKey);
 
-        let storedTokens;
-        if (user.tradingConfig?.oauthTokens?.get) {
-          storedTokens = user.tradingConfig.oauthTokens.get(brokerKey);
-        } else if (user.tradingConfig?.oauthTokens) {
-          storedTokens = user.tradingConfig.oauthTokens[brokerKey];
-        }
-
-        let expiresAt = storedTokens?.expiresAt ? new Date(storedTokens.expiresAt) : null;
+        const expiresAt = storedTokens?.expiresAt ? new Date(storedTokens.expiresAt) : null;
         const connectedAt = storedTokens?.connectedAt ? new Date(storedTokens.connectedAt) : null;
         const lastRefreshAttempt = storedTokens?.lastRefreshAttempt ? new Date(storedTokens.lastRefreshAttempt) : null;
 
-        let status = 'disconnected';
-        if (storedTokens) {
-          if (storedTokens.isValid === false) {
-            status = 'revoked';
-          } else if (expiresAt && expiresAt.getTime() <= now) {
-            status = 'expired';
-          } else if (expiresAt && expiresAt.getTime() - now <= 60 * 60 * 1000) {
-            status = 'expiring';
-          } else {
-            status = 'connected';
-          }
-        }
+        const status = calculateTokenStatus(storedTokens, now);
 
         const expiresInSeconds = expiresAt ? Math.max(0, Math.floor((expiresAt.getTime() - now) / 1000)) : null;
 
@@ -256,12 +342,7 @@ router.get('/callback', validate(oauthCallbackQuery, 'query'), async (req, res) 
       throw new Error(`User not found: ${userId}`);
     }
 
-    let existingTokens;
-    if (user.tradingConfig?.oauthTokens?.get) {
-      existingTokens = user.tradingConfig.oauthTokens.get(broker);
-    } else if (user.tradingConfig?.oauthTokens) {
-      existingTokens = user.tradingConfig.oauthTokens[broker];
-    }
+    const existingTokens = extractOAuthTokens(user.tradingConfig?.oauthTokens, broker);
 
     user.tradingConfig.oauthTokens.set(broker, {
       ...encryptedTokens,
@@ -306,6 +387,19 @@ router.get('/callback', validate(oauthCallbackQuery, 'query'), async (req, res) 
  */
 router.post('/callback', validate(oauthCallbackBody, 'body'), async (req, res, next) => {
   try {
+    // Bug #3: Enforce HTTPS in production for OAuth2 callbacks
+    if (process.env.NODE_ENV === 'production' && req.protocol !== 'https') {
+      logger.warn('OAuth2 callback rejected: HTTPS required in production', {
+        protocol: req.protocol,
+        ip: req.ip,
+        userAgent: req.get('user-agent')
+      });
+      return res.status(400).json({
+        success: false,
+        error: 'HTTPS required for OAuth2 callbacks in production'
+      });
+    }
+
     const { code, state } = req.body;
 
     // Validate required parameters
@@ -357,12 +451,7 @@ router.post('/callback', validate(oauthCallbackBody, 'body'), async (req, res, n
       throw new Error(`User not found: ${userId}`);
     }
 
-    let existingTokens;
-    if (user.tradingConfig?.oauthTokens?.get) {
-      existingTokens = user.tradingConfig.oauthTokens.get(broker);
-    } else if (user.tradingConfig?.oauthTokens) {
-      existingTokens = user.tradingConfig.oauthTokens[broker];
-    }
+    const existingTokens = extractOAuthTokens(user.tradingConfig?.oauthTokens, broker);
 
     user.tradingConfig.oauthTokens.set(broker, {
       ...encryptedTokens,
@@ -411,7 +500,7 @@ router.post('/callback', validate(oauthCallbackBody, 'body'), async (req, res, n
  * @param {string} broker - Broker key
  * @returns {Object} { success, message }
  */
-router.delete('/brokers/:broker/oauth', ensureAuthenticated, validate(deleteBrokerOAuthParams, 'params'), async (req, res, next) => {
+router.delete('/brokers/:broker/oauth', ensureAuthenticatedAPI, validate(deleteBrokerOAuthParams, 'params'), async (req, res, next) => {
   try {
     const { broker } = req.params;
     const userId = req.user.id;
@@ -467,7 +556,7 @@ router.delete('/brokers/:broker/oauth', ensureAuthenticated, validate(deleteBrok
  * @param {string} broker - Broker key
  * @returns {Object} { success, expiresAt }
  */
-router.post('/brokers/:broker/oauth/refresh', ensureAuthenticated, validate(refreshBrokerOAuthParams, 'params'), async (req, res, next) => {
+router.post('/brokers/:broker/oauth/refresh', ensureAuthenticatedAPI, validate(refreshBrokerOAuthParams, 'params'), async (req, res, next) => {
   try {
     const { broker } = req.params;
     const userId = req.user.id;
@@ -524,7 +613,7 @@ router.post('/brokers/:broker/oauth/refresh', ensureAuthenticated, validate(refr
  * @returns {Object} { secret, qrCode, manualEntry, message }
  * @throws {400} MFA already enabled
  */
-router.post('/mfa/setup', ensureAuthenticated, async (req, res, next) => {
+router.post('/mfa/setup', ensureAuthenticatedAPI, async (req, res, next) => {
   try {
     const userId = req.user._id;
 
@@ -557,14 +646,7 @@ router.post('/mfa/setup', ensureAuthenticated, async (req, res, next) => {
       );
     }
 
-    return next(
-      new AppError(
-        'Failed to initiate MFA setup',
-        500,
-        ErrorCodes.INTERNAL_SERVER_ERROR,
-        { userId: req.user._id }
-      )
-    );
+    return createMFAErrorResponse(error, req.user._id, next, 'Failed to initiate MFA setup');
   }
 });
 
@@ -580,7 +662,7 @@ router.post('/mfa/setup', ensureAuthenticated, async (req, res, next) => {
  * @throws {400} Invalid token
  * @throws {400} MFA already enabled
  */
-router.post('/mfa/enable', ensureAuthenticated, validate(mfaEnableBody, 'body'), async (req, res, next) => {
+router.post('/mfa/enable', ensureAuthenticatedAPI, validate(mfaEnableBody, 'body'), async (req, res, next) => {
   try {
     const userId = req.user._id;
     const { token } = req.body;
@@ -590,7 +672,7 @@ router.post('/mfa/enable', ensureAuthenticated, validate(mfaEnableBody, 'body'),
       return res.status(400).json({
         success: false,
         error: 'Invalid token format. Must be 6 digits.',
-        code: 'INVALID_TOKEN_FORMAT'
+        errorCode: 'INVALID_TOKEN_FORMAT'
       });
     }
 
@@ -613,47 +695,7 @@ router.post('/mfa/enable', ensureAuthenticated, validate(mfaEnableBody, 'body'),
       error: error.message
     });
 
-    if (error.message.includes('Invalid TOTP token')) {
-      return next(
-        new AppError(
-          'Invalid verification code',
-          400,
-          ErrorCodes.INVALID_TOKEN,
-          { userId: req.user._id }
-        )
-      );
-    }
-
-    if (error.message.includes('already enabled')) {
-      return next(
-        new AppError(
-          'MFA is already enabled',
-          400,
-          ErrorCodes.VALIDATION_ERROR,
-          { userId: req.user._id }
-        )
-      );
-    }
-
-    if (error.message.includes('Rate limit exceeded')) {
-      return next(
-        new AppError(
-          'Too many attempts',
-          429,
-          ErrorCodes.RATE_LIMIT_EXCEEDED,
-          { userId: req.user._id }
-        )
-      );
-    }
-
-    return next(
-      new AppError(
-        'Failed to enable MFA',
-        500,
-        ErrorCodes.INTERNAL_SERVER_ERROR,
-        { userId: req.user._id }
-      )
-    );
+    return createMFAErrorResponse(error, req.user._id, next, 'Failed to enable MFA');
   }
 });
 
@@ -669,7 +711,7 @@ router.post('/mfa/enable', ensureAuthenticated, validate(mfaEnableBody, 'body'),
  * @throws {400} Invalid token
  * @throws {400} MFA not enabled
  */
-router.post('/mfa/disable', ensureAuthenticated, validate(mfaDisableBody, 'body'), async (req, res, next) => {
+router.post('/mfa/disable', ensureAuthenticatedAPI, validate(mfaDisableBody, 'body'), async (req, res, next) => {
   try {
     const userId = req.user._id;
     const { token } = req.body;
@@ -679,7 +721,7 @@ router.post('/mfa/disable', ensureAuthenticated, validate(mfaDisableBody, 'body'
       return res.status(400).json({
         success: false,
         error: 'Invalid token format. Must be 6 digits.',
-        code: 'INVALID_TOKEN_FORMAT'
+        errorCode: 'INVALID_TOKEN_FORMAT'
       });
     }
 
@@ -707,47 +749,7 @@ router.post('/mfa/disable', ensureAuthenticated, validate(mfaDisableBody, 'body'
       correlationId: req.correlationId
     });
 
-    if (error.message.includes('Invalid TOTP token')) {
-      return next(
-        new AppError(
-          'Invalid verification code',
-          400,
-          ErrorCodes.INVALID_TOKEN,
-          { userId: req.user._id }
-        )
-      );
-    }
-
-    if (error.message.includes('not enabled')) {
-      return next(
-        new AppError(
-          'MFA is not enabled',
-          400,
-          ErrorCodes.VALIDATION_ERROR,
-          { userId: req.user._id }
-        )
-      );
-    }
-
-    if (error.message.includes('Rate limit exceeded')) {
-      return next(
-        new AppError(
-          'Too many attempts',
-          429,
-          ErrorCodes.RATE_LIMIT_EXCEEDED,
-          { userId: req.user._id }
-        )
-      );
-    }
-
-    return next(
-      new AppError(
-        'Failed to disable MFA',
-        500,
-        ErrorCodes.INTERNAL_SERVER_ERROR,
-        { userId: req.user._id }
-      )
-    );
+    return createMFAErrorResponse(error, req.user._id, next, 'Failed to disable MFA');
   }
 });
 
@@ -763,7 +765,7 @@ router.post('/mfa/disable', ensureAuthenticated, validate(mfaDisableBody, 'body'
  * @throws {400} Invalid token
  * @throws {400} MFA not enabled
  */
-router.post('/mfa/backup-codes/regenerate', validate(mfaRegenerateBackupCodesBody, 'body'), ensureAuthenticated, async (req, res, next) => {
+router.post('/mfa/backup-codes/regenerate', validate(mfaRegenerateBackupCodesBody, 'body'), ensureAuthenticatedAPI, async (req, res, next) => {
   try {
     const userId = req.user._id;
     const { token } = req.body;
@@ -789,47 +791,7 @@ router.post('/mfa/backup-codes/regenerate', validate(mfaRegenerateBackupCodesBod
       correlationId: req.correlationId
     });
 
-    if (error.message.includes('Invalid TOTP token')) {
-      return next(
-        new AppError(
-          'Invalid verification code',
-          400,
-          ErrorCodes.INVALID_TOKEN,
-          { userId: req.user._id }
-        )
-      );
-    }
-
-    if (error.message.includes('not enabled')) {
-      return next(
-        new AppError(
-          'MFA is not enabled',
-          400,
-          ErrorCodes.VALIDATION_ERROR,
-          { userId: req.user._id }
-        )
-      );
-    }
-
-    if (error.message.includes('Rate limit exceeded')) {
-      return next(
-        new AppError(
-          'Too many attempts',
-          429,
-          ErrorCodes.RATE_LIMIT_EXCEEDED,
-          { userId: req.user._id }
-        )
-      );
-    }
-
-    return next(
-      new AppError(
-        'Failed to regenerate backup codes',
-        500,
-        ErrorCodes.INTERNAL_SERVER_ERROR,
-        { userId: req.user._id }
-      )
-    );
+    return createMFAErrorResponse(error, req.user._id, next, 'Failed to regenerate backup codes');
   }
 });
 
@@ -841,7 +803,7 @@ router.post('/mfa/backup-codes/regenerate', validate(mfaRegenerateBackupCodesBod
  * @requires Authentication
  * @returns {Object} { enabled, verifiedAt, lastVerified, backupCodesRemaining, warning }
  */
-router.get('/mfa/status', ensureAuthenticated, async (req, res, next) => {
+router.get('/mfa/status', ensureAuthenticatedAPI, async (req, res, next) => {
   try {
     const userId = req.user._id;
 
@@ -887,7 +849,7 @@ router.get('/mfa/status', ensureAuthenticated, async (req, res, next) => {
  * @throws {403} MFA not required
  * @throws {429} Rate limit exceeded
  */
-router.post('/mfa/verify', ensureAuthenticated, validate(mfaVerifyBody, 'body'), async (req, res, next) => {
+router.post('/mfa/verify', ensureAuthenticatedAPI, validate(mfaVerifyBody, 'body'), async (req, res, next) => {
   try {
     const userId = req.user._id;
     const { token, type } = req.body;
@@ -897,7 +859,7 @@ router.post('/mfa/verify', ensureAuthenticated, validate(mfaVerifyBody, 'body'),
       return res.status(400).json({
         success: false,
         error: 'Verification code required',
-        code: 'TOKEN_REQUIRED'
+        errorCode: 'TOKEN_REQUIRED'
       });
     }
 
@@ -906,7 +868,7 @@ router.post('/mfa/verify', ensureAuthenticated, validate(mfaVerifyBody, 'body'),
       return res.status(403).json({
         success: false,
         error: 'MFA is not enabled for this account',
-        code: 'MFA_NOT_ENABLED'
+        errorCode: 'MFA_NOT_ENABLED'
       });
     }
 
@@ -929,7 +891,7 @@ router.post('/mfa/verify', ensureAuthenticated, validate(mfaVerifyBody, 'body'),
       return res.status(400).json({
         success: false,
         error: 'Invalid token type. Must be "totp" or "backup"',
-        code: 'INVALID_TYPE'
+        errorCode: 'INVALID_TYPE'
       });
     }
 
@@ -944,7 +906,7 @@ router.post('/mfa/verify', ensureAuthenticated, validate(mfaVerifyBody, 'body'),
       return res.status(400).json({
         success: false,
         error: 'Invalid verification code',
-        code: 'INVALID_TOKEN'
+        errorCode: 'INVALID_TOKEN'
       });
     }
 
@@ -979,37 +941,7 @@ router.post('/mfa/verify', ensureAuthenticated, validate(mfaVerifyBody, 'body'),
       error: error.message
     });
 
-    if (error.message.includes('Rate limit exceeded')) {
-      return next(
-        new AppError(
-          'Too many attempts',
-          429,
-          ErrorCodes.RATE_LIMIT_EXCEEDED,
-          { userId: req.user._id }
-        )
-      );
-    }
-
-    // Check for account lockout
-    if (error.message.includes('too many failed') || error.message.includes('Account locked')) {
-      return next(
-        new AppError(
-          error.message,
-          429,
-          'ACCOUNT_LOCKED',
-          { userId: req.user._id }
-        )
-      );
-    }
-
-    return next(
-      new AppError(
-        'Failed to verify MFA',
-        500,
-        ErrorCodes.INTERNAL_SERVER_ERROR,
-        { userId: req.user._id }
-      )
-    );
+    return createMFAErrorResponse(error, req.user._id, next, 'Failed to verify MFA');
   }
 });
 
@@ -1048,6 +980,55 @@ router.get('/csrf-token', (req, res) => {
       error: 'Failed to generate CSRF token',
       code: ErrorCodes.INTERNAL_SERVER_ERROR
     });
+  }
+});
+
+/**
+ * POST /api/auth/logout
+ *
+ * Logout user and destroy session.
+ *
+ * @requires Authentication
+ * @returns {Object} { success: true, message }
+ */
+router.post('/logout', ensureAuthenticatedAPI, (req, res, next) => {
+  try {
+    const userId = req.user._id;
+    const username = req.user.discordUsername;
+
+    // Passport logout
+    req.logout((err) => {
+      if (err) {
+        logger.error('Passport logout failed', { userId, username, error: err.message });
+        return next(err);
+      }
+
+      // Destroy session
+      req.session.destroy((err) => {
+        if (err) {
+          logger.error('Session destruction failed', { userId, username, error: err.message });
+          return next(new AppError(
+            'Logout failed - session could not be destroyed',
+            500,
+            ErrorCodes.SESSION_ERROR,
+            { userId, username }
+          ));
+        }
+
+        logger.info('User logged out successfully', { userId, username });
+
+        res.json({
+          success: true,
+          message: 'Logged out successfully'
+        });
+      });
+    });
+  } catch (error) {
+    logger.error('Logout error', {
+      error: error.message,
+      stack: error.stack
+    });
+    next(error);
   }
 });
 

@@ -128,6 +128,20 @@ const authLimiter = rateLimit({
   legacyHeaders: false
 });
 
+// OAuth2 authorization rate limiter (Bug #4)
+// Prevents abuse of OAuth2 authorization endpoint
+const oauthAuthorizationLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 10, // 10 authorization attempts per 15 minutes
+  message: { error: 'Too many OAuth2 authorization attempts. Rate limit exceeded, please try again later' },
+  standardHeaders: true,
+  legacyHeaders: false,
+  keyGenerator: req => {
+    // Per-user rate limiting for authenticated requests
+    return req.user ? `oauth_auth:${req.user._id}` : ipKeyGenerator(req);
+  }
+});
+
 // Dashboard overview endpoints rate limiter (Constitution Principle V)
 const overviewLimiter = rateLimit({
   windowMs: 60 * 1000, // 1 minute window
@@ -814,6 +828,7 @@ module.exports = {
   webhookLimiter,
   apiLimiter,
   authLimiter,
+  oauthAuthorizationLimiter,
   loginLimiter,
   oauthCallbackLimiter,
   exchangeApiLimiter,

@@ -5,17 +5,54 @@ const { Client, GatewayIntentBits, EmbedBuilder, ActionRowBuilder, ButtonBuilder
 const SignalParser = require('../SignalParser');
 const TradeExecutor = require('./TradeExecutor');
 
+// Subscription gating services (Feature 004)
+const { AccessControlService } = require('./access-control/AccessControlService');
+const { SubscriptionCacheService } = require('./subscription/SubscriptionCacheService');
+const { ServerConfigurationService } = require('./subscription/ServerConfigurationService');
+const { DiscordSubscriptionProvider } = require('./subscription/DiscordSubscriptionProvider');
+const { subscriptionGateMiddleware } = require('../middleware/subscription-gate.middleware');
+const { registerSubscriptionChangeHandlers } = require('../events/subscription-change.handler');
+const SetupConfigureAccessCommand = require('../commands/setup/configure-access.command');
+const ConfigAccessCommand = require('../commands/config/config-access.command');
+const redisConfig = require('../config/redis');
+
 // Models and types
 const User = require('../models/User');
+const ServerConfiguration = require('../models/ServerConfiguration');
 const logger = require('../utils/logger');
 
 class DiscordTradeBot {
   constructor() {
     this.client = new Client({
-      intents: [GatewayIntentBits.Guilds, GatewayIntentBits.GuildMessages, GatewayIntentBits.MessageContent]
+      intents: [
+        GatewayIntentBits.Guilds,
+        GatewayIntentBits.GuildMessages,
+        GatewayIntentBits.MessageContent,
+        GatewayIntentBits.GuildMembers // Required for guildMemberUpdate events (Phase 6)
+      ]
     });
     this.tradeExecutor = new TradeExecutor();
     this.signalParser = new SignalParser();
+
+    // Initialize subscription gating services (Feature 004)
+    // Note: Redis client may be null in dev/test - SubscriptionCacheService will handle gracefully
+    const redisClient = redisConfig.getClient();
+    this.cacheService = new SubscriptionCacheService(redisClient);
+    this.configService = new ServerConfigurationService(ServerConfiguration);
+    this.subscriptionProvider = new DiscordSubscriptionProvider(this.client);
+    this.accessControlService = new AccessControlService(
+      this.configService,
+      this.cacheService,
+      this.subscriptionProvider
+    );
+    this.subscriptionGate = subscriptionGateMiddleware(this.accessControlService);
+
+    // Initialize setup command
+    this.setupCommand = new SetupConfigureAccessCommand(this.client);
+
+    // Initialize config command (Phase 7 - T056)
+    this.configCommand = new ConfigAccessCommand(this.client);
+
     this.setupEventHandlers();
     this.setupSlashCommands();
   }
@@ -41,6 +78,10 @@ class DiscordTradeBot {
         await this.handleTradeSignal(signal, message);
       }
     });
+
+    // Register subscription change handlers (Phase 6 - T050)
+    // Listens for role changes and invalidates access cache for real-time updates
+    registerSubscriptionChangeHandlers(this.client, this.accessControlService);
   }
 
   async handleTradeSignal(signal, message) {
@@ -251,7 +292,11 @@ class DiscordTradeBot {
         {
           name: 'help',
           description: 'Get help with using the bot'
-        }
+        },
+        // Feature 004: Subscription gating setup command
+        this.setupCommand.data.toJSON(),
+        // Feature 004: Phase 7 - Configuration management command (T056)
+        this.configCommand.data.toJSON()
       ];
 
       try {
@@ -264,29 +309,100 @@ class DiscordTradeBot {
 
     // Handle slash command interactions
     this.client.on('interactionCreate', async interaction => {
-      if (!interaction.isCommand()) return;
-
       try {
+        // Handle button interactions for setup wizard (Feature 004)
+        if (interaction.isButton()) {
+          if (interaction.customId.startsWith('setup_')) {
+            await this.setupCommand.handleButton(interaction);
+            return;
+          }
+          // Handle button interactions for config command (Phase 7 - T056)
+          if (interaction.customId.startsWith('config_')) {
+            await this.configCommand.handleButton(interaction);
+            return;
+          }
+        }
+
+        // Handle select menu interactions for setup wizard (Feature 004)
+        if (interaction.isStringSelectMenu()) {
+          if (interaction.customId.startsWith('setup_')) {
+            await this.setupCommand.handleSelectMenu(interaction);
+            return;
+          }
+          // Handle select menu interactions for config command (Phase 7 - T056)
+          if (interaction.customId.startsWith('config_')) {
+            await this.configCommand.handleSelectMenu(interaction);
+            return;
+          }
+        }
+
+        // Only process slash commands below this point
+        if (!interaction.isCommand()) return;
+
+        // Feature 004: Apply subscription gate middleware to ALL commands
+        // Setup and config commands bypass the gate (always accessible to server admins)
+        const isSetupCommand = interaction.commandName === 'setup';
+        const isConfigCommand = interaction.commandName === 'config';
+
+        if (!isSetupCommand && !isConfigCommand) {
+          // Apply middleware - it will handle access control
+          let middlewareCalled = false;
+
+          await this.subscriptionGate(interaction, () => {
+            middlewareCalled = true;
+          });
+
+          // If middleware didn't call next(), access was denied
+          if (!middlewareCalled) {
+            return;
+          }
+        }
+
+        // Route to command handlers
         switch (interaction.commandName) {
+          case 'setup':
+            if (interaction.options.getSubcommand() === 'configure-access') {
+              await this.setupCommand.execute(interaction);
+            }
+            break;
+          case 'config':
+            // Phase 7 - T056: Config access command for reconfiguration
+            try {
+              const subcommand = interaction.options.getSubcommand();
+              if (subcommand === 'access') {
+                await this.configCommand.execute(interaction);
+              } else {
+                // Fall back to old config handler (trading settings placeholder)
+                await this.handleConfigCommand(interaction);
+              }
+            } catch (error) {
+              // No subcommand - fall back to old config handler
+              await this.handleConfigCommand(interaction);
+            }
+            break;
           case 'subscribe':
             await this.handleSubscribeCommand(interaction);
             break;
           case 'stats':
             await this.handleStatsCommand(interaction);
             break;
-          case 'config':
-            await this.handleConfigCommand(interaction);
-            break;
           case 'help':
             await this.handleHelpCommand(interaction);
             break;
         }
       } catch (error) {
-        logger.error('Slash command error:', { error: error.message, stack: error.stack });
-        await interaction.reply({
-          content: 'An error occurred processing your command',
+        logger.error('Interaction handler error:', { error: error.message, stack: error.stack });
+
+        const errorMessage = {
+          content: 'An error occurred processing your request',
           ephemeral: true
-        });
+        };
+
+        if (interaction.replied || interaction.deferred) {
+          await interaction.editReply(errorMessage);
+        } else {
+          await interaction.reply(errorMessage);
+        }
       }
     });
   }

@@ -10,11 +10,16 @@ const { z } = require('zod');
 /**
  * Broker OAuth Authorization
  * GET /api/auth/broker/:broker/authorize
+ *
+ * Note: Validation only checks that broker is a string.
+ * Business logic validation (OAuth2 support check) is handled by route handler.
  */
 const brokerAuthorizeParams = z.object({
-  broker: z.enum(['alpaca', 'ibkr', 'tdameritrade', 'etrade', 'schwab', 'moomoo'], {
-    errorMap: () => ({ message: 'Invalid broker. Supported: alpaca, ibkr, tdameritrade, etrade, schwab, moomoo' })
-  })
+  broker: z
+    .string()
+    .min(1, 'Broker name required')
+    .max(50, 'Broker name too long')
+    .regex(/^[a-z0-9_]+$/i, 'Broker name must be alphanumeric')
 });
 
 /**
@@ -26,7 +31,8 @@ const oauthCallbackQuery = z.object({
     .string()
     .min(10, 'Authorization code required')
     .max(512, 'Authorization code too long')
-    .regex(/^[a-zA-Z0-9\-_=+/]+$/, 'Authorization code contains invalid characters'),
+    .regex(/^[a-zA-Z0-9\-_=+/]+$/, 'Authorization code contains invalid characters')
+    .optional(), // Optional because error flows don't send code
   state: z
     .string()
     .min(16, 'State parameter required')
@@ -34,6 +40,8 @@ const oauthCallbackQuery = z.object({
     .regex(/^[a-zA-Z0-9\-_]+$/, 'State contains invalid characters'),
   error: z.string().optional(),
   error_description: z.string().optional()
+}).refine((data) => data.code || data.error, {
+  message: 'Either code or error parameter must be present'
 });
 
 /**
@@ -51,9 +59,11 @@ const oauthCallbackBody = z.object({
  * DELETE /api/auth/brokers/:broker/oauth
  */
 const deleteBrokerOAuthParams = z.object({
-  broker: z.enum(['alpaca', 'ibkr', 'tdameritrade', 'etrade', 'schwab', 'moomoo'], {
-    errorMap: () => ({ message: 'Invalid broker name' })
-  })
+  broker: z
+    .string()
+    .min(1, 'Broker name required')
+    .max(50, 'Broker name too long')
+    .regex(/^[a-z0-9_]+$/i, 'Broker name must be alphanumeric')
 });
 
 /**
@@ -61,9 +71,11 @@ const deleteBrokerOAuthParams = z.object({
  * POST /api/auth/brokers/:broker/oauth/refresh
  */
 const refreshBrokerOAuthParams = z.object({
-  broker: z.enum(['alpaca', 'ibkr', 'tdameritrade', 'etrade', 'schwab', 'moomoo'], {
-    errorMap: () => ({ message: 'Invalid broker name' })
-  })
+  broker: z
+    .string()
+    .min(1, 'Broker name required')
+    .max(50, 'Broker name too long')
+    .regex(/^[a-z0-9_]+$/i, 'Broker name must be alphanumeric')
 });
 
 /**
