@@ -33,6 +33,90 @@ const {
 // Initialize MFA service
 const mfaService = getMFAService();
 
+// ============================================================================
+// HELPER FUNCTIONS
+// ============================================================================
+
+/**
+ * Extract OAuth tokens from Mongoose Map/object
+ * Handles different storage formats consistently
+ */
+function extractOAuthTokens(tokensMap, brokerKey) {
+  if (!tokensMap) return null;
+
+  if (tokensMap instanceof Map || tokensMap.get) {
+    return tokensMap.get(brokerKey);
+  }
+
+  if (tokensMap.toObject) {
+    return tokensMap.toObject()[brokerKey];
+  }
+
+  return tokensMap[brokerKey];
+}
+
+/**
+ * Get broker keys from OAuth tokens map
+ * Handles different storage formats consistently
+ */
+function getBrokerKeys(tokensMap) {
+  if (!tokensMap) return [];
+
+  if (tokensMap instanceof Map || tokensMap.get) {
+    return Array.from(tokensMap.keys());
+  }
+
+  if (tokensMap.toObject) {
+    return Object.keys(tokensMap.toObject());
+  }
+
+  return Object.keys(tokensMap);
+}
+
+/**
+ * Calculate token status based on expiry
+ */
+function calculateTokenStatus(storedTokens, now) {
+  if (!storedTokens) return 'disconnected';
+
+  if (storedTokens.isValid === false) return 'revoked';
+
+  const expiresAt = storedTokens?.expiresAt ? new Date(storedTokens.expiresAt) : null;
+  if (!expiresAt) return 'connected';
+
+  const expiryTime = expiresAt.getTime();
+  if (expiryTime <= now) return 'expired';
+  if (expiryTime - now < 60 * 60 * 1000) return 'expiring';
+
+  return 'connected';
+}
+
+/**
+ * Handle MFA error responses consistently
+ * @param {Error} error - Original error
+ * @param {string} userId - User ID for context
+ * @param {Function} next - Express next middleware
+ * @param {string} defaultMessage - Optional default message for generic errors
+ */
+function createMFAErrorResponse(error, userId, next, defaultMessage = 'Operation failed') {
+  const errorMappings = {
+    'Invalid TOTP token': { message: 'Invalid verification code', status: 400, code: ErrorCodes.INVALID_TOKEN },
+    'already enabled': { message: 'MFA is already enabled', status: 400, code: ErrorCodes.VALIDATION_ERROR },
+    'not enabled': { message: 'MFA is not enabled', status: 400, code: ErrorCodes.VALIDATION_ERROR },
+    'Rate limit exceeded': { message: 'Too many attempts', status: 429, code: ErrorCodes.RATE_LIMIT_EXCEEDED },
+    'too many failed': { message: error.message, status: 429, code: 'ACCOUNT_LOCKED' },
+    'Account locked': { message: error.message, status: 429, code: 'ACCOUNT_LOCKED' }
+  };
+
+  for (const [key, mapping] of Object.entries(errorMappings)) {
+    if (error.message.includes(key)) {
+      return next(new AppError(mapping.message, mapping.status, mapping.code, { userId }));
+    }
+  }
+
+  return next(new AppError(defaultMessage, 500, ErrorCodes.INTERNAL_SERVER_ERROR, { userId }));
+}
+
 /**
  * GET /api/auth/broker/:broker/authorize
  *
@@ -122,20 +206,8 @@ router.get('/brokers/status', ensureAuthenticatedAPI, async (req, res, next) => 
 
     // Bug #5: Include brokers user has tokens for, even if not currently enabled
     const tokensMap = user.tradingConfig?.oauthTokens;
-    const userBrokers = new Set(enabledBrokers);
-
-    // Add brokers user has tokens for
-    if (tokensMap) {
-      if (tokensMap instanceof Map || tokensMap.get) {
-        for (const [key] of tokensMap) {
-          userBrokers.add(key);
-        }
-      } else if (tokensMap.toObject) {
-        Object.keys(tokensMap.toObject()).forEach(key => userBrokers.add(key));
-      } else {
-        Object.keys(tokensMap).forEach(key => userBrokers.add(key));
-      }
-    }
+    const userBrokerKeys = getBrokerKeys(tokensMap);
+    const userBrokers = new Set([...enabledBrokers, ...userBrokerKeys]);
 
     const brokers = Array.from(userBrokers)
       .map(brokerKey => {
@@ -148,39 +220,13 @@ router.get('/brokers/status', ensureAuthenticatedAPI, async (req, res, next) => 
         }
 
         // Bug #5: Handle Mongoose Map properly for partial broker connections
-        let storedTokens;
-        const tokensMap = user.tradingConfig?.oauthTokens;
+        const storedTokens = extractOAuthTokens(user.tradingConfig?.oauthTokens, brokerKey);
 
-        if (!tokensMap) {
-          storedTokens = null;
-        } else if (tokensMap instanceof Map || tokensMap.get) {
-          // Mongoose Map or native Map
-          storedTokens = tokensMap.get(brokerKey);
-        } else if (tokensMap.toObject) {
-          // Mongoose subdocument with toObject method
-          const tokensObj = tokensMap.toObject();
-          storedTokens = tokensObj[brokerKey];
-        } else {
-          // Plain object
-          storedTokens = tokensMap[brokerKey];
-        }
-
-        let expiresAt = storedTokens?.expiresAt ? new Date(storedTokens.expiresAt) : null;
+        const expiresAt = storedTokens?.expiresAt ? new Date(storedTokens.expiresAt) : null;
         const connectedAt = storedTokens?.connectedAt ? new Date(storedTokens.connectedAt) : null;
         const lastRefreshAttempt = storedTokens?.lastRefreshAttempt ? new Date(storedTokens.lastRefreshAttempt) : null;
 
-        let status = 'disconnected';
-        if (storedTokens) {
-          if (storedTokens.isValid === false) {
-            status = 'revoked';
-          } else if (expiresAt && expiresAt.getTime() <= now) {
-            status = 'expired';
-          } else if (expiresAt && expiresAt.getTime() - now < 60 * 60 * 1000) {
-            status = 'expiring';  // Less than 1 hour remaining
-          } else {
-            status = 'connected';
-          }
-        }
+        const status = calculateTokenStatus(storedTokens, now);
 
         const expiresInSeconds = expiresAt ? Math.max(0, Math.floor((expiresAt.getTime() - now) / 1000)) : null;
 
@@ -296,12 +342,7 @@ router.get('/callback', validate(oauthCallbackQuery, 'query'), async (req, res) 
       throw new Error(`User not found: ${userId}`);
     }
 
-    let existingTokens;
-    if (user.tradingConfig?.oauthTokens?.get) {
-      existingTokens = user.tradingConfig.oauthTokens.get(broker);
-    } else if (user.tradingConfig?.oauthTokens) {
-      existingTokens = user.tradingConfig.oauthTokens[broker];
-    }
+    const existingTokens = extractOAuthTokens(user.tradingConfig?.oauthTokens, broker);
 
     user.tradingConfig.oauthTokens.set(broker, {
       ...encryptedTokens,
@@ -410,12 +451,7 @@ router.post('/callback', validate(oauthCallbackBody, 'body'), async (req, res, n
       throw new Error(`User not found: ${userId}`);
     }
 
-    let existingTokens;
-    if (user.tradingConfig?.oauthTokens?.get) {
-      existingTokens = user.tradingConfig.oauthTokens.get(broker);
-    } else if (user.tradingConfig?.oauthTokens) {
-      existingTokens = user.tradingConfig.oauthTokens[broker];
-    }
+    const existingTokens = extractOAuthTokens(user.tradingConfig?.oauthTokens, broker);
 
     user.tradingConfig.oauthTokens.set(broker, {
       ...encryptedTokens,
@@ -610,14 +646,7 @@ router.post('/mfa/setup', ensureAuthenticatedAPI, async (req, res, next) => {
       );
     }
 
-    return next(
-      new AppError(
-        'Failed to initiate MFA setup',
-        500,
-        ErrorCodes.INTERNAL_SERVER_ERROR,
-        { userId: req.user._id }
-      )
-    );
+    return createMFAErrorResponse(error, req.user._id, next, 'Failed to initiate MFA setup');
   }
 });
 
@@ -666,47 +695,7 @@ router.post('/mfa/enable', ensureAuthenticatedAPI, validate(mfaEnableBody, 'body
       error: error.message
     });
 
-    if (error.message.includes('Invalid TOTP token')) {
-      return next(
-        new AppError(
-          'Invalid verification code',
-          400,
-          ErrorCodes.INVALID_TOKEN,
-          { userId: req.user._id }
-        )
-      );
-    }
-
-    if (error.message.includes('already enabled')) {
-      return next(
-        new AppError(
-          'MFA is already enabled',
-          400,
-          ErrorCodes.VALIDATION_ERROR,
-          { userId: req.user._id }
-        )
-      );
-    }
-
-    if (error.message.includes('Rate limit exceeded')) {
-      return next(
-        new AppError(
-          'Too many attempts',
-          429,
-          ErrorCodes.RATE_LIMIT_EXCEEDED,
-          { userId: req.user._id }
-        )
-      );
-    }
-
-    return next(
-      new AppError(
-        'Failed to enable MFA',
-        500,
-        ErrorCodes.INTERNAL_SERVER_ERROR,
-        { userId: req.user._id }
-      )
-    );
+    return createMFAErrorResponse(error, req.user._id, next, 'Failed to enable MFA');
   }
 });
 
@@ -760,47 +749,7 @@ router.post('/mfa/disable', ensureAuthenticatedAPI, validate(mfaDisableBody, 'bo
       correlationId: req.correlationId
     });
 
-    if (error.message.includes('Invalid TOTP token')) {
-      return next(
-        new AppError(
-          'Invalid verification code',
-          400,
-          ErrorCodes.INVALID_TOKEN,
-          { userId: req.user._id }
-        )
-      );
-    }
-
-    if (error.message.includes('not enabled')) {
-      return next(
-        new AppError(
-          'MFA is not enabled',
-          400,
-          ErrorCodes.VALIDATION_ERROR,
-          { userId: req.user._id }
-        )
-      );
-    }
-
-    if (error.message.includes('Rate limit exceeded')) {
-      return next(
-        new AppError(
-          'Too many attempts',
-          429,
-          ErrorCodes.RATE_LIMIT_EXCEEDED,
-          { userId: req.user._id }
-        )
-      );
-    }
-
-    return next(
-      new AppError(
-        'Failed to disable MFA',
-        500,
-        ErrorCodes.INTERNAL_SERVER_ERROR,
-        { userId: req.user._id }
-      )
-    );
+    return createMFAErrorResponse(error, req.user._id, next, 'Failed to disable MFA');
   }
 });
 
@@ -842,47 +791,7 @@ router.post('/mfa/backup-codes/regenerate', validate(mfaRegenerateBackupCodesBod
       correlationId: req.correlationId
     });
 
-    if (error.message.includes('Invalid TOTP token')) {
-      return next(
-        new AppError(
-          'Invalid verification code',
-          400,
-          ErrorCodes.INVALID_TOKEN,
-          { userId: req.user._id }
-        )
-      );
-    }
-
-    if (error.message.includes('not enabled')) {
-      return next(
-        new AppError(
-          'MFA is not enabled',
-          400,
-          ErrorCodes.VALIDATION_ERROR,
-          { userId: req.user._id }
-        )
-      );
-    }
-
-    if (error.message.includes('Rate limit exceeded')) {
-      return next(
-        new AppError(
-          'Too many attempts',
-          429,
-          ErrorCodes.RATE_LIMIT_EXCEEDED,
-          { userId: req.user._id }
-        )
-      );
-    }
-
-    return next(
-      new AppError(
-        'Failed to regenerate backup codes',
-        500,
-        ErrorCodes.INTERNAL_SERVER_ERROR,
-        { userId: req.user._id }
-      )
-    );
+    return createMFAErrorResponse(error, req.user._id, next, 'Failed to regenerate backup codes');
   }
 });
 
@@ -1032,37 +941,7 @@ router.post('/mfa/verify', ensureAuthenticatedAPI, validate(mfaVerifyBody, 'body
       error: error.message
     });
 
-    if (error.message.includes('Rate limit exceeded')) {
-      return next(
-        new AppError(
-          'Too many attempts',
-          429,
-          ErrorCodes.RATE_LIMIT_EXCEEDED,
-          { userId: req.user._id }
-        )
-      );
-    }
-
-    // Check for account lockout
-    if (error.message.includes('too many failed') || error.message.includes('Account locked')) {
-      return next(
-        new AppError(
-          error.message,
-          429,
-          'ACCOUNT_LOCKED',
-          { userId: req.user._id }
-        )
-      );
-    }
-
-    return next(
-      new AppError(
-        'Failed to verify MFA',
-        500,
-        ErrorCodes.INTERNAL_SERVER_ERROR,
-        { userId: req.user._id }
-      )
-    );
+    return createMFAErrorResponse(error, req.user._id, next, 'Failed to verify MFA');
   }
 });
 

@@ -18,11 +18,51 @@ const { getConfig, isProduction } = require('../config/env');
 const errorNotificationService = require('../services/ErrorNotificationService');
 const { ErrorCodes } = require('../constants/ErrorCodes');
 
+// ============================================================================
+// CONSTANTS
+// ============================================================================
+
+// HTTP Status Codes
+const HTTP_STATUS = {
+  BAD_REQUEST: 400,
+  UNAUTHORIZED: 401,
+  FORBIDDEN: 403,
+  NOT_FOUND: 404,
+  CONFLICT: 409,
+  TOO_MANY_REQUESTS: 429,
+  INTERNAL_SERVER_ERROR: 500
+};
+
+// Error name to status code mappings
+const ERROR_NAME_TO_STATUS = {
+  'ValidationError': HTTP_STATUS.BAD_REQUEST,
+  'UnauthorizedError': HTTP_STATUS.UNAUTHORIZED,
+  'JsonWebTokenError': HTTP_STATUS.UNAUTHORIZED,
+  'ForbiddenError': HTTP_STATUS.FORBIDDEN,
+  'NotFoundError': HTTP_STATUS.NOT_FOUND,
+  'ConflictError': HTTP_STATUS.CONFLICT,
+  'TooManyRequestsError': HTTP_STATUS.TOO_MANY_REQUESTS
+};
+
+// MongoDB error codes
+const MONGO_DUPLICATE_KEY_ERROR = 11000;
+
+// Stack trace configuration
+const STACK_TRACE_PREVIEW_LINES = 3;
+
+// Process exit delay (ms) to ensure notifications complete
+const PROCESS_EXIT_DELAY_MS = 100;
+
 /**
  * Custom application error class
  */
 class AppError extends Error {
-  constructor(message, statusCode = 500, code = ErrorCodes.INTERNAL_SERVER_ERROR, details = null) {
+  constructor(
+    message,
+    statusCode = HTTP_STATUS.INTERNAL_SERVER_ERROR,
+    code = ErrorCodes.INTERNAL_SERVER_ERROR,
+    details = null
+  ) {
     super(message);
     this.name = 'AppError';
     this.statusCode = statusCode;
@@ -90,22 +130,7 @@ function getStatusCode(error) {
   }
 
   // Map common error names to status codes
-  if (error.name === 'ValidationError') {
-    return 400;
-  } else if (error.name === 'UnauthorizedError' || error.name === 'JsonWebTokenError') {
-    return 401;
-  } else if (error.name === 'ForbiddenError') {
-    return 403;
-  } else if (error.name === 'NotFoundError') {
-    return 404;
-  } else if (error.name === 'ConflictError') {
-    return 409;
-  } else if (error.name === 'TooManyRequestsError') {
-    return 429;
-  }
-
-  // Default to 500 for unknown errors
-  return 500;
+  return ERROR_NAME_TO_STATUS[error.name] || HTTP_STATUS.INTERNAL_SERVER_ERROR;
 }
 
 /**
@@ -119,7 +144,7 @@ function handleMongooseValidationError(error) {
     message: err.message
   }));
 
-  return new AppError('Validation failed', 400, ErrorCodes.VALIDATION_ERROR, errors);
+  return new AppError('Validation failed', HTTP_STATUS.BAD_REQUEST, ErrorCodes.VALIDATION_ERROR, errors);
 }
 
 /**
@@ -131,7 +156,7 @@ function handleMongoDuplicateKeyError(error) {
   const field = Object.keys(error.keyValue)[0];
   const value = error.keyValue[field];
 
-  return new AppError(`Resource with ${field} '${value}' already exists`, 409, ErrorCodes.DUPLICATE_RESOURCE, {
+  return new AppError(`Resource with ${field} '${value}' already exists`, HTTP_STATUS.CONFLICT, ErrorCodes.DUPLICATE_RESOURCE, {
     field,
     value
   });
@@ -143,7 +168,7 @@ function handleMongoDuplicateKeyError(error) {
  * @returns {AppError} Formatted application error
  */
 function handleMongoCastError(error) {
-  return new AppError(`Invalid value for field '${error.path}'`, 400, ErrorCodes.INVALID_INPUT, {
+  return new AppError(`Invalid value for field '${error.path}'`, HTTP_STATUS.BAD_REQUEST, ErrorCodes.INVALID_INPUT, {
     field: error.path,
     value: error.value
   });
@@ -156,12 +181,12 @@ function handleMongoCastError(error) {
  */
 function handleJWTError(error) {
   if (error.name === 'TokenExpiredError') {
-    return new AppError('Token has expired', 401, ErrorCodes.TOKEN_EXPIRED);
+    return new AppError('Token has expired', HTTP_STATUS.UNAUTHORIZED, ErrorCodes.TOKEN_EXPIRED);
   } else if (error.name === 'JsonWebTokenError') {
-    return new AppError('Invalid token', 401, ErrorCodes.INVALID_TOKEN);
+    return new AppError('Invalid token', HTTP_STATUS.UNAUTHORIZED, ErrorCodes.INVALID_TOKEN);
   }
 
-  return new AppError('Authentication failed', 401, ErrorCodes.UNAUTHORIZED);
+  return new AppError('Authentication failed', HTTP_STATUS.UNAUTHORIZED, ErrorCodes.UNAUTHORIZED);
 }
 
 /**
@@ -181,7 +206,7 @@ function normalizeError(error) {
   }
 
   // MongoDB duplicate key error
-  if (error.code === 11000) {
+  if (error.code === MONGO_DUPLICATE_KEY_ERROR) {
     return handleMongoDuplicateKeyError(error);
   }
 
@@ -235,7 +260,7 @@ function errorHandler(err, req, res, next) {
     communityId: req.user?.communityId,
     // NEVER log full stack traces to prevent information leakage
     // Stack is captured by Winston transport for file logs only
-    stackPreview: err.stack ? err.stack.split('\n').slice(0, 3).join('\n') : undefined
+    stackPreview: err.stack ? err.stack.split('\n').slice(0, STACK_TRACE_PREVIEW_LINES).join('\n') : undefined
   };
 
   // Log error with correlation ID and sanitized context
@@ -258,7 +283,7 @@ function errorHandler(err, req, res, next) {
  * @param {Function} next - Next middleware
  */
 function notFoundHandler(req, res, next) {
-  const error = new AppError(`Route ${req.method} ${req.path} not found`, 404, ErrorCodes.NOT_FOUND);
+  const error = new AppError(`Route ${req.method} ${req.path} not found`, HTTP_STATUS.NOT_FOUND, ErrorCodes.NOT_FOUND);
 
   next(error);
 }
@@ -320,7 +345,7 @@ process.on('uncaughtException', error => {
       }
 
       // Exit process - let PM2/Docker restart
-      setTimeout(() => process.exit(1), 100); // Small delay to ensure notification completes
+      setTimeout(() => process.exit(1), PROCESS_EXIT_DELAY_MS); // Small delay to ensure notification completes
     });
 });
 

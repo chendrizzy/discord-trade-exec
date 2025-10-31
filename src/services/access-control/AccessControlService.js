@@ -182,32 +182,69 @@ class AccessControlService {
    * @private
    */
   async _checkSubscriptionAccess(guildId, userId, requiredRoleIds, startTime) {
-    // Try cache first (fast path, <10ms)
-    try {
-      const cachedResult = await this.cacheService.get(guildId, userId);
-      if (cachedResult !== null) {
-        const duration = Date.now() - startTime;
-        logger.debug('Cache hit for access check', { guildId, userId, duration });
+    // Step 1: Try cache first (fast path, <10ms)
+    const cachedResult = await this._tryCache(guildId, userId);
+    if (cachedResult) {
+      const duration = Date.now() - startTime;
+      logger.debug('Cache hit for access check', { guildId, userId, duration });
+      return { ...cachedResult, cacheHit: true };
+    }
 
-        return {
-          ...cachedResult,
-          cacheHit: true
-        };
-      }
+    // Step 2: Cache miss - verify with provider
+    logger.debug('Cache miss - checking with provider', { guildId, userId });
+    const providerResult = await this._tryProvider(guildId, userId, requiredRoleIds, startTime);
+
+    if (providerResult.success) {
+      // Cache the successful result
+      await this._tryCacheSet(guildId, userId, providerResult.data);
+      return providerResult.data;
+    }
+
+    // Step 3: Provider failed - try stale cache (graceful degradation)
+    const staleResult = await this._tryStaleCacheFallback(guildId, userId, startTime);
+    if (staleResult) {
+      return staleResult;
+    }
+
+    // Step 4: Both failed = fail-closed (deny access)
+    const duration = Date.now() - startTime;
+    logger.error('Both cache and provider failed - denying access', {
+      error: providerResult.error.message,
+      guildId,
+      userId,
+      duration
+    });
+
+    return {
+      hasAccess: false,
+      reason: 'verification_unavailable',
+      error: providerResult.error.message
+    };
+  }
+
+  /**
+   * Try to get result from cache
+   * @private
+   */
+  async _tryCache(guildId, userId) {
+    try {
+      return await this.cacheService.get(guildId, userId);
     } catch (cacheError) {
-      // Cache error - continue to provider (don't fail)
       logger.warn('Cache get error, falling through to provider', {
         error: cacheError.message,
         guildId,
         userId
       });
+      return null;
     }
+  }
 
-    // Cache miss - verify with provider
-    logger.debug('Cache miss - checking with provider', { guildId, userId });
-
+  /**
+   * Try to verify with subscription provider
+   * @private
+   */
+  async _tryProvider(guildId, userId, requiredRoleIds, startTime) {
     try {
-      // H1 FIX: Use correct method name verifySubscription (not verifyUserSubscription)
       const verificationResult = await this.subscriptionProvider.verifySubscription(
         guildId,
         userId,
@@ -216,7 +253,7 @@ class AccessControlService {
 
       const duration = Date.now() - startTime;
 
-      // H3 FIX: Validate result structure before using it
+      // Validate result structure
       if (!verificationResult || typeof verificationResult.hasAccess !== 'boolean') {
         logger.error('Invalid verification result structure', {
           guildId,
@@ -226,32 +263,8 @@ class AccessControlService {
         throw new Error('Invalid verification result from provider');
       }
 
-      // Create properly structured result
-      const result = verificationResult.hasAccess
-        ? {
-            hasAccess: true,
-            reason: 'verified_subscription',
-            cacheHit: false,
-            ...(verificationResult.matchingRoles && { matchingRoles: verificationResult.matchingRoles })
-          }
-        : {
-            hasAccess: false,
-            reason: verificationResult.reason || 'no_subscription',
-            requiredRoles: requiredRoleIds,
-            cacheHit: false
-          };
-
-      // Cache the result
-      try {
-        await this.cacheService.set(guildId, userId, result);
-      } catch (cacheError) {
-        // Cache write error - log but don't fail
-        logger.warn('Cache set error', {
-          error: cacheError.message,
-          guildId,
-          userId
-        });
-      }
+      // Build properly structured result
+      const result = this._buildAccessResult(verificationResult, requiredRoleIds);
 
       logger.info('Subscription verified', {
         guildId,
@@ -260,57 +273,85 @@ class AccessControlService {
         duration
       });
 
-      return result;
+      return { success: true, data: result };
     } catch (providerError) {
-      // Provider failed - try to use stale cache (graceful degradation)
       logger.warn('Provider verification failed, attempting stale cache', {
         error: providerError.message,
         guildId,
         userId
       });
+      return { success: false, error: providerError };
+    }
+  }
 
-      try {
-        // Try to get from cache again (might have stale data)
-        const staleResult = await this.cacheService.get(guildId, userId);
-        if (staleResult !== null) {
-          const duration = Date.now() - startTime;
-          logger.info('Using stale cache due to provider failure', {
-            guildId,
-            userId,
-            duration
-          });
-
-          return {
-            ...staleResult,
-            cacheHit: true,
-            degraded: true,
-            reason: 'verified_subscription_stale'
-          };
-        }
-      } catch (cacheError) {
-        // Cache also failed - will fall through to denial
-        logger.warn('Stale cache retrieval failed', {
-          error: cacheError.message,
-          guildId,
-          userId
-        });
-      }
-
-      // Both cache and provider failed = fail-closed (deny access)
-      const duration = Date.now() - startTime;
-      logger.error('Both cache and provider failed - denying access', {
-        error: providerError.message,
-        guildId,
-        userId,
-        duration
-      });
-
+  /**
+   * Build access result from verification response
+   * @private
+   */
+  _buildAccessResult(verificationResult, requiredRoleIds) {
+    if (verificationResult.hasAccess) {
       return {
-        hasAccess: false,
-        reason: 'verification_unavailable',
-        error: providerError.message
+        hasAccess: true,
+        reason: 'verified_subscription',
+        cacheHit: false,
+        ...(verificationResult.matchingRoles && { matchingRoles: verificationResult.matchingRoles })
       };
     }
+
+    return {
+      hasAccess: false,
+      reason: verificationResult.reason || 'no_subscription',
+      requiredRoles: requiredRoleIds,
+      cacheHit: false
+    };
+  }
+
+  /**
+   * Try to set result in cache (non-blocking)
+   * @private
+   */
+  async _tryCacheSet(guildId, userId, result) {
+    try {
+      await this.cacheService.set(guildId, userId, result);
+    } catch (cacheError) {
+      logger.warn('Cache set error', {
+        error: cacheError.message,
+        guildId,
+        userId
+      });
+    }
+  }
+
+  /**
+   * Try to use stale cache as fallback
+   * @private
+   */
+  async _tryStaleCacheFallback(guildId, userId, startTime) {
+    try {
+      const staleResult = await this.cacheService.get(guildId, userId);
+      if (staleResult !== null) {
+        const duration = Date.now() - startTime;
+        logger.info('Using stale cache due to provider failure', {
+          guildId,
+          userId,
+          duration
+        });
+
+        return {
+          ...staleResult,
+          cacheHit: true,
+          degraded: true,
+          reason: 'verified_subscription_stale'
+        };
+      }
+    } catch (cacheError) {
+      logger.warn('Stale cache retrieval failed', {
+        error: cacheError.message,
+        guildId,
+        userId
+      });
+    }
+    return null;
   }
 
   /**
