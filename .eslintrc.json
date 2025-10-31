@@ -4,27 +4,107 @@
     "es2021": true,
     "jest": true
   },
-  "extends": "eslint:recommended",
+  "extends": ["eslint:recommended", "plugin:react/recommended"],
   "parserOptions": {
-    "ecmaVersion": 2021
+    "ecmaVersion": 2022,
+    "sourceType": "script"
+  },
+  "plugins": ["react"],
+  "settings": {
+    "react": {
+      "version": "detect"
+    }
   },
   "rules": {
     "no-console": "error",
     "no-unused-vars": ["warn", { "argsIgnorePattern": "^_" }],
     "prefer-const": "warn",
-    "no-var": "error"
+    "no-var": "error",
+    "react/react-in-jsx-scope": "off",
+    "react/prop-types": "off"
   },
   "overrides": [
     {
       "files": ["src/dashboard/**/*.js", "src/dashboard/**/*.jsx"],
+      "parser": "@babel/eslint-parser",
+      "parserOptions": {
+        "sourceType": "module",
+        "ecmaVersion": 2022,
+        "ecmaFeatures": {
+          "jsx": true
+        },
+        "requireConfigFile": true,
+        "babelOptions": {
+          "presets": ["@babel/preset-react"]
+        }
+      },
+      "env": {
+        "browser": true
+      },
       "rules": {
         "no-console": "off"
       }
     },
     {
+      "files": ["src/middleware/performance-tracker.js"],
+      "parserOptions": {
+        "sourceType": "module",
+        "ecmaVersion": 2022
+      }
+    },
+    {
       "files": ["tests/**/*.js", "**/*.test.js", "**/*.spec.js"],
+      "parser": "@babel/eslint-parser",
+      "parserOptions": {
+        "sourceType": "module",
+        "ecmaVersion": 2022,
+        "ecmaFeatures": {
+          "jsx": true
+        },
+        "requireConfigFile": true,
+        "babelOptions": {
+          "presets": ["@babel/preset-react"]
+        }
+      },
       "rules": {
-        "no-console": "warn"
+        "no-console": "off"
+      }
+    },
+    {
+      "files": ["tests/e2e/**/*.js", "tests/e2e/**/*.spec.js"],
+      "parser": "@babel/eslint-parser",
+      "parserOptions": {
+        "sourceType": "module",
+        "ecmaVersion": 2022,
+        "ecmaFeatures": {
+          "jsx": true
+        },
+        "requireConfigFile": true,
+        "babelOptions": {
+          "presets": ["@babel/preset-react"]
+        }
+      },
+      "env": {
+        "browser": true
+      }
+    },
+    {
+      "files": ["tests/unit/**/*.test.js"],
+      "parser": "@babel/eslint-parser",
+      "parserOptions": {
+        "sourceType": "module",
+        "ecmaVersion": 2022,
+        "ecmaFeatures": {
+          "jsx": true
+        },
+        "requireConfigFile": true,
+        "babelOptions": {
+          "presets": ["@babel/preset-react"]
+        }
+      },
+      "env": {
+        "browser": true,
+        "jest": true
       }
     }
   ]

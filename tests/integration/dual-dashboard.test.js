@@ -463,6 +463,20 @@ describe('Shared Components Integration', () => {
 });
 
 describe('Performance Tests', () => {
+  let traderCookie;
+  let traderUser;
+
+  beforeAll(async () => {
+    const testCommunity = await createTestCommunity();
+    traderUser = await createTestUser({
+      username: 'perf_trader',
+      discriminator: '9999',
+      communityRole: 'trader',
+      tenantId: testCommunity._id
+    });
+    traderCookie = await mockDiscordOAuth(traderUser);
+  });
+
   it('should handle route decision overhead within target (<500ms)', async () => {
     const start = Date.now();
 
@@ -501,6 +515,20 @@ describe('Performance Tests', () => {
 });
 
 describe('Security Tests', () => {
+  let traderCookie;
+  let traderUser;
+
+  beforeAll(async () => {
+    const testCommunity = await createTestCommunity();
+    traderUser = await createTestUser({
+      username: 'security_trader',
+      discriminator: '8888',
+      communityRole: 'trader',
+      tenantId: testCommunity._id
+    });
+    traderCookie = await mockDiscordOAuth(traderUser);
+  });
+
   it('should prevent cross-community data access', async () => {
     const community1 = await createTestCommunity();
     const community2 = await createTestCommunity();

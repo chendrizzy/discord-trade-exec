@@ -59,7 +59,7 @@ class BrokerAdapter {
    * @returns {number} balance.equity - Current equity (for stocks)
    * @returns {string} balance.currency - Balance currency
    */
-  async getBalance(currency = null) {
+  async getBalance(_currency = null) {
     throw new Error('getBalance() must be implemented by broker adapter');
   }
 
@@ -79,7 +79,7 @@ class BrokerAdapter {
    * @returns {number} order.executedQty - Executed quantity
    * @returns {number} order.executedPrice - Average execution price
    */
-  async createOrder(order) {
+  async createOrder(_order) {
     throw new Error('createOrder() must be implemented by broker adapter');
   }
 
@@ -88,7 +88,7 @@ class BrokerAdapter {
    * @param {string} orderId - Broker's order ID
    * @returns {Promise<boolean>} - Cancellation success status
    */
-  async cancelOrder(orderId) {
+  async cancelOrder(_orderId) {
     throw new Error('cancelOrder() must be implemented by broker adapter');
   }
 
@@ -116,7 +116,7 @@ class BrokerAdapter {
    * @param {number} params.trailPercent - Trail percentage (for trailing stops)
    * @returns {Promise<Object>} - Created stop-loss order
    */
-  async setStopLoss(params) {
+  async setStopLoss(_params) {
     throw new Error('setStopLoss() must be implemented by broker adapter');
   }
 
@@ -128,7 +128,7 @@ class BrokerAdapter {
    * @param {number} params.limitPrice - Take-profit limit price
    * @returns {Promise<Object>} - Created take-profit order
    */
-  async setTakeProfit(params) {
+  async setTakeProfit(_params) {
     throw new Error('setTakeProfit() must be implemented by broker adapter');
   }
 
@@ -141,7 +141,7 @@ class BrokerAdapter {
    * @param {string} filters.status - Filter by status
    * @returns {Promise<Array>} - Array of historical orders
    */
-  async getOrderHistory(filters = {}) {
+  async getOrderHistory(_filters = {}) {
     throw new Error('getOrderHistory() must be implemented by broker adapter');
   }
 
@@ -153,7 +153,7 @@ class BrokerAdapter {
    * @returns {number} price.ask - Current ask price
    * @returns {number} price.last - Last traded price
    */
-  async getMarketPrice(symbol) {
+  async getMarketPrice(_symbol) {
     throw new Error('getMarketPrice() must be implemented by broker adapter');
   }
 
@@ -162,7 +162,7 @@ class BrokerAdapter {
    * @param {string} symbol - Trading symbol
    * @returns {Promise<boolean>} - True if symbol is supported
    */
-  async isSymbolSupported(symbol) {
+  async isSymbolSupported(_symbol) {
     throw new Error('isSymbolSupported() must be implemented by broker adapter');
   }
 
@@ -174,7 +174,7 @@ class BrokerAdapter {
    * @returns {number} fees.taker - Taker fee percentage
    * @returns {number} fees.withdrawal - Withdrawal fee (if applicable)
    */
-  async getFees(symbol) {
+  async getFees(_symbol) {
     throw new Error('getFees() must be implemented by broker adapter');
   }
 

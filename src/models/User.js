@@ -25,6 +25,7 @@ const userSchema = new mongoose.Schema(
       required: true
     },
     discordTag: String,
+    avatar: String, // Discord avatar hash
 
     // Community role (for multi-tenant access control)
     communityRole: {

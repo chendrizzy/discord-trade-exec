@@ -380,7 +380,7 @@ async function handleSubscriptionCancelled(event, req) {
   const { customerId, id: subscriptionId, cancelAtPeriodEnd } = event.data;
 
   // Find subscription in Community or User model
-  let community = await Community.findOne({ 'subscription.polarSubscriptionId': subscriptionId });
+  const community = await Community.findOne({ 'subscription.polarSubscriptionId': subscriptionId });
 
   if (community) {
     const oldTier = community.subscription.tier;
@@ -424,7 +424,7 @@ async function handleSubscriptionCancelled(event, req) {
   }
 
   // Check if it's a trader subscription
-  let user = await User.findOne({ 'subscription.polarSubscriptionId': subscriptionId });
+  const user = await User.findOne({ 'subscription.polarSubscriptionId': subscriptionId });
 
   if (user) {
     const oldTier = user.subscription.tier;

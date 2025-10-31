@@ -268,14 +268,35 @@ function errorHandler(err, req, res, next) {
 
   // Send Discord notification for critical errors (async, non-blocking)
   errorNotificationService.notify(errorData).catch(notifyError => {
-    // Log notification failures at error level - critical errors not being reported
-    logger.error('Discord notification failed - critical errors not being reported', {
-      error: notifyError.message,
-      stack: notifyError.stack,
-      originalError: errorData.errorCode,
-      correlationId: errorData.correlationId,
-      errorId: 'NOTIFICATION_DELIVERY_FAILED'
-    });
+    // Differentiate expected vs unexpected notification failures
+    const isExpectedFailure =
+      notifyError.code === 'ECONNREFUSED' || // Discord API unavailable
+      notifyError.code === 'ETIMEDOUT' ||    // Network timeout
+      notifyError.code === 'ENOTFOUND' ||    // DNS resolution failed
+      notifyError.response?.status === 429 || // Rate limited
+      notifyError.response?.status === 404;   // Webhook deleted
+
+    if (isExpectedFailure) {
+      // Expected infrastructure/network failures - warn level
+      logger.warn('Discord notification failed (expected infrastructure issue)', {
+        error: notifyError.message,
+        errorCode: notifyError.code,
+        httpStatus: notifyError.response?.status,
+        originalError: errorData.errorCode,
+        correlationId: errorData.correlationId,
+        errorId: 'NOTIFICATION_EXPECTED_FAILURE'
+      });
+    } else {
+      // Unexpected failures (code bugs, config errors) - error level with full stack
+      logger.error('Discord notification failed (unexpected error) - critical errors not being reported', {
+        error: notifyError.message,
+        stack: notifyError.stack,
+        errorCode: notifyError.code,
+        originalError: errorData.errorCode,
+        correlationId: errorData.correlationId,
+        errorId: 'NOTIFICATION_DELIVERY_FAILED'
+      });
+    }
   });
 
   // Send error response (never include stack in response, even in dev)
@@ -317,11 +338,29 @@ process.on('unhandledRejection', (reason, promise) => {
 
   // Send Discord notification (async, non-blocking)
   errorNotificationService.notifyUnhandledRejection(reason, promise).catch(err => {
-    logger.error('Discord notification failed for unhandled rejection - critical errors not being reported', {
-      error: err.message,
-      stack: err.stack,
-      errorId: 'NOTIFICATION_DELIVERY_FAILED_UNHANDLED_REJECTION'
-    });
+    // Differentiate expected vs unexpected notification failures
+    const isExpectedFailure =
+      err.code === 'ECONNREFUSED' ||
+      err.code === 'ETIMEDOUT' ||
+      err.code === 'ENOTFOUND' ||
+      err.response?.status === 429 ||
+      err.response?.status === 404;
+
+    if (isExpectedFailure) {
+      logger.warn('Discord notification failed for unhandled rejection (expected infrastructure issue)', {
+        error: err.message,
+        errorCode: err.code,
+        httpStatus: err.response?.status,
+        errorId: 'NOTIFICATION_EXPECTED_FAILURE_UNHANDLED_REJECTION'
+      });
+    } else {
+      logger.error('Discord notification failed for unhandled rejection (unexpected error) - critical errors not being reported', {
+        error: err.message,
+        stack: err.stack,
+        errorCode: err.code,
+        errorId: 'NOTIFICATION_DELIVERY_FAILED_UNHANDLED_REJECTION'
+      });
+    }
   });
 
   // Send to Sentry if configured
@@ -345,11 +384,29 @@ process.on('uncaughtException', error => {
   errorNotificationService
     .notifyUncaughtException(error)
     .catch(err => {
-      logger.error('Discord notification failed for uncaught exception - critical errors not being reported', {
-        error: err.message,
-        stack: err.stack,
-        errorId: 'NOTIFICATION_DELIVERY_FAILED_UNCAUGHT_EXCEPTION'
-      });
+      // Differentiate expected vs unexpected notification failures
+      const isExpectedFailure =
+        err.code === 'ECONNREFUSED' ||
+        err.code === 'ETIMEDOUT' ||
+        err.code === 'ENOTFOUND' ||
+        err.response?.status === 429 ||
+        err.response?.status === 404;
+
+      if (isExpectedFailure) {
+        logger.warn('Discord notification failed for uncaught exception (expected infrastructure issue)', {
+          error: err.message,
+          errorCode: err.code,
+          httpStatus: err.response?.status,
+          errorId: 'NOTIFICATION_EXPECTED_FAILURE_UNCAUGHT_EXCEPTION'
+        });
+      } else {
+        logger.error('Discord notification failed for uncaught exception (unexpected error) - critical errors not being reported', {
+          error: err.message,
+          stack: err.stack,
+          errorCode: err.code,
+          errorId: 'NOTIFICATION_DELIVERY_FAILED_UNCAUGHT_EXCEPTION'
+        });
+      }
     })
     .finally(() => {
       // Send to Sentry if configured

@@ -538,7 +538,7 @@ function getMessage(code) {
  * @returns {boolean} True if error code exists
  */
 function isValidErrorCode(code) {
-  return ErrorCodeDefinitions.hasOwnProperty(code);
+  return Object.prototype.hasOwnProperty.call(ErrorCodeDefinitions, code);
 }
 
 /**

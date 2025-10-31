@@ -27,7 +27,7 @@
 const ccxt = require('ccxt');
 const BrokerAdapter = require('../BrokerAdapter');
 const logger = require('../../middleware/logger');
-const { encrypt, decrypt } = require('../../utils/encryption');
+const { decrypt } = require('../../utils/encryption');
 
 class BinanceAdapter extends BrokerAdapter {
   constructor() {

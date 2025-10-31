@@ -165,6 +165,8 @@ describe('Integration Test: OAuth2 Authentication Flow', () => {
         discordUsername: 'test_trader',
         discordTag: 'test_trader#1234',
         username: 'test_trader',
+        discordUsername: 'test_trader',
+        discordTag: 'test_trader#1234',
         email: 'test@example.com',
         communityId: new mongoose.Types.ObjectId(),
         subscription: {
@@ -228,6 +230,8 @@ describe('Integration Test: OAuth2 Authentication Flow', () => {
         discordUsername: 'callback_tester',
         discordTag: 'callback_tester#1234',
         username: 'callback_tester',
+        discordUsername: 'callback_tester',
+        discordTag: 'callback_tester#1234',
         email: 'callback@example.com',
         communityId: new mongoose.Types.ObjectId()
       });
@@ -415,6 +419,8 @@ describe('Integration Test: OAuth2 Authentication Flow', () => {
         discordUsername: 'refresh_tester',
         discordTag: 'refresh_tester#1234',
         username: 'refresh_tester',
+        discordUsername: 'refresh_tester',
+        discordTag: 'refresh_tester#1234',
         email: 'refresh@example.com',
         communityId: new mongoose.Types.ObjectId(),
         tradingConfig: {
@@ -547,6 +553,8 @@ describe('Integration Test: OAuth2 Authentication Flow', () => {
         discordUsername: 'session_tester',
         discordTag: 'session_tester#1234',
         username: 'session_tester',
+        discordUsername: 'session_tester',
+        discordTag: 'session_tester#1234',
         email: 'session@example.com',
         communityId: new mongoose.Types.ObjectId()
       });
@@ -647,6 +655,8 @@ describe('Integration Test: OAuth2 Authentication Flow', () => {
         discordUsername: 'security_tester',
         discordTag: 'security_tester#1234',
         username: 'security_tester',
+        discordUsername: 'security_tester',
+        discordTag: 'security_tester#1234',
         email: 'security@example.com',
         communityId: new mongoose.Types.ObjectId()
       });
@@ -683,6 +693,8 @@ describe('Integration Test: OAuth2 Authentication Flow', () => {
         discordUsername: 'rate_limiter',
         discordTag: 'rate_limiter#1234',
         username: 'rate_limiter',
+        discordUsername: 'rate_limiter',
+        discordTag: 'rate_limiter#1234',
         email: 'rate@example.com'
       });
 
@@ -709,6 +721,8 @@ describe('Integration Test: OAuth2 Authentication Flow', () => {
         discordUsername: 'malformed_tester',
         discordTag: 'malformed_tester#1234',
         username: 'malformed_tester',
+        discordUsername: 'malformed_tester',
+        discordTag: 'malformed_tester#1234',
         email: 'malformed@example.com',
         communityId: new mongoose.Types.ObjectId()
       });
@@ -739,6 +753,8 @@ describe('Integration Test: OAuth2 Authentication Flow', () => {
         discordUsername: 'scope_tester',
         discordTag: 'scope_tester#1234',
         username: 'scope_tester',
+        discordUsername: 'scope_tester',
+        discordTag: 'scope_tester#1234',
         email: 'scope@example.com',
         communityId: new mongoose.Types.ObjectId()
       });
@@ -761,6 +777,8 @@ describe('Integration Test: OAuth2 Authentication Flow', () => {
         discordUsername: 'perf_tester',
         discordTag: 'perf_tester#1234',
         username: 'perf_tester',
+        discordUsername: 'perf_tester',
+        discordTag: 'perf_tester#1234',
         email: 'perf@example.com',
         tradingConfig: {
           oauthTokens: new Map([
@@ -806,6 +824,8 @@ describe('Integration Test: OAuth2 Authentication Flow', () => {
         discordUsername: 'broker_tester',
         discordTag: 'broker_tester#1234',
         username: 'broker_tester',
+        discordUsername: 'broker_tester',
+        discordTag: 'broker_tester#1234',
         email: 'broker@example.com',
         tradingConfig: {
           oauthTokens: new Map([

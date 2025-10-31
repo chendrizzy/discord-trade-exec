@@ -139,7 +139,6 @@ describe('Integration Test: OAuth2 Broker Management Routes', () => {
         discriminator: '0001',
         email: 'broker-mgmt-test-disconnect-1@example.com',
         communityId: new mongoose.Types.ObjectId(),
-        communityId: new mongoose.Types.ObjectId(),
         tradingConfig: {
           oauthTokens: new Map([
             [

@@ -21,7 +21,7 @@ const customMetricNameParams = z.object({
     .string()
     .min(1, 'Metric name is required')
     .max(100, 'Metric name must be 100 characters or less')
-    .regex(/^[a-zA-Z0-9_\-]+$/, 'Metric name must contain only alphanumeric characters, underscores, and hyphens')
+    .regex(/^[a-zA-Z0-9_-]+$/, 'Metric name must contain only alphanumeric characters, underscores, and hyphens')
 });
 
 /**
@@ -43,7 +43,7 @@ const customMetricRecordBody = z.object({
     .string()
     .min(1, 'Metric name is required')
     .max(100, 'Metric name must be 100 characters or less')
-    .regex(/^[a-zA-Z0-9_\-]+$/, 'Metric name must contain only alphanumeric characters, underscores, and hyphens'),
+    .regex(/^[a-zA-Z0-9_-]+$/, 'Metric name must contain only alphanumeric characters, underscores, and hyphens'),
   value: z
     .number({
       required_error: 'Metric value is required',

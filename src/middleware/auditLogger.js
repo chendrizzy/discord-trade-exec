@@ -201,8 +201,9 @@ const auditFailedAuth = async (req, error) => {
  * Logs cross-tenant access attempts (security violation).
  */
 const auditCrossTenantAttempt = async (req, attemptedCommunityId) => {
+  let context;
   try {
-    const context = getTenantContext();
+    context = getTenantContext();
 
     await SecurityAudit.log({
       communityId: context.communityId,
@@ -247,8 +248,9 @@ const auditCrossTenantAttempt = async (req, attemptedCommunityId) => {
  * Special logging for credential operations (high risk).
  */
 const auditCredentialOperation = async (action, credentialType, resourceId, success = true) => {
+  let context;
   try {
-    const context = getTenantContext();
+    context = getTenantContext();
 
     await SecurityAudit.log({
       communityId: context.communityId,

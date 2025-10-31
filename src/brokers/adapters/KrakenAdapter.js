@@ -214,7 +214,7 @@ class KrakenAdapter extends BrokerAdapter {
         if (quantity && quantity > 0.00000001) {
           // Skip dust amounts
           let currentPrice = 0;
-          let symbol = `${currency}/USD`;
+          const symbol = `${currency}/USD`;
 
           try {
             // Try to get current price

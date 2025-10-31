@@ -73,8 +73,53 @@ function isValidSnowflake(id) {
   return DISCORD_SNOWFLAKE_PATTERN.test(id);
 }
 
+/**
+ * Escape special characters in a string for safe use in RegExp
+ * Prevents ReDoS (Regular Expression Denial of Service) attacks
+ *
+ * @param {string} str - String to escape
+ * @returns {string} Escaped string safe for RegExp constructor
+ */
+function escapeRegex(str) {
+  return str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
+/**
+ * Validate and sanitize search query for safe RegExp usage
+ * Enforces length limit to prevent memory exhaustion attacks
+ *
+ * @param {string} search - Search query to validate
+ * @param {Object} options - Validation options
+ * @param {number} options.maxLength - Maximum allowed length (default: 100)
+ * @returns {string} Escaped search query safe for RegExp
+ * @throws {Error} If search query exceeds maximum length
+ */
+function validateSearchQuery(search, options = {}) {
+  const maxLength = options.maxLength || 100;
+
+  // Type validation
+  if (typeof search !== 'string') {
+    throw new Error('Search query must be a string');
+  }
+
+  // Length validation to prevent memory exhaustion
+  if (search.length > maxLength) {
+    throw new Error(`Search query too long (max ${maxLength} characters)`);
+  }
+
+  // Empty string check
+  if (search.trim().length === 0) {
+    throw new Error('Search query cannot be empty');
+  }
+
+  // Return escaped query safe for RegExp
+  return escapeRegex(search);
+}
+
 module.exports = {
   validateSnowflake,
   isValidSnowflake,
+  escapeRegex,
+  validateSearchQuery,
   DISCORD_SNOWFLAKE_PATTERN
 };

@@ -11,6 +11,20 @@ jest.mock('ccxt', () => ({
   }))
 }));
 
+// Test utilities
+const testUtils = {
+  mockTradingSignal: (overrides = {}) => ({
+    symbol: 'BTCUSDT',
+    action: 'buy',
+    price: 45000,
+    amount: 0.001,
+    exchange: 'binance',
+    stopLoss: 43000,
+    takeProfit: 48000,
+    ...overrides
+  })
+};
+
 describe('TradeExecutor', () => {
   let executor;
   let mockExchange;

@@ -336,7 +336,7 @@ describe('US3-T27: Encryption Service Tests', () => {
       mockSend.mockRejectedValueOnce(new Error('KMS failure'));
 
       try {
-        await encryptionService.generateDEK(mockCommunity);
+        await encryptionService.generateDEK(mockCommunityInstance);
       } catch (error) {
         // Error should not contain actual DEK or sensitive data
         expect(error.message).not.toContain(mockDEK.toString('hex'));

@@ -399,7 +399,7 @@ class TradeHandler {
     // Remove sensitive information (API keys, internal paths, etc.)
     const sanitized = errorMessage
       .replace(/[A-Za-z0-9]{20,}/g, '[REDACTED]') // API keys
-      .replace(/\/[\w\/]+\.js/g, '[PATH]') // File paths
+      .replace(/\/[\w/]+\.js/g, '[PATH]') // File paths
       .replace(/localhost:\d+/g, '[HOST]') // Internal hosts
       .replace(/\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}/g, '[IP]'); // IP addresses
 

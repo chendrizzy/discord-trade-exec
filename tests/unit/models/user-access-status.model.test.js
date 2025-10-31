@@ -505,7 +505,7 @@ describe('UserAccessStatus Model - TDD Tests', () => {
       await status.save();
 
       // Verify it exists
-      let found = await UserAccessStatus.findOne({ guildId: '12345678901234567', userId: '98765432109876543' });
+      const found = await UserAccessStatus.findOne({ guildId: '12345678901234567', userId: '98765432109876543' });
       expect(found).toBeDefined();
 
       // Wait for TTL to expire (MongoDB TTL monitor runs every 60s, but we test the field exists)

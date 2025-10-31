@@ -1,6 +1,3 @@
-// External dependencies
-const express = require('express');
-
 // Internal utilities and services
 const performanceTracker = require('./PerformanceTracker');
 const rateLimiter = require('./RateLimiter');

@@ -135,7 +135,7 @@ class TradingViewParser {
     if (!symbol) return null;
 
     // Remove common separators and convert to uppercase
-    let normalized = symbol.replace(/[\/\-_]/g, '').toUpperCase();
+    const normalized = symbol.replace(/[/_-]/g, '').toUpperCase();
 
     // Handle common TradingView symbol formats
     const symbolMappings = {

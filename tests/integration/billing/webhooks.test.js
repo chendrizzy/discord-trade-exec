@@ -358,13 +358,10 @@ describe('SC-025 T044: Billing Webhook Integration Tests', () => {
     });
 
     test('should activate community enterprise subscription', async () => {
+      const ownerId = new mongoose.Types.ObjectId();
       const community = new Community({
         name: 'Enterprise Community',
         discordGuildId: 'guild-enterprise',
-        const ownerId = new mongoose.Types.ObjectId();
-      const community = new Community({
-        name: match.includes('name:') ? match.match(/name: '([^']+)'/)[1] : 'Test Community',
-        discordGuildId: match.match(/discordGuildId: '([^']+)'/)[1],
         ownerId: ownerId,
         admins: [
           {
@@ -429,13 +426,10 @@ describe('SC-025 T044: Billing Webhook Integration Tests', () => {
     });
 
     test('should update community subscription status to past_due', async () => {
+      const ownerId = new mongoose.Types.ObjectId();
       const community = new Community({
         name: 'Past Due Community',
         discordGuildId: 'guild-past-due',
-        const ownerId = new mongoose.Types.ObjectId();
-      const community = new Community({
-        name: match.includes('name:') ? match.match(/name: '([^']+)'/)[1] : 'Test Community',
-        discordGuildId: match.match(/discordGuildId: '([^']+)'/)[1],
         ownerId: ownerId,
         admins: [
           {
@@ -556,13 +550,10 @@ describe('SC-025 T044: Billing Webhook Integration Tests', () => {
     });
 
     test('should downgrade community to free tier on cancellation', async () => {
+      const ownerId = new mongoose.Types.ObjectId();
       const community = new Community({
         name: 'Cancelled Community',
         discordGuildId: 'guild-cancelled',
-        const ownerId = new mongoose.Types.ObjectId();
-      const community = new Community({
-        name: match.includes('name:') ? match.match(/name: '([^']+)'/)[1] : 'Test Community',
-        discordGuildId: match.match(/discordGuildId: '([^']+)'/)[1],
         ownerId: ownerId,
         admins: [
           {
@@ -639,13 +630,10 @@ describe('SC-025 T044: Billing Webhook Integration Tests', () => {
     });
 
     test('should link Polar customer ID to community after checkout', async () => {
+      const ownerId = new mongoose.Types.ObjectId();
       const community = new Community({
         name: 'Checkout Community',
         discordGuildId: 'guild-checkout',
-        const ownerId = new mongoose.Types.ObjectId();
-      const community = new Community({
-        name: match.includes('name:') ? match.match(/name: '([^']+)'/)[1] : 'Test Community',
-        discordGuildId: match.match(/discordGuildId: '([^']+)'/)[1],
         ownerId: ownerId,
         admins: [
           {

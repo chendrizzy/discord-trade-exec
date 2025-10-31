@@ -125,7 +125,7 @@ async function refreshExpiringTokens(expiryWindowHours, brokerFilter = null) {
   const startTime = Date.now();
   const expiryThreshold = new Date(Date.now() + expiryWindowHours * 60 * 60 * 1000);
 
-  let metrics = {
+  const metrics = {
     totalChecked: 0,
     totalRefreshes: 0,
     successful: 0,

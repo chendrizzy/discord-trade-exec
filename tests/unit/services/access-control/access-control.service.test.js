@@ -328,7 +328,6 @@ describe('AccessControlService - Unit Tests', () => {
       // ARRANGE: Inactive configuration
       mockConfigService.getConfig.mockResolvedValue({
         guildId: '1234567890123456789',
-        isActive: true,
         accessMode: 'subscription_required',
         requiredRoleIds: ['role123'],
         isActive: false

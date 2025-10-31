@@ -1,12 +1,9 @@
-// External dependencies
-const natural = require('natural');
-
 class SignalParser {
   constructor() {
     this.patterns = {
       buy: /\b(buy|long|bull|bullish|up)\b/i,
       sell: /\b(sell|short|bear|bearish|down)\b/i,
-      symbol: /(?:\$?\b([A-Z]{3,5})[\/\-]?([A-Z]{3,5})?\b|\b([A-Z]{3,5})[\/\-]([A-Z]{3,5})\b)/g,
+      symbol: /(?:\$?\b([A-Z]{3,5})[/-]?([A-Z]{3,5})?\b|\b([A-Z]{3,5})[/-]([A-Z]{3,5})\b)/g,
       price: /\$?([\d,]+\.?\d*)/g,
       entryPrice: /\b(?:entry|at)(?:\s*[:])?\s*\$?([\d,]+\.?\d*)/i,
       stopLoss: /\b(?:sl|stop\s*(?:loss)?|stop)(?:\s*(?:at|:|is))?\s*\$?([\d,]+\.?\d*)/i,
@@ -40,7 +37,7 @@ class SignalParser {
     const symbolMatch = message.match(this.patterns.symbol);
     if (symbolMatch) {
       // Clean the symbol by removing separators and $ prefix
-      signal.symbol = symbolMatch[0].replace(/[\$\-\/]/g, '').toUpperCase();
+      signal.symbol = symbolMatch[0].replace(/[$/-]/g, '').toUpperCase();
     }
 
     // Parse price - check for entry price first, then general price
@@ -50,7 +47,7 @@ class SignalParser {
     } else {
       const priceMatch = message.match(this.patterns.price);
       if (priceMatch) {
-        signal.price = parseFloat(priceMatch[0].replace(/[\$,]/g, ''));
+        signal.price = parseFloat(priceMatch[0].replace(/[$,]/g, ''));
       }
     }
 

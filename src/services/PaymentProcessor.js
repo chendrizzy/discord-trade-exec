@@ -390,7 +390,7 @@ class PaymentProcessor {
   async showSuccess(req, res) {
     const { session_id, plan: planQuery } = req.query;
 
-    let customerInfo = {
+    const customerInfo = {
       customerEmail: null,
       plan: planQuery || null
     };

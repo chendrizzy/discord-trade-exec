@@ -39,6 +39,7 @@ describe('Validators Security Tests', () => {
     });
 
     it('should reject numbers', () => {
+      // eslint-disable-next-line no-loss-of-precision
       const numericId = 123456789012345678;
 
       const result = isValidSnowflake(numericId);
@@ -117,6 +118,7 @@ describe('Validators Security Tests', () => {
 
     it('should throw error with type information for non-strings', () => {
       const testCases = [
+        // eslint-disable-next-line no-loss-of-precision
         { value: 123456789012345678, type: 'number' },
         { value: ['123456789012345678'], type: 'object' },
         { value: { id: '123456789012345678' }, type: 'object' },
@@ -280,6 +282,7 @@ module.exports = {
   maliciousInputs: [
     { toString: () => '123456789012345678' },
     ['123456789012345678'],
+    // eslint-disable-next-line no-loss-of-precision
     123456789012345678,
     new String('123456789012345678'),
     null,

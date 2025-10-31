@@ -735,9 +735,10 @@ describe('MFAService', () => {
         await mfaService.verifyTOTP(mockUserId, invalidToken);
       }
 
+      await expect(mfaService.verifyTOTP(mockUserId, invalidToken)).rejects.toThrow();
+
       try {
         await mfaService.verifyTOTP(mockUserId, invalidToken);
-        fail('Should have thrown rate limit error');
       } catch (error) {
         expect(error.message).toContain('Try again at');
         expect(error.message).toMatch(/\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}/);

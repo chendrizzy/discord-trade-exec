@@ -8,7 +8,7 @@
  */
 
 import React from 'react';
-import { render, screen, fireEvent, waitFor, within, act } from '@testing-library/react';
+import { render, screen, fireEvent, waitFor, act } from '@testing-library/react';
 import '@testing-library/jest-dom';
 import { BrokerConfigWizard } from '../BrokerConfigWizard';
 
@@ -38,7 +38,8 @@ describe('BrokerConfigWizard - Moomoo E2E Flow', () => {
       console.log('[TEST] Fetch called with URL:', url);
 
       if (url === '/api/brokers') {
-        logger.info('[TEST] Returning brokers mock data');
+        // eslint-disable-next-line no-console
+        console.log('[TEST] Returning brokers mock data');
         return Promise.resolve({
           ok: true,
           json: () => Promise.resolve({
@@ -121,7 +122,8 @@ describe('BrokerConfigWizard - Moomoo E2E Flow', () => {
       }
 
       if (url === '/api/brokers/moomoo') {
-        logger.info('[TEST] Returning Moomoo broker info');
+        // eslint-disable-next-line no-console
+        console.log('[TEST] Returning Moomoo broker info');
         return Promise.resolve({
           ok: true,
           json: () => Promise.resolve({
@@ -158,7 +160,8 @@ describe('BrokerConfigWizard - Moomoo E2E Flow', () => {
       }
 
       if (url === '/api/brokers/test') {
-        logger.info('[TEST] Returning test connection mock data');
+        // eslint-disable-next-line no-console
+        console.log('[TEST] Returning test connection mock data');
         return Promise.resolve({
           ok: true,
           json: () => Promise.resolve({
@@ -171,7 +174,8 @@ describe('BrokerConfigWizard - Moomoo E2E Flow', () => {
       }
 
       if (url === '/api/brokers/configure') {
-        logger.info('[TEST] Returning save configuration mock data');
+        // eslint-disable-next-line no-console
+        console.log('[TEST] Returning save configuration mock data');
         return Promise.resolve({
           ok: true,
           json: () => Promise.resolve({

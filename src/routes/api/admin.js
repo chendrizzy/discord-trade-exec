@@ -18,6 +18,7 @@ const {
   adminUserRoleParams,
   adminUserRoleBody
 } = require('../../validators/admin.validators');
+const { validateSearchQuery } = require('../../utils/validators');
 
 // Apply rate limiting and tenant auth to all routes
 router.use(apiLimiter);
@@ -26,16 +27,6 @@ router.use(extractTenantMiddleware);
 // Init repositories
 const userRepository = new BaseRepository(User);
 const tradeRepository = new BaseRepository(Trade);
-
-/**
- * Escape special characters in a string for safe use in RegExp
- * Prevents ReDoS (Regular Expression Denial of Service) attacks
- * @param {string} str - String to escape
- * @returns {string} Escaped string safe for RegExp constructor
- */
-function escapeRegex(str) {
-  return str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-}
 
 /**
  * @route   GET /api/admin/stats
@@ -295,7 +286,7 @@ router.get('/stats', ownerOnly, auditLog('admin.dashboard_view', 'Community'), a
  * @desc    Get paginated list of all users with search and filtering
  * @access  Admin only (Multi-Tenant)
  */
-router.get('/users', validate(adminUsersQuery, 'query'), ownerOnly, auditLog('admin.user_list', 'User'), async (req, res) => {
+router.get('/users', validate(adminUsersQuery, 'query'), ownerOnly, auditLog('admin.user_list', 'User'), async (req, res, next) => {
   try {
     const page = Math.max(1, parseInt(req.query.page) || 1);
     const limit = Math.min(100, Math.max(1, parseInt(req.query.limit) || 20));
@@ -304,9 +295,14 @@ router.get('/users', validate(adminUsersQuery, 'query'), ownerOnly, auditLog('ad
     // Build query
     const query = {};
 
-    // Search by username (with ReDoS protection)
+    // Search by username (with enhanced ReDoS protection and length validation)
     if (req.query.search) {
-      query.discordUsername = new RegExp(escapeRegex(req.query.search), 'i');
+      try {
+        const escapedSearch = validateSearchQuery(req.query.search, { maxLength: 100 });
+        query.discordUsername = new RegExp(escapedSearch, 'i');
+      } catch (err) {
+        return next(new AppError(err.message, 400, ErrorCodes.VALIDATION_ERROR));
+      }
     }
 
     // Filter by tier

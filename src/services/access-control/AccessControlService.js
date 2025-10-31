@@ -495,9 +495,10 @@ class AccessControlService {
    * This is called by the guildMemberUpdate event handler when Discord
    * role changes are detected.
    *
-   * Performance:
+   * Performance Targets (design goals, not contractual SLAs):
    * - Should complete in <100ms (cache delete is instant)
-   * - Ensures next checkAccess() reflects role change within <60s SLA
+   * - Ensures next checkAccess() reflects role change within <60s target
+   *   (actual time depends on Discord API event delivery + cache TTL)
    *
    * @param {string} guildId - Discord guild (server) ID
    * @param {string} userId - Discord user ID
@@ -546,6 +547,7 @@ class AccessControlService {
       // Log error but don't throw - cache invalidation failure shouldn't break the flow
       logger.error('Failed to invalidate cache for user', {
         error: error.message,
+        stack: error.stack,
         guildId,
         userId
       });

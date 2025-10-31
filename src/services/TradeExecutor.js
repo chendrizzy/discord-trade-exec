@@ -406,13 +406,14 @@ class TradeExecutor extends EventEmitter {
         positionSize = accountBalance * riskSettings.maxPositionSize;
         break;
 
-      case 'risk_based':
+      case 'risk_based': {
         // Risk-based: calculate based on stop loss distance
         const calculation = user.calculatePositionSize(accountBalance, entryPrice, stopLossPrice);
         positionSize = calculation.positionSize;
         break;
+      }
 
-      case 'kelly':
+      case 'kelly': {
         // Kelly Criterion: f* = (bp - q) / b
         // Simplified Kelly - would need historical win rate
         const winRate = 0.6; // Placeholder - should use actual stats
@@ -421,6 +422,7 @@ class TradeExecutor extends EventEmitter {
         const kellyPercentage = (winRate * avgWin - (1 - winRate) * avgLoss) / avgWin;
         positionSize = accountBalance * Math.max(0, Math.min(kellyPercentage, riskSettings.maxPositionSize));
         break;
+      }
 
       default:
         positionSize = accountBalance * riskSettings.maxPositionSize;
