@@ -28,6 +28,16 @@ const userRepository = new BaseRepository(User);
 const tradeRepository = new BaseRepository(Trade);
 
 /**
+ * Escape special characters in a string for safe use in RegExp
+ * Prevents ReDoS (Regular Expression Denial of Service) attacks
+ * @param {string} str - String to escape
+ * @returns {string} Escaped string safe for RegExp constructor
+ */
+function escapeRegex(str) {
+  return str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
+/**
  * @route   GET /api/admin/stats
  * @desc    Get comprehensive platform statistics for admin dashboard
  * @access  Admin only (Multi-Tenant)
@@ -294,9 +304,9 @@ router.get('/users', validate(adminUsersQuery, 'query'), ownerOnly, auditLog('ad
     // Build query
     const query = {};
 
-    // Search by username
+    // Search by username (with ReDoS protection)
     if (req.query.search) {
-      query.discordUsername = new RegExp(req.query.search, 'i');
+      query.discordUsername = new RegExp(escapeRegex(req.query.search), 'i');
     }
 
     // Filter by tier

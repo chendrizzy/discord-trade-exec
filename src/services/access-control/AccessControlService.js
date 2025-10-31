@@ -230,10 +230,14 @@ class AccessControlService {
     try {
       return await this.cacheService.get(guildId, userId);
     } catch (cacheError) {
-      logger.warn('Cache get error, falling through to provider', {
+      logger.error('Cache failure - degraded performance expected', {
         error: cacheError.message,
+        stack: cacheError.stack,
         guildId,
-        userId
+        userId,
+        errorId: 'CACHE_READ_FAILED',
+        impact: 'Will fall through to Discord API (slower)',
+        slaViolation: 'Cache hit SLA (<10ms) not met'
       });
       return null;
     }
@@ -314,10 +318,14 @@ class AccessControlService {
     try {
       await this.cacheService.set(guildId, userId, result);
     } catch (cacheError) {
-      logger.warn('Cache set error', {
+      logger.error('Cache write failure - future requests will be slower', {
         error: cacheError.message,
+        stack: cacheError.stack,
         guildId,
-        userId
+        userId,
+        errorId: 'CACHE_WRITE_FAILED',
+        impact: 'Next access check will hit Discord API instead of cache',
+        slaViolation: 'Cache write SLA not met'
       });
     }
   }
@@ -345,10 +353,14 @@ class AccessControlService {
         };
       }
     } catch (cacheError) {
-      logger.warn('Stale cache retrieval failed', {
+      logger.error('Stale cache retrieval failed - complete cache failure', {
         error: cacheError.message,
+        stack: cacheError.stack,
         guildId,
-        userId
+        userId,
+        errorId: 'STALE_CACHE_READ_FAILED',
+        impact: 'Will deny access (fail-closed)',
+        criticalFailure: 'Both fresh cache and stale cache unavailable'
       });
     }
     return null;

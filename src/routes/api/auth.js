@@ -1007,10 +1007,12 @@ router.post('/logout', ensureAuthenticatedAPI, (req, res, next) => {
       req.session.destroy((err) => {
         if (err) {
           logger.error('Session destruction failed', { userId, username, error: err.message });
-          return res.status(500).json({
-            success: false,
-            error: 'Logout failed - session could not be destroyed'
-          });
+          return next(new AppError(
+            'Logout failed - session could not be destroyed',
+            500,
+            ErrorCodes.SESSION_ERROR,
+            { userId, username }
+          ));
         }
 
         logger.info('User logged out successfully', { userId, username });

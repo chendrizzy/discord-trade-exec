@@ -268,8 +268,14 @@ function errorHandler(err, req, res, next) {
 
   // Send Discord notification for critical errors (async, non-blocking)
   errorNotificationService.notify(errorData).catch(notifyError => {
-    // Silently fail - don't let notification errors affect response
-    logger.debug('Discord notification failed', { error: notifyError.message });
+    // Log notification failures at error level - critical errors not being reported
+    logger.error('Discord notification failed - critical errors not being reported', {
+      error: notifyError.message,
+      stack: notifyError.stack,
+      originalError: errorData.errorCode,
+      correlationId: errorData.correlationId,
+      errorId: 'NOTIFICATION_DELIVERY_FAILED'
+    });
   });
 
   // Send error response (never include stack in response, even in dev)
@@ -311,7 +317,11 @@ process.on('unhandledRejection', (reason, promise) => {
 
   // Send Discord notification (async, non-blocking)
   errorNotificationService.notifyUnhandledRejection(reason, promise).catch(err => {
-    logger.debug('Discord notification failed for unhandled rejection', { error: err.message });
+    logger.error('Discord notification failed for unhandled rejection - critical errors not being reported', {
+      error: err.message,
+      stack: err.stack,
+      errorId: 'NOTIFICATION_DELIVERY_FAILED_UNHANDLED_REJECTION'
+    });
   });
 
   // Send to Sentry if configured
@@ -335,7 +345,11 @@ process.on('uncaughtException', error => {
   errorNotificationService
     .notifyUncaughtException(error)
     .catch(err => {
-      logger.debug('Discord notification failed for uncaught exception', { error: err.message });
+      logger.error('Discord notification failed for uncaught exception - critical errors not being reported', {
+        error: err.message,
+        stack: err.stack,
+        errorId: 'NOTIFICATION_DELIVERY_FAILED_UNCAUGHT_EXCEPTION'
+      });
     })
     .finally(() => {
       // Send to Sentry if configured
