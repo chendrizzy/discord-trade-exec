@@ -176,15 +176,27 @@ function App() {
   return (
     <WebSocketProvider sessionID={sessionID} userId={userId} enabled={!!user}>
       <div className="min-h-screen bg-background">
+        {/* Skip Navigation Link for Keyboard Users */}
+        <a
+          href="#main-content"
+          className="sr-only focus:not-sr-only focus:absolute focus:top-4 focus:left-4 focus:z-50 focus:px-4 focus:py-2 focus:bg-primary focus:text-primary-foreground focus:rounded-md focus:outline-none focus:ring-2 focus:ring-ring"
+        >
+          Skip to main content
+        </a>
+
         {/* Responsive Navigation */}
-        <Navigation
-          userName={`${user.username}#${user.discriminator}`}
-          onLogout={handleLogout}
-          user={user}
-        />
+        <header role="banner">
+          <nav aria-label="Main navigation">
+            <Navigation
+              userName={`${user.username}#${user.discriminator}`}
+              onLogout={handleLogout}
+              user={user}
+            />
+          </nav>
+        </header>
 
         {/* Main Content - Adjusted for sidebar and mobile nav */}
-        <main className="pt-[192px] pb-32 md:pt-0 md:pb-0 md:pl-64 min-h-screen">
+        <main id="main-content" role="main" className="pt-[192px] pb-32 md:pt-0 md:pb-0 md:pl-64 min-h-screen">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
             {/* Tab Content - URL-based routing with React Router */}
             <Routes>
@@ -377,7 +389,12 @@ function App() {
                         <CardDescription>Configure your trading risk parameters</CardDescription>
                       </CardHeader>
                       <CardContent>
-                        <Button variant="outline" className="w-full" aria-label="Configure risk management settings">
+                        <Button
+                          variant="outline"
+                          className="w-full"
+                          aria-label="Configure risk management settings"
+                          onClick={() => navigate('/settings')}
+                        >
                           Configure
                         </Button>
                       </CardContent>

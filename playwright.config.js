@@ -5,7 +5,8 @@ const { defineConfig, devices } = require('@playwright/test');
  * @see https://playwright.dev/docs/test-configuration
  */
 module.exports = defineConfig({
-  testDir: './tests/e2e',
+  testDir: './tests',
+  testMatch: ['**/*.spec.js', '**/*.test.js'],
 
   // Maximum time one test can run for
   timeout: 30 * 1000,
@@ -36,6 +37,29 @@ module.exports = defineConfig({
     // Video on failure
     video: 'retain-on-failure',
   },
+
+  // Visual regression testing settings
+  expect: {
+    toHaveScreenshot: {
+      // Maximum pixel difference threshold (0-1, where 1 = 100%)
+      maxDiffPixelRatio: 0.01, // Allow 1% pixel difference
+
+      // Threshold for individual pixel color difference (0-1)
+      threshold: 0.2,
+
+      // Animation settings
+      animations: 'disabled',
+
+      // CSS mask to ignore dynamic content
+      mask: [],
+
+      // CSS selector for elements to hide (timestamps, etc)
+      maskColor: '#FF00FF',
+    },
+  },
+
+  // Snapshot path template
+  snapshotPathTemplate: '{testDir}/__screenshots__/{testFilePath}/{arg}{ext}',
 
   // Configure projects for major browsers
   projects: [

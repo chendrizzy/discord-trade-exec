@@ -37,6 +37,11 @@ setup.log
 coverage/
 .nyc_output/
 test-results/
+playwright-report/
+playwright/.cache/
+tests/visual/__screenshots__/**/*-actual.png
+tests/visual/__screenshots__/**/*-diff.png
+trace.zip
 
 # Temporary files
 *.tmp

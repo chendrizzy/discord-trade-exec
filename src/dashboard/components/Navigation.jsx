@@ -28,7 +28,7 @@ export function Navigation({ userName, onLogout, user }) {
   return (
     <>
       {/* Desktop Sidebar - Hidden on mobile */}
-      <aside className="hidden md:flex md:flex-col md:w-64 md:fixed md:inset-y-0 md:left-0 md:z-50 bg-card border-r border-border">
+      <aside className="hidden md:flex md:flex-col md:w-64 md:fixed md:inset-y-0 md:left-0 md:z-50 bg-card border-r border-border" aria-label="Desktop navigation sidebar">
         <div className="flex flex-col h-full">
           {/* Logo/Brand */}
           <div className="flex items-center justify-between h-16 px-4 border-b border-border">
@@ -36,7 +36,7 @@ export function Navigation({ userName, onLogout, user }) {
           </div>
 
           {/* Navigation Items */}
-          <nav className="flex-1 px-3 py-4 space-y-1">
+          <nav className="flex-1 px-3 py-4 space-y-1" aria-label="Main navigation menu">
             {navItems.map(item => {
               const Icon = item.icon;
               return (
@@ -51,8 +51,9 @@ export function Navigation({ userName, onLogout, user }) {
                         : 'text-muted-foreground hover:bg-accent hover:text-foreground'
                     )
                   }
+                  aria-current={({ isActive }) => (isActive ? 'page' : undefined)}
                 >
-                  <Icon className="h-5 w-5" />
+                  <Icon className="h-5 w-5" aria-hidden="true" />
                   {item.label}
                 </NavLink>
               );
@@ -66,8 +67,8 @@ export function Navigation({ userName, onLogout, user }) {
                 <p className="text-sm font-medium text-foreground truncate">{userName}</p>
                 <p className="text-xs text-muted-foreground">Trading Account</p>
               </div>
-              <Button variant="ghost" size="sm" onClick={onLogout}>
-                <X className="h-4 w-4" />
+              <Button type="button" variant="ghost" size="sm" onClick={onLogout} aria-label="Logout from trading dashboard">
+                <X className="h-4 w-4" aria-hidden="true" />
               </Button>
             </div>
           </div>
@@ -78,8 +79,16 @@ export function Navigation({ userName, onLogout, user }) {
       <div className="md:hidden fixed top-0 left-0 right-0 z-40 bg-card border-b border-border">
         <div className="flex items-center justify-between h-14 px-4">
           <h1 className="text-lg font-bold text-foreground">Trading Bot</h1>
-          <Button variant="ghost" size="sm" onClick={() => setSidebarOpen(!sidebarOpen)}>
-            {sidebarOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
+          <Button
+            type="button"
+            variant="ghost"
+            size="sm"
+            onClick={() => setSidebarOpen(!sidebarOpen)}
+            aria-label={sidebarOpen ? 'Close navigation menu' : 'Open navigation menu'}
+            aria-expanded={sidebarOpen}
+            aria-controls="mobile-sidebar"
+          >
+            {sidebarOpen ? <X className="h-5 w-5" aria-hidden="true" /> : <Menu className="h-5 w-5" aria-hidden="true" />}
           </Button>
         </div>
       </div>
@@ -87,19 +96,33 @@ export function Navigation({ userName, onLogout, user }) {
       {/* Mobile Sidebar Overlay */}
       {sidebarOpen && (
         <>
-          <div className="md:hidden fixed inset-0 z-40 bg-black/80" onClick={() => setSidebarOpen(false)} />
-          <aside className="md:hidden fixed inset-y-0 left-0 z-50 w-64 bg-card border-r border-border">
+          <div
+            className="md:hidden fixed inset-0 z-40 bg-black/80"
+            onClick={() => setSidebarOpen(false)}
+            aria-hidden="true"
+          />
+          <aside
+            id="mobile-sidebar"
+            className="md:hidden fixed inset-y-0 left-0 z-50 w-64 bg-card border-r border-border"
+            aria-label="Mobile navigation sidebar"
+          >
             <div className="flex flex-col h-full">
               {/* Mobile Header */}
               <div className="flex items-center justify-between h-14 px-4 border-b border-border">
                 <h1 className="text-lg font-bold text-foreground">Trading Bot</h1>
-                <Button variant="ghost" size="sm" onClick={() => setSidebarOpen(false)}>
-                  <X className="h-5 w-5" />
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setSidebarOpen(false)}
+                  aria-label="Close navigation menu"
+                >
+                  <X className="h-5 w-5" aria-hidden="true" />
                 </Button>
               </div>
 
               {/* Navigation Items */}
-              <nav className="flex-1 px-3 py-4 space-y-1">
+              <nav className="flex-1 px-3 py-4 space-y-1" aria-label="Main navigation menu">
                 {navItems.map(item => {
                   const Icon = item.icon;
                   return (
@@ -115,8 +138,9 @@ export function Navigation({ userName, onLogout, user }) {
                             : 'text-muted-foreground hover:bg-accent hover:text-foreground'
                         )
                       }
+                      aria-current={({ isActive }) => (isActive ? 'page' : undefined)}
                     >
-                      <Icon className="h-5 w-5" />
+                      <Icon className="h-5 w-5" aria-hidden="true" />
                       {item.label}
                     </NavLink>
                   );
@@ -130,8 +154,14 @@ export function Navigation({ userName, onLogout, user }) {
                     <p className="text-sm font-medium text-foreground truncate">{userName}</p>
                     <p className="text-xs text-muted-foreground">Trading Account</p>
                   </div>
-                  <Button variant="ghost" size="sm" onClick={onLogout}>
-                    <X className="h-4 w-4" />
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    onClick={onLogout}
+                    aria-label="Logout from trading dashboard"
+                  >
+                    <X className="h-4 w-4" aria-hidden="true" />
                   </Button>
                 </div>
               </div>
@@ -142,7 +172,7 @@ export function Navigation({ userName, onLogout, user }) {
 
       {/* Mobile Bottom Navigation */}
       <div className="md:hidden fixed bottom-0 left-0 right-0 z-30 bg-card border-t border-border">
-        <nav className="flex items-center justify-around h-16 px-2">
+        <nav className="flex items-center justify-around h-16 px-2" aria-label="Mobile bottom navigation">
           {navItems.map(item => {
             const Icon = item.icon;
             return (
@@ -155,8 +185,9 @@ export function Navigation({ userName, onLogout, user }) {
                     isActive ? 'text-gold-500' : 'text-muted-foreground hover:text-foreground'
                   )
                 }
+                aria-current={({ isActive }) => (isActive ? 'page' : undefined)}
               >
-                <Icon className="h-5 w-5" />
+                <Icon className="h-5 w-5" aria-hidden="true" />
                 <span className="text-xs font-medium">{item.label}</span>
               </NavLink>
             );

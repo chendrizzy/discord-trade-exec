@@ -68,6 +68,13 @@ export function BotConfigWizard() {
   };
 
   const handleComplete = () => {
+    // WCAG 3.3.4 Error Prevention - Require confirmation for financial transactions
+    const confirmMessage = `Are you sure you want to create this trading bot?\n\nBot Type: ${config.botType}\nTrading Pair: ${config.tradingPair}\nMax Position: $${config.maxPositionSize}\nStop Loss: ${config.stopLoss}%\nTake Profit: ${config.takeProfit}%\n\nThis bot will execute real trades. Confirm to proceed.`;
+
+    if (!window.confirm(confirmMessage)) {
+      return;
+    }
+
     console.log('Bot configuration:', config);
     setOpen(false);
     resetWizard();
@@ -96,9 +103,9 @@ export function BotConfigWizard() {
         return (
           <div className="space-y-4">
             <div className="space-y-2">
-              <label className="text-sm font-medium">Bot Type</label>
+              <label htmlFor="bot-type-select" className="text-sm font-medium">Bot Type</label>
               <Select value={config.botType} onValueChange={value => updateConfig('botType', value)}>
-                <SelectTrigger>
+                <SelectTrigger id="bot-type-select" aria-describedby="bot-type-help">
                   <SelectValue placeholder="Select bot type" />
                 </SelectTrigger>
                 <SelectContent>
@@ -109,7 +116,7 @@ export function BotConfigWizard() {
                   <SelectItem value="arbitrage">Arbitrage</SelectItem>
                 </SelectContent>
               </Select>
-              <p className="text-xs text-muted-foreground">Choose the type of trading strategy your bot will use</p>
+              <p id="bot-type-help" className="text-xs text-muted-foreground">Choose the type of trading strategy your bot will use</p>
             </div>
           </div>
         );
@@ -118,9 +125,9 @@ export function BotConfigWizard() {
         return (
           <div className="space-y-4">
             <div className="space-y-2">
-              <label className="text-sm font-medium">Trading Pair</label>
+              <label htmlFor="trading-pair-select" className="text-sm font-medium">Trading Pair</label>
               <Select value={config.tradingPair} onValueChange={value => updateConfig('tradingPair', value)}>
-                <SelectTrigger>
+                <SelectTrigger id="trading-pair-select" aria-describedby="trading-pair-help">
                   <SelectValue placeholder="Select trading pair" />
                 </SelectTrigger>
                 <SelectContent>
@@ -131,7 +138,7 @@ export function BotConfigWizard() {
                   <SelectItem value="MATIC/USDT">MATIC/USDT</SelectItem>
                 </SelectContent>
               </Select>
-              <p className="text-xs text-muted-foreground">Select the cryptocurrency pair you want to trade</p>
+              <p id="trading-pair-help" className="text-xs text-muted-foreground">Select the cryptocurrency pair you want to trade</p>
             </div>
           </div>
         );
@@ -147,36 +154,46 @@ export function BotConfigWizard() {
             </Alert>
 
             <div className="space-y-2">
-              <label className="text-sm font-medium">Max Position Size ($)</label>
+              <label htmlFor="max-position-size" className="text-sm font-medium">Max Position Size ($)</label>
               <Input
+                id="max-position-size"
                 type="number"
                 placeholder="1000"
                 value={config.maxPositionSize}
                 onChange={e => updateConfig('maxPositionSize', e.target.value)}
+                aria-describedby="max-position-help"
+                aria-required="true"
+                autoComplete="transaction-amount"
               />
-              <p className="text-xs text-muted-foreground">Maximum amount to invest in a single position</p>
+              <p id="max-position-help" className="text-xs text-muted-foreground">Maximum amount to invest in a single position</p>
             </div>
 
             <div className="space-y-2">
-              <label className="text-sm font-medium">Stop Loss (%)</label>
+              <label htmlFor="stop-loss" className="text-sm font-medium">Stop Loss (%)</label>
               <Input
+                id="stop-loss"
                 type="number"
                 placeholder="5"
                 value={config.stopLoss}
                 onChange={e => updateConfig('stopLoss', e.target.value)}
+                aria-describedby="stop-loss-help"
+                aria-required="true"
               />
-              <p className="text-xs text-muted-foreground">Percentage loss at which to automatically exit position</p>
+              <p id="stop-loss-help" className="text-xs text-muted-foreground">Percentage loss at which to automatically exit position</p>
             </div>
 
             <div className="space-y-2">
-              <label className="text-sm font-medium">Take Profit (%)</label>
+              <label htmlFor="take-profit" className="text-sm font-medium">Take Profit (%)</label>
               <Input
+                id="take-profit"
                 type="number"
                 placeholder="10"
                 value={config.takeProfit}
                 onChange={e => updateConfig('takeProfit', e.target.value)}
+                aria-describedby="take-profit-help"
+                aria-required="true"
               />
-              <p className="text-xs text-muted-foreground">Percentage gain at which to automatically take profits</p>
+              <p id="take-profit-help" className="text-xs text-muted-foreground">Percentage gain at which to automatically take profits</p>
             </div>
           </div>
         );
@@ -185,9 +202,9 @@ export function BotConfigWizard() {
         return (
           <div className="space-y-4">
             <div className="space-y-2">
-              <label className="text-sm font-medium">Strategy Type</label>
+              <label htmlFor="strategy-type-select" className="text-sm font-medium">Strategy Type</label>
               <Select value={config.strategyType} onValueChange={value => updateConfig('strategyType', value)}>
-                <SelectTrigger>
+                <SelectTrigger id="strategy-type-select" aria-required="true">
                   <SelectValue placeholder="Select strategy" />
                 </SelectTrigger>
                 <SelectContent>
@@ -199,9 +216,9 @@ export function BotConfigWizard() {
             </div>
 
             <div className="space-y-2">
-              <label className="text-sm font-medium">Primary Indicator</label>
+              <label htmlFor="indicator-1-select" className="text-sm font-medium">Primary Indicator</label>
               <Select value={config.indicator1} onValueChange={value => updateConfig('indicator1', value)}>
-                <SelectTrigger>
+                <SelectTrigger id="indicator-1-select">
                   <SelectValue placeholder="Select indicator" />
                 </SelectTrigger>
                 <SelectContent>
@@ -214,9 +231,9 @@ export function BotConfigWizard() {
             </div>
 
             <div className="space-y-2">
-              <label className="text-sm font-medium">Secondary Indicator (Optional)</label>
+              <label htmlFor="indicator-2-select" className="text-sm font-medium">Secondary Indicator (Optional)</label>
               <Select value={config.indicator2} onValueChange={value => updateConfig('indicator2', value)}>
-                <SelectTrigger>
+                <SelectTrigger id="indicator-2-select">
                   <SelectValue placeholder="Select indicator" />
                 </SelectTrigger>
                 <SelectContent>
@@ -290,44 +307,65 @@ export function BotConfigWizard() {
         </DialogHeader>
 
         {/* Progress indicator */}
-        <div className="flex items-center justify-between mb-6">
-          {steps.map((step, index) => (
-            <div key={step.id} className="flex items-center">
-              <div
-                className={`flex items-center justify-center w-8 h-8 rounded-full border-2 ${
-                  currentStep === step.id
-                    ? 'border-gold-500 bg-gold-500 text-black font-bold'
-                    : currentStep > step.id
-                      ? 'border-profit bg-profit text-black'
-                      : 'border-border bg-background text-muted-foreground'
-                }`}
-              >
-                {currentStep > step.id ? <CheckCircle2 className="h-4 w-4" /> : step.id}
-              </div>
-              {index < steps.length - 1 && (
-                <div className={`h-0.5 w-12 mx-2 ${currentStep > step.id ? 'bg-profit' : 'bg-border'}`} />
-              )}
-            </div>
-          ))}
-        </div>
+        <nav aria-label="Bot configuration progress" className="mb-6">
+          <ol className="flex items-center justify-between">
+            {steps.map((step, index) => (
+              <li key={step.id} className="flex items-center">
+                <div
+                  className={`flex items-center justify-center w-8 h-8 rounded-full border-2 ${
+                    currentStep === step.id
+                      ? 'border-gold-500 bg-gold-500 text-black font-bold'
+                      : currentStep > step.id
+                        ? 'border-profit bg-profit text-black'
+                        : 'border-border bg-background text-muted-foreground'
+                  }`}
+                  aria-label={`Step ${step.id}: ${step.name}${currentStep === step.id ? ' (current)' : currentStep > step.id ? ' (complete)' : ''}`}
+                  aria-current={currentStep === step.id ? 'step' : undefined}
+                >
+                  {currentStep > step.id ? <CheckCircle2 className="h-4 w-4" aria-hidden="true" /> : step.id}
+                </div>
+                {index < steps.length - 1 && (
+                  <div className={`h-0.5 w-12 mx-2 ${currentStep > step.id ? 'bg-profit' : 'bg-border'}`} aria-hidden="true" />
+                )}
+              </li>
+            ))}
+          </ol>
+        </nav>
 
         {/* Step content */}
         <div className="min-h-[300px]">{renderStep()}</div>
 
         <DialogFooter>
           <div className="flex items-center justify-between w-full">
-            <Button variant="outline" onClick={prevStep} disabled={currentStep === 1}>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={prevStep}
+              disabled={currentStep === 1}
+              aria-label="Go to previous step"
+            >
               Previous
             </Button>
-            <div className="text-sm text-muted-foreground">
+            <div className="text-sm text-muted-foreground" aria-live="polite" aria-atomic="true">
               Step {currentStep} of {steps.length}
             </div>
             {currentStep < steps.length ? (
-              <Button variant="gold" onClick={nextStep} disabled={!isStepValid(currentStep)}>
+              <Button
+                type="button"
+                variant="gold"
+                onClick={nextStep}
+                disabled={!isStepValid(currentStep)}
+                aria-label="Go to next step"
+              >
                 Next
               </Button>
             ) : (
-              <Button variant="profit" onClick={handleComplete}>
+              <Button
+                type="button"
+                variant="profit"
+                onClick={handleComplete}
+                aria-label="Create trading bot (requires confirmation)"
+              >
                 Create Bot
               </Button>
             )}

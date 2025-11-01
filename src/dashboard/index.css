@@ -93,4 +93,73 @@
   #root {
     width: 100%;
   }
+
+  /* Visible focus indicators for keyboard navigation - WCAG 2.1 compliant */
+  *:focus-visible {
+    outline: 2px solid hsl(var(--primary));
+    outline-offset: 2px;
+  }
+
+  button:focus-visible,
+  a:focus-visible,
+  [role="button"]:focus-visible,
+  input:focus-visible,
+  select:focus-visible,
+  textarea:focus-visible {
+    outline: 2px solid hsl(var(--primary));
+    outline-offset: 2px;
+    box-shadow: 0 0 0 4px rgba(245, 198, 68, 0.2);
+  }
+
+  /* Screen reader only utility class */
+  .sr-only {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border-width: 0;
+  }
+
+  .sr-only:focus-visible {
+    position: static;
+    width: auto;
+    height: auto;
+    padding: inherit;
+    margin: inherit;
+    overflow: visible;
+    clip: auto;
+    white-space: normal;
+  }
+}
+
+/* Mobile touch target optimization - WCAG 2.1 Level AA compliance */
+@media (hover: none) and (pointer: coarse) {
+  button,
+  a,
+  [role="button"] {
+    min-width: 44px;
+    min-height: 44px;
+    padding: 0.75rem;
+  }
+
+  [role="button"] {
+    padding: 1rem;
+  }
+
+  /* Increase touch targets for interactive cards */
+  [role="article"]:not(:has(button)),
+  [tabindex="0"]:not(button):not(a) {
+    min-height: 44px;
+  }
+
+  /* Ensure adequate spacing between touch targets */
+  button + button,
+  a + a,
+  [role="button"] + [role="button"] {
+    margin-top: 0.5rem;
+  }
 }

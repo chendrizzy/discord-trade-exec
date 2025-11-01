@@ -128,18 +128,20 @@ export function TradeHistoryTable() {
         accessorKey: 'entryTime',
         header: ({ column }) => (
           <Button
+            type="button"
             variant="ghost"
             size="sm"
             onClick={() => column.toggleSorting(column.getIsSorted() === 'asc')}
             className="hover:bg-accent -ml-4"
+            aria-label={`Sort by time ${column.getIsSorted() === 'asc' ? 'descending' : 'ascending'}`}
           >
             Time
             {column.getIsSorted() === 'asc' ? (
-              <ChevronUp className="ml-2 h-4 w-4" />
+              <ChevronUp className="ml-2 h-4 w-4" aria-hidden="true" />
             ) : column.getIsSorted() === 'desc' ? (
-              <ChevronDown className="ml-2 h-4 w-4" />
+              <ChevronDown className="ml-2 h-4 w-4" aria-hidden="true" />
             ) : (
-              <ArrowUpDown className="ml-2 h-4 w-4" />
+              <ArrowUpDown className="ml-2 h-4 w-4" aria-hidden="true" />
             )}
           </Button>
         ),
@@ -161,18 +163,20 @@ export function TradeHistoryTable() {
         accessorKey: 'symbol',
         header: ({ column }) => (
           <Button
+            type="button"
             variant="ghost"
             size="sm"
             onClick={() => column.toggleSorting(column.getIsSorted() === 'asc')}
             className="hover:bg-accent -ml-4"
+            aria-label={`Sort by symbol ${column.getIsSorted() === 'asc' ? 'descending' : 'ascending'}`}
           >
             Symbol
             {column.getIsSorted() === 'asc' ? (
-              <ChevronUp className="ml-2 h-4 w-4" />
+              <ChevronUp className="ml-2 h-4 w-4" aria-hidden="true" />
             ) : column.getIsSorted() === 'desc' ? (
-              <ChevronDown className="ml-2 h-4 w-4" />
+              <ChevronDown className="ml-2 h-4 w-4" aria-hidden="true" />
             ) : (
-              <ArrowUpDown className="ml-2 h-4 w-4" />
+              <ArrowUpDown className="ml-2 h-4 w-4" aria-hidden="true" />
             )}
           </Button>
         ),
@@ -202,18 +206,20 @@ export function TradeHistoryTable() {
         accessorKey: 'entryPrice',
         header: ({ column }) => (
           <Button
+            type="button"
             variant="ghost"
             size="sm"
             onClick={() => column.toggleSorting(column.getIsSorted() === 'asc')}
             className="hover:bg-accent -ml-4"
+            aria-label={`Sort by price ${column.getIsSorted() === 'asc' ? 'descending' : 'ascending'}`}
           >
             Price
             {column.getIsSorted() === 'asc' ? (
-              <ChevronUp className="ml-2 h-4 w-4" />
+              <ChevronUp className="ml-2 h-4 w-4" aria-hidden="true" />
             ) : column.getIsSorted() === 'desc' ? (
-              <ChevronDown className="ml-2 h-4 w-4" />
+              <ChevronDown className="ml-2 h-4 w-4" aria-hidden="true" />
             ) : (
-              <ArrowUpDown className="ml-2 h-4 w-4" />
+              <ArrowUpDown className="ml-2 h-4 w-4" aria-hidden="true" />
             )}
           </Button>
         ),
@@ -230,18 +236,20 @@ export function TradeHistoryTable() {
         accessorKey: 'profitLoss',
         header: ({ column }) => (
           <Button
+            type="button"
             variant="ghost"
             size="sm"
             onClick={() => column.toggleSorting(column.getIsSorted() === 'asc')}
             className="hover:bg-accent -ml-4"
+            aria-label={`Sort by profit and loss ${column.getIsSorted() === 'asc' ? 'descending' : 'ascending'}`}
           >
             P&L
             {column.getIsSorted() === 'asc' ? (
-              <ChevronUp className="ml-2 h-4 w-4" />
+              <ChevronUp className="ml-2 h-4 w-4" aria-hidden="true" />
             ) : column.getIsSorted() === 'desc' ? (
-              <ChevronDown className="ml-2 h-4 w-4" />
+              <ChevronDown className="ml-2 h-4 w-4" aria-hidden="true" />
             ) : (
-              <ArrowUpDown className="ml-2 h-4 w-4" />
+              <ArrowUpDown className="ml-2 h-4 w-4" aria-hidden="true" />
             )}
           </Button>
         ),
@@ -292,19 +300,32 @@ export function TradeHistoryTable() {
     <div className="space-y-4">
       {/* Search/Filter */}
       <div className="flex items-center gap-4">
-        <Input
-          placeholder="Search by symbol..."
-          value={symbolFilter}
-          onChange={event => setSymbolFilter(event.target.value)}
-          className="max-w-sm"
-          disabled={loading}
-        />
-        {loading && <span className="text-sm text-muted-foreground">Loading trades...</span>}
+        <div className="max-w-sm flex-1">
+          <label htmlFor="symbol-filter" className="sr-only">Filter trades by symbol</label>
+          <Input
+            id="symbol-filter"
+            type="search"
+            placeholder="Search by symbol..."
+            value={symbolFilter}
+            onChange={event => setSymbolFilter(event.target.value)}
+            disabled={loading}
+            aria-label="Filter trades by trading pair symbol"
+            autoComplete="off"
+          />
+        </div>
+        {loading && (
+          <span className="text-sm text-muted-foreground" aria-live="polite" role="status">
+            Loading trades...
+          </span>
+        )}
       </div>
 
       {/* Table */}
       <div className="rounded-md border">
         <Table>
+          <caption className="sr-only">
+            Trading history table showing {totalTrades} trades with columns for time, symbol, quality, side, price, quantity, profit/loss, and status. Use sort buttons to reorder data.
+          </caption>
           <TableHeader>
             {table.getHeaderGroups().map(headerGroup => (
               <TableRow key={headerGroup.id}>
@@ -354,14 +375,23 @@ export function TradeHistoryTable() {
         </div>
         <div className="flex items-center space-x-2">
           <Button
+            type="button"
             variant="outline"
             size="sm"
             onClick={() => table.previousPage()}
             disabled={!table.getCanPreviousPage()}
+            aria-label="Go to previous page of trades"
           >
             Previous
           </Button>
-          <Button variant="outline" size="sm" onClick={() => table.nextPage()} disabled={!table.getCanNextPage()}>
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={() => table.nextPage()}
+            disabled={!table.getCanNextPage()}
+            aria-label="Go to next page of trades"
+          >
             Next
           </Button>
         </div>

@@ -403,17 +403,26 @@ export function BrokerManagement() {
 
                     <div className="flex gap-2">
                       <Button
+                        type="button"
                         variant="outline"
                         size="sm"
                         className="flex-1"
                         onClick={() => handleTestConnection(broker.key)}
                         disabled={isTesting}
+                        aria-label={`Test connection for ${broker.name}`}
+                        aria-live="polite"
                       >
-                        <RefreshCw className={`mr-2 h-4 w-4 ${isTesting ? 'animate-spin' : ''}`} />
+                        <RefreshCw className={`mr-2 h-4 w-4 ${isTesting ? 'animate-spin' : ''}`} aria-hidden="true" />
                         {isTesting ? 'Testing…' : 'Test Connection'}
                       </Button>
-                      <Button variant="destructive" size="sm" onClick={() => handleDisconnectConfigured(broker.key)}>
-                        <Trash2 className="h-4 w-4" />
+                      <Button
+                        type="button"
+                        variant="destructive"
+                        size="sm"
+                        onClick={() => handleDisconnectConfigured(broker.key)}
+                        aria-label={`Disconnect ${broker.name} broker`}
+                      >
+                        <Trash2 className="h-4 w-4" aria-hidden="true" />
                       </Button>
                     </div>
                   </CardContent>

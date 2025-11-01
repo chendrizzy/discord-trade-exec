@@ -93,6 +93,11 @@ export default {
         md: "calc(var(--radius) - 2px)",
         sm: "calc(var(--radius) - 4px)",
       },
+      spacing: {
+        'card': '1.5rem',      // Standard card padding (24px)
+        'section': '2rem',     // Section spacing (32px)
+        'container': '2rem',   // Container padding (32px)
+      },
       fontFamily: {
         sans: ['Inter', 'system-ui', 'Avenir', 'Helvetica', 'Arial', 'sans-serif'],
         mono: ['JetBrains Mono', 'Courier New', 'monospace'],
