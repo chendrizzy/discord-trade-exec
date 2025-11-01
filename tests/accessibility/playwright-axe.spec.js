@@ -301,6 +301,17 @@ test.describe('Responsive Accessibility', () => {
 
       return interactiveElements.filter(el => {
         const rect = el.getBoundingClientRect();
+        const styles = window.getComputedStyle(el);
+
+        // Exclude elements that are visually hidden (sr-only, display:none, visibility:hidden)
+        const isHidden =
+          styles.display === 'none' ||
+          styles.visibility === 'hidden' ||
+          el.classList.contains('sr-only') ||
+          styles.position === 'absolute' && (rect.width <= 1 || rect.height <= 1);
+
+        if (isHidden) return false;
+
         return rect.width < 44 || rect.height < 44;
       }).map(el => ({
         tagName: el.tagName,

@@ -254,19 +254,19 @@ export function Landing() {
 
             <div>
               <h4 className="font-semibold mb-4">Product</h4>
-              <ul className="space-y-2 text-sm text-muted-foreground">
+              <ul className="space-y-1 text-sm text-muted-foreground">
                 <li>
-                  <a href="#features" className="hover:text-foreground transition-colors">
+                  <a href="#features" className="block py-3 hover:text-foreground transition-colors">
                     Features
                   </a>
                 </li>
                 <li>
-                  <a href="#pricing" className="hover:text-foreground transition-colors">
+                  <a href="#pricing" className="block py-3 hover:text-foreground transition-colors">
                     Pricing
                   </a>
                 </li>
                 <li>
-                  <a href="/dashboard" className="hover:text-foreground transition-colors">
+                  <a href="/dashboard" className="block py-3 hover:text-foreground transition-colors">
                     Dashboard
                   </a>
                 </li>
@@ -275,19 +275,19 @@ export function Landing() {
 
             <div>
               <h4 className="font-semibold mb-4">Resources</h4>
-              <ul className="space-y-2 text-sm text-muted-foreground">
+              <ul className="space-y-1 text-sm text-muted-foreground">
                 <li>
-                  <a href="/docs" className="hover:text-foreground transition-colors">
+                  <a href="/docs" className="block py-3 hover:text-foreground transition-colors">
                     Documentation
                   </a>
                 </li>
                 <li>
-                  <a href="/support" className="hover:text-foreground transition-colors">
+                  <a href="/support" className="block py-3 hover:text-foreground transition-colors">
                     Support
                   </a>
                 </li>
                 <li>
-                  <a href="/api" className="hover:text-foreground transition-colors">
+                  <a href="/api" className="block py-3 hover:text-foreground transition-colors">
                     API
                   </a>
                 </li>
@@ -296,19 +296,19 @@ export function Landing() {
 
             <div>
               <h4 className="font-semibold mb-4">Legal</h4>
-              <ul className="space-y-2 text-sm text-muted-foreground">
+              <ul className="space-y-1 text-sm text-muted-foreground">
                 <li>
-                  <a href="/terms" className="hover:text-foreground transition-colors">
+                  <a href="/terms" className="block py-3 hover:text-foreground transition-colors">
                     Terms of Service
                   </a>
                 </li>
                 <li>
-                  <a href="/privacy" className="hover:text-foreground transition-colors">
+                  <a href="/privacy" className="block py-3 hover:text-foreground transition-colors">
                     Privacy Policy
                   </a>
                 </li>
                 <li>
-                  <a href="/security" className="hover:text-foreground transition-colors">
+                  <a href="/security" className="block py-3 hover:text-foreground transition-colors">
                     Security
                   </a>
                 </li>
