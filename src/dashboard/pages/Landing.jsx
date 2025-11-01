@@ -9,8 +9,16 @@ export function Landing() {
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-background to-accent/20">
+      {/* Skip Navigation Link for Keyboard Users */}
+      <a
+        href="#main-content"
+        className="sr-only focus:not-sr-only focus:absolute focus:top-4 focus:left-4 focus:z-50 focus:px-4 focus:py-2 focus:bg-primary focus:text-primary-foreground focus:rounded-md focus:outline-none focus:ring-2 focus:ring-ring"
+      >
+        Skip to main content
+      </a>
+
       {/* Hero Section */}
-      <div className="container mx-auto px-4 pt-20 pb-16">
+      <div id="main-content" className="container mx-auto px-4 pt-20 pb-16">
         <div className="text-center max-w-4xl mx-auto space-y-8">
           <div className="space-y-4">
             <h1 className="text-5xl md:text-7xl font-bold tracking-tight">

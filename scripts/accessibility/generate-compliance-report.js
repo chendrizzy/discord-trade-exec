@@ -2,7 +2,7 @@
 
 /**
  * Generate WCAG 2.1 AA Compliance Report
- * Combines results from axe-core and pa11y-ci tests
+ * Parses Playwright test results with axe-core violations
  */
 
 const fs = require('fs');
@@ -22,39 +22,101 @@ const WCAG_CRITERIA = {
   ]
 };
 
+function parsePlaywrightResults() {
+  const resultsPath = path.join(__dirname, '../../test-results/a11y-results.json');
+
+  if (!fs.existsSync(resultsPath)) {
+    console.log('⚠️  No Playwright JSON results found. Test may not have run with JSON reporter.');
+    return null;
+  }
+
+  try {
+    const results = JSON.parse(fs.readFileSync(resultsPath, 'utf8'));
+    return results;
+  } catch (error) {
+    console.error('❌ Error parsing test results:', error.message);
+    return null;
+  }
+}
+
+function extractViolations(playwrightResults) {
+  if (!playwrightResults || !playwrightResults.suites) {
+    return [];
+  }
+
+  const violations = [];
+
+  function processSpec(spec) {
+    if (spec.tests) {
+      spec.tests.forEach(test => {
+        if (test.results) {
+          test.results.forEach(result => {
+            // Check for axe violations in error messages or attachments
+            if (result.status === 'failed' && result.error) {
+              const errorMessage = result.error.message || '';
+              if (errorMessage.includes('accessibility violations') || errorMessage.includes('axe')) {
+                violations.push({
+                  test: test.title,
+                  page: spec.title,
+                  impact: 'serious', // Default impact
+                  description: errorMessage
+                });
+              }
+            }
+          });
+        }
+      });
+    }
+
+    if (spec.suites) {
+      spec.suites.forEach(processSpec);
+    }
+  }
+
+  playwrightResults.suites.forEach(processSpec);
+  return violations;
+}
+
 function generateReport() {
   console.log('🔍 Generating WCAG 2.1 AA Compliance Report...\n');
 
-  // Check for test results
+  const playwrightResults = parsePlaywrightResults();
+  const violations = playwrightResults ? extractViolations(playwrightResults) : [];
+
+  // Check for Playwright test results
   const playwrightReportPath = path.join(__dirname, '../../playwright-report');
-  const pa11yReportPath = path.join(__dirname, '../../pa11y-report.json');
-
-  let report = {
-    timestamp: new Date().toISOString(),
-    wcagVersion: 'WCAG 2.1',
-    level: 'AA',
-    totalCriteria: WCAG_CRITERIA.wcag2a.length + WCAG_CRITERIA.wcag2aa.length,
-    passed: 0,
-    failed: 0,
-    violations: [],
-    summary: {}
-  };
-
-  // Check if Playwright tests ran
   if (fs.existsSync(playwrightReportPath)) {
     console.log('✅ Found Playwright accessibility test results');
   } else {
     console.log('⚠️  No Playwright test results found. Run npm run test:a11y:axe first.');
   }
 
+  // Calculate test statistics
+  const totalTests = playwrightResults?.suites?.[0]?.specs?.length || 0;
+  const passedTests = totalTests - violations.length;
+
+  const report = {
+    timestamp: new Date().toISOString(),
+    wcagVersion: 'WCAG 2.1',
+    level: 'AA',
+    totalCriteria: WCAG_CRITERIA.wcag2a.length + WCAG_CRITERIA.wcag2aa.length,
+    totalTests: totalTests,
+    passed: passedTests,
+    failed: violations.length,
+    violations: violations,
+    summary: {}
+  };
+
   // Generate summary
   report.summary = {
-    complianceRate: `${Math.round((report.passed / report.totalCriteria) * 100)}%`,
-    status: report.failed === 0 ? '✅ FULLY COMPLIANT' : '⚠️  VIOLATIONS FOUND',
-    criticalViolations: report.violations.filter(v => v.impact === 'critical').length,
-    seriousViolations: report.violations.filter(v => v.impact === 'serious').length,
-    moderateViolations: report.violations.filter(v => v.impact === 'moderate').length,
-    minorViolations: report.violations.filter(v => v.impact === 'minor').length
+    complianceRate: totalTests > 0
+      ? `${Math.round((passedTests / totalTests) * 100)}%`
+      : violations.length === 0 ? '100%' : '0%',
+    status: violations.length === 0 ? '✅ FULLY COMPLIANT' : '⚠️  VIOLATIONS FOUND',
+    criticalViolations: violations.filter(v => v.impact === 'critical').length,
+    seriousViolations: violations.filter(v => v.impact === 'serious').length,
+    moderateViolations: violations.filter(v => v.impact === 'moderate').length,
+    minorViolations: violations.filter(v => v.impact === 'minor').length
   };
 
   // Save report
@@ -72,11 +134,32 @@ function generateReport() {
   console.log(`   Markdown: ${markdownPath}`);
   console.log(`\n${report.summary.status}`);
   console.log(`Compliance Rate: ${report.summary.complianceRate}`);
+  console.log(`Tests: ${report.passed} passed, ${report.failed} failed out of ${report.totalTests} total`);
+
+  if (violations.length > 0) {
+    console.log('\n⚠️  Violations by Impact:');
+    console.log(`   Critical: ${report.summary.criticalViolations}`);
+    console.log(`   Serious: ${report.summary.seriousViolations}`);
+    console.log(`   Moderate: ${report.summary.moderateViolations}`);
+    console.log(`   Minor: ${report.summary.minorViolations}`);
+  }
 
   return report;
 }
 
 function generateMarkdownReport(report) {
+  let violationsSection = '';
+
+  if (report.violations.length > 0) {
+    violationsSection = `\n## Violations Found\n\n`;
+    report.violations.forEach((v, index) => {
+      violationsSection += `### ${index + 1}. ${v.test || 'Unknown Test'}\n\n`;
+      violationsSection += `- **Page:** ${v.page || 'Unknown'}\n`;
+      violationsSection += `- **Impact:** ${v.impact}\n`;
+      violationsSection += `- **Description:** ${v.description}\n\n`;
+    });
+  }
+
   return `# WCAG 2.1 AA Accessibility Compliance Report
 
 **Generated:** ${new Date(report.timestamp).toLocaleString()}
@@ -85,8 +168,9 @@ function generateMarkdownReport(report) {
 
 ## Summary
 
-- **Total Criteria:** ${report.totalCriteria}
+- **Total Criteria:** ${report.totalCriteria} (${WCAG_CRITERIA.wcag2a.length} Level A + ${WCAG_CRITERIA.wcag2aa.length} Level AA)
 - **Compliance Rate:** ${report.summary.complianceRate}
+- **Tests Run:** ${report.totalTests} (${report.passed} passed, ${report.failed} failed)
 - **Violations:**
   - Critical: ${report.summary.criticalViolations}
   - Serious: ${report.summary.seriousViolations}
@@ -109,7 +193,7 @@ ${WCAG_CRITERIA.wcag2a.map(c => `- [x] ${c}`).join('\n')}
 
 ### WCAG 2.1 Level AA Criteria (${WCAG_CRITERIA.wcag2aa.length} criteria)
 ${WCAG_CRITERIA.wcag2aa.map(c => `- [x] ${c}`).join('\n')}
-
+${violationsSection}
 ## Recommendations
 
 ### Continuous Testing
@@ -136,7 +220,12 @@ ${WCAG_CRITERIA.wcag2aa.map(c => `- [x] ${c}`).join('\n')}
 // Run if called directly
 if (require.main === module) {
   try {
-    generateReport();
+    const report = generateReport();
+
+    // Exit with error code if violations found
+    if (report.violations.length > 0) {
+      process.exit(1);
+    }
   } catch (error) {
     console.error('❌ Error generating report:', error);
     process.exit(1);
