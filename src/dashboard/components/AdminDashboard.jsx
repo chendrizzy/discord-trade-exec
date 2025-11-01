@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from './ui/card';
 import { Badge } from './ui/badge';
+import { LoadingSpinner, EmptyState } from './ui';
 import { Users, DollarSign, TrendingUp, Activity, Crown } from 'lucide-react';
 
 export function AdminDashboard() {
@@ -32,26 +33,34 @@ export function AdminDashboard() {
   };
 
   if (loading) {
-    return (
-      <div className="flex items-center justify-center h-64">
-        <div className="text-muted-foreground">Loading admin dashboard...</div>
-      </div>
-    );
+    return <LoadingSpinner fullScreen text="Loading admin dashboard..." />;
   }
 
   if (error) {
     return (
-      <div className="flex items-center justify-center h-64">
-        <div className="text-destructive">{error}</div>
-      </div>
+      <EmptyState
+        title="Failed to Load Dashboard"
+        description={error}
+        icon={<Activity className="h-12 w-12" />}
+        action={{
+          label: "Try Again",
+          onClick: fetchAdminStats
+        }}
+      />
     );
   }
 
   if (!stats) {
     return (
-      <div className="flex items-center justify-center h-64">
-        <div className="text-muted-foreground">No data available</div>
-      </div>
+      <EmptyState
+        title="No Data Available"
+        description="Admin statistics are not available at this time."
+        icon={<Activity className="h-12 w-12" />}
+        action={{
+          label: "Refresh",
+          onClick: fetchAdminStats
+        }}
+      />
     );
   }
 

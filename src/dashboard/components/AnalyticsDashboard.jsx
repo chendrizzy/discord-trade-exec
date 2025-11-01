@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from './ui/card';
 import { Badge } from './ui/badge';
 import { Button } from './ui/button';
+import { LoadingSpinner, EmptyState } from './ui';
 import {
   DollarSign,
   TrendingUp,
@@ -56,34 +57,34 @@ export function AnalyticsDashboard() {
   };
 
   if (loading) {
-    return (
-      <div className="flex items-center justify-center h-64">
-        <div className="text-muted-foreground">Loading analytics...</div>
-      </div>
-    );
+    return <LoadingSpinner fullScreen text="Loading analytics..." />;
   }
 
   if (error) {
     return (
-      <div className="space-y-4">
-        <div className="flex items-center justify-center h-64">
-          <div className="text-center">
-            <AlertTriangle className="h-12 w-12 text-destructive mx-auto mb-4" />
-            <div className="text-destructive">{error}</div>
-            <Button onClick={fetchAnalytics} variant="outline" className="mt-4">
-              Try Again
-            </Button>
-          </div>
-        </div>
-      </div>
+      <EmptyState
+        title="Failed to Load Analytics"
+        description={error}
+        icon={<AlertTriangle className="h-12 w-12" />}
+        action={{
+          label: "Try Again",
+          onClick: fetchAnalytics
+        }}
+      />
     );
   }
 
   if (!metrics) {
     return (
-      <div className="flex items-center justify-center h-64">
-        <div className="text-muted-foreground">No analytics data available</div>
-      </div>
+      <EmptyState
+        title="No Analytics Available"
+        description="Analytics data is not available at this time. Try refreshing or come back later."
+        icon={<BarChart3 className="h-12 w-12" />}
+        action={{
+          label: "Refresh",
+          onClick: fetchAnalytics
+        }}
+      />
     );
   }
 

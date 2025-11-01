@@ -10,6 +10,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from './ui/
 import { Badge } from './ui/badge';
 import { Button } from './ui/button';
 import { Alert } from './ui/alert';
+import { LoadingSpinner, EmptyState } from './ui';
+import { CreditCard } from 'lucide-react';
 
 const BillingSettings = () => {
   const [billing, setBilling] = useState(null);
@@ -87,18 +89,20 @@ const BillingSettings = () => {
   };
 
   if (loading) {
-    return (
-      <div className="flex items-center justify-center h-64">
-        <div className="text-muted-foreground">Loading billing information...</div>
-      </div>
-    );
+    return <LoadingSpinner fullScreen text="Loading billing information..." />;
   }
 
   if (error) {
     return (
-      <Alert variant="destructive">
-        <strong>Error:</strong> {error}
-      </Alert>
+      <EmptyState
+        title="Failed to Load Billing"
+        description={error}
+        icon={<CreditCard className="h-12 w-12" />}
+        action={{
+          label: "Try Again",
+          onClick: fetchBillingInfo
+        }}
+      />
     );
   }
 

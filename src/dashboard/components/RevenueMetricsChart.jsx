@@ -11,6 +11,8 @@ import {
   Legend
 } from 'recharts';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from './ui/card';
+import { EmptyState } from './ui';
+import { BarChart3, DollarSign, TrendingUp } from 'lucide-react';
 
 // Custom tooltip component
 const CustomTooltip = ({ active, payload, label }) => {
@@ -39,7 +41,13 @@ export function RevenueMetricsChart({ data, height = 400, showLegend = true }) {
   const chartData = data || [];
 
   if (chartData.length === 0) {
-    return <div className="flex items-center justify-center h-64 text-muted-foreground">No revenue data available</div>;
+    return (
+      <EmptyState
+        title="No Revenue Data"
+        description="Revenue data will appear here once transactions are recorded."
+        icon={<DollarSign className="h-12 w-12" />}
+      />
+    );
   }
 
   return (
@@ -102,7 +110,13 @@ export function MRRTrendChart({ data, height = 300 }) {
   const chartData = data || [];
 
   if (chartData.length === 0) {
-    return <div className="flex items-center justify-center h-64 text-muted-foreground">No MRR data available</div>;
+    return (
+      <EmptyState
+        title="No MRR Data"
+        description="Monthly recurring revenue data will appear here once subscriptions are active."
+        icon={<TrendingUp className="h-12 w-12" />}
+      />
+    );
   }
 
   const latestValue = chartData[chartData.length - 1]?.mrr || 0;
@@ -162,7 +176,11 @@ export function TierRevenueChart({ data, height = 350 }) {
 
   if (chartData.length === 0) {
     return (
-      <div className="flex items-center justify-center h-64 text-muted-foreground">No tier revenue data available</div>
+      <EmptyState
+        title="No Tier Revenue Data"
+        description="Subscription tier revenue breakdown will appear here once users subscribe to different tiers."
+        icon={<BarChart3 className="h-12 w-12" />}
+      />
     );
   }
 

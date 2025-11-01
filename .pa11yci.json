@@ -1,0 +1,30 @@
+{
+  "defaults": {
+    "standard": "WCAG2AA",
+    "level": "error",
+    "runners": ["axe", "htmlcs"],
+    "chromeLaunchConfig": {
+      "args": ["--no-sandbox", "--disable-setuid-sandbox"]
+    },
+    "timeout": 30000,
+    "wait": 2000,
+    "viewport": {
+      "width": 1280,
+      "height": 1024
+    },
+    "includeNotices": false,
+    "includeWarnings": false,
+    "ignore": [
+      "region"
+    ]
+  },
+  "urls": [
+    "http://localhost:3000/",
+    "http://localhost:3000/#/bots",
+    "http://localhost:3000/#/positions",
+    "http://localhost:3000/#/history",
+    "http://localhost:3000/#/brokers",
+    "http://localhost:3000/#/analytics",
+    "http://localhost:3000/#/settings"
+  ]
+}
