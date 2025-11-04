@@ -4,6 +4,7 @@ const express = require('express');
 const router = express.Router();
 const { BrokerFactory } = require('../../brokers');
 const User = require('../../models/User');
+const { getBrokerConfig: getBrokerMetadata } = require('../../config/brokers');
 const { getEncryptionService } = require('../../services/encryption');
 const {
   sendSuccess,
@@ -131,21 +132,30 @@ router.get('/', ensureAuthenticated, (req, res) => {
 
     res.json({
       success: true,
-      brokers: brokers.map(broker => ({
-        key: broker.key,
-        name: broker.name,
-        type: broker.type,
-        status: broker.status,
-        description:
-          broker.description ||
-          `Trade ${broker.type === 'stock' ? 'stocks and ETFs' : 'cryptocurrencies'} with ${broker.name}`,
-        features: broker.features,
-        authMethods: broker.authMethods,
-        markets: broker.markets,
-        accountTypes: broker.accountTypes,
-        credentialFields: broker.credentialFields,
-        prerequisites: broker.prerequisites
-      })),
+      brokers: brokers.map(broker => {
+        const metadata = getBrokerMetadata(broker.key);
+        return {
+          key: broker.key,
+          name: broker.name,
+          type: broker.type,
+          status: broker.status,
+          description:
+            broker.description ||
+            `Trade ${broker.type === 'stock' ? 'stocks and ETFs' : 'cryptocurrencies'} with ${broker.name}`,
+          features: broker.features,
+          authMethods: broker.authMethods,
+          markets: broker.markets,
+          accountTypes: broker.accountTypes,
+          credentialFields: broker.credentialFields,
+          prerequisites: broker.prerequisites,
+          // Add deployment mode metadata
+          deploymentMode: metadata?.deploymentMode,
+          requiresLocalGateway: metadata?.requiresLocalGateway,
+          warning: metadata?.warning,
+          gatewayProcess: metadata?.gatewayProcess,
+          gatewayPort: metadata?.gatewayPort
+        };
+      }),
       stats: BrokerFactory.getStats()
     });
   } catch (error) {
@@ -175,6 +185,8 @@ router.get('/:brokerKey', ensureAuthenticated, validate(getBrokerParams, 'params
       return sendNotFound(res, `Broker '${brokerKey}'`);
     }
 
+    const metadata = getBrokerMetadata(brokerKey);
+
     res.json({
       success: true,
       broker: {
@@ -191,7 +203,13 @@ router.get('/:brokerKey', ensureAuthenticated, validate(getBrokerParams, 'params
         accountTypes: broker.accountTypes,
         docs: broker.docs,
         credentialFields: broker.credentialFields,
-        prerequisites: broker.prerequisites
+        prerequisites: broker.prerequisites,
+        // Add deployment mode metadata
+        deploymentMode: metadata?.deploymentMode,
+        requiresLocalGateway: metadata?.requiresLocalGateway,
+        warning: metadata?.warning,
+        gatewayProcess: metadata?.gatewayProcess,
+        gatewayPort: metadata?.gatewayPort
       }
     });
   } catch (error) {

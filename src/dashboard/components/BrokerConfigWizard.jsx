@@ -490,6 +490,10 @@ export function BrokerConfigWizard({ onSuccess }) {
 
       case 2:
         // Broker Selection
+        const selectedBroker = config.brokerKey ?
+          availableBrokers.find(b => b.key === config.brokerKey) : null;
+        const showWarning = selectedBroker?.deploymentMode === 'single-user-only' && selectedBroker?.warning;
+
         return (
           <div className="space-y-4">
             <Alert variant="info">
@@ -521,6 +525,11 @@ export function BrokerConfigWizard({ onSuccess }) {
                         <div className="flex items-center gap-2 mb-1">
                           <Building2 className="h-4 w-4" />
                           <span className="font-semibold">{broker.name}</span>
+                          {broker.deploymentMode === 'single-user-only' && (
+                            <Badge variant="outline" className="text-xs bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-600/20">
+                              Single-User Only
+                            </Badge>
+                          )}
                         </div>
                         <p className="text-xs text-muted-foreground mb-2">
                           {broker.description}
@@ -540,6 +549,26 @@ export function BrokerConfigWizard({ onSuccess }) {
                   </button>
                 ))}
               </div>
+            )}
+
+            {/* Warning for single-user only brokers */}
+            {showWarning && (
+              <Alert variant="warning" className="border-amber-500/50 bg-amber-500/10">
+                <AlertCircle className="h-4 w-4 text-amber-600 dark:text-amber-400" />
+                <AlertDescription className="text-sm">
+                  <div className="font-semibold mb-2">Single-User Deployment Required</div>
+                  <div className="text-muted-foreground mb-3">{selectedBroker.warning}</div>
+                  <div className="space-y-1 text-xs">
+                    <div><strong>Requirements:</strong></div>
+                    <ul className="list-disc list-inside ml-2 space-y-0.5">
+                      <li>Install {selectedBroker.gatewayProcess} on your local machine</li>
+                      <li>Run the bot on the same machine as the Gateway</li>
+                      <li>Manual login with 2FA authentication</li>
+                      <li>Only supports one user at a time</li>
+                    </ul>
+                  </div>
+                </AlertDescription>
+              </Alert>
             )}
           </div>
         );

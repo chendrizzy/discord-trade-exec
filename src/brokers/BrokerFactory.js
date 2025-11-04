@@ -8,6 +8,7 @@ const EtradeAdapter = require('./adapters/EtradeAdapter');
 const SchwabAdapter = require('./adapters/SchwabAdapter');
 const CoinbaseProAdapter = require('./adapters/CoinbaseProAdapter');
 const KrakenAdapter = require('./adapters/KrakenAdapter');
+const { validateBrokerDeploymentMode, getBrokerConfig } = require('../config/brokers');
 
 /**
  * BrokerFactory - Central factory for creating and managing broker adapters
@@ -236,7 +237,7 @@ class BrokerFactory {
    * Create a broker adapter instance
    * @param {string} brokerKey - Broker identifier (e.g., 'alpaca', 'ibkr')
    * @param {Object} credentials - Authentication credentials
-   * @param {Object} options - Additional options (e.g., { isTestnet: true })
+   * @param {Object} options - Additional options (e.g., { isTestnet: true, deploymentMode: 'multi-user' })
    * @returns {Promise<BrokerAdapter>} - Initialized broker adapter instance
    */
   async createBroker(brokerKey, credentials, options = {}) {
@@ -244,6 +245,19 @@ class BrokerFactory {
 
     if (!brokerInfo) {
       throw new Error(`Unknown broker: ${brokerKey}. Available brokers: ${this.getAvailableBrokerKeys().join(', ')}`);
+    }
+
+    // Determine deployment mode (default to multi-user for cloud Discord bots)
+    const deploymentMode = options.deploymentMode || process.env.DEPLOYMENT_MODE || 'multi-user';
+
+    // Validate broker compatibility with deployment mode
+    try {
+      validateBrokerDeploymentMode(brokerKey, deploymentMode);
+    } catch (error) {
+      // Enhance error with broker factory context
+      throw new Error(
+        `Broker validation failed for ${brokerKey} in ${deploymentMode} mode:\n${error.message}`
+      );
     }
 
     // Lazy-load MoomooAdapter if needed (ES Module compatibility)
@@ -583,11 +597,23 @@ class BrokerFactory {
       success: false,
       broker: brokerKey,
       message: '',
-      details: {}
+      details: {},
+      warnings: []
     };
 
     try {
-      // Create broker instance
+      // Check for gateway requirements and add warnings
+      const brokerConfig = getBrokerConfig(brokerKey);
+      if (brokerConfig && brokerConfig.requiresLocalGateway) {
+        result.warnings.push({
+          type: 'gateway-required',
+          message: brokerConfig.warning,
+          gatewayProcess: brokerConfig.gatewayProcess,
+          gatewayPort: brokerConfig.gatewayPort
+        });
+      }
+
+      // Create broker instance (validates deployment mode)
       const broker = await this.createBroker(brokerKey, credentials, options);
 
       // Attempt authentication
