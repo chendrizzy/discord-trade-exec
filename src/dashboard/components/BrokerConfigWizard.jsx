@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { debugLog, debugWarn } from '../utils/debug-logger';
 import {
   Dialog,
   DialogContent,
@@ -272,7 +273,7 @@ export function BrokerConfigWizard({ onSuccess }) {
       }
 
       if (event.data.type === 'oauth-success' && event.data.broker === config.brokerKey) {
-        console.log('✅ OAuth connection successful');
+        debugLog('✅ OAuth connection successful');
         setConfig(prev => ({ ...prev, oauthConnected: true }));
         setTesting(false);
         window.removeEventListener('message', handleMessage);

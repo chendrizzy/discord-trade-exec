@@ -26,13 +26,9 @@
 
 import { io } from 'socket.io-client';
 import { useState, useEffect, useCallback, useRef } from 'react';
+import { debugLog, debugWarn } from '../utils/debug-logger';
 
 const WEBSOCKET_URL = import.meta.env.VITE_WEBSOCKET_URL || 'http://localhost:3000';
-
-// Conditional debug logging (only in development)
-const isDev = import.meta.env.DEV;
-const debugLog = (...args) => isDev && console.log(...args);
-const debugWarn = (...args) => isDev && console.warn(...args);
 
 // Event types from backend handlers (src/websocket/handlers/*)
 export const EVENTS = {

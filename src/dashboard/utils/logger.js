@@ -3,27 +3,25 @@
  * Provides consistent logging interface for browser console
  */
 
-const isDevelopment = import.meta.env.DEV;
+import { debugLog, debugInfo } from './debug-logger';
 
 const logger = {
   info(...args) {
-    if (isDevelopment) {
-      console.log('[INFO]', ...args);
-    }
+    debugLog('[INFO]', ...args);
   },
 
   warn(...args) {
+    /* eslint-disable-next-line no-console */
     console.warn('[WARN]', ...args);
   },
 
   error(...args) {
+    /* eslint-disable-next-line no-console */
     console.error('[ERROR]', ...args);
   },
 
   debug(...args) {
-    if (isDevelopment) {
-      console.debug('[DEBUG]', ...args);
-    }
+    debugInfo('[DEBUG]', ...args);
   }
 };
 

@@ -4,11 +4,7 @@ import { Card, CardHeader, CardTitle, CardDescription, CardContent } from './ui/
 import { Badge } from './ui/badge';
 import { Button } from './ui/button';
 import { ConnectionStatusIndicator } from './ConnectionStatusIndicator';
-
-// Conditional debug logging (only in development)
-const isDev = import.meta.env.DEV;
-const debugLog = (...args) => isDev && console.log(...args);
-const debugWarn = (...args) => isDev && console.warn(...args);
+import { debugLog, debugWarn } from '../utils/debug-logger';
 
 /**
  * Live Watchlist Component

@@ -1,5 +1,7 @@
 import { useState, useEffect } from 'react';
+import { debugLog, debugWarn } from '../utils/debug-logger';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from './ui/card';
+import { debugLog, debugWarn } from '../utils/debug-logger';
 import { Button } from './ui/button';
 import { Badge } from './ui/badge';
 import { RefreshCw, Download, Calendar, AlertTriangle } from 'lucide-react';
@@ -58,7 +60,7 @@ export function CohortRetentionTable() {
 
   const handleExport = () => {
     // TODO: Implement CSV export
-    console.log('Export retention table');
+    debugLog('Export retention table');
     alert('Export functionality coming soon!');
   };
 

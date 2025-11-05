@@ -1,5 +1,7 @@
 import { useState, useEffect } from 'react';
+import { debugLog, debugWarn } from '../utils/debug-logger';
 import { Badge } from './ui/badge';
+import { debugLog, debugWarn } from '../utils/debug-logger';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from './ui/tooltip';
 import { TrendingUp, TrendingDown, AlertCircle, CheckCircle, Circle } from 'lucide-react';
 import { useWebSocketContext } from '../contexts/WebSocketContext';
@@ -53,7 +55,7 @@ export function SignalQualityIndicator({ tradeId, compact = false }) {
     const handleQualityUpdate = data => {
       // Only update if this is for our trade
       if (data.tradeId === tradeId) {
-        console.log('📡 Real-time quality update received:', data);
+        debugLog('📡 Real-time quality update received:', data);
         setQuality(data);
         setLoading(false);
         setError(null);
@@ -61,7 +63,7 @@ export function SignalQualityIndicator({ tradeId, compact = false }) {
     };
 
     const unsubscribe = websocket.subscribe('signal:quality', handleQualityUpdate);
-    console.log(`📡 SignalQualityIndicator subscribed for trade ${tradeId}`);
+    debugLog(`📡 SignalQualityIndicator subscribed for trade ${tradeId}`);
 
     return () => {
       if (unsubscribe) unsubscribe();

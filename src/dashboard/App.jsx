@@ -8,6 +8,7 @@ import { WebSocketProvider } from './contexts/WebSocketContext';
 import { ConnectionStatusIndicator } from './components/ConnectionStatusIndicator';
 import { ErrorBoundary } from './components/ErrorBoundary';
 import { getSessionID, getUserID } from './utils/session';
+import { debugLog } from './utils/debug-logger';
 import { Landing } from './pages/Landing';
 import { TermsOfService } from './pages/TermsOfService';
 import { PrivacyPolicy } from './pages/PrivacyPolicy';
@@ -123,7 +124,7 @@ function App() {
         navigate('/settings');
         break;
       default:
-        console.log('Unknown action:', action);
+        debugLog('Unknown action:', action);
     }
   };
 

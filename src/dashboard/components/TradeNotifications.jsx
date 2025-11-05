@@ -2,10 +2,7 @@ import { useState, useEffect } from 'react';
 import { useWebSocketContext } from '../contexts/WebSocketContext';
 import { Badge } from './ui/badge';
 import { Button } from './ui/button';
-
-// Conditional debug logging (only in development)
-const isDev = import.meta.env.DEV;
-const debugLog = (...args) => isDev && console.log(...args);
+import { debugLog } from '../utils/debug-logger';
 
 /**
  * Trade Notifications Component

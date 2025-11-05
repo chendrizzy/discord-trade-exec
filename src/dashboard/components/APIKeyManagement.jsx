@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { debugLog, debugWarn } from '../utils/debug-logger';
 import {
   Dialog,
   DialogContent,
@@ -73,14 +74,14 @@ export function APIKeyManagement() {
   };
 
   const handleSave = () => {
-    console.log('Saving API keys for', selectedExchange.id, formData);
+    debugLog('Saving API keys for', selectedExchange.id, formData);
     setSelectedExchange(null);
     resetForm();
   };
 
   const handleDelete = () => {
     if (window.confirm(`Are you sure you want to delete ${selectedExchange.name} API keys?`)) {
-      console.log('Deleting API keys for', selectedExchange.id);
+      debugLog('Deleting API keys for', selectedExchange.id);
       setSelectedExchange(null);
       resetForm();
     }

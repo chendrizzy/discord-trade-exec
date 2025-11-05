@@ -6,6 +6,7 @@
  */
 
 import React, { useState, useEffect } from 'react';
+import { debugLog, debugWarn } from '../utils/debug-logger';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from './ui/card';
 import { Badge } from './ui/badge';
 import { Button } from './ui/button';
@@ -94,7 +95,7 @@ const IntegrationSettings = () => {
       //   })
       // });
 
-      console.log('Test notification sent');
+      debugLog('Test notification sent');
       alert('Test notification sent! Check your Discord channel.');
     } catch (err) {
       console.error('[IntegrationSettings] Test error:', err);
@@ -111,7 +112,7 @@ const IntegrationSettings = () => {
       //   method: 'POST'
       // });
 
-      console.log('Bot reconnection initiated');
+      debugLog('Bot reconnection initiated');
       alert('Bot reconnection initiated. This may take a few moments.');
       await fetchIntegrationSettings();
     } catch (err) {

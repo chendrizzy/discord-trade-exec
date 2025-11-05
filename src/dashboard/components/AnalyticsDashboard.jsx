@@ -1,5 +1,7 @@
 import { useState, useEffect } from 'react';
+import { debugLog, debugWarn } from '../utils/debug-logger';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from './ui/card';
+import { debugLog, debugWarn } from '../utils/debug-logger';
 import { Badge } from './ui/badge';
 import { Button } from './ui/button';
 import { LoadingSpinner, EmptyState } from './ui';
@@ -293,7 +295,7 @@ export function AnalyticsDashboard() {
                   className="w-full mt-2"
                   onClick={() => {
                     // TODO: Navigate to churn risk list
-                    console.log('Navigate to churn risk list');
+                    debugLog('Navigate to churn risk list');
                   }}
                 >
                   View At-Risk Users

@@ -1,5 +1,7 @@
 import { useState, useEffect } from 'react';
+import { debugLog, debugWarn } from '../utils/debug-logger';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from './ui/card';
+import { debugLog, debugWarn } from '../utils/debug-logger';
 import { Badge } from './ui/badge';
 import { Button } from './ui/button';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from './ui/table';
@@ -61,12 +63,12 @@ export function ProviderLeaderboard() {
     if (!websocket) return;
 
     const handleQualityUpdate = data => {
-      console.log('📡 Signal quality updated, refreshing leaderboard');
+      debugLog('📡 Signal quality updated, refreshing leaderboard');
       fetchLeaderboard();
     };
 
     const unsubscribe = websocket.subscribe('signal:quality', handleQualityUpdate);
-    console.log('📡 ProviderLeaderboard subscribed to real-time quality updates');
+    debugLog('📡 ProviderLeaderboard subscribed to real-time quality updates');
 
     return () => {
       if (unsubscribe) unsubscribe();

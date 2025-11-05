@@ -1,11 +1,7 @@
 import { useEffect, useState, useRef, useCallback } from 'react';
 import { io } from 'socket.io-client';
 import logger from '../utils/logger.js';
-
-// Conditional debug logging (only in development)
-const isDev = import.meta.env.DEV;
-const debugLog = (...args) => isDev && console.log(...args);
-const debugWarn = (...args) => isDev && console.warn(...args);
+import { debugLog, debugWarn } from '../utils/debug-logger';
 
 /**
  * WebSocket React Hook for Real-Time Updates

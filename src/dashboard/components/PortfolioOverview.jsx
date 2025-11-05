@@ -6,10 +6,7 @@ import { Button } from './ui/button';
 import { useWebSocketContext } from '../contexts/WebSocketContext';
 import { ConnectionStatusIndicator } from './ConnectionStatusIndicator';
 import { cn } from '../lib/utils';
-
-// Conditional debug logging (only in development)
-const isDev = import.meta.env.DEV;
-const debugLog = (...args) => isDev && console.log(...args);
+import { debugLog } from '../utils/debug-logger';
 
 // Lazy load chart component
 const PortfolioSparkline = lazy(() => import('./PortfolioChart').then(mod => ({ default: mod.PortfolioSparkline })));

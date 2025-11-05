@@ -1,5 +1,7 @@
 import { useState, useEffect } from 'react';
+import { debugLog, debugWarn } from '../utils/debug-logger';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from './ui/card';
+import { debugLog, debugWarn } from '../utils/debug-logger';
 import { Badge } from './ui/badge';
 import { Button } from './ui/button';
 import { Input } from './ui/input';
@@ -112,7 +114,7 @@ export function TradeHistory() {
 
   const handleExportCSV = () => {
     // TODO: Phase 3.4.1 - Implement CSV export functionality
-    console.log('Exporting trade history to CSV...');
+    debugLog('Exporting trade history to CSV...');
     alert('CSV export feature coming soon!');
   };
 

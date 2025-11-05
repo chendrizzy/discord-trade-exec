@@ -6,6 +6,7 @@
  */
 
 import React, { useState, useEffect } from 'react';
+import { debugLog, debugWarn } from '../utils/debug-logger';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from './ui/card';
 import { Badge } from './ui/badge';
 import { Button } from './ui/button';
@@ -51,7 +52,7 @@ const BillingSettings = () => {
       // const { url } = await response.json();
       // window.location.href = url;
 
-      console.log('Polar portal integration not yet implemented');
+      debugLog('Polar portal integration not yet implemented');
       alert('You will be redirected to the Polar portal to manage your subscription');
     } catch (err) {
       console.error('[BillingSettings] Portal error:', err);
@@ -70,7 +71,7 @@ const BillingSettings = () => {
       // const { url } = await response.json();
       // window.location.href = url;
 
-      console.log(`Upgrade to ${tier} tier requested`);
+      debugLog(`Upgrade to ${tier} tier requested`);
       alert(`Upgrade to ${tier} tier will be available soon`);
     } catch (err) {
       console.error('[BillingSettings] Upgrade error:', err);

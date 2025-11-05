@@ -1,4 +1,5 @@
 import { useState, useMemo, useEffect } from 'react';
+import { debugLog, debugWarn } from '../utils/debug-logger';
 import {
   flexRender,
   getCoreRowModel,
@@ -261,13 +262,13 @@ export function ChurnRiskList() {
   });
 
   const handleSendRetentionEmail = async user => {
-    console.log('Send retention email to:', user.username);
+    debugLog('Send retention email to:', user.username);
     // TODO: Implement retention email sending
     alert(`Would send retention email to ${user.username}`);
   };
 
   const handleViewProfile = user => {
-    console.log('View profile:', user.username);
+    debugLog('View profile:', user.username);
     // TODO: Navigate to user profile
     alert(`Would navigate to profile for ${user.username}`);
   };

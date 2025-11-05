@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { debugLog, debugWarn } from '../utils/debug-logger';
 import {
   Dialog,
   DialogContent,
@@ -75,7 +76,7 @@ export function BotConfigWizard() {
       return;
     }
 
-    console.log('Bot configuration:', config);
+    debugLog('Bot configuration:', config);
     setOpen(false);
     resetWizard();
   };

@@ -6,6 +6,7 @@
  */
 
 import React, { useState, useEffect } from 'react';
+import { debugLog, debugWarn } from '../utils/debug-logger';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from './ui/card';
 import { Badge } from './ui/badge';
 import { Button } from './ui/button';
@@ -66,7 +67,7 @@ const CommunityAnalytics = () => {
       // a.download = `analytics-${dateRange}-${Date.now()}.csv`;
       // a.click();
 
-      console.log('Export functionality not yet implemented');
+      debugLog('Export functionality not yet implemented');
       alert('Export will be available soon');
     } catch (err) {
       console.error('[CommunityAnalytics] Export error:', err);
