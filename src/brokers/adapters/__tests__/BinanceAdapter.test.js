@@ -255,7 +255,7 @@ jest.mock('ccxt', () => {
 });
 
 // Mock logger
-jest.mock('../../../middleware/logger', () => ({
+jest.mock('../../../utils/logger', () => ({
   info: jest.fn(),
   warn: jest.fn(),
   error: jest.fn()
