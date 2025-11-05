@@ -77,6 +77,19 @@ if (typeof window === 'undefined' && mongoose) {
       const collection = collections[key];
       await collection.deleteMany({});
     }
+
+    // Aggressive cleanup to prevent memory leaks
+    jest.clearAllMocks();
+    jest.clearAllTimers();
+    jest.restoreAllMocks();
+
+    // Clear all cached modules to prevent accumulation
+    jest.resetModules();
+
+    // Force garbage collection if available (requires --expose-gc flag)
+    if (global.gc) {
+      global.gc();
+    }
   });
 }
 

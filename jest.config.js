@@ -13,6 +13,7 @@ module.exports = {
   verbose: true,
   forceExit: true,
   detectOpenHandles: true,
+  // detectLeaks: true, // Disabled - too strict for batched testing
   // Memory and performance optimization
   // Reduced to prevent OOM errors during test execution
   maxWorkers: 1,
