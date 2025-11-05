@@ -51,8 +51,9 @@ class RateLimiter {
     };
 
     // Cleanup interval for in-memory store
+    this.cleanupInterval = null;
     if (!redisClient) {
-      setInterval(() => this.cleanupInMemory(), 60 * 1000); // Every minute
+      this.cleanupInterval = setInterval(() => this.cleanupInMemory(), 60 * 1000); // Every minute
     }
 
     logger.info(`Rate limiter initialized (Redis: ${redisClient ? 'enabled' : 'disabled'})`);
@@ -331,6 +332,18 @@ class RateLimiter {
       }
     } catch (error) {
       logger.error('Failed to reset subscription count:', error);
+    }
+  }
+
+  /**
+   * Shutdown rate limiter and clear cleanup interval
+   * Should be called during graceful shutdown or in test teardown
+   */
+  shutdown() {
+    if (this.cleanupInterval) {
+      clearInterval(this.cleanupInterval);
+      this.cleanupInterval = null;
+      logger.info('[RateLimiter] Shutdown complete - cleanup interval cleared');
     }
   }
 }

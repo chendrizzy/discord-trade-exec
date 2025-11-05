@@ -45,6 +45,10 @@ describe('WebSocket Rate Limiting Middleware', () => {
   });
 
   afterEach(() => {
+    // Clean up rate limiter interval to prevent open handles
+    if (rateLimiter && rateLimiter.shutdown) {
+      rateLimiter.shutdown();
+    }
     jest.useRealTimers();
   });
 

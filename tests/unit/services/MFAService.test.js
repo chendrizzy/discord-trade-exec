@@ -63,6 +63,19 @@ describe('MFAService', () => {
   });
 
   afterEach(() => {
+    // Clean up interval to prevent open handles
+    if (mfaService && mfaService.cleanupInterval) {
+      clearInterval(mfaService.cleanupInterval);
+      mfaService.cleanupInterval = null;
+    }
+
+    // Also clean up singleton instance
+    const singleton = getMFAService();
+    if (singleton && singleton.cleanupInterval) {
+      clearInterval(singleton.cleanupInterval);
+      singleton.cleanupInterval = null;
+    }
+
     jest.restoreAllMocks();
   });
 
