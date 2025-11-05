@@ -760,7 +760,8 @@ class MFAService {
    * @param {string} userId - User ID
    */
   clearRateLimit(userId) {
-    this.attemptCache.delete(userId);
+    // Convert ObjectId to string to match Map key format
+    this.attemptCache.delete(userId.toString());
     logger.info('[MFAService] Rate limit cleared', { userId });
   }
 

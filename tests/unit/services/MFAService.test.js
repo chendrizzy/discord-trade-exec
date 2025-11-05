@@ -58,7 +58,8 @@ describe('MFAService', () => {
         verifiedAt: null,
         lastVerified: null
       },
-      save: jest.fn().mockResolvedValue(true)
+      save: jest.fn().mockResolvedValue(true),
+      markModified: jest.fn() // Mock Mongoose's markModified method
     };
   });
 
@@ -465,12 +466,7 @@ describe('MFAService', () => {
     it('should throw error if invalid token provided', async () => {
       const invalidToken = '000000';
 
-      // Make sure MFA is enabled for this test
-      mockUser.mfa.enabled = true;
-      User.findById = jest.fn().mockReturnValue({
-        select: jest.fn().mockResolvedValue(mockUser)
-      });
-
+      // MFA is already enabled in beforeEach, use that mock setup
       await expect(mfaService.regenerateBackupCodes(mockUserId, invalidToken))
         .rejects.toThrow('Invalid TOTP token');
     });
@@ -804,7 +800,7 @@ describe('MFAService', () => {
       const stats = mfaService.getRateLimitStats();
 
       expect(stats.activeUsers).toBe(1);
-      expect(stats.users).toContain(mockUserId);
+      expect(stats.users).toContain(mockUserId.toString());
       expect(stats.totalAttempts).toBe(3);
     });
 
