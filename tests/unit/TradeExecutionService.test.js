@@ -40,16 +40,22 @@ describe('TradeExecutionService', () => {
         tier: 'pro',
         status: 'active'
       },
-      brokerConfigs: new Map([
-        [
-          'alpaca',
-          {
-            isActive: true,
-            apiKey: 'test_key',
-            apiSecret: 'test_secret'
-          }
-        ]
-      ]),
+      tradingConfig: {
+        brokerConfigs: new Map([
+          [
+            'alpaca',
+            {
+              isActive: true,
+              apiKey: 'test_key',
+              apiSecret: 'test_secret'
+            }
+          ]
+        ]),
+        riskManagement: {
+          maxPositionSize: 0.1
+        },
+        circuitBreakerActive: false
+      },
       canExecuteTrade: jest.fn().mockReturnValue({ allowed: true }),
       checkTradingHours: jest.fn().mockReturnValue({ allowed: true }),
       checkDailyLossLimit: jest.fn().mockReturnValue({ allowed: true }),
@@ -225,7 +231,7 @@ describe('TradeExecutionService', () => {
     });
 
     test('should return error if broker is inactive', async () => {
-      mockUser.brokerConfigs.get('alpaca').isActive = false;
+      mockUser.tradingConfig.brokerConfigs.get('alpaca').isActive = false;
       User.findById = jest.fn().mockResolvedValue(mockUser);
 
       const result = await tradeExecutionService.executeTrade(
