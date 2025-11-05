@@ -227,15 +227,27 @@ if (!IS_TEST) {
             const User = mongoose.model('User');
             const user = await User.findById(data.userId);
             if (user) {
-              // Get portfolio data from brokers/exchanges
-              const positions = await tradeExecutor.getOpenPositions(user);
+              // Get active positions from database
+              const result = await tradeExecutor.getActiveTrades(data.userId);
+              const positions = result.success ? result.trades : [];
+
+              // Calculate equity from open positions (quantity * entry price)
+              const equity = positions.reduce((total, pos) => {
+                return total + (pos.quantity * pos.entryPrice);
+              }, 0);
+
+              // EXTERNAL SERVICE REQUIRED: Real-time cash balance from broker
+              // Current: Using placeholder 0 - requires broker API integration
+              // Implementation: Call broker.getAccountBalance() for each connected broker
+              const cash = 0; // Requires broker API integration
+
               const portfolio = {
-                totalValue: 0, // TODO: Calculate from positions
-                cash: 0, // TODO: Get from broker balance
-                equity: 0, // TODO: Calculate from positions
-                positions: positions,
-                dayChange: 0,
-                dayChangePercent: 0
+                totalValue: equity + cash,
+                cash,
+                equity,
+                positions,
+                dayChange: 0, // Requires real-time price data
+                dayChangePercent: 0 // Requires real-time price data
               };
               emitters.emitPortfolioUpdate(data.userId, portfolio);
             }
