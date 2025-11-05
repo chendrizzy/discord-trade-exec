@@ -6,6 +6,9 @@
 const BinanceAdapter = require('../BinanceAdapter');
 const logger = require('../../../middleware/logger');
 
+// Module-level variable for controlling fetchBalance behavior in tests
+let mockFetchBalanceImpl = null;
+
 // Mock the ccxt library
 jest.mock('ccxt', () => {
   return {
@@ -17,19 +20,22 @@ jest.mock('ccxt', () => {
         this.enableRateLimit = config.enableRateLimit;
         this.options = config.options;
         this.markets = {};
+
+        // Use custom implementation if set, otherwise use default
+        if (mockFetchBalanceImpl) {
+          this.fetchBalance = jest.fn(mockFetchBalanceImpl);
+        } else {
+          this.fetchBalance = jest.fn().mockResolvedValue({
+            USDT: { total: 50000, free: 40000, used: 10000 },
+            BTC: { total: 1.5, free: 1.2, used: 0.3 },
+            ETH: { total: 10.0, free: 8.5, used: 1.5 },
+            info: { uid: 'binance-user-123' }
+          });
+        }
       }
 
       setSandboxMode(enabled) {
         this.sandboxMode = enabled;
-      }
-
-      async fetchBalance() {
-        return {
-          USDT: { total: 50000, free: 40000, used: 10000 },
-          BTC: { total: 1.5, free: 1.2, used: 0.3 },
-          ETH: { total: 10.0, free: 8.5, used: 1.5 },
-          info: { uid: 'binance-user-123' }
-        };
       }
 
       async createOrder(symbol, type, side, amount, price, params = {}) {
@@ -323,25 +329,21 @@ describe('BinanceAdapter', () => {
     });
 
     test('should handle connection errors gracefully', async () => {
-      // Use jest.spyOn to temporarily override fetchBalance for this test only
-      const mockFetchBalance = jest.fn().mockRejectedValue(new Error('API key invalid'));
+      // Set module-level variable to make fetchBalance reject
+      mockFetchBalanceImpl = () => Promise.reject(new Error('API key invalid'));
 
-      // Temporarily replace the MockBinanceExchange fetchBalance method
-      const ccxt = require('ccxt');
-      const originalFetchBalance = ccxt.binance.prototype.fetchBalance;
-      ccxt.binance.prototype.fetchBalance = mockFetchBalance;
-
+      const testAdapter = new BinanceAdapter();
       const credentials = {
         apiKey: 'encrypted_invalid-key',
         apiSecret: 'encrypted_invalid-secret'
       };
 
-      await expect(adapter.connect(credentials)).rejects.toThrow(
+      await expect(testAdapter.connect(credentials)).rejects.toThrow(
         'Failed to connect to Binance: API key invalid'
       );
 
-      // Restore original fetchBalance method
-      ccxt.binance.prototype.fetchBalance = originalFetchBalance;
+      // Reset module-level variable
+      mockFetchBalanceImpl = null;
     });
   });
 
