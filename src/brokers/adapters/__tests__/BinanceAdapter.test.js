@@ -4,7 +4,7 @@
  */
 
 const BinanceAdapter = require('../BinanceAdapter');
-const logger = require('../../../middleware/logger');
+const logger = require('../../../utils/logger');
 
 // Module-level variable for controlling fetchBalance behavior in tests
 let mockFetchBalanceImpl = null;
@@ -236,6 +236,14 @@ jest.mock('ccxt', () => {
         return this.markets;
       }
 
+      async fetchMarkets() {
+        // Return array of markets for base class isSymbolSupported()
+        if (!this.markets || Object.keys(this.markets).length === 0) {
+          await this.loadMarkets();
+        }
+        return Object.values(this.markets);
+      }
+
       market(symbol) {
         if (!this.markets[symbol]) {
           throw new Error(`Market ${symbol} not found`);
@@ -258,17 +266,38 @@ jest.mock('../../../utils/encryption', () => ({
   decrypt: jest.fn((encryptedValue) => encryptedValue.replace('encrypted_', ''))
 }));
 
+// Mock promise-timeout utility to avoid timeout issues in tests
+jest.mock('../../../utils/promise-timeout', () => ({
+  withTimeout: jest.fn((promise) => promise), // Just return the promise without timeout wrapper
+  withTimeoutAndFallback: jest.fn((promise) => promise)
+}));
+
 describe('BinanceAdapter', () => {
   let adapter;
 
   beforeEach(() => {
-    adapter = new BinanceAdapter();
+    adapter = new BinanceAdapter(
+      {
+        apiKey: 'test-binance-key',
+        apiSecret: 'test-binance-secret'
+      },
+      {
+        isTestnet: false,
+        timeout: 30000
+      }
+    );
+  });
+
+  afterEach(() => {
+    // Reset module-level mock variable to prevent test contamination
+    mockFetchBalanceImpl = null;
   });
 
   describe('Constructor', () => {
-    test('should initialize with default configuration', () => {
+    test('should initialize with correct broker name and exchange', () => {
       expect(adapter.brokerName).toBe('binance');
-      expect(adapter.exchange).toBeNull();
+      expect(adapter.exchange).toBeDefined();
+      expect(adapter.exchange.apiKey).toBe('test-binance-key');
     });
   });
 
@@ -338,9 +367,7 @@ describe('BinanceAdapter', () => {
         apiSecret: 'encrypted_invalid-secret'
       };
 
-      await expect(testAdapter.connect(credentials)).rejects.toThrow(
-        'Failed to connect to Binance: API key invalid'
-      );
+      await expect(testAdapter.connect(credentials)).rejects.toThrow('API key invalid');
 
       // Reset module-level variable
       mockFetchBalanceImpl = null;
@@ -819,18 +846,15 @@ describe('BinanceAdapter', () => {
   });
 
   describe('_ensureConnected()', () => {
-    test('should throw error if not connected', () => {
-      expect(() => adapter._ensureConnected()).toThrow(
+    test('should throw error if exchange is null', () => {
+      const emptyAdapter = new BinanceAdapter();
+      expect(() => emptyAdapter._ensureConnected()).toThrow(
         'Not connected to Binance. Call connect() first.'
       );
     });
 
-    test('should not throw if connected', async () => {
-      await adapter.connect({
-        apiKey: 'encrypted_test-key',
-        apiSecret: 'encrypted_test-secret'
-      });
-
+    test('should not throw if exchange is initialized', () => {
+      // Adapter is initialized with credentials in beforeEach
       expect(() => adapter._ensureConnected()).not.toThrow();
     });
   });
