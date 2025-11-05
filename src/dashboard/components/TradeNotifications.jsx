@@ -3,6 +3,10 @@ import { useWebSocketContext } from '../contexts/WebSocketContext';
 import { Badge } from './ui/badge';
 import { Button } from './ui/button';
 
+// Conditional debug logging (only in development)
+const isDev = import.meta.env.DEV;
+const debugLog = (...args) => isDev && console.log(...args);
+
 /**
  * Trade Notifications Component
  *
@@ -21,15 +25,15 @@ export function TradeNotifications() {
   // Subscribe to trade events
   useEffect(() => {
     if (!connected) {
-      console.log('🔔 Not subscribing to trade notifications: WebSocket not connected');
+      debugLog('🔔 Not subscribing to trade notifications: WebSocket not connected');
       return;
     }
 
-    console.log('🔔 Subscribing to trade notifications...');
+    debugLog('🔔 Subscribing to trade notifications...');
 
     // Subscribe to successful trade executions
     const unsubscribeExecuted = subscribe('trade:executed', data => {
-      console.log('🔔 Trade executed:', data);
+      debugLog('🔔 Trade executed:', data);
 
       const notification = {
         id: Date.now() + Math.random(),
@@ -45,7 +49,7 @@ export function TradeNotifications() {
 
     // Subscribe to failed trade executions
     const unsubscribeFailed = subscribe('trade:failed', data => {
-      console.log('🔔 Trade failed:', data);
+      debugLog('🔔 Trade failed:', data);
 
       const notification = {
         id: Date.now() + Math.random(),
@@ -61,7 +65,7 @@ export function TradeNotifications() {
 
     // Cleanup subscriptions
     return () => {
-      console.log('🔔 Unsubscribing from trade notifications');
+      debugLog('🔔 Unsubscribing from trade notifications');
       unsubscribeExecuted();
       unsubscribeFailed();
     };
