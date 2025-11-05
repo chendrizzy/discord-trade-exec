@@ -47,7 +47,8 @@
     "db:backup:staging": "echo 'Database backup script not yet implemented'",
     "db:migrate:staging": "echo 'Database migration script not yet implemented'",
     "db:restore:staging": "echo 'Database restore script not yet implemented'",
-    "health-check:staging": "curl -f http://localhost:3000/health || exit 1"
+    "health-check:staging": "curl -f http://localhost:3000/health || exit 1",
+    "validate:env": "node scripts/deployment/validate-env.js"
   },
   "dependencies": {
     "@alpacahq/alpaca-trade-api": "^3.1.3",
