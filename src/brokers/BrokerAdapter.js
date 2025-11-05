@@ -13,7 +13,8 @@ class BrokerAdapter {
     this.isAuthenticated = false;
     this.brokerName = 'base';
     this.brokerType = 'unknown'; // 'stock' or 'crypto'
-    this.isTestnet = options.isTestnet || false;
+    // Accept both 'isTestnet' and 'testnet' in both credentials and options for backwards compatibility
+    this.isTestnet = options.isTestnet || options.testnet || credentials?.testnet || credentials?.isTestnet || false;
 
     // Guard against sandbox mode in production
     this._validateNotProductionSandbox();
