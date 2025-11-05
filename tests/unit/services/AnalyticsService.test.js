@@ -19,6 +19,7 @@ const User = require('../../../src/models/User');
 const { createTestUser } = require('../../fixtures/user.fixtures');
 const { setupTestDB, teardownTestDB, clearCollections } = require('../../helpers/db');
 const redis = require('../../../src/config/redis');
+const crypto = require('crypto');
 
 describe('AnalyticsService - Unit Tests', () => {
   beforeAll(async () => {
@@ -46,8 +47,9 @@ describe('AnalyticsService - Unit Tests', () => {
       await Subscription.create([
         {
           userId: (await createTestUser()).id,
-          plan: 'basic',
-          interval: 'monthly',
+          polarCustomerId: crypto.randomUUID(),
+          tier: 'basic',
+          interval: 'month',
           amount: 29.99,
           status: 'active',
           currentPeriodStart: new Date('2025-10-01'),
@@ -55,8 +57,9 @@ describe('AnalyticsService - Unit Tests', () => {
         },
         {
           userId: (await createTestUser()).id,
-          plan: 'pro',
-          interval: 'monthly',
+          polarCustomerId: crypto.randomUUID(),
+          tier: 'pro',
+          interval: 'month',
           amount: 49.99,
           status: 'active',
           currentPeriodStart: new Date('2025-10-01'),
@@ -64,8 +67,9 @@ describe('AnalyticsService - Unit Tests', () => {
         },
         {
           userId: (await createTestUser()).id,
-          plan: 'premium',
-          interval: 'monthly',
+          polarCustomerId: crypto.randomUUID(),
+          tier: 'pro',
+          interval: 'month',
           amount: 99.99,
           status: 'active',
           currentPeriodStart: new Date('2025-10-01'),
@@ -83,8 +87,9 @@ describe('AnalyticsService - Unit Tests', () => {
       // Create yearly subscription
       await Subscription.create({
         userId: (await createTestUser()).id,
-        plan: 'pro',
-        interval: 'yearly',
+        polarCustomerId: crypto.randomUUID(),
+        tier: 'pro',
+        interval: 'year',
         amount: 479.99, // $479.99/year
         status: 'active',
         currentPeriodStart: new Date('2025-01-01'),
@@ -101,8 +106,9 @@ describe('AnalyticsService - Unit Tests', () => {
       await Subscription.create([
         {
           userId: (await createTestUser()).id,
-          plan: 'basic',
-          interval: 'monthly',
+          polarCustomerId: crypto.randomUUID(),
+          tier: 'basic',
+          interval: 'month',
           amount: 29.99,
           status: 'active',
           currentPeriodStart: new Date('2025-10-01'),
@@ -110,8 +116,9 @@ describe('AnalyticsService - Unit Tests', () => {
         },
         {
           userId: (await createTestUser()).id,
-          plan: 'pro',
-          interval: 'monthly',
+          polarCustomerId: crypto.randomUUID(),
+          tier: 'pro',
+          interval: 'month',
           amount: 49.99,
           status: 'cancelled', // Should be excluded
           currentPeriodStart: new Date('2025-09-01'),
@@ -128,8 +135,9 @@ describe('AnalyticsService - Unit Tests', () => {
     it('should cache MRR calculation for 1 hour', async () => {
       await Subscription.create({
         userId: (await createTestUser()).id,
-        plan: 'basic',
-        interval: 'monthly',
+        polarCustomerId: crypto.randomUUID(),
+        tier: 'basic',
+        interval: 'month',
         amount: 29.99,
         status: 'active',
         currentPeriodStart: new Date('2025-10-01'),
@@ -143,8 +151,9 @@ describe('AnalyticsService - Unit Tests', () => {
       // Add new subscription
       await Subscription.create({
         userId: (await createTestUser()).id,
-        plan: 'pro',
-        interval: 'monthly',
+        polarCustomerId: crypto.randomUUID(),
+        tier: 'pro',
+        interval: 'month',
         amount: 49.99,
         status: 'active',
         currentPeriodStart: new Date('2025-10-01'),
@@ -161,8 +170,9 @@ describe('AnalyticsService - Unit Tests', () => {
     it('should calculate ARR from MRR', async () => {
       await Subscription.create({
         userId: (await createTestUser()).id,
-        plan: 'pro',
-        interval: 'monthly',
+        polarCustomerId: crypto.randomUUID(),
+        tier: 'pro',
+        interval: 'month',
         amount: 49.99,
         status: 'active',
         currentPeriodStart: new Date('2025-10-01'),
@@ -178,8 +188,9 @@ describe('AnalyticsService - Unit Tests', () => {
     it('should include yearly subscriptions directly in ARR', async () => {
       await Subscription.create({
         userId: (await createTestUser()).id,
-        plan: 'premium',
-        interval: 'yearly',
+        polarCustomerId: crypto.randomUUID(),
+        tier: 'enterprise',
+        interval: 'year',
         amount: 999.99,
         status: 'active',
         currentPeriodStart: new Date('2025-01-01'),
@@ -202,8 +213,9 @@ describe('AnalyticsService - Unit Tests', () => {
       for (let i = 0; i < 100; i++) {
         await Subscription.create({
           userId: (await createTestUser()).id,
-          plan: 'basic',
-          interval: 'monthly',
+          polarCustomerId: crypto.randomUUID(),
+          tier: 'basic',
+          interval: 'month',
           amount: 29.99,
           status: i < 10 ? 'cancelled' : 'active', // 10 cancelled during period
           currentPeriodStart: new Date('2025-09-15'),
@@ -248,8 +260,9 @@ describe('AnalyticsService - Unit Tests', () => {
       for (let i = 0; i < 80; i++) {
         await Subscription.create({
           userId: (await createTestUser()).id,
-          plan: 'basic',
-          interval: 'monthly',
+          polarCustomerId: crypto.randomUUID(),
+          tier: 'basic',
+          interval: 'month',
           amount: 29.99,
           status: 'active',
           currentPeriodStart: previousMonth,
@@ -261,8 +274,9 @@ describe('AnalyticsService - Unit Tests', () => {
       for (let i = 0; i < 20; i++) {
         await Subscription.create({
           userId: (await createTestUser()).id,
-          plan: 'basic',
-          interval: 'monthly',
+          polarCustomerId: crypto.randomUUID(),
+          tier: 'basic',
+          interval: 'month',
           amount: 29.99,
           status: 'active',
           currentPeriodStart: currentMonth,
@@ -287,8 +301,9 @@ describe('AnalyticsService - Unit Tests', () => {
       for (let i = 0; i < 100; i++) {
         await Subscription.create({
           userId: (await createTestUser()).id,
-          plan: 'basic',
-          interval: 'monthly',
+          polarCustomerId: crypto.randomUUID(),
+          tier: 'basic',
+          interval: 'month',
           amount: 29.99,
           status: i < 20 ? 'cancelled' : 'active', // 20 cancelled
           currentPeriodStart: previousMonth,
@@ -353,8 +368,9 @@ describe('AnalyticsService - Unit Tests', () => {
 
         await Subscription.create({
           userId: user.id,
-          plan: 'basic',
-          interval: 'monthly',
+          polarCustomerId: crypto.randomUUID(),
+          tier: 'basic',
+          interval: 'month',
           amount: 29.99,
           status: i < 70 ? 'active' : 'cancelled', // 70% retained after 1 month
           currentPeriodStart: cohortDate,
@@ -389,8 +405,9 @@ describe('AnalyticsService - Unit Tests', () => {
 
         await Subscription.create({
           userId: user.id,
-          plan: 'basic',
-          interval: 'monthly',
+          polarCustomerId: crypto.randomUUID(),
+          tier: 'basic',
+          interval: 'month',
           amount: 29.99,
           status,
           currentPeriodStart: cohortDate,
@@ -423,8 +440,9 @@ describe('AnalyticsService - Unit Tests', () => {
       await Subscription.create([
         {
           userId: (await createTestUser()).id,
-          plan: 'basic',
-          interval: 'monthly',
+          polarCustomerId: crypto.randomUUID(),
+          tier: 'basic',
+          interval: 'month',
           amount: 29.99,
           status: 'active',
           currentPeriodStart: new Date('2025-10-01'),
@@ -432,8 +450,9 @@ describe('AnalyticsService - Unit Tests', () => {
         },
         {
           userId: (await createTestUser()).id,
-          plan: 'pro',
-          interval: 'yearly',
+          polarCustomerId: crypto.randomUUID(),
+          tier: 'pro',
+          interval: 'year',
           amount: 479.99,
           status: 'active',
           currentPeriodStart: new Date('2025-01-01'),
@@ -441,8 +460,9 @@ describe('AnalyticsService - Unit Tests', () => {
         },
         {
           userId: (await createTestUser()).id,
-          plan: 'premium',
-          interval: 'monthly',
+          polarCustomerId: crypto.randomUUID(),
+          tier: 'pro',
+          interval: 'month',
           amount: 99.99,
           status: 'active',
           currentPeriodStart: new Date('2025-10-01'),
@@ -462,8 +482,9 @@ describe('AnalyticsService - Unit Tests', () => {
       for (let i = 0; i < 1000; i++) {
         subscriptions.push({
           userId: (await createTestUser()).id,
-          plan: i % 3 === 0 ? 'basic' : i % 3 === 1 ? 'pro' : 'premium',
-          interval: 'monthly',
+          polarCustomerId: crypto.randomUUID(),
+          tier: i % 3 === 0 ? 'basic' : i % 3 === 1 ? 'pro' : 'enterprise',
+          interval: 'month',
           amount: i % 3 === 0 ? 29.99 : i % 3 === 1 ? 49.99 : 99.99,
           status: 'active',
           currentPeriodStart: new Date('2025-10-01'),
