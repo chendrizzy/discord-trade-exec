@@ -47,7 +47,7 @@ describe('requireTrader Middleware', () => {
   describe('Account Status Checks', () => {
     it('should allow active account', () => {
       req.isAuthenticated.mockReturnValue(true);
-      req.user = { accountStatus: 'active', communityRole: 'trader' };
+      req.user = { accountStatus: { status: 'active' }, communityRole: 'trader' };
 
       requireTrader(req, res, next);
 
@@ -69,7 +69,7 @@ describe('requireTrader Middleware', () => {
 
     it('should return 403 for suspended account', () => {
       req.isAuthenticated.mockReturnValue(true);
-      req.user = { accountStatus: 'suspended', communityRole: 'trader' };
+      req.user = { accountStatus: { status: 'suspended' }, communityRole: 'trader' };
 
       requireTrader(req, res, next);
 
@@ -84,7 +84,7 @@ describe('requireTrader Middleware', () => {
 
     it('should return 403 for banned account', () => {
       req.isAuthenticated.mockReturnValue(true);
-      req.user = { accountStatus: 'banned', communityRole: 'trader' };
+      req.user = { accountStatus: { status: 'banned' }, communityRole: 'trader' };
 
       requireTrader(req, res, next);
 
@@ -99,7 +99,7 @@ describe('requireTrader Middleware', () => {
 
     it('should return 403 for pending_verification account', () => {
       req.isAuthenticated.mockReturnValue(true);
-      req.user = { accountStatus: 'pending_verification', communityRole: 'trader' };
+      req.user = { accountStatus: { status: 'pending_verification' }, communityRole: 'trader' };
 
       requireTrader(req, res, next);
 
@@ -116,7 +116,7 @@ describe('requireTrader Middleware', () => {
   describe('Role-Agnostic Access', () => {
     it('should allow trader role', () => {
       req.isAuthenticated.mockReturnValue(true);
-      req.user = { accountStatus: 'active', communityRole: 'trader' };
+      req.user = { accountStatus: { status: 'active' }, communityRole: 'trader' };
 
       requireTrader(req, res, next);
 
@@ -125,7 +125,7 @@ describe('requireTrader Middleware', () => {
 
     it('should allow viewer role', () => {
       req.isAuthenticated.mockReturnValue(true);
-      req.user = { accountStatus: 'active', communityRole: 'viewer' };
+      req.user = { accountStatus: { status: 'active' }, communityRole: 'viewer' };
 
       requireTrader(req, res, next);
 
@@ -134,7 +134,7 @@ describe('requireTrader Middleware', () => {
 
     it('should allow admin role (admins can also trade)', () => {
       req.isAuthenticated.mockReturnValue(true);
-      req.user = { accountStatus: 'active', communityRole: 'admin' };
+      req.user = { accountStatus: { status: 'active' }, communityRole: 'admin' };
 
       requireTrader(req, res, next);
 
@@ -143,7 +143,7 @@ describe('requireTrader Middleware', () => {
 
     it('should allow moderator role (moderators can also trade)', () => {
       req.isAuthenticated.mockReturnValue(true);
-      req.user = { accountStatus: 'active', communityRole: 'moderator' };
+      req.user = { accountStatus: { status: 'active' }, communityRole: 'moderator' };
 
       requireTrader(req, res, next);
 
@@ -152,7 +152,7 @@ describe('requireTrader Middleware', () => {
 
     it('should allow user without communityRole field', () => {
       req.isAuthenticated.mockReturnValue(true);
-      req.user = { accountStatus: 'active' }; // No communityRole field
+      req.user = { accountStatus: { status: 'active' } }; // No communityRole field
 
       requireTrader(req, res, next);
 
