@@ -29,6 +29,11 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 
 const WEBSOCKET_URL = import.meta.env.VITE_WEBSOCKET_URL || 'http://localhost:3000';
 
+// Conditional debug logging (only in development)
+const isDev = import.meta.env.DEV;
+const debugLog = (...args) => isDev && console.log(...args);
+const debugWarn = (...args) => isDev && console.warn(...args);
+
 // Event types from backend handlers (src/websocket/handlers/*)
 export const EVENTS = {
   // Trade events (TradeHandler)
@@ -100,7 +105,7 @@ class WebSocketService {
    */
   connect(token, onStateChange) {
     if (this.socket?.connected) {
-      console.log('[WebSocket] Already connected');
+      debugLog('[WebSocket] Already connected');
       return this.socket;
     }
 
@@ -125,7 +130,7 @@ class WebSocketService {
 
     this._setupConnectionListeners();
 
-    console.log('[WebSocket] Connecting to', WEBSOCKET_URL);
+    debugLog('[WebSocket] Connecting to', WEBSOCKET_URL);
     this._updateConnectionState(CONNECTION_STATE.CONNECTING);
 
     return this.socket;
@@ -136,7 +141,7 @@ class WebSocketService {
    */
   disconnect() {
     if (this.socket) {
-      console.log('[WebSocket] Disconnecting');
+      debugLog('[WebSocket] Disconnecting');
       this.socket.disconnect();
       this.socket = null;
       this._updateConnectionState(CONNECTION_STATE.DISCONNECTED);
@@ -151,14 +156,14 @@ class WebSocketService {
   _setupConnectionListeners() {
     // Connected successfully
     this.socket.on(EVENTS.CONNECT, () => {
-      console.log('[WebSocket] Connected', this.socket.id);
+      debugLog('[WebSocket] Connected', this.socket.id);
       this.reconnectAttempts = 0;
       this._updateConnectionState(CONNECTION_STATE.CONNECTED);
     });
 
     // Disconnected
     this.socket.on(EVENTS.DISCONNECT, reason => {
-      console.log('[WebSocket] Disconnected:', reason);
+      debugLog('[WebSocket] Disconnected:', reason);
       this._updateConnectionState(CONNECTION_STATE.DISCONNECTED);
 
       // Auto-reconnect unless manual disconnect
@@ -183,18 +188,18 @@ class WebSocketService {
 
     // Reconnecting attempt
     this.socket.io.on(EVENTS.RECONNECT_ATTEMPT, attemptNumber => {
-      console.log('[WebSocket] Reconnect attempt', attemptNumber);
+      debugLog('[WebSocket] Reconnect attempt', attemptNumber);
       this._updateConnectionState(CONNECTION_STATE.RECONNECTING);
 
       // Exponential backoff (Constitutional Principle IV)
       const delayIndex = Math.min(attemptNumber - 1, this.reconnectDelays.length - 1);
       const delay = this.reconnectDelays[delayIndex];
-      console.log('[WebSocket] Next attempt in', delay, 'ms');
+      debugLog('[WebSocket] Next attempt in', delay, 'ms');
     });
 
     // Successfully reconnected
     this.socket.on(EVENTS.RECONNECT, attemptNumber => {
-      console.log('[WebSocket] Reconnected after', attemptNumber, 'attempts');
+      debugLog('[WebSocket] Reconnected after', attemptNumber, 'attempts');
       this.reconnectAttempts = 0;
       this._updateConnectionState(CONNECTION_STATE.CONNECTED);
     });
@@ -234,7 +239,7 @@ class WebSocketService {
    */
   on(event, handler) {
     if (!this.socket) {
-      console.warn('[WebSocket] Cannot subscribe - not connected');
+      debugWarn('[WebSocket] Cannot subscribe - not connected');
       return;
     }
 
@@ -246,7 +251,7 @@ class WebSocketService {
     }
     this.eventHandlers.get(event).push(handler);
 
-    console.log('[WebSocket] Subscribed to', event);
+    debugLog('[WebSocket] Subscribed to', event);
   }
 
   /**
@@ -271,7 +276,7 @@ class WebSocketService {
       }
     }
 
-    console.log('[WebSocket] Unsubscribed from', event);
+    debugLog('[WebSocket] Unsubscribed from', event);
   }
 
   /**
@@ -282,7 +287,7 @@ class WebSocketService {
    */
   emit(event, data) {
     if (!this.socket?.connected) {
-      console.warn('[WebSocket] Cannot emit - not connected');
+      debugWarn('[WebSocket] Cannot emit - not connected');
       return;
     }
 
@@ -347,14 +352,14 @@ export function useWebSocket(token) {
   // Connect/disconnect lifecycle
   useEffect(() => {
     if (!token) {
-      console.log('[useWebSocket] No token provided, skipping connection');
+      debugLog('[useWebSocket] No token provided, skipping connection');
       return;
     }
 
-    console.log('[useWebSocket] Initializing connection');
+    debugLog('[useWebSocket] Initializing connection');
 
     const handleStateChange = (newState, oldState) => {
-      console.log('[useWebSocket] State change:', oldState, '->', newState);
+      debugLog('[useWebSocket] State change:', oldState, '->', newState);
       setConnectionState(newState);
 
       // Handle unauthorized (token expired/invalid)
@@ -371,7 +376,7 @@ export function useWebSocket(token) {
 
     // Cleanup on unmount
     return () => {
-      console.log('[useWebSocket] Cleaning up');
+      debugLog('[useWebSocket] Cleaning up');
       websocketService.disconnect();
     };
   }, [token]);
