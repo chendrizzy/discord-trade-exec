@@ -2,14 +2,16 @@
 const ccxt = require('ccxt');
 
 // Internal utilities and services
-const BrokerAdapter = require('../BrokerAdapter');
+const CCXTBrokerAdapter = require('../CCXTBrokerAdapter');
 const { withTimeout } = require('../../utils/promise-timeout');
 const logger = require('../../utils/logger');
 
 /**
  * Kraken Adapter using CCXT
  *
- * Implements BrokerAdapter interface for Kraken cryptocurrency exchange
+ * Extends CCXTBrokerAdapter for common CCXT patterns
+ * Implements Kraken-specific features and overrides
+ *
  * Supports spot trading for major cryptocurrencies with advanced features
  *
  * Required credentials:
@@ -20,58 +22,35 @@ const logger = require('../../utils/logger');
  * - isTestnet: Use demo environment (default: false)
  * - timeout: Request timeout in ms (default: 30000)
  */
-class KrakenAdapter extends BrokerAdapter {
+class KrakenAdapter extends CCXTBrokerAdapter {
   constructor(credentials, options = {}) {
     super(credentials, options);
 
     this.brokerName = 'kraken';
-    this.brokerType = 'crypto';
 
     // Initialize CCXT exchange instance
     this.exchange = new ccxt.kraken({
       apiKey: credentials.apiKey,
       secret: credentials.apiSecret,
       enableRateLimit: true,
-      timeout: options.timeout || 30000
+      timeout: this.defaultTimeout
     });
 
     // Note: Kraken doesn't have a public testnet/sandbox
     if (options.isTestnet) {
       logger.warn('⚠️  Kraken does not support testnet/sandbox mode');
     }
-
-    // Supported trading pairs
-    this.supportedPairs = null; // Lazy loaded
   }
 
   /**
-   * Authenticate with Kraken
-   */
-  async authenticate() {
-    try {
-      // Test authentication by fetching balance
-      const balance = await withTimeout(this.exchange.fetchBalance(), 30000);
-
-      this.isAuthenticated = true;
-      logger.info('✅ Kraken authenticated successfully');
-      return true;
-    } catch (error) {
-      logger.error('[KrakenAdapter] Authentication failed', {
-        error: error.message,
-        stack: error.stack
-      });
-      this.isAuthenticated = false;
-      return false;
-    }
-  }
-
-  /**
-   * Get account balance
+   * Get account balance (overrides base class to handle Kraken-specific currency codes)
+   * Kraken uses X-prefixed symbols (XXBT for BTC, ZUSD for USD)
+   *
    * @param {string} currency - Optional currency filter (e.g., 'USDT', 'BTC')
    */
   async getBalance(currency = null) {
     try {
-      const balance = await withTimeout(this.exchange.fetchBalance(), 30000);
+      const balance = await withTimeout(this.exchange.fetchBalance(), this.defaultTimeout);
 
       if (currency) {
         // Kraken uses X-prefixed symbols (XXBT for BTC, ZUSD for USD)
@@ -134,7 +113,7 @@ class KrakenAdapter extends BrokerAdapter {
         this.exchange.createOrder(symbol, orderParams.type, orderParams.side, order.quantity, orderParams.price, {
           stopLossPrice: orderParams.stopLossPrice
         }),
-        30000
+        this.defaultTimeout
       );
 
       return {
@@ -160,82 +139,6 @@ class KrakenAdapter extends BrokerAdapter {
   }
 
   /**
-   * Cancel an existing order
-   * @param {string} orderId - Order ID
-   */
-  async cancelOrder(orderId) {
-    try {
-      await withTimeout(this.exchange.cancelOrder(orderId), 30000);
-      logger.info('[KrakenAdapter] Order cancelled', {
-        orderId
-      });
-      return true;
-    } catch (error) {
-      logger.error('[KrakenAdapter] Error cancelling order', {
-        orderId,
-        error: error.message,
-        stack: error.stack
-      });
-      return false;
-    }
-  }
-
-  /**
-   * Get current open positions (for crypto, these are just balances with value)
-   */
-  async getPositions() {
-    try {
-      const balance = await withTimeout(this.exchange.fetchBalance(), 30000);
-      const positions = [];
-
-      // Get market prices for conversion
-      for (const [currency, balanceInfo] of Object.entries(balance)) {
-        if (currency === 'info' || currency === 'free' || currency === 'used' || currency === 'total') continue;
-
-        const quantity = balanceInfo.total;
-        if (quantity && quantity > 0.00000001) {
-          // Skip dust amounts
-          let currentPrice = 0;
-          const symbol = `${currency}/USD`;
-
-          try {
-            // Try to get current price
-            const normalizedSymbol = this.normalizeSymbol(symbol);
-            const ticker = await this.exchange.fetchTicker(normalizedSymbol);
-            currentPrice = ticker.last;
-          } catch (e) {
-            // If can't get price (e.g., for USD itself), use 1.0
-            currentPrice = currency === 'USD' || currency === 'ZUSD' ? 1.0 : 0;
-          }
-
-          const positionValue = quantity * currentPrice;
-
-          if (positionValue > 0.01) {
-            // Only include positions worth more than $0.01
-            positions.push({
-              symbol: symbol,
-              quantity: quantity,
-              entryPrice: 0, // Crypto exchanges don't track entry price
-              currentPrice: currentPrice,
-              unrealizedPnL: 0, // Can't calculate without entry price
-              unrealizedPnLPercent: 0,
-              value: positionValue
-            });
-          }
-        }
-      }
-
-      return positions;
-    } catch (error) {
-      logger.error('[KrakenAdapter] Error fetching positions', {
-        error: error.message,
-        stack: error.stack
-      });
-      return [];
-    }
-  }
-
-  /**
    * Set stop-loss order
    * @param {Object} params - Stop-loss parameters
    */
@@ -248,7 +151,7 @@ class KrakenAdapter extends BrokerAdapter {
         this.exchange.createOrder(symbol, 'stop-loss', params.side.toLowerCase(), params.quantity, null, {
           stopLossPrice: params.stopPrice
         }),
-        30000
+        this.defaultTimeout
       );
 
       logger.info('[KrakenAdapter] Stop-loss order set', {
@@ -285,7 +188,7 @@ class KrakenAdapter extends BrokerAdapter {
         this.exchange.createOrder(symbol, 'take-profit', params.side.toLowerCase(), params.quantity, null, {
           takeProfitPrice: params.limitPrice
         }),
-        30000
+        this.defaultTimeout
       );
 
       logger.info('[KrakenAdapter] Take-profit order set', {
@@ -318,9 +221,9 @@ class KrakenAdapter extends BrokerAdapter {
       let orders = [];
 
       if (filters.symbol) {
-        orders = await withTimeout(this.exchange.fetchOrders(this.normalizeSymbol(filters.symbol)), 30000);
+        orders = await withTimeout(this.exchange.fetchOrders(this.normalizeSymbol(filters.symbol)), this.defaultTimeout);
       } else {
-        orders = await withTimeout(this.exchange.fetchOrders(), 30000);
+        orders = await withTimeout(this.exchange.fetchOrders(), this.defaultTimeout);
       }
 
       // Apply filters
@@ -361,59 +264,12 @@ class KrakenAdapter extends BrokerAdapter {
   }
 
   /**
-   * Get current market price
-   * @param {string} symbol - Trading symbol
-   */
-  async getMarketPrice(symbol) {
-    try {
-      const ticker = await withTimeout(this.exchange.fetchTicker(this.normalizeSymbol(symbol)), 30000);
-
-      return {
-        bid: ticker.bid || 0,
-        ask: ticker.ask || 0,
-        last: ticker.last || 0
-      };
-    } catch (error) {
-      logger.error('[KrakenAdapter] Error fetching market price', {
-        symbol,
-        error: error.message,
-        stack: error.stack
-      });
-      throw error;
-    }
-  }
-
-  /**
-   * Validate if symbol is supported
-   * @param {string} symbol - Trading symbol
-   */
-  async isSymbolSupported(symbol) {
-    try {
-      // Lazy load supported pairs
-      if (!this.supportedPairs) {
-        const markets = await withTimeout(this.exchange.fetchMarkets(), 30000);
-        this.supportedPairs = new Set(markets.map(m => m.symbol));
-      }
-
-      const normalized = this.normalizeSymbol(symbol);
-      return this.supportedPairs.has(normalized);
-    } catch (error) {
-      logger.error('[KrakenAdapter] Error checking symbol support', {
-        symbol,
-        error: error.message,
-        stack: error.stack
-      });
-      return false;
-    }
-  }
-
-  /**
    * Get fee structure
    * @param {string} symbol - Trading symbol
    */
   async getFees(symbol) {
     try {
-      const markets = await withTimeout(this.exchange.fetchMarkets(), 30000);
+      const markets = await withTimeout(this.exchange.fetchMarkets(), this.defaultTimeout);
       const market = markets.find(m => m.symbol === this.normalizeSymbol(symbol));
 
       if (market) {
@@ -491,21 +347,6 @@ class KrakenAdapter extends BrokerAdapter {
   denormalizeSymbol(symbol) {
     // Keep the / format for crypto pairs
     return symbol;
-  }
-
-  /**
-   * Map CCXT order status to standard status
-   */
-  mapOrderStatus(ccxtStatus) {
-    const statusMap = {
-      open: 'PENDING',
-      closed: 'FILLED',
-      canceled: 'CANCELLED',
-      expired: 'CANCELLED',
-      rejected: 'CANCELLED'
-    };
-
-    return statusMap[ccxtStatus] || 'PENDING';
   }
 
   /**
