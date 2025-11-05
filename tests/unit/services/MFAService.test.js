@@ -226,7 +226,7 @@ describe('MFAService', () => {
 
       await mfaService.verifyTOTP(mockUserId, invalidToken);
 
-      const attempts = mfaService.attemptCache.get(mockUserId);
+      const attempts = mfaService.attemptCache.get(mockUserId.toString());
       expect(attempts).toHaveLength(1);
       expect(attempts[0].success).toBe(false);
     });
@@ -239,7 +239,7 @@ describe('MFAService', () => {
 
       await mfaService.verifyTOTP(mockUserId, validToken);
 
-      const attempts = mfaService.attemptCache.get(mockUserId);
+      const attempts = mfaService.attemptCache.get(mockUserId.toString());
       expect(attempts).toHaveLength(1);
       expect(attempts[0].success).toBe(true);
     });
@@ -724,7 +724,7 @@ describe('MFAService', () => {
         await mfaService.verifyTOTP(mockUserId, invalidToken);
       }
 
-      const attempts = mfaService.attemptCache.get(mockUserId);
+      const attempts = mfaService.attemptCache.get(mockUserId.toString());
       expect(attempts).toHaveLength(5);
     });
 
@@ -783,7 +783,7 @@ describe('MFAService', () => {
       }
 
       // Manually age the attempts (simulate 16 minutes passing)
-      const attempts = mfaService.attemptCache.get(mockUserId);
+      const attempts = mfaService.attemptCache.get(mockUserId.toString());
       attempts.forEach(attempt => {
         attempt.timestamp = Date.now() - (16 * 60 * 1000); // 16 minutes ago
       });
