@@ -28,6 +28,7 @@ const ccxt = require('ccxt');
 const BrokerAdapter = require('../BrokerAdapter');
 const logger = require('../../middleware/logger');
 const { decrypt } = require('../../utils/encryption');
+const { handleBrokerError } = require('../utils/errorHandler');
 
 class BinanceAdapter extends BrokerAdapter {
   constructor() {
@@ -100,12 +101,7 @@ class BinanceAdapter extends BrokerAdapter {
         testnet: credentials.testnet || false
       };
     } catch (error) {
-      logger.error('[BinanceAdapter] Connection failed', {
-        error: error.message,
-        code: error.code
-      });
-
-      throw new Error('Failed to connect to Binance: ' + error.message);
+      handleBrokerError(this, 'connect', error, { code: error.code });
     }
   }
 
@@ -175,12 +171,7 @@ class BinanceAdapter extends BrokerAdapter {
         info: result.info
       };
     } catch (error) {
-      logger.error('[BinanceAdapter] Order placement failed', {
-        error: error.message,
-        symbol: order.symbol
-      });
-
-      throw new Error('Failed to place Binance order: ' + error.message);
+      handleBrokerError(this, 'place {broker} order', error, { symbol: order.symbol, side: order.side, type: order.type });
     }
   }
 
@@ -209,12 +200,7 @@ class BinanceAdapter extends BrokerAdapter {
         symbol: result.symbol
       };
     } catch (error) {
-      logger.error('[BinanceAdapter] Order cancellation failed', {
-        error: error.message,
-        orderId
-      });
-
-      throw new Error('Failed to cancel Binance order: ' + error.message);
+      handleBrokerError(this, 'cancel {broker} order', error, { orderId, symbol });
     }
   }
 
@@ -253,11 +239,7 @@ class BinanceAdapter extends BrokerAdapter {
 
       return positions;
     } catch (error) {
-      logger.error('[BinanceAdapter] Failed to fetch positions', {
-        error: error.message
-      });
-
-      throw new Error('Failed to fetch Binance positions: ' + error.message);
+      handleBrokerError(this, 'fetch {broker} positions', error);
     }
   }
 
@@ -285,11 +267,7 @@ class BinanceAdapter extends BrokerAdapter {
         currency: 'USDT'
       };
     } catch (error) {
-      logger.error('[BinanceAdapter] Failed to fetch balance', {
-        error: error.message
-      });
-
-      throw new Error('Failed to fetch Binance balance: ' + error.message);
+      handleBrokerError(this, 'fetch {broker} balance', error);
     }
   }
 
@@ -318,12 +296,7 @@ class BinanceAdapter extends BrokerAdapter {
         lastTradeTimestamp: order.lastTradeTimestamp
       };
     } catch (error) {
-      logger.error('[BinanceAdapter] Failed to fetch order status', {
-        error: error.message,
-        orderId
-      });
-
-      throw new Error('Failed to fetch Binance order status: ' + error.message);
+      handleBrokerError(this, 'fetch {broker} order status', error, { orderId, symbol });
     }
   }
 
@@ -422,13 +395,7 @@ class BinanceAdapter extends BrokerAdapter {
         };
       }
     } catch (error) {
-      logger.error('[BinanceAdapter] Failed to set stop-loss', {
-        error: error.message,
-        symbol: params.symbol,
-        type: params.type
-      });
-
-      throw new Error('Failed to set Binance stop-loss: ' + error.message);
+      handleBrokerError(this, 'set {broker} stop-loss', error, { symbol: params.symbol, type: params.type, stopPrice: params.stopPrice });
     }
   }
 
@@ -486,13 +453,7 @@ class BinanceAdapter extends BrokerAdapter {
         quantity: orderResult.amount
       };
     } catch (error) {
-      logger.error('[BinanceAdapter] Failed to set take-profit', {
-        error: error.message,
-        symbol: params.symbol,
-        limitPrice: params.limitPrice
-      });
-
-      throw new Error('Failed to set Binance take-profit: ' + error.message);
+      handleBrokerError(this, 'set {broker} take-profit', error, { symbol: params.symbol, limitPrice: params.limitPrice });
     }
   }
 
@@ -570,12 +531,7 @@ class BinanceAdapter extends BrokerAdapter {
 
       return formattedOrders;
     } catch (error) {
-      logger.error('[BinanceAdapter] Failed to fetch order history', {
-        error: error.message,
-        filters
-      });
-
-      throw new Error('Failed to fetch Binance order history: ' + error.message);
+      handleBrokerError(this, 'fetch {broker} order history', error, { filters });
     }
   }
 
@@ -616,12 +572,7 @@ class BinanceAdapter extends BrokerAdapter {
 
       return priceData;
     } catch (error) {
-      logger.error('[BinanceAdapter] Failed to fetch market price', {
-        error: error.message,
-        symbol
-      });
-
-      throw new Error('Failed to fetch Binance market price: ' + error.message);
+      handleBrokerError(this, 'fetch {broker} market price', error, { symbol });
     }
   }
 
