@@ -70,7 +70,7 @@ describe('BrokerManagement Component', () => {
       render(<BrokerManagement />);
 
       await waitFor(() => {
-        expect(screen.getByText('Broker Connections')).toBeInTheDocument();
+        expect(screen.getByText('OAuth2 Broker Connections')).toBeInTheDocument();
       });
     });
 
@@ -86,7 +86,7 @@ describe('BrokerManagement Component', () => {
       );
 
       render(<BrokerManagement />);
-      expect(screen.getByText('Loading broker configurations...')).toBeInTheDocument();
+      expect(screen.getByText('Loading broker configurations…')).toBeInTheDocument();
     });
 
     test('should fetch configured brokers on mount', async () => {
@@ -113,8 +113,8 @@ describe('BrokerManagement Component', () => {
       render(<BrokerManagement />);
 
       await waitFor(() => {
-        expect(screen.getByText('No Brokers Connected')).toBeInTheDocument();
-        expect(screen.getByText(/Connect your first broker/i)).toBeInTheDocument();
+        expect(screen.getByText('No API Key Brokers Connected')).toBeInTheDocument();
+        expect(screen.getByText(/Use the broker wizard to add exchanges/i)).toBeInTheDocument();
       });
     });
 
@@ -127,7 +127,7 @@ describe('BrokerManagement Component', () => {
       render(<BrokerManagement />);
 
       await waitFor(() => {
-        expect(screen.getByText('No Brokers Connected')).toBeInTheDocument();
+        expect(screen.getByText('No API Key Brokers Connected')).toBeInTheDocument();
       });
     });
   });
@@ -215,8 +215,7 @@ describe('BrokerManagement Component', () => {
       render(<BrokerManagement />);
 
       await waitFor(() => {
-        expect(screen.getByText(/Your credentials are encrypted/i)).toBeInTheDocument();
-        expect(screen.getByText(/AES-256-GCM/i)).toBeInTheDocument();
+        expect(screen.getByText(/API keys are encrypted with AWS KMS/i)).toBeInTheDocument();
       });
     });
   });
@@ -276,7 +275,7 @@ describe('BrokerManagement Component', () => {
       fireEvent.click(testButtons[0]);
 
       await waitFor(() => {
-        expect(screen.getByText('Testing...')).toBeInTheDocument();
+        expect(screen.getByText('Testing…')).toBeInTheDocument();
       });
     });
 
@@ -360,7 +359,7 @@ describe('BrokerManagement Component', () => {
       fireEvent.click(testButtons[0]);
 
       await waitFor(() => {
-        const testingButton = screen.getByText('Testing...');
+        const testingButton = screen.getByText('Testing…');
         expect(testingButton.closest('button')).toBeDisabled();
       });
     });
@@ -382,15 +381,12 @@ describe('BrokerManagement Component', () => {
         expect(screen.getByText('Alpaca')).toBeInTheDocument();
       });
 
-      const deleteButtons = screen.getAllByRole('button', { name: '' });
-      const trashButton = deleteButtons.find(btn =>
-        btn.querySelector('svg')?.classList.contains('lucide-trash-2')
-      );
+      const deleteButtons = screen.getAllByRole('button', { name: /Disconnect.*broker/i });
 
-      if (trashButton) {
-        fireEvent.click(trashButton);
+      if (deleteButtons.length > 0) {
+        fireEvent.click(deleteButtons[0]);
         expect(global.confirm).toHaveBeenCalledWith(
-          expect.stringContaining('Are you sure')
+          expect.stringContaining('disconnect')
         );
       }
     });
@@ -411,13 +407,10 @@ describe('BrokerManagement Component', () => {
 
       const initialFetchCount = global.fetch.mock.calls.length;
 
-      const deleteButtons = screen.getAllByRole('button', { name: '' });
-      const trashButton = deleteButtons.find(btn =>
-        btn.querySelector('svg')?.classList.contains('lucide-trash-2')
-      );
+      const deleteButtons = screen.getAllByRole('button', { name: /Disconnect.*broker/i });
 
-      if (trashButton) {
-        fireEvent.click(trashButton);
+      if (deleteButtons.length > 0) {
+        fireEvent.click(deleteButtons[0]);
 
         // Should not make additional fetch call
         expect(global.fetch.mock.calls.length).toBe(initialFetchCount);
@@ -443,13 +436,10 @@ describe('BrokerManagement Component', () => {
         json: async () => ({ success: true })
       });
 
-      const deleteButtons = screen.getAllByRole('button', { name: '' });
-      const trashButton = deleteButtons.find(btn =>
-        btn.querySelector('svg')?.classList.contains('lucide-trash-2')
-      );
+      const deleteButtons = screen.getAllByRole('button', { name: /Disconnect.*broker/i });
 
-      if (trashButton) {
-        fireEvent.click(trashButton);
+      if (deleteButtons.length > 0) {
+        fireEvent.click(deleteButtons[0]);
 
         await waitFor(() => {
           expect(global.fetch).toHaveBeenCalledWith(
@@ -480,10 +470,10 @@ describe('BrokerManagement Component', () => {
         json: async () => ({ success: true })
       });
 
-      const deleteButtons = screen.getAllByRole('button', { name: '' });
-      const trashButton = deleteButtons[0];
-
-      fireEvent.click(trashButton);
+      const deleteButtons = screen.getAllByRole('button', { name: /Disconnect.*broker/i });
+      if (deleteButtons.length > 0) {
+        fireEvent.click(deleteButtons[0]);
+      }
 
       await waitFor(() => {
         // Alpaca should be removed but Coinbase Pro should remain
@@ -551,10 +541,10 @@ describe('BrokerManagement Component', () => {
 
       const consoleSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
 
-      const deleteButtons = screen.getAllByRole('button', { name: '' });
-      const trashButton = deleteButtons[0];
-
-      fireEvent.click(trashButton);
+      const deleteButtons = screen.getAllByRole('button', { name: /Disconnect.*broker/i });
+      if (deleteButtons.length > 0) {
+        fireEvent.click(deleteButtons[0]);
+      }
 
       await waitFor(() => {
         expect(consoleSpy).toHaveBeenCalledWith(
@@ -591,11 +581,8 @@ describe('BrokerManagement Component', () => {
       render(<BrokerManagement />);
 
       await waitFor(() => {
-        const deleteButtons = screen.getAllByRole('button', { name: '' });
-        const trashButtons = deleteButtons.filter(btn =>
-          btn.querySelector('svg')?.classList.contains('lucide-trash-2')
-        );
-        expect(trashButtons.length).toBe(2);
+        const deleteButtons = screen.getAllByRole('button', { name: /Disconnect.*broker/i });
+        expect(deleteButtons.length).toBe(2);
       });
     });
 
@@ -625,7 +612,7 @@ describe('BrokerManagement Component', () => {
       fireEvent.click(testButtons[0]);
 
       await waitFor(() => {
-        const testingButton = screen.getByText('Testing...');
+        const testingButton = screen.getByText('Testing…');
         const svg = testingButton.closest('button')?.querySelector('svg');
         expect(svg).toHaveClass('animate-spin');
       });
