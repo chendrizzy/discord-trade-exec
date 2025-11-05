@@ -40,6 +40,11 @@ docs/
 - [Polar Products Config](guides/POLAR_PRODUCTS_CONFIG.md)
 - [Marketing Setup](guides/MARKETING-SETUP.md)
 
+**Recommended OAuth Brokers** (Commission-Free, Multi-User Ready):
+- [Alpaca Setup Guide](docs/guides/alpaca-setup-guide.md) - Instant API access, stocks, options, crypto
+- [Tradier Setup Guide](docs/guides/tradier-setup-guide.md) - Professional API, free sandbox testing
+- [Schwab Setup Guide](docs/guides/schwab-setup-guide.md) - Trusted brand, comprehensive trading
+
 **Integration & Implementation:**
 - [API Integration Guide](guides/API_INTEGRATION_GUIDE.md)
 - [Analytics API](guides/ANALYTICS_API.md)
@@ -83,6 +88,7 @@ Feature completions and implementation summaries:
 
 - [Broker Integration Summary](reports/summaries/BROKER_INTEGRATION_SUMMARY.md) - OAuth2 broker integration completion
 - [Completion Report](reports/summaries/COMPLETION_REPORT.md) - Overall project completion status
+- [IBKR & Moomoo Warning Update Summary](reports/summaries/ibkr-moomoo-warning-update-summary.md) - Updated broker warnings with cloud deployment clarifications
 - [Dashboard Fix Summary](reports/summaries/DASHBOARD_FIX_SUMMARY.md) - Dashboard UI improvements
 - [Deployment Blockers Complete](reports/summaries/DEPLOYMENT_BLOCKERS_COMPLETE.md) - Resolution of deployment blockers
 - [Deployment Ready Summary](reports/summaries/DEPLOYMENT_READY_SUMMARY.md) - Deployment readiness assessment
@@ -111,12 +117,16 @@ Feature completions and implementation summaries:
 Technical research and architectural analysis:
 
 - [API Signal Quality](reports/analysis/API-SIGNAL-QUALITY.md) - API signal quality assessment
+- [Broker API Access Requirements](reports/analysis/broker-api-access-requirements.md) - API approval processes and timelines
+- [Broker Integration Options Analysis](reports/analysis/broker-integration-options-analysis.md) - SnapTrade viability and alternative solutions for IBKR/Moomoo integration
 - [Churn Prediction Algorithm](reports/analysis/CHURN_PREDICTION_ALGORITHM.md) - User churn prediction model
 - [Component Inventory](reports/analysis/COMPONENT_INVENTORY.md) - System component catalog
 - [Comprehensive Testing Report](reports/analysis/COMPREHENSIVE_TESTING_REPORT.md) - Full testing analysis
 - [CSS Sidebar Fix Analysis](reports/analysis/CSS_SIDEBAR_FIX_ANALYSIS.md) - CSS sidebar issue resolution
 - [Database Queries](reports/analysis/DATABASE_QUERIES.md) - Database query analysis and optimization
+- [IBKR Multi-User Limitation](reports/analysis/ibkr-multi-user-limitation.md) - Interactive Brokers architectural constraints
 - [Mobile Nav Fix Report](reports/analysis/MOBILE_NAV_FIX_REPORT.md) - Mobile navigation improvements
+- [Multi-User Architecture Audit](reports/analysis/multi-user-architecture-audit.md) - Broker compatibility assessment for multi-user deployments
 - [Multi-Tenant Security Architecture](reports/analysis/MULTI_TENANT_SECURITY_ARCHITECTURE.md) - Multi-tenancy security design
 - [OpenSpec Consolidated Review](reports/analysis/OPENSPEC_CONSOLIDATED_REVIEW.md) - OpenSpec implementation review
 - [OpenSpec Status Analysis](reports/analysis/OPENSPEC_STATUS_ANALYSIS.md) - OpenSpec integration status
@@ -152,10 +162,18 @@ Project progress and test status:
 - [Test Results 2025-10-13](reports/status/TEST-RESULTS-2025-10-13.md) - Historical test results
 - [Test Results Summary](reports/status/TEST_RESULTS_SUMMARY.md) - Test results overview
 
+## Architecture
+
+System architecture and design documentation:
+
+- [Multi-User Compatibility](architecture/multi-user-compatibility.md) - Broker deployment modes and multi-user architecture requirements
+- [Cloud Deployment Options](architecture/cloud-deployment-options.md) - IBKR & Moomoo cloud deployment guide with IBeam, Docker, and alternative solutions
+
 ## Deployment
 
 Deployment processes and checklists:
 
+- **[🚀 Release-Ready Checklist](deployment/RELEASE_READY_CHECKLIST.md)** - **COMPREHENSIVE** pre-launch checklist (150+ action items, 1,753 lines)
 - [Deploy Now](deployment/DEPLOY-NOW.md) - Quick deployment guide
 - [Deployment](deployment/DEPLOYMENT.md) - Deployment procedures
 - [Deployment Checklist](deployment/DEPLOYMENT_CHECKLIST.md) - General deployment checklist

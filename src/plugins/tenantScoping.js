@@ -1,6 +1,7 @@
 // Internal utilities and services
 const { getTenantContext } = require('../middleware/tenantAuth');
 const logger = require('../utils/logger');
+const mongoose = require('mongoose');
 
 /**
  * Tenant Scoping Mongoose Plugin
@@ -147,8 +148,16 @@ const tenantScopingPlugin = (schema, options = {}) => {
         return next();
       }
 
+      // Convert string communityId to ObjectId for aggregation $match
+      // (tenantAuth middleware stores communityId as string, but DB has ObjectId)
+      const aggregateFilter = {
+        communityId: mongoose.Types.ObjectId.isValid(tenantFilter.communityId)
+          ? new mongoose.Types.ObjectId(tenantFilter.communityId)
+          : tenantFilter.communityId
+      };
+
       // Add tenant filter as first stage
-      pipeline.unshift({ $match: tenantFilter });
+      pipeline.unshift({ $match: aggregateFilter });
     }
 
     next();

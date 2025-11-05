@@ -166,10 +166,11 @@ describe('KrakenAdapter', () => {
     });
 
     test('should warn about testnet not supported', () => {
-      const consoleSpy = jest.spyOn(console, 'warn').mockImplementation();
+      const logger = require('../../../utils/logger');
+      const loggerSpy = jest.spyOn(logger, 'warn').mockImplementation();
       new KrakenAdapter({ apiKey: 'test', apiSecret: 'test' }, { isTestnet: true });
-      expect(consoleSpy).toHaveBeenCalledWith(expect.stringContaining('Kraken does not support testnet/sandbox mode'));
-      consoleSpy.mockRestore();
+      expect(loggerSpy).toHaveBeenCalledWith(expect.stringContaining('Kraken does not support testnet/sandbox mode'));
+      loggerSpy.mockRestore();
     });
   });
 
@@ -181,26 +182,30 @@ describe('KrakenAdapter', () => {
     });
 
     test('should log success message', async () => {
-      const consoleSpy = jest.spyOn(console, 'log').mockImplementation();
+      const logger = require('../../../utils/logger');
+      const loggerSpy = jest.spyOn(logger, 'info').mockImplementation();
       await adapter.authenticate();
-      expect(consoleSpy).toHaveBeenCalledWith(expect.stringContaining('Kraken authenticated successfully'));
-      consoleSpy.mockRestore();
+      expect(loggerSpy).toHaveBeenCalledWith(expect.stringContaining('Kraken authenticated successfully'));
+      loggerSpy.mockRestore();
     });
 
     test('should handle authentication failure', async () => {
       const mockError = new Error('Invalid API credentials');
       adapter.exchange.fetchBalance = jest.fn().mockRejectedValue(mockError);
 
-      const consoleSpy = jest.spyOn(console, 'error').mockImplementation();
+      const logger = require('../../../utils/logger');
+      const loggerSpy = jest.spyOn(logger, 'error').mockImplementation();
       const result = await adapter.authenticate();
 
       expect(result).toBe(false);
       expect(adapter.isAuthenticated).toBe(false);
-      expect(consoleSpy).toHaveBeenCalledWith(
-        expect.stringContaining('authentication failed'),
-        'Invalid API credentials'
+      expect(loggerSpy).toHaveBeenCalledWith(
+        expect.stringContaining('Authentication failed'),
+        expect.objectContaining({
+          error: 'Invalid API credentials'
+        })
       );
-      consoleSpy.mockRestore();
+      loggerSpy.mockRestore();
     });
   });
 
@@ -340,11 +345,17 @@ describe('KrakenAdapter', () => {
     });
 
     test('should log success message', async () => {
-      const consoleSpy = jest.spyOn(console, 'log').mockImplementation();
+      const logger = require('../../../utils/logger');
+      const loggerSpy = jest.spyOn(logger, 'info').mockImplementation();
       await adapter.cancelOrder('kraken-order-456');
 
-      expect(consoleSpy).toHaveBeenCalledWith(expect.stringContaining('order kraken-order-456 cancelled'));
-      consoleSpy.mockRestore();
+      expect(loggerSpy).toHaveBeenCalledWith(
+        expect.stringContaining('Order cancelled'),
+        expect.objectContaining({
+          orderId: 'kraken-order-456'
+        })
+      );
+      loggerSpy.mockRestore();
     });
 
     test('should handle cancellation errors', async () => {
@@ -418,7 +429,8 @@ describe('KrakenAdapter', () => {
     });
 
     test('should log success message', async () => {
-      const consoleSpy = jest.spyOn(console, 'log').mockImplementation();
+      const logger = require('../../../utils/logger');
+      const loggerSpy = jest.spyOn(logger, 'info').mockImplementation();
 
       await adapter.setStopLoss({
         symbol: 'ETH/USD',
@@ -427,8 +439,14 @@ describe('KrakenAdapter', () => {
         stopPrice: 2750
       });
 
-      expect(consoleSpy).toHaveBeenCalledWith(expect.stringContaining('stop-loss set for ETH/USD at 2750'));
-      consoleSpy.mockRestore();
+      expect(loggerSpy).toHaveBeenCalledWith(
+        expect.stringContaining('Stop-loss order set'),
+        expect.objectContaining({
+          symbol: 'ETH/USD',
+          stopPrice: 2750
+        })
+      );
+      loggerSpy.mockRestore();
     });
 
     test('should use stop-loss order type for Kraken', async () => {
@@ -476,7 +494,8 @@ describe('KrakenAdapter', () => {
     });
 
     test('should log success message', async () => {
-      const consoleSpy = jest.spyOn(console, 'log').mockImplementation();
+      const logger = require('../../../utils/logger');
+      const loggerSpy = jest.spyOn(logger, 'info').mockImplementation();
 
       await adapter.setTakeProfit({
         symbol: 'ETH/USD',
@@ -485,8 +504,14 @@ describe('KrakenAdapter', () => {
         limitPrice: 3400
       });
 
-      expect(consoleSpy).toHaveBeenCalledWith(expect.stringContaining('take-profit set for ETH/USD at 3400'));
-      consoleSpy.mockRestore();
+      expect(loggerSpy).toHaveBeenCalledWith(
+        expect.stringContaining('Take-profit order set'),
+        expect.objectContaining({
+          symbol: 'ETH/USD',
+          limitPrice: 3400
+        })
+      );
+      loggerSpy.mockRestore();
     });
 
     test('should use take-profit order type for Kraken', async () => {

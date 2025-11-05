@@ -47,6 +47,7 @@ const communityRoutes = require('./routes/api/community');
 const traderRoutes = require('./routes/api/trader');
 const metricsRoutes = require('./routes/api/metrics');
 const polarWebhookRoutes = require('./routes/webhook/polar');
+const userRoutes = require('./routes/api/user');
 
 /**
  * Create Express application
@@ -196,6 +197,7 @@ function createApp(options = {}) {
   app.use('/api/community', communityRoutes);
   app.use('/api/trader', traderRoutes);
   app.use('/api/metrics', metricsRoutes);
+  app.use('/api/user', userRoutes);
   app.use('/webhook/polar', polarWebhookRoutes);
 
   // TradingView webhook endpoint

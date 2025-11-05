@@ -23,7 +23,9 @@ import {
   EyeOff,
   TrendingUp,
   Bitcoin,
-  Filter
+  Filter,
+  Star,
+  ExternalLink
 } from 'lucide-react';
 
 const steps = [
@@ -34,6 +36,25 @@ const steps = [
   { id: 5, name: 'Test Connection', description: 'Verify broker connection' },
   { id: 6, name: 'Review', description: 'Review and save configuration' },
 ];
+
+// Recommended brokers with setup guides
+const RECOMMENDED_BROKERS = {
+  alpaca: {
+    recommended: true,
+    reason: 'Instant API access, commission-free trading',
+    setupGuideUrl: '/docs/guides/alpaca-setup-guide.md'
+  },
+  tradier: {
+    recommended: true,
+    reason: 'Professional API, free sandbox testing',
+    setupGuideUrl: '/docs/guides/tradier-setup-guide.md'
+  },
+  schwab: {
+    recommended: true,
+    reason: 'Trusted brand, comprehensive trading',
+    setupGuideUrl: '/docs/guides/schwab-setup-guide.md'
+  }
+};
 
 export function BrokerConfigWizard({ onSuccess }) {
   const [open, setOpen] = useState(false);
@@ -378,9 +399,19 @@ export function BrokerConfigWizard({ onSuccess }) {
   };
 
   const getFilteredBrokers = () => {
-    return availableBrokers.filter(b =>
+    const filtered = availableBrokers.filter(b =>
       b.type === config.brokerType && b.status === 'available'
     );
+
+    // Sort: recommended brokers first
+    return filtered.sort((a, b) => {
+      const aRecommended = RECOMMENDED_BROKERS[a.key]?.recommended || false;
+      const bRecommended = RECOMMENDED_BROKERS[b.key]?.recommended || false;
+
+      if (aRecommended && !bRecommended) return -1;
+      if (!aRecommended && bRecommended) return 1;
+      return 0; // Keep original order for same priority
+    });
   };
 
   const renderCredentialField = (field) => {
@@ -509,45 +540,76 @@ export function BrokerConfigWizard({ onSuccess }) {
               </div>
             ) : (
               <div className="space-y-3 max-h-[300px] overflow-y-auto">
-                {getFilteredBrokers().map((broker) => (
-                  <button
-                    key={broker.key}
-                    type="button"
-                    onClick={() => updateConfig('brokerKey', broker.key)}
-                    className={`w-full p-4 border-2 rounded-lg transition-all text-left ${
-                      config.brokerKey === broker.key
-                        ? 'border-gold-500 bg-gold-500/10'
-                        : 'border-border hover:border-primary'
-                    }`}
-                  >
-                    <div className="flex items-start justify-between">
-                      <div className="flex-1">
-                        <div className="flex items-center gap-2 mb-1">
-                          <Building2 className="h-4 w-4" />
-                          <span className="font-semibold">{broker.name}</span>
-                          {broker.deploymentMode === 'single-user-only' && (
-                            <Badge variant="outline" className="text-xs bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-600/20">
-                              Single-User Only
-                            </Badge>
+                {getFilteredBrokers().map((broker) => {
+                  const isRecommended = RECOMMENDED_BROKERS[broker.key]?.recommended;
+                  const setupGuideUrl = RECOMMENDED_BROKERS[broker.key]?.setupGuideUrl;
+
+                  return (
+                    <div key={broker.key} className="relative">
+                      <button
+                        type="button"
+                        onClick={() => updateConfig('brokerKey', broker.key)}
+                        className={`w-full p-4 border-2 rounded-lg transition-all text-left ${
+                          config.brokerKey === broker.key
+                            ? 'border-gold-500 bg-gold-500/10'
+                            : isRecommended
+                            ? 'border-emerald-500/30 bg-emerald-500/5 hover:border-emerald-500/50'
+                            : 'border-border hover:border-primary'
+                        }`}
+                      >
+                        <div className="flex items-start justify-between">
+                          <div className="flex-1">
+                            <div className="flex items-center gap-2 mb-1 flex-wrap">
+                              <Building2 className="h-4 w-4" />
+                              <span className="font-semibold">{broker.name}</span>
+                              {isRecommended && (
+                                <Badge variant="outline" className="text-xs bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-600/20">
+                                  <Star className="h-3 w-3 mr-1 fill-current" />
+                                  RECOMMENDED
+                                </Badge>
+                              )}
+                              {broker.deploymentMode === 'single-user-only' && (
+                                <Badge variant="outline" className="text-xs bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-600/20">
+                                  Single-User Only
+                                </Badge>
+                              )}
+                            </div>
+                            {isRecommended && (
+                              <p className="text-xs text-emerald-600 dark:text-emerald-400 mb-2 font-medium">
+                                {RECOMMENDED_BROKERS[broker.key].reason}
+                              </p>
+                            )}
+                            <p className="text-xs text-muted-foreground mb-2">
+                              {broker.description}
+                            </p>
+                            <div className="flex flex-wrap gap-1">
+                              {broker.features?.slice(0, 4).map((feature) => (
+                                <Badge key={feature} variant="outline" className="text-xs">
+                                  {feature}
+                                </Badge>
+                              ))}
+                            </div>
+                          </div>
+                          {config.brokerKey === broker.key && (
+                            <CheckCircle2 className="h-5 w-5 text-gold-500 flex-shrink-0 ml-2" />
                           )}
                         </div>
-                        <p className="text-xs text-muted-foreground mb-2">
-                          {broker.description}
-                        </p>
-                        <div className="flex flex-wrap gap-1">
-                          {broker.features?.slice(0, 4).map((feature) => (
-                            <Badge key={feature} variant="outline" className="text-xs">
-                              {feature}
-                            </Badge>
-                          ))}
-                        </div>
-                      </div>
-                      {config.brokerKey === broker.key && (
-                        <CheckCircle2 className="h-5 w-5 text-gold-500 flex-shrink-0 ml-2" />
+                      </button>
+                      {setupGuideUrl && (
+                        <a
+                          href={setupGuideUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          onClick={(e) => e.stopPropagation()}
+                          className="absolute bottom-2 right-2 inline-flex items-center gap-1 px-2 py-1 text-xs font-medium text-emerald-600 dark:text-emerald-400 hover:text-emerald-700 dark:hover:text-emerald-300 bg-emerald-500/10 hover:bg-emerald-500/20 rounded-md transition-colors border border-emerald-600/20"
+                        >
+                          <ExternalLink className="h-3 w-3" />
+                          Setup Guide
+                        </a>
                       )}
                     </div>
-                  </button>
-                ))}
+                  );
+                })}
               </div>
             )}
 

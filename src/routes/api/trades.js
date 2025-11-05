@@ -1,5 +1,6 @@
 // External dependencies
 const express = require('express');
+const mongoose = require('mongoose');
 
 const router = express.Router();
 const { z } = require('zod');
@@ -75,8 +76,14 @@ router.get(
       const totalPages = Math.ceil(totalCount / limit);
 
       // Get summary statistics (tenant-scoped by plugin pre-aggregate hook)
+      // Convert userId string to ObjectId for aggregation $match
+      const aggregateQuery = {
+        ...query,
+        userId: new mongoose.Types.ObjectId(query.userId)
+      };
+
       const summary = await tradeRepository.aggregate([
-        { $match: query },
+        { $match: aggregateQuery },
         {
           $group: {
             _id: null,
@@ -274,10 +281,12 @@ router.post(
       const result = await tradeExecutionService.executeTrade(signalData, userId, signalData.broker, req);
 
       if (!result.success) {
-        return sendError(res, result.error, 400);
+        // Use appropriate status code from result or default to 400
+        const statusCode = result.statusCode || 400;
+        return sendError(res, result.error, statusCode);
       }
 
-      return sendSuccess(res, result.trade, 'Trade executed successfully');
+      return sendSuccess(res, result.trade, 'Trade executed successfully', 201);
     } catch (error) {
       logger.error('[Trade Execution API] Error executing trade:', {
         error: error.message,

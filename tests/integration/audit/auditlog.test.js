@@ -48,8 +48,10 @@ describe('AuditLog Immutability - Integration Tests', () => {
   });
 
   // Clear audit logs between tests
+  // Note: AuditLog.deleteMany() will fail due to immutability pre-hook
+  // We must use collection.deleteMany() to bypass Mongoose hooks for test cleanup
   afterEach(async () => {
-    await AuditLog.deleteMany({});
+    await AuditLog.collection.deleteMany({});
   });
 
   describe('Hash Chain Integrity', () => {

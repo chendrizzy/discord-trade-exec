@@ -328,6 +328,398 @@ class BinanceAdapter extends BrokerAdapter {
   }
 
   /**
+   * Set stop-loss order for a position
+   *
+   * @param {Object} params - Stop-loss parameters
+   * @param {string} params.symbol - Trading pair (e.g., "BTC/USDT")
+   * @param {number} params.quantity - Order quantity (positive for SELL, negative for BUY)
+   * @param {number} [params.stopPrice] - Stop price (required for regular STOP)
+   * @param {string} [params.type] - Stop type: 'STOP' or 'TRAILING_STOP' (default: 'STOP')
+   * @param {number} [params.trailPercent] - Trail percentage for trailing stops (default: 5)
+   * @returns {Promise<Object>} Stop-loss order confirmation
+   *
+   * @throws {Error} If order creation fails
+   */
+  async setStopLoss(params) {
+    this._ensureConnected();
+
+    try {
+      const { symbol, quantity, stopPrice, type, trailPercent } = params;
+
+      logger.info('[BinanceAdapter] Setting stop-loss', {
+        symbol,
+        quantity,
+        type: type || 'STOP',
+        stopPrice,
+        trailPercent
+      });
+
+      let orderResult;
+
+      if (type === 'TRAILING_STOP') {
+        // Binance trailing stop-loss order
+        const trailPercentValue = trailPercent || 5;
+
+        orderResult = await this.exchange.createOrder(
+          symbol,
+          'TRAILING_STOP_MARKET',
+          quantity > 0 ? 'sell' : 'buy',
+          Math.abs(quantity),
+          undefined, // No price for market orders
+          {
+            callbackRate: trailPercentValue, // Binance uses callbackRate for trailing percent
+            timeInForce: 'GTC'
+          }
+        );
+
+        logger.info('[BinanceAdapter] Trailing stop-loss set', {
+          orderId: orderResult.id,
+          trailPercent: trailPercentValue
+        });
+
+        return {
+          orderId: orderResult.id,
+          type: 'STOP_LOSS',
+          subType: 'TRAILING_STOP',
+          status: orderResult.status,
+          trailPercent: trailPercentValue,
+          symbol: orderResult.symbol,
+          side: orderResult.side,
+          quantity: orderResult.amount
+        };
+      } else {
+        // Regular stop-loss order
+        if (!stopPrice) {
+          throw new Error('stopPrice is required for regular STOP orders');
+        }
+
+        orderResult = await this.exchange.createOrder(
+          symbol,
+          'STOP_LOSS_LIMIT',
+          quantity > 0 ? 'sell' : 'buy',
+          Math.abs(quantity),
+          stopPrice, // Limit price (same as stop for simplicity)
+          {
+            stopPrice: stopPrice,
+            timeInForce: 'GTC'
+          }
+        );
+
+        logger.info('[BinanceAdapter] Stop-loss set', {
+          orderId: orderResult.id,
+          stopPrice
+        });
+
+        return {
+          orderId: orderResult.id,
+          type: 'STOP_LOSS',
+          subType: 'STOP',
+          status: orderResult.status,
+          stopPrice: parseFloat(stopPrice),
+          symbol: orderResult.symbol,
+          side: orderResult.side,
+          quantity: orderResult.amount
+        };
+      }
+    } catch (error) {
+      logger.error('[BinanceAdapter] Failed to set stop-loss', {
+        error: error.message,
+        symbol: params.symbol,
+        type: params.type
+      });
+
+      throw new Error('Failed to set Binance stop-loss: ' + error.message);
+    }
+  }
+
+  /**
+   * Set take-profit order for a position
+   *
+   * @param {Object} params - Take-profit parameters
+   * @param {string} params.symbol - Trading pair (e.g., "BTC/USDT")
+   * @param {number} params.quantity - Order quantity (positive for SELL, negative for BUY)
+   * @param {number} params.limitPrice - Take-profit limit price
+   * @returns {Promise<Object>} Take-profit order confirmation
+   *
+   * @throws {Error} If order creation fails
+   */
+  async setTakeProfit(params) {
+    this._ensureConnected();
+
+    try {
+      const { symbol, quantity, limitPrice } = params;
+
+      if (!limitPrice) {
+        throw new Error('limitPrice is required for take-profit orders');
+      }
+
+      logger.info('[BinanceAdapter] Setting take-profit', {
+        symbol,
+        quantity,
+        limitPrice
+      });
+
+      // Create a limit order at the take-profit price
+      const orderResult = await this.exchange.createOrder(
+        symbol,
+        'limit',
+        quantity > 0 ? 'sell' : 'buy',
+        Math.abs(quantity),
+        limitPrice,
+        {
+          timeInForce: 'GTC'
+        }
+      );
+
+      logger.info('[BinanceAdapter] Take-profit set', {
+        orderId: orderResult.id,
+        limitPrice
+      });
+
+      return {
+        orderId: orderResult.id,
+        type: 'TAKE_PROFIT',
+        status: orderResult.status,
+        limitPrice: parseFloat(limitPrice),
+        symbol: orderResult.symbol,
+        side: orderResult.side,
+        quantity: orderResult.amount
+      };
+    } catch (error) {
+      logger.error('[BinanceAdapter] Failed to set take-profit', {
+        error: error.message,
+        symbol: params.symbol,
+        limitPrice: params.limitPrice
+      });
+
+      throw new Error('Failed to set Binance take-profit: ' + error.message);
+    }
+  }
+
+  /**
+   * Get order history with optional filters
+   *
+   * @param {Object} [filters={}] - Optional filters
+   * @param {string} [filters.symbol] - Filter by trading pair
+   * @param {Date} [filters.startDate] - Filter orders after this date
+   * @param {Date} [filters.endDate] - Filter orders before this date
+   * @param {number} [filters.limit=100] - Maximum number of orders to retrieve
+   * @param {string} [filters.status='closed'] - Order status filter ('closed', 'all')
+   * @returns {Promise<Array>} Array of historical orders
+   *
+   * @throws {Error} If retrieval fails
+   */
+  async getOrderHistory(filters = {}) {
+    this._ensureConnected();
+
+    try {
+      logger.info('[BinanceAdapter] Fetching order history', { filters });
+
+      const params = {};
+
+      // Add date filters if provided
+      if (filters.startDate) {
+        params.since = filters.startDate.getTime();
+      }
+
+      // Add limit (default 100)
+      params.limit = filters.limit || 100;
+
+      let orders;
+
+      if (filters.symbol) {
+        // Fetch orders for specific symbol
+        orders = await this.exchange.fetchClosedOrders(filters.symbol, params.since, params.limit, params);
+      } else {
+        // Fetch orders for all symbols (may not be supported by all exchanges)
+        orders = await this.exchange.fetchClosedOrders(undefined, params.since, params.limit, params);
+      }
+
+      // Filter by end date if provided
+      if (filters.endDate) {
+        const endTime = filters.endDate.getTime();
+        orders = orders.filter(order => order.timestamp <= endTime);
+      }
+
+      // Transform to standardized format
+      const formattedOrders = orders.map(order => ({
+        orderId: order.id,
+        clientOrderId: order.clientOrderId || '',
+        symbol: order.symbol,
+        side: order.side.toUpperCase(),
+        type: order.type.toUpperCase(),
+        status: order.status.toUpperCase(),
+        quantity: parseFloat(order.amount),
+        filledQuantity: parseFloat(order.filled || 0),
+        remainingQuantity: parseFloat(order.remaining || 0),
+        executedPrice: parseFloat(order.average || 0),
+        limitPrice: parseFloat(order.price || 0),
+        stopPrice: parseFloat(order.stopPrice || 0),
+        timeInForce: order.timeInForce || 'GTC',
+        createdAt: new Date(order.timestamp).toISOString(),
+        updatedAt: order.lastTradeTimestamp ? new Date(order.lastTradeTimestamp).toISOString() : null,
+        fee: order.fee ? {
+          cost: parseFloat(order.fee.cost),
+          currency: order.fee.currency
+        } : null
+      }));
+
+      logger.info('[BinanceAdapter] Order history retrieved', {
+        count: formattedOrders.length
+      });
+
+      return formattedOrders;
+    } catch (error) {
+      logger.error('[BinanceAdapter] Failed to fetch order history', {
+        error: error.message,
+        filters
+      });
+
+      throw new Error('Failed to fetch Binance order history: ' + error.message);
+    }
+  }
+
+  /**
+   * Get current market price for a symbol
+   *
+   * @param {string} symbol - Trading pair (e.g., "BTC/USDT")
+   * @returns {Promise<Object>} Price information (bid, ask, last)
+   *
+   * @throws {Error} If price retrieval fails
+   */
+  async getMarketPrice(symbol) {
+    this._ensureConnected();
+
+    try {
+      logger.info('[BinanceAdapter] Fetching market price', { symbol });
+
+      // Fetch current ticker data
+      const ticker = await this.exchange.fetchTicker(symbol);
+
+      const priceData = {
+        symbol: symbol,
+        bid: parseFloat(ticker.bid),
+        ask: parseFloat(ticker.ask),
+        last: parseFloat(ticker.last),
+        bidSize: parseFloat(ticker.bidVolume || 0),
+        askSize: parseFloat(ticker.askVolume || 0),
+        timestamp: ticker.timestamp,
+        datetime: ticker.datetime
+      };
+
+      logger.info('[BinanceAdapter] Market price retrieved', {
+        symbol,
+        bid: priceData.bid,
+        ask: priceData.ask,
+        last: priceData.last
+      });
+
+      return priceData;
+    } catch (error) {
+      logger.error('[BinanceAdapter] Failed to fetch market price', {
+        error: error.message,
+        symbol
+      });
+
+      throw new Error('Failed to fetch Binance market price: ' + error.message);
+    }
+  }
+
+  /**
+   * Validate if a symbol is supported and tradeable on Binance
+   *
+   * @param {string} symbol - Trading pair to validate (e.g., "BTC/USDT")
+   * @returns {Promise<boolean>} True if symbol is supported and tradeable
+   */
+  async isSymbolSupported(symbol) {
+    this._ensureConnected();
+
+    try {
+      logger.info('[BinanceAdapter] Checking symbol support', { symbol });
+
+      // Load markets if not already loaded
+      if (!this.exchange.markets || Object.keys(this.exchange.markets).length === 0) {
+        await this.exchange.loadMarkets();
+      }
+
+      // Check if symbol exists in markets
+      const market = this.exchange.market(symbol);
+
+      // Verify symbol is active and spot trading is enabled
+      const isSupported = market && market.active && market.spot;
+
+      logger.info('[BinanceAdapter] Symbol support check', {
+        symbol,
+        supported: isSupported
+      });
+
+      return isSupported;
+    } catch (error) {
+      logger.warn('[BinanceAdapter] Symbol not supported', {
+        symbol,
+        error: error.message
+      });
+
+      return false;
+    }
+  }
+
+  /**
+   * Get Binance fee structure
+   *
+   * @param {string} symbol - Trading pair (e.g., "BTC/USDT")
+   * @returns {Promise<Object>} Fee structure with maker/taker rates
+   */
+  async getFees(symbol) {
+    this._ensureConnected();
+
+    try {
+      logger.info('[BinanceAdapter] Fetching fee structure', { symbol });
+
+      // Load markets to get trading fees
+      if (!this.exchange.markets || Object.keys(this.exchange.markets).length === 0) {
+        await this.exchange.loadMarkets();
+      }
+
+      const market = this.exchange.market(symbol);
+
+      // Binance standard fees (may vary based on VIP level and BNB usage)
+      // These are the base fees without any discounts
+      const fees = {
+        maker: market?.maker !== undefined ? market.maker : 0.001, // 0.1%
+        taker: market?.taker !== undefined ? market.taker : 0.001, // 0.1%
+        withdrawal: 0, // Varies by currency, would need specific query
+        commission: 0.001, // Standard rate
+        currency: 'USDT',
+        notes: 'Binance base fees. Actual fees may be lower with BNB payment (25% discount) or higher VIP levels.'
+      };
+
+      logger.info('[BinanceAdapter] Fee structure retrieved', {
+        symbol,
+        maker: fees.maker,
+        taker: fees.taker
+      });
+
+      return fees;
+    } catch (error) {
+      logger.error('[BinanceAdapter] Failed to fetch fees', {
+        error: error.message,
+        symbol
+      });
+
+      // Return default Binance fees if query fails
+      return {
+        maker: 0.001, // 0.1%
+        taker: 0.001, // 0.1%
+        withdrawal: 0,
+        commission: 0.001,
+        currency: 'USDT',
+        notes: 'Default Binance fees. Actual fees may vary.'
+      };
+    }
+  }
+
+  /**
    * Validate connection is active
    * @private
    * @throws {Error} If not connected

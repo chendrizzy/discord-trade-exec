@@ -454,16 +454,18 @@ test('should allow IBKR in single-user mode', async () => {
 **Multi-User Compatible**: 8 brokers using REST APIs with token/API key authentication
 
 **Single-User Only**: 2 brokers (IBKR, Moomoo) requiring local Gateway processes
+- **Note**: Cloud deployment IS technically possible with limitations - see [Cloud Deployment Options](./cloud-deployment-options.md)
 
 **Default Behavior**: Platform defaults to multi-user mode and validates broker selection automatically
 
 **Override**: Single-user deployments can use all 10 brokers by setting `DEPLOYMENT_MODE=single-user`
 
-**Recommendation**: For cloud-hosted Discord bots serving multiple users, use the 8 multi-user compatible brokers. Reserve IBKR/Moomoo for personal single-user deployments.
+**Recommendation**: For cloud-hosted Discord bots serving multiple users, use the 8 multi-user compatible brokers. Reserve IBKR/Moomoo for personal single-user deployments or advanced cloud setups.
 
 ---
 
 **See Also**:
+- [Cloud Deployment Options for IBKR & Moomoo](./cloud-deployment-options.md) - **NEW**: Detailed guide for cloud deployment
 - [Broker API Access Requirements](../reports/analysis/broker-api-access-requirements.md)
 - [IBKR Multi-User Limitation](../reports/analysis/ibkr-multi-user-limitation.md)
 - [Multi-User Architecture Audit](../reports/analysis/multi-user-architecture-audit.md)

@@ -568,6 +568,17 @@ const userSchema = new mongoose.Schema(
       maxPortfolioExposurePercent: Number,
       maxPositionsPerSymbol: Number,
       minAccountBalance: Number
+    },
+
+    // GDPR Compliance - Account Deletion (Article 17: Right to Erasure)
+    deletedAt: {
+      type: Date,
+      default: null,
+      index: true // For periodic cleanup jobs
+    },
+    deletionReason: {
+      type: String,
+      default: null
     }
   },
   {

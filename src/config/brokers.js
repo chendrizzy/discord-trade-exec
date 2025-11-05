@@ -132,7 +132,10 @@ const BROKER_METADATA = {
     features: ['stocks', 'options', 'futures', 'forex', 'bonds', 'global-markets'],
     approvalRequired: false,
     approvalTimeline: 'Instant (enable in TWS settings)',
-    warning: '⚠️ IBKR requires IB Gateway running locally. Only suitable for single-user deployments where the bot runs on the same machine as the Gateway.',
+    warning: '⚠️ IBKR requires IB Gateway or TWS running with daily manual authentication. ' +
+             'While remote connections are possible via Trusted IPs and cloud deployment (using IBeam/Docker), ' +
+             'individual accounts cannot use OAuth and require daily re-authentication. ' +
+             'Best suited for single-user deployments. For true multi-user support, consider institutional accounts with OAuth 2.0 or alternative brokers.',
     multiUserAlternative: 'OAuth 2.0 available for institutional accounts only'
   },
 
@@ -149,7 +152,10 @@ const BROKER_METADATA = {
     features: ['stocks', 'options', 'us-markets', 'hk-markets'],
     approvalRequired: true,
     approvalTimeline: 'Requires API questionnaire completion',
-    warning: '⚠️ Moomoo requires OpenD Gateway running locally. Only suitable for single-user deployments where the bot runs on the same machine as OpenD.',
+    warning: '⚠️ Moomoo requires OpenD Gateway with manual 2FA on startup. ' +
+             'While remote connections are possible with RSA encryption (binding to 0.0.0.0), ' +
+             'the stateful architecture and authentication requirements make it ' +
+             'unsuitable for scalable multi-user deployments. Best suited for single-user setups.',
     multiUserAlternative: 'None available'
   }
 };

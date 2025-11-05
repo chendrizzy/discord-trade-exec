@@ -13,11 +13,20 @@ module.exports = {
   verbose: true,
   forceExit: true,
   detectOpenHandles: true,
+  // Memory and performance optimization
+  // Reduced to prevent OOM errors during test execution
+  maxWorkers: 1,
+  workerIdleMemoryLimit: '512MB',
+  clearMocks: true,
+  resetMocks: false,
+  restoreMocks: false,
   // Transform ESM modules from node_modules
   transformIgnorePatterns: ['node_modules/(?!(moomoo-api)/)'],
   // Use manual mocks for ESM modules
   moduleNameMapper: {
     '^moomoo-api$': '<rootDir>/__mocks__/moomoo-api.js',
+    // Special case for dashboard UI lib (shadcn/ui components)
+    '^@/lib/(.*)$': '<rootDir>/src/dashboard/lib/$1',
     '^@/(.*)$': '<rootDir>/src/$1',
     '^@models/(.*)$': '<rootDir>/src/models/$1',
     '^@services/(.*)$': '<rootDir>/src/services/$1',

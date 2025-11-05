@@ -68,9 +68,12 @@ if (typeof window === 'undefined' && mongoose) {
   });
 
   afterEach(async () => {
-    // Clear all collections after each test
+    // Clear all collections after each test (except immutable ones)
     const collections = mongoose.connection.collections;
     for (const key in collections) {
+      // Skip AuditLog collection as it's immutable (model prevents deletion)
+      if (key === 'auditlogs') continue;
+
       const collection = collections[key];
       await collection.deleteMany({});
     }
