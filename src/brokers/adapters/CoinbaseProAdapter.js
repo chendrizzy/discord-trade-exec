@@ -2,14 +2,16 @@
 const ccxt = require('ccxt');
 
 // Internal utilities and services
-const BrokerAdapter = require('../BrokerAdapter');
+const CCXTBrokerAdapter = require('../CCXTBrokerAdapter');
 const { withTimeout } = require('../../utils/promise-timeout');
 const logger = require('../../utils/logger');
 
 /**
  * Coinbase Pro (Advanced Trade) Adapter using CCXT
  *
- * Implements BrokerAdapter interface for Coinbase Pro cryptocurrency exchange
+ * Extends CCXTBrokerAdapter for common CCXT patterns
+ * Implements Coinbase-specific features and overrides
+ *
  * Supports spot trading for major cryptocurrencies
  *
  * Required credentials:
@@ -21,89 +23,25 @@ const logger = require('../../utils/logger');
  * - isTestnet: Use sandbox environment (default: false)
  * - timeout: Request timeout in ms (default: 30000)
  */
-class CoinbaseProAdapter extends BrokerAdapter {
+class CoinbaseProAdapter extends CCXTBrokerAdapter {
   constructor(credentials, options = {}) {
     super(credentials, options);
 
     this.brokerName = 'coinbasepro';
-    this.brokerType = 'crypto';
 
     // Initialize CCXT exchange instance
     // Note: CCXT uses 'coinbase' for Coinbase Advanced Trade API (formerly Pro)
-    const exchangeOptions = {
+    this.exchange = new ccxt.coinbase({
       apiKey: credentials.apiKey,
       secret: credentials.apiSecret,
       password: credentials.password,
       enableRateLimit: true,
-      timeout: options.timeout || 30000
-    };
+      timeout: this.defaultTimeout
+    });
 
     // Note: Coinbase sandbox mode not supported in CCXT
     if (options.isTestnet) {
       logger.warn('⚠️  Coinbase does not support testnet/sandbox mode in CCXT');
-    }
-
-    this.exchange = new ccxt.coinbase(exchangeOptions);
-
-    // Supported trading pairs
-    this.supportedPairs = null; // Lazy loaded
-  }
-
-  /**
-   * Authenticate with Coinbase Pro
-   */
-  async authenticate() {
-    try {
-      // Test authentication by fetching balance
-      const balance = await withTimeout(this.exchange.fetchBalance(), 30000);
-
-      this.isAuthenticated = true;
-      logger.info('[CoinbaseProAdapter] Authenticated successfully', {
-        profileId: balance.info?.profile_id || 'profile'
-      });
-      return true;
-    } catch (error) {
-      logger.error('[CoinbaseProAdapter] Authentication failed', {
-        error: error.message,
-        stack: error.stack
-      });
-      this.isAuthenticated = false;
-      return false;
-    }
-  }
-
-  /**
-   * Get account balance
-   * @param {string} currency - Optional currency filter (e.g., 'USDT', 'BTC')
-   */
-  async getBalance(currency = null) {
-    try {
-      const balance = await withTimeout(this.exchange.fetchBalance(), 30000);
-
-      if (currency) {
-        const currencyBalance = balance[currency] || { total: 0, free: 0, used: 0 };
-        return {
-          total: currencyBalance.total || 0,
-          available: currencyBalance.free || 0,
-          currency: currency
-        };
-      }
-
-      // Return total portfolio value in USD
-      const usdBalance = balance['USD'] || { total: 0, free: 0, used: 0 };
-      return {
-        total: usdBalance.total || 0,
-        available: usdBalance.free || 0,
-        equity: usdBalance.total || 0,
-        currency: 'USD'
-      };
-    } catch (error) {
-      logger.error('[CoinbaseProAdapter] Error fetching balance', {
-        error: error.message,
-        stack: error.stack,
-        currency
-      });
-      throw error;
     }
   }
 
@@ -161,81 +99,6 @@ class CoinbaseProAdapter extends BrokerAdapter {
         quantity: order.quantity
       });
       throw error;
-    }
-  }
-
-  /**
-   * Cancel an existing order
-   * @param {string} orderId - Order ID
-   */
-  async cancelOrder(orderId) {
-    try {
-      await withTimeout(this.exchange.cancelOrder(orderId), 30000);
-      logger.info('[CoinbaseProAdapter] Order cancelled', {
-        orderId
-      });
-      return true;
-    } catch (error) {
-      logger.error('[CoinbaseProAdapter] Error cancelling order', {
-        error: error.message,
-        stack: error.stack,
-        orderId
-      });
-      return false;
-    }
-  }
-
-  /**
-   * Get current open positions (for crypto, these are just balances with value)
-   */
-  async getPositions() {
-    try {
-      const balance = await withTimeout(this.exchange.fetchBalance(), 30000);
-      const positions = [];
-
-      // Get market prices for conversion
-      for (const [currency, balanceInfo] of Object.entries(balance)) {
-        if (currency === 'info' || currency === 'free' || currency === 'used' || currency === 'total') continue;
-
-        const quantity = balanceInfo.total;
-        if (quantity && quantity > 0.00000001) {
-          // Skip dust amounts
-          let currentPrice = 0;
-          const symbol = `${currency}/USD`;
-
-          try {
-            // Try to get current price
-            const ticker = await this.exchange.fetchTicker(symbol);
-            currentPrice = ticker.last;
-          } catch (e) {
-            // If can't get price (e.g., for USD itself), use 1.0
-            currentPrice = currency === 'USD' ? 1.0 : 0;
-          }
-
-          const positionValue = quantity * currentPrice;
-
-          if (positionValue > 0.01) {
-            // Only include positions worth more than $0.01
-            positions.push({
-              symbol: symbol,
-              quantity: quantity,
-              entryPrice: 0, // Crypto exchanges don't track entry price
-              currentPrice: currentPrice,
-              unrealizedPnL: 0, // Can't calculate without entry price
-              unrealizedPnLPercent: 0,
-              value: positionValue
-            });
-          }
-        }
-      }
-
-      return positions;
-    } catch (error) {
-      logger.error('[CoinbaseProAdapter] Error fetching positions', {
-        error: error.message,
-        stack: error.stack
-      });
-      return [];
     }
   }
 
@@ -368,53 +231,6 @@ class CoinbaseProAdapter extends BrokerAdapter {
   }
 
   /**
-   * Get current market price
-   * @param {string} symbol - Trading symbol
-   */
-  async getMarketPrice(symbol) {
-    try {
-      const ticker = await withTimeout(this.exchange.fetchTicker(this.normalizeSymbol(symbol)), 30000);
-
-      return {
-        bid: ticker.bid || 0,
-        ask: ticker.ask || 0,
-        last: ticker.last || 0
-      };
-    } catch (error) {
-      logger.error('[CoinbaseProAdapter] Error fetching market price', {
-        error: error.message,
-        stack: error.stack,
-        symbol
-      });
-      throw error;
-    }
-  }
-
-  /**
-   * Validate if symbol is supported
-   * @param {string} symbol - Trading symbol
-   */
-  async isSymbolSupported(symbol) {
-    try {
-      // Lazy load supported pairs
-      if (!this.supportedPairs) {
-        const markets = await withTimeout(this.exchange.fetchMarkets(), 30000);
-        this.supportedPairs = new Set(markets.map(m => m.symbol));
-      }
-
-      const normalized = this.normalizeSymbol(symbol);
-      return this.supportedPairs.has(normalized);
-    } catch (error) {
-      logger.error('[CoinbaseProAdapter] Error checking symbol support', {
-        error: error.message,
-        stack: error.stack,
-        symbol
-      });
-      return false;
-    }
-  }
-
-  /**
    * Get fee structure
    * @param {string} symbol - Trading symbol
    */
@@ -480,21 +296,6 @@ class CoinbaseProAdapter extends BrokerAdapter {
   denormalizeSymbol(symbol) {
     // Keep the / format for crypto pairs
     return symbol;
-  }
-
-  /**
-   * Map CCXT order status to standard status
-   */
-  mapOrderStatus(ccxtStatus) {
-    const statusMap = {
-      open: 'PENDING',
-      closed: 'FILLED',
-      canceled: 'CANCELLED',
-      expired: 'CANCELLED',
-      rejected: 'CANCELLED'
-    };
-
-    return statusMap[ccxtStatus] || 'PENDING';
   }
 
   /**
