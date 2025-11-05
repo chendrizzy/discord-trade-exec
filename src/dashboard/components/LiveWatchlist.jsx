@@ -5,6 +5,11 @@ import { Badge } from './ui/badge';
 import { Button } from './ui/button';
 import { ConnectionStatusIndicator } from './ConnectionStatusIndicator';
 
+// Conditional debug logging (only in development)
+const isDev = import.meta.env.DEV;
+const debugLog = (...args) => isDev && console.log(...args);
+const debugWarn = (...args) => isDev && console.warn(...args);
+
 /**
  * Live Watchlist Component
  *
@@ -31,15 +36,15 @@ export function LiveWatchlist() {
   // Subscribe to real-time quote updates
   useEffect(() => {
     if (!connected) {
-      console.log('📊 Not subscribing to quote updates: WebSocket not connected');
+      debugLog('📊 Not subscribing to quote updates: WebSocket not connected');
       return;
     }
 
-    console.log('📊 Subscribing to quote updates...');
+    debugLog('📊 Subscribing to quote updates...');
 
     // Subscribe to quote update events
     const unsubscribe = subscribe('watchlist:quote', data => {
-      console.log('📊 Received quote update:', data);
+      debugLog('📊 Received quote update:', data);
 
       const { symbol, price, change, changePercent, volume, timestamp } = data;
 
@@ -94,7 +99,7 @@ export function LiveWatchlist() {
 
     // Cleanup subscriptions and timeouts
     return () => {
-      console.log('📊 Unsubscribing from quote updates');
+      debugLog('📊 Unsubscribing from quote updates');
       unsubscribe();
 
       // Clear all price change timeouts
@@ -108,7 +113,7 @@ export function LiveWatchlist() {
   // Add symbol to watchlist
   const addSymbol = (symbol, name) => {
     if (watchlist.find(item => item.symbol === symbol)) {
-      console.warn(`Symbol ${symbol} already in watchlist`);
+      debugWarn(`Symbol ${symbol} already in watchlist`);
       return;
     }
 
