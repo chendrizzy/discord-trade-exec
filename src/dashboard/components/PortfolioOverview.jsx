@@ -7,6 +7,10 @@ import { useWebSocketContext } from '../contexts/WebSocketContext';
 import { ConnectionStatusIndicator } from './ConnectionStatusIndicator';
 import { cn } from '../lib/utils';
 
+// Conditional debug logging (only in development)
+const isDev = import.meta.env.DEV;
+const debugLog = (...args) => isDev && console.log(...args);
+
 // Lazy load chart component
 const PortfolioSparkline = lazy(() => import('./PortfolioChart').then(mod => ({ default: mod.PortfolioSparkline })));
 
@@ -45,15 +49,15 @@ export function PortfolioOverview() {
   // Subscribe to real-time portfolio updates
   useEffect(() => {
     if (!connected) {
-      console.log('📊 Not subscribing to portfolio updates: WebSocket not connected');
+      debugLog('📊 Not subscribing to portfolio updates: WebSocket not connected');
       return;
     }
 
-    console.log('📊 Subscribing to portfolio updates...');
+    debugLog('📊 Subscribing to portfolio updates...');
 
     // Subscribe to portfolio update events
     const unsubscribe = subscribe('portfolio:update', data => {
-      console.log('📊 Received portfolio update:', data);
+      debugLog('📊 Received portfolio update:', data);
 
       // Update portfolio state with new data
       setPortfolioData(prev => ({
@@ -81,7 +85,7 @@ export function PortfolioOverview() {
 
     // Cleanup subscription on unmount or disconnect
     return () => {
-      console.log('📊 Unsubscribing from portfolio updates');
+      debugLog('📊 Unsubscribing from portfolio updates');
       unsubscribe();
     };
   }, [connected, subscribe]);
