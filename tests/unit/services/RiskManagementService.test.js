@@ -51,9 +51,6 @@ describe('RiskManagementService', () => {
   let mockSignal;
 
   beforeEach(() => {
-    // Reset service instance for each test
-    jest.clearAllMocks();
-
     // Create fresh service instance
     const { RiskManagementService: ServiceClass } = require('../../../src/services/RiskManagementService');
     service = new ServiceClass();
@@ -93,16 +90,16 @@ describe('RiskManagementService', () => {
       stopLoss: 176
     };
 
-    // Mock User.findById
-    User.findById = jest.fn().mockResolvedValue(mockUser);
-    User.findByIdAndUpdate = jest.fn().mockResolvedValue(mockUser);
+    // Mock User.findById (configure existing auto-mock from jest.mock())
+    User.findById.mockResolvedValue(mockUser);
+    User.findByIdAndUpdate.mockResolvedValue(mockUser);
 
-    // Mock Position queries
-    Position.findOne = jest.fn().mockResolvedValue(null);
-    Position.find = jest.fn().mockResolvedValue([]);
+    // Mock Position queries (configure existing auto-mocks)
+    Position.findOne.mockResolvedValue(null);
+    Position.find.mockResolvedValue([]);
 
-    // Mock Trade queries
-    Trade.find = jest.fn().mockResolvedValue([]);
+    // Mock Trade queries (configure existing auto-mock)
+    Trade.find.mockResolvedValue([]);
 
     // Mock AuditLogService
     AuditLogService.prototype.log = jest.fn().mockResolvedValue(true);
@@ -126,14 +123,6 @@ describe('RiskManagementService', () => {
       expect(result.riskScore.level).toBe('LOW');
     });
 
-    test('should reject trade if user not found', async () => {
-      User.findById.mockResolvedValue(null);
-
-      await expect(service.validateTrade('user123', mockSignal, mockAccountInfo)).rejects.toThrow(
-        'User not found: user123'
-      );
-    });
-
     test('should reject trade if account balance below minimum', async () => {
       mockAccountInfo.equity = 50; // Below $100 minimum
 
@@ -143,6 +132,19 @@ describe('RiskManagementService', () => {
       expect(result.action).toBe('REJECTED');
       expect(result.reason).toContain('Insufficient account balance');
       expect(result.riskScore.level).toBe('HIGH');
+    });
+  });
+
+  describe('validateTrade - User Not Found', () => {
+    beforeEach(() => {
+      // Override User.findById to return null for this test suite
+      User.findById.mockResolvedValue(null);
+    });
+
+    test('should reject trade if user not found', async () => {
+      await expect(service.validateTrade('user123', mockSignal, mockAccountInfo)).rejects.toThrow(
+        'User not found: user123'
+      );
     });
   });
 
