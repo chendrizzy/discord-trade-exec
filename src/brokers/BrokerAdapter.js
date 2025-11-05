@@ -44,6 +44,25 @@ class BrokerAdapter {
   }
 
   /**
+   * Test connection to broker by authenticating and fetching balance
+   * Default implementation can be overridden if broker requires different logic
+   * @returns {Promise<boolean>} Connection success status
+   */
+  async testConnection() {
+    try {
+      await this.authenticate();
+      const balance = await this.getBalance();
+      return !!balance;
+    } catch (error) {
+      logger.error(`[${this.brokerName}Adapter] Connection test failed`, {
+        error: error.message,
+        stack: error.stack
+      });
+      return false;
+    }
+  }
+
+  /**
    * Authenticate with the broker using provided credentials
    * @returns {Promise<boolean>} - Authentication success status
    */

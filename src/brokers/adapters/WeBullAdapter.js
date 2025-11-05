@@ -65,23 +65,6 @@ class WeBullAdapter extends BrokerAdapter {
   }
 
   /**
-   * Test connection to WeBull API
-   */
-  async testConnection() {
-    try {
-      await this.authenticate();
-      const balance = await this.getBalance();
-      return !!balance;
-    } catch (error) {
-      logger.error('[WeBullAdapter] Connection test failed', {
-        error: error.message,
-        stack: error.stack
-      });
-      return false;
-    }
-  }
-
-  /**
    * Authenticate with WeBull using OAuth2 tokens or API key
    */
   async authenticate() {

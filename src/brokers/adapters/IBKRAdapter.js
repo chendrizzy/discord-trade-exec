@@ -59,25 +59,6 @@ class IBKRAdapter extends BrokerAdapter {
   }
 
   /**
-   * Test connection to TWS/IB Gateway
-   * @returns {Promise<boolean>} Connection status
-   */
-  async testConnection() {
-    try {
-      await this.authenticate();
-      // Verify by fetching account balance
-      const balance = await this.getBalance();
-      return !!balance;
-    } catch (error) {
-      logger.error('[IBKRAdapter] Connection test failed', {
-        error: error.message,
-        stack: error.stack
-      });
-      return false;
-    }
-  }
-
-  /**
    * Authenticate with IBKR using OAuth2 tokens or TWS/IB Gateway
    * OAuth2 tokens are retrieved from User model if userId provided
    * Falls back to TWS/IB Gateway if OAuth2 not available
