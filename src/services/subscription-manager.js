@@ -279,8 +279,13 @@ class SubscriptionManager {
         status: 'past_due'
       });
 
-      // TODO: Send payment failure notification email
-      // TODO: Implement retry logic or grace period
+      // EXTERNAL SERVICE REQUIRED: Email notification for payment failures
+      // Requires: Email service (SendGrid/AWS SES) - See docs/deployment/EXTERNAL_DEPENDENCIES_GUIDE.md (P1)
+      // Implementation: Configure EMAIL_* environment variables, then uncomment notification call
+      // await emailService.sendPaymentFailureEmail(user, 'past_due');
+
+      // FUTURE ENHANCEMENT: Implement retry logic or grace period
+      // Consider: Exponential backoff retries, grace period before downgrade
 
       return {
         success: true,

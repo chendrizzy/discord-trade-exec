@@ -491,7 +491,13 @@ class SecurityMonitor {
       }
     }
 
-    // TODO: Implement additional alert channels (email, Slack, PagerDuty)
+    // EXTERNAL SERVICE REQUIRED: Security alert delivery channels
+    // Current: Console logging only
+    // Recommended: Email (P1), Slack (P2), PagerDuty (P2) - See docs/deployment/EXTERNAL_DEPENDENCIES_GUIDE.md
+    // Implementation: Configure notification services, then add alert delivery:
+    // if (formattedAlert.severity === 'CRITICAL' || formattedAlert.severity === 'HIGH') {
+    //   await this.notificationService.sendSecurityAlert(formattedAlert);
+    // }
 
     return formattedAlert;
   }

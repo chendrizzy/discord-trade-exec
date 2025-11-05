@@ -106,7 +106,9 @@ async function markTokenInvalid(userId, broker, error) {
       lastRefreshError: tokens.lastRefreshError
     });
 
-    // TODO: Send email notification (Phase 4.2)
+    // EXTERNAL SERVICE REQUIRED: Email notification for token refresh failures
+    // Requires: Email service (SendGrid/AWS SES) - See docs/deployment/EXTERNAL_DEPENDENCIES_GUIDE.md (P1)
+    // Implementation: Configure EMAIL_* environment variables, then uncomment:
     // await emailService.sendTokenRefreshFailureEmail(user, broker, tokens.lastRefreshError);
   } catch (saveError) {
     logger.error('[TokenRefreshJob] Failed to mark token invalid', {
@@ -241,7 +243,9 @@ async function refreshExpiringTokens(expiryWindowHours, brokerFilter = null) {
         failed: metrics.failed,
         brokerBreakdown: metrics.brokerBreakdown
       });
-      // TODO: Integrate with alerting service (PagerDuty, Slack, etc.)
+      // EXTERNAL SERVICE REQUIRED: Critical alerting for SLA breaches
+      // Requires: Monitoring service (PagerDuty, Slack) - See docs/deployment/EXTERNAL_DEPENDENCIES_GUIDE.md (P2)
+      // Implementation: Configure MONITORING_* environment variables, then uncomment:
       // await monitoringService.sendAlert('OAuth2 Token Refresh SLA Breach', metrics);
     }
 

@@ -287,15 +287,21 @@ class AnalyticsAlerts {
       this.alertHistory = this.alertHistory.slice(0, this.MAX_ALERT_HISTORY);
     }
 
-    // TODO: Send email notification (integrate with SendGrid/AWS SES)
-    // this.sendEmailAlert(alert);
+    // EXTERNAL SERVICE REQUIRED: Multi-channel alerting for analytics anomalies
+    // Requires: Email service (SendGrid/AWS SES) - See docs/deployment/EXTERNAL_DEPENDENCIES_GUIDE.md (P1)
+    // Implementation: Configure EMAIL_* environment variables, then uncomment:
+    // await this.sendEmailAlert(alert);
 
-    // TODO: Send Slack notification (integrate with Slack webhook)
-    // this.sendSlackAlert(alert);
+    // EXTERNAL SERVICE REQUIRED: Slack notifications for team awareness
+    // Requires: Slack webhook - See docs/deployment/EXTERNAL_DEPENDENCIES_GUIDE.md (P2)
+    // Implementation: Configure SLACK_WEBHOOK_URL, then uncomment:
+    // await this.sendSlackAlert(alert);
 
-    // TODO: Create support ticket for critical alerts
+    // FUTURE ENHANCEMENT: Automated support ticket creation for critical alerts
+    // Requires: Ticketing system integration (Zendesk, Jira Service Desk)
+    // Implementation: Configure ticketing service API credentials, then implement:
     // if (alert.severity === 'critical') {
-    //   this.createSupportTicket(alert);
+    //   await this.createSupportTicket(alert);
     // }
   }
 
