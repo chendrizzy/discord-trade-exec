@@ -6,6 +6,7 @@ const BrokerAdapter = require('../BrokerAdapter');
 const oauth2Service = require('../../services/OAuth2Service');
 const User = require('../../models/User');
 const logger = require('../../utils/logger');
+const OrderStatusMapper = require('../../utils/orderStatusMapper');
 
 /**
  * Interactive Brokers (IBKR) API Adapter
@@ -482,21 +483,12 @@ class IBKRAdapter extends BrokerAdapter {
   }
 
   /**
-   * Map IBKR order status to standard format
+   * Map IBKR order status to standard format using centralized mapper
    * @param {string} status - IBKR order status
    * @returns {string} Standard status
    */
   mapOrderStatus(status) {
-    const statusMap = {
-      PendingSubmit: 'PENDING',
-      PendingCancel: 'PENDING',
-      PreSubmitted: 'PENDING',
-      Submitted: 'PENDING',
-      Filled: 'FILLED',
-      Cancelled: 'CANCELLED',
-      Inactive: 'CANCELLED'
-    };
-    return statusMap[status] || 'UNKNOWN';
+    return OrderStatusMapper.mapStatus(status, 'ibkr');
   }
 
   /**

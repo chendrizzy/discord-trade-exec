@@ -10,6 +10,7 @@ const oauth2Service = require('../../services/OAuth2Service');
 const User = require('../../models/User');
 const logger = require('../../utils/logger');
 const axios = require('axios');
+const OrderStatusMapper = require('../../utils/orderStatusMapper');
 
 /**
  * WeBull adapter for commission-free stock trading
@@ -668,27 +669,10 @@ class WeBullAdapter extends BrokerAdapter {
   }
 
   /**
-   * Map WeBull order status to standard status
+   * Map WeBull order status to standard status using centralized mapper
    */
   mapOrderStatus(status) {
-    const statusMap = {
-      'working': 'PENDING',
-      'pending': 'PENDING',
-      'submitted': 'PENDING',
-      'partial_filled': 'PARTIAL',
-      'partially_filled': 'PARTIAL',
-      'filled': 'FILLED',
-      'cancelled': 'CANCELLED',
-      'canceled': 'CANCELLED',
-      'expired': 'EXPIRED',
-      'rejected': 'REJECTED',
-      'failed': 'REJECTED',
-      'suspended': 'SUSPENDED',
-      'pending_cancel': 'PENDING_CANCEL',
-      'pending_replace': 'PENDING_REPLACE'
-    };
-
-    return statusMap[status.toLowerCase()] || 'UNKNOWN';
+    return OrderStatusMapper.mapStatus(status.toLowerCase(), 'webull');
   }
 }
 

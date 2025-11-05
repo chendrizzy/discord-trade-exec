@@ -6,6 +6,7 @@ const BrokerAdapter = require('../BrokerAdapter');
 const oauth2Service = require('../../services/OAuth2Service');
 const User = require('../../models/User');
 const logger = require('../../utils/logger');
+const OrderStatusMapper = require('../../utils/orderStatusMapper');
 
 /**
  * TD Ameritrade Stock Broker Adapter
@@ -600,28 +601,10 @@ class TDAmeritradeAdapter extends BrokerAdapter {
   }
 
   /**
-   * Map TD Ameritrade order status to standard status
+   * Map TD Ameritrade order status to standard status using centralized mapper
    */
   mapOrderStatus(status) {
-    const statusMap = {
-      AWAITING_PARENT_ORDER: 'PENDING',
-      AWAITING_CONDITION: 'PENDING',
-      AWAITING_MANUAL_REVIEW: 'PENDING',
-      ACCEPTED: 'ACCEPTED',
-      AWAITING_UR_OUT: 'PENDING',
-      PENDING_ACTIVATION: 'PENDING',
-      QUEUED: 'PENDING',
-      WORKING: 'PENDING',
-      REJECTED: 'REJECTED',
-      PENDING_CANCEL: 'PENDING_CANCEL',
-      CANCELED: 'CANCELLED',
-      PENDING_REPLACE: 'PENDING_REPLACE',
-      REPLACED: 'REPLACED',
-      FILLED: 'FILLED',
-      EXPIRED: 'EXPIRED'
-    };
-
-    return statusMap[status] || 'UNKNOWN';
+    return OrderStatusMapper.mapStatus(status, 'tdameritrade');
   }
 }
 

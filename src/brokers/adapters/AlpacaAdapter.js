@@ -4,6 +4,7 @@ const Alpaca = require('@alpacahq/alpaca-trade-api');
 // Internal utilities and services
 const BrokerAdapter = require('../BrokerAdapter');
 const logger = require('../../utils/logger');
+const OrderStatusMapper = require('../../utils/orderStatusMapper');
 
 /**
  * Alpaca Stock Broker Adapter
@@ -471,29 +472,10 @@ class AlpacaAdapter extends BrokerAdapter {
   }
 
   /**
-   * Map Alpaca order status to standard status
+   * Map Alpaca order status to standard status using centralized mapper
    */
   mapOrderStatus(status) {
-    const statusMap = {
-      new: 'PENDING',
-      partially_filled: 'PARTIAL',
-      filled: 'FILLED',
-      done_for_day: 'DONE',
-      canceled: 'CANCELLED',
-      expired: 'EXPIRED',
-      replaced: 'REPLACED',
-      pending_cancel: 'PENDING_CANCEL',
-      pending_replace: 'PENDING_REPLACE',
-      accepted: 'ACCEPTED',
-      pending_new: 'PENDING',
-      accepted_for_bidding: 'ACCEPTED',
-      stopped: 'STOPPED',
-      rejected: 'REJECTED',
-      suspended: 'SUSPENDED',
-      calculated: 'CALCULATED'
-    };
-
-    return statusMap[status] || 'UNKNOWN';
+    return OrderStatusMapper.mapStatus(status, 'alpaca');
   }
 
 }

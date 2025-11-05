@@ -6,6 +6,7 @@ const BrokerAdapter = require('../BrokerAdapter');
 const oauth2Service = require('../../services/OAuth2Service');
 const User = require('../../models/User');
 const logger = require('../../utils/logger');
+const OrderStatusMapper = require('../../utils/orderStatusMapper');
 
 /**
  * E*TRADE Stock Broker Adapter
@@ -713,23 +714,10 @@ class EtradeAdapter extends BrokerAdapter {
   }
 
   /**
-   * Map E*TRADE order status to standard status
+   * Map E*TRADE order status to standard status using centralized mapper
    */
   mapOrderStatus(status) {
-    const statusMap = {
-      OPEN: 'PENDING',
-      EXECUTED: 'FILLED',
-      CANCELLED: 'CANCELLED',
-      INDIVIDUAL_FILLS: 'PARTIAL',
-      CANCEL_REQUESTED: 'PENDING_CANCEL',
-      EXPIRED: 'EXPIRED',
-      REJECTED: 'REJECTED',
-      PARTIAL: 'PARTIAL',
-      DO_NOT_EXERCISE: 'DONE',
-      DONE_TRADE_EXECUTED: 'FILLED'
-    };
-
-    return statusMap[status] || 'UNKNOWN';
+    return OrderStatusMapper.mapStatus(status, 'etrade');
   }
 
   /**

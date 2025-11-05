@@ -1,6 +1,7 @@
 const BrokerAdapter = require('./BrokerAdapter');
 const { withTimeout } = require('../utils/promise-timeout');
 const logger = require('../utils/logger');
+const OrderStatusMapper = require('../utils/orderStatusMapper');
 
 /**
  * Base class for CCXT-based cryptocurrency exchange adapters
@@ -235,7 +236,7 @@ class CCXTBrokerAdapter extends BrokerAdapter {
   }
 
   /**
-   * Map CCXT order status to standardized status
+   * Map CCXT order status to standardized status using centralized mapper
    *
    * CCXT statuses: 'open', 'closed', 'canceled', 'expired', 'rejected'
    * Standard statuses: 'PENDING', 'FILLED', 'CANCELLED'
@@ -244,15 +245,7 @@ class CCXTBrokerAdapter extends BrokerAdapter {
    * @returns {string} Standardized status
    */
   mapOrderStatus(ccxtStatus) {
-    const statusMap = {
-      open: 'PENDING',
-      closed: 'FILLED',
-      canceled: 'CANCELLED',
-      expired: 'CANCELLED',
-      rejected: 'CANCELLED'
-    };
-
-    return statusMap[ccxtStatus] || 'PENDING';
+    return OrderStatusMapper.mapStatus(ccxtStatus, 'ccxt');
   }
 
   /**
