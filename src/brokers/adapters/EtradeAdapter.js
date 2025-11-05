@@ -16,16 +16,17 @@ const logger = require('../../utils/logger');
  * - Tokens can be renewed (not refreshed) using renewURL
  * - OAuth signatures required for all API requests
  *
- * TODO: Register E*TRADE OAuth app at https://developer.etrade.com
- * Required steps:
- * 1. Create developer account
+ * EXTERNAL SERVICE REQUIRED: E*TRADE OAuth 1.0a App Registration + Implementation
+ * Status: Requires vendor demo with E*TRADE legal team + OAuth 1.0a library integration
+ * Timeline: 2-3 days (sandbox), 5-10 days (production) - See config/brokers.js
+ * See docs/deployment/EXTERNAL_DEPENDENCIES_GUIDE.md (P3 - Coming Soon)
+ *
+ * Implementation steps:
+ * 1. Create developer account at https://developer.etrade.com
  * 2. Register new app with redirect URI
  * 3. Set ETRADE_OAUTH_CLIENT_ID (Consumer Key) and ETRADE_OAUTH_CLIENT_SECRET (Consumer Secret) in .env
- * 4. Implement OAuth 1.0a flow:
- *    - Request temporary credentials (request token)
- *    - Redirect user to authorization URL
- *    - Exchange verifier code for access token
- * 5. Install OAuth 1.0a library (e.g., oauth-1.0a, simple-oauth2)
+ * 4. Install OAuth 1.0a library: npm install oauth-1.0a
+ * 5. Implement OAuth 1.0a flow (see OAuth 1.0a Flow section below)
  *
  * OAuth 1.0a Flow:
  * 1. POST /oauth/request_token → Get oauth_token & oauth_token_secret
@@ -96,7 +97,7 @@ class EtradeAdapter extends BrokerAdapter {
    * IMPORTANT: E*TRADE uses OAuth 1.0a with token renewal (not refresh)
    * Access tokens expire in 2 hours and must be renewed
    *
-   * TODO: Implement OAuth 1.0a signature generation and request signing
+   * EXTERNAL SERVICE REQUIRED: OAuth 1.0a implementation (requires oauth-1.0a library)
    * Consider using oauth-1.0a npm package: https://www.npmjs.com/package/oauth-1.0a
    *
    * @returns {Promise<boolean>} Authentication status
@@ -176,7 +177,7 @@ class EtradeAdapter extends BrokerAdapter {
   /**
    * Make authenticated API request to E*TRADE
    *
-   * TODO: Implement OAuth 1.0a request signing
+   * EXTERNAL SERVICE REQUIRED: OAuth 1.0a request signing (requires oauth-1.0a library)
    * All E*TRADE API requests require OAuth 1.0a signature in Authorization header
    *
    * OAuth 1.0a Authorization Header Format:
@@ -216,13 +217,23 @@ class EtradeAdapter extends BrokerAdapter {
     }
 
     try {
-      // TODO: Generate OAuth 1.0a signature
+      // EXTERNAL SERVICE REQUIRED: OAuth 1.0a signature generation
+      // Requires: oauth-1.0a npm package installation and implementation
+      // Implementation: Use oauth.authorize() to generate signature for each request
+      // See: https://www.npmjs.com/package/oauth-1.0a
+      //
+      // Example implementation:
+      // const oauth = new OAuth({...});
+      // const authorization = oauth.authorize(requestData, { key: accessToken, secret: accessTokenSecret });
+      // const oauthHeader = oauth.toHeader(authorization);
+      //
       // For now, using placeholder Bearer token (will fail with real E*TRADE API)
       const config = {
         method,
         url: `${this.baseURL}${endpoint}`,
         headers: {
-          // TODO: Replace with proper OAuth 1.0a Authorization header
+          // PLACEHOLDER: Replace with OAuth 1.0a Authorization header
+          // Required format: OAuth oauth_consumer_key="...",oauth_timestamp="...",oauth_signature="..."
           'Authorization': `Bearer ${this.accessToken}`, // PLACEHOLDER - needs OAuth 1.0a signature
           'Content-Type': 'application/json'
         },

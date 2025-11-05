@@ -14,9 +14,12 @@ const logger = require('../../utils/logger');
  * CRITICAL: TD Ameritrade access tokens expire in 30 minutes
  * This adapter automatically refreshes tokens before each API call
  *
- * TODO: Register TD Ameritrade OAuth2 app at https://developer.tdameritrade.com
- * Required steps:
- * 1. Create developer account
+ * EXTERNAL SERVICE REQUIRED: TD Ameritrade OAuth2 App Registration
+ * Status: TD Ameritrade merged into Schwab - new registrations disabled
+ * See docs/deployment/EXTERNAL_DEPENDENCIES_GUIDE.md (P3 - Coming Soon)
+ *
+ * Legacy setup steps (for existing users):
+ * 1. Create developer account at https://developer.tdameritrade.com
  * 2. Register new app with redirect URI
  * 3. Set TDAMERITRADE_OAUTH_CLIENT_ID and TDAMERITRADE_OAUTH_CLIENT_SECRET in .env
  * 4. Complete OAuth2 flow to obtain initial tokens

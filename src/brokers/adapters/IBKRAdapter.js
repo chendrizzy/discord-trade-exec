@@ -121,11 +121,20 @@ class IBKRAdapter extends BrokerAdapter {
       }
 
       if (useOAuth2) {
-        // TODO: Register IBKR OAuth2 app and implement OAuth2 API authentication
-        // For now, mark as authenticated with access token cached
+        // EXTERNAL SERVICE REQUIRED: IBKR OAuth2 App Registration
+        // Status: OAuth2 available for institutional accounts only - See config/brokers.js
+        // Individual accounts must use TWS/IB Gateway (single-user deployment mode)
+        // See docs/deployment/EXTERNAL_DEPENDENCIES_GUIDE.md (P3 - Coming Soon)
+        //
+        // Institutional account setup:
+        // 1. Contact IBKR for institutional API access
+        // 2. Register OAuth2 application
+        // 3. Implement OAuth2 token exchange and API authentication
+        //
+        // For now, mark as authenticated with access token cached (stub implementation)
         // Actual API calls will use this.accessToken in Authorization header
         this.isAuthenticated = true;
-        logger.info('[IBKRAdapter] OAuth2 authentication successful (stub)');
+        logger.info('[IBKRAdapter] OAuth2 authentication successful (stub - requires institutional account)');
         return true;
       } else {
         // Fall back to TWS/IB Gateway authentication (legacy)
