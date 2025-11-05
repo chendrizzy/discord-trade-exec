@@ -5,6 +5,8 @@
  */
 
 const logger = require('../utils/logger');
+const User = require('../models/User');
+const oauth2Service = require('../services/OAuth2Service');
 
 class BrokerAdapter {
   constructor(credentials, options = {}) {
@@ -59,6 +61,36 @@ class BrokerAdapter {
         stack: error.stack
       });
       return false;
+    }
+  }
+
+  /**
+   * Retrieve OAuth2 access token from user's encrypted token storage
+   * Common pattern for OAuth2-enabled brokers (Alpaca, E*TRADE, IBKR, TDAmeritrade, WeBull)
+   * @param {string} brokerName - The broker name to look up tokens for
+   * @returns {Promise<string|null>} - Decrypted access token or null if unavailable
+   * @private
+   */
+  async _getOAuth2Token(brokerName) {
+    if (!this.userId) return null;
+
+    try {
+      const user = await User.findById(this.userId);
+      if (!user || !user.tradingConfig.oauthTokens.has(brokerName)) return null;
+
+      const encryptedTokens = user.tradingConfig.oauthTokens.get(brokerName);
+      if (!encryptedTokens.isValid) {
+        logger.warn(`[${this.brokerName}Adapter] OAuth2 tokens invalid`);
+        return null;
+      }
+
+      return oauth2Service.decryptToken(encryptedTokens.accessToken);
+    } catch (error) {
+      logger.error(`[${this.brokerName}Adapter] Error retrieving OAuth2 token`, {
+        error: error.message,
+        stack: error.stack
+      });
+      return null;
     }
   }
 

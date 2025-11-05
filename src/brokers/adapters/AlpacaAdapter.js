@@ -3,8 +3,6 @@ const Alpaca = require('@alpacahq/alpaca-trade-api');
 
 // Internal utilities and services
 const BrokerAdapter = require('../BrokerAdapter');
-const oauth2Service = require('../../services/OAuth2Service');
-const User = require('../../models/User');
 const logger = require('../../utils/logger');
 
 /**
@@ -51,25 +49,11 @@ class AlpacaAdapter extends BrokerAdapter {
    */
   async authenticate() {
     try {
-      let accessToken = null;
+      // Try OAuth2 authentication first using base class method
+      const accessToken = await this._getOAuth2Token('alpaca');
 
-      // Try OAuth2 authentication first if userId provided
-      if (this.userId) {
-        const user = await User.findById(this.userId);
-
-        if (user && user.tradingConfig.oauthTokens.has('alpaca')) {
-          const encryptedTokens = user.tradingConfig.oauthTokens.get('alpaca');
-
-          // Check if tokens are valid
-          if (encryptedTokens.isValid) {
-            // Decrypt access token
-            accessToken = oauth2Service.decryptToken(encryptedTokens.accessToken);
-
-            logger.info('[AlpacaAdapter] Using OAuth2 access token from user profile');
-          } else {
-            logger.warn('[AlpacaAdapter] OAuth2 tokens marked invalid, falling back to API key if available');
-          }
-        }
+      if (accessToken) {
+        logger.info('[AlpacaAdapter] Using OAuth2 access token from user profile');
       }
 
       // Initialize Alpaca client
