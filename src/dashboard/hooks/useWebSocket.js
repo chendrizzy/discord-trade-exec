@@ -2,6 +2,11 @@ import { useEffect, useState, useRef, useCallback } from 'react';
 import { io } from 'socket.io-client';
 import logger from '../utils/logger.js';
 
+// Conditional debug logging (only in development)
+const isDev = import.meta.env.DEV;
+const debugLog = (...args) => isDev && console.log(...args);
+const debugWarn = (...args) => isDev && console.warn(...args);
+
 /**
  * WebSocket React Hook for Real-Time Updates
  *
@@ -47,7 +52,7 @@ export function useWebSocket({ sessionID, userId, autoConnect = true } = {}) {
     }
 
     try {
-      console.log(`🔌 Connecting to WebSocket server at ${SOCKET_URL}`);
+      debugLog(`🔌 Connecting to WebSocket server at ${SOCKET_URL}`);
 
       // Create socket instance with authentication
       const socket = io(SOCKET_URL, {
@@ -66,7 +71,7 @@ export function useWebSocket({ sessionID, userId, autoConnect = true } = {}) {
       // Connection success
       socket.on('connect', () => {
         if (!mountedRef.current) return;
-        console.log('✅ WebSocket connected:', socket.id);
+        debugLog('✅ WebSocket connected:', socket.id);
         setConnected(true);
         setError(null);
         setReconnectAttempt(0);
@@ -84,7 +89,7 @@ export function useWebSocket({ sessionID, userId, autoConnect = true } = {}) {
       // Disconnection
       socket.on('disconnect', reason => {
         if (!mountedRef.current) return;
-        console.log('🔌 WebSocket disconnected:', reason);
+        debugLog('🔌 WebSocket disconnected:', reason);
         setConnected(false);
 
         // Handle different disconnect reasons
@@ -101,14 +106,14 @@ export function useWebSocket({ sessionID, userId, autoConnect = true } = {}) {
       // Reconnection attempt
       socket.on('reconnect_attempt', attempt => {
         if (!mountedRef.current) return;
-        console.log(`🔄 Reconnection attempt ${attempt}...`);
+        debugLog(`🔄 Reconnection attempt ${attempt}...`);
         setReconnectAttempt(attempt);
       });
 
       // Reconnection success
       socket.on('reconnect', attempt => {
         if (!mountedRef.current) return;
-        console.log(`✅ Reconnected after ${attempt} attempts`);
+        debugLog(`✅ Reconnected after ${attempt} attempts`);
         setConnected(true);
         setError(null);
         setReconnectAttempt(0);
@@ -123,7 +128,7 @@ export function useWebSocket({ sessionID, userId, autoConnect = true } = {}) {
 
       // Server shutdown notification
       socket.on('server:shutdown', data => {
-        console.warn('⚠️ Server shutting down:', data.message);
+        debugWarn('⚠️ Server shutting down:', data.message);
         setError('Server is shutting down. Please reconnect in a moment.');
       });
 
@@ -161,18 +166,18 @@ export function useWebSocket({ sessionID, userId, autoConnect = true } = {}) {
    */
   const subscribe = useCallback((event, handler) => {
     if (!socketRef.current) {
-      console.warn(`Cannot subscribe to ${event}: Socket not connected`);
+      debugWarn(`Cannot subscribe to ${event}: Socket not connected`);
       return () => {};
     }
 
     socketRef.current.on(event, handler);
-    console.log(`📡 Subscribed to ${event}`);
+    debugLog(`📡 Subscribed to ${event}`);
 
     // Return unsubscribe function
     return () => {
       if (socketRef.current) {
         socketRef.current.off(event, handler);
-        console.log(`📡 Unsubscribed from ${event}`);
+        debugLog(`📡 Unsubscribed from ${event}`);
       }
     };
   }, []);
@@ -184,12 +189,12 @@ export function useWebSocket({ sessionID, userId, autoConnect = true } = {}) {
    */
   const emit = useCallback((event, data) => {
     if (!socketRef.current?.connected) {
-      console.warn(`Cannot emit ${event}: Socket not connected`);
+      debugWarn(`Cannot emit ${event}: Socket not connected`);
       return;
     }
 
     socketRef.current.emit(event, data);
-    console.log(`📤 Emitted ${event}:`, data);
+    debugLog(`📤 Emitted ${event}:`, data);
   }, []);
 
   /**
