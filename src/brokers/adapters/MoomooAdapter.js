@@ -156,13 +156,9 @@ class MoomooAdapter extends BrokerAdapter {
         throw new Error('No trading accounts found');
       }
     } catch (error) {
-      logger.error('[MoomooAdapter] Authentication failed', {
-        error: error.message,
-        stack: error.stack
-      });
       this.isAuthenticated = false;
       this.connectionReady = false;
-      throw new Error(`Moomoo authentication failed: ${error.message}. Ensure OpenD Gateway is running.`);
+      this.handleError('authenticate', error);
     }
   }
 
@@ -210,11 +206,7 @@ class MoomooAdapter extends BrokerAdapter {
         throw new Error('Invalid funds response');
       }
     } catch (error) {
-      logger.error('[MoomooAdapter] Error fetching balance', {
-        error: error.message,
-        stack: error.stack
-      });
-      throw new Error(`Failed to get Moomoo balance: ${error.message}`);
+      this.handleError('get balance', error);
     }
   }
 
@@ -292,14 +284,11 @@ class MoomooAdapter extends BrokerAdapter {
         throw new Error('Invalid order response');
       }
     } catch (error) {
-      logger.error('[MoomooAdapter] Error creating order', {
-        error: error.message,
-        stack: error.stack,
+      this.handleError('create order', error, {
         symbol: order?.symbol,
         side: order?.side,
         type: order?.type
       });
-      throw new Error(`Failed to create Moomoo order: ${error.message}`);
     }
   }
 
@@ -339,12 +328,7 @@ class MoomooAdapter extends BrokerAdapter {
         throw new Error('Invalid cancel response');
       }
     } catch (error) {
-      logger.error('[MoomooAdapter] Error cancelling order', {
-        orderId,
-        error: error.message,
-        stack: error.stack
-      });
-      throw new Error(`Failed to cancel Moomoo order: ${error.message}`);
+      this.handleError('cancel order', error, { orderId });
     }
   }
 
@@ -383,11 +367,7 @@ class MoomooAdapter extends BrokerAdapter {
         return [];
       }
     } catch (error) {
-      logger.error('[MoomooAdapter] Error fetching positions', {
-        error: error.message,
-        stack: error.stack
-      });
-      throw new Error(`Failed to get Moomoo positions: ${error.message}`);
+      this.handleError('get positions', error);
     }
   }
 
@@ -489,11 +469,7 @@ class MoomooAdapter extends BrokerAdapter {
         return [];
       }
     } catch (error) {
-      logger.error('[MoomooAdapter] Error fetching order history', {
-        error: error.message,
-        stack: error.stack
-      });
-      throw new Error(`Failed to get Moomoo order history: ${error.message}`);
+      this.handleError('get order history', error);
     }
   }
 
@@ -529,12 +505,7 @@ class MoomooAdapter extends BrokerAdapter {
         throw new Error('Invalid quote response');
       }
     } catch (error) {
-      logger.error('[MoomooAdapter] Error fetching market price', {
-        symbol,
-        error: error.message,
-        stack: error.stack
-      });
-      throw new Error(`Failed to get Moomoo market price: ${error.message}`);
+      this.handleError('get market price', error, { symbol });
     }
   }
 
