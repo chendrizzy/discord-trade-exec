@@ -182,18 +182,13 @@ class IBKRAdapter extends BrokerAdapter {
         return true;
       }
     } catch (error) {
-      logger.error('[IBKRAdapter] Authentication failed', {
-        error: error.message,
-        stack: error.stack,
+      this.isAuthenticated = false;
+      this.connectionReady = false;
+      this.handleError('authenticate', error, {
         userId: this.userId,
         host: this.host,
         port: this.port
       });
-      this.isAuthenticated = false;
-      this.connectionReady = false;
-      throw new Error(
-        `IBKR authentication failed: ${error.message}. Ensure OAuth2 tokens are valid or TWS/IB Gateway is running with API access enabled.`
-      );
     }
   }
 
@@ -249,12 +244,7 @@ class IBKRAdapter extends BrokerAdapter {
         });
       });
     } catch (error) {
-      logger.error('[IBKRAdapter] getBalance error', {
-        error: error.message,
-        stack: error.stack,
-        currency
-      });
-      throw new Error(`Failed to get IBKR balance: ${error.message}`);
+      this.handleError('get balance', error, { currency });
     }
   }
 
@@ -348,15 +338,12 @@ class IBKRAdapter extends BrokerAdapter {
         this.ib.placeOrder(ibOrder.orderId, contract, ibOrder);
       });
     } catch (error) {
-      logger.error('[IBKRAdapter] createOrder error', {
-        error: error.message,
-        stack: error.stack,
+      this.handleError('create order', error, {
         symbol: order.symbol,
         side: order.side,
         type: order.type,
         quantity: order.quantity
       });
-      throw new Error(`Failed to create IBKR order: ${error.message}`);
     }
   }
 
@@ -389,12 +376,7 @@ class IBKRAdapter extends BrokerAdapter {
         this.ib.cancelOrder(id);
       });
     } catch (error) {
-      logger.error('[IBKRAdapter] cancelOrder error', {
-        error: error.message,
-        stack: error.stack,
-        orderId
-      });
-      throw new Error(`Failed to cancel IBKR order: ${error.message}`);
+      this.handleError('cancel order', error, { orderId });
     }
   }
 
@@ -435,11 +417,7 @@ class IBKRAdapter extends BrokerAdapter {
         });
       });
     } catch (error) {
-      logger.error('[IBKRAdapter] getPositions error', {
-        error: error.message,
-        stack: error.stack
-      });
-      throw new Error(`Failed to get IBKR positions: ${error.message}`);
+      this.handleError('get positions', error);
     }
   }
 
@@ -575,12 +553,7 @@ class IBKRAdapter extends BrokerAdapter {
         });
       });
     } catch (error) {
-      logger.error('[IBKRAdapter] getOrderHistory error', {
-        error: error.message,
-        stack: error.stack,
-        filters
-      });
-      throw new Error(`Failed to get IBKR order history: ${error.message}`);
+      this.handleError('get order history', error, { filters });
     }
   }
 
@@ -626,12 +599,7 @@ class IBKRAdapter extends BrokerAdapter {
         });
       });
     } catch (error) {
-      logger.error('[IBKRAdapter] getMarketPrice error', {
-        error: error.message,
-        stack: error.stack,
-        symbol
-      });
-      throw new Error(`Failed to get IBKR market price: ${error.message}`);
+      this.handleError('get market price', error, { symbol });
     }
   }
 
