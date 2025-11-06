@@ -115,11 +115,7 @@ class AlpacaAdapter extends BrokerAdapter {
           ((parseFloat(account.equity) - parseFloat(account.last_equity)) / parseFloat(account.last_equity)) * 100
       };
     } catch (error) {
-      logger.error('[AlpacaAdapter] Error fetching balance', {
-        error: error.message,
-        stack: error.stack
-      });
-      throw new Error(`Failed to get balance: ${error.message}`);
+      this.handleError('get balance', error);
     }
   }
 
@@ -171,15 +167,12 @@ class AlpacaAdapter extends BrokerAdapter {
         updatedAt: response.updated_at
       };
     } catch (error) {
-      logger.error('[AlpacaAdapter] Error creating order', {
-        error: error.message,
-        stack: error.stack,
+      this.handleError('create order', error, {
         symbol: order.symbol,
         side: order.side,
         type: order.type,
         quantity: order.quantity
       });
-      throw new Error(`Failed to create order: ${error.message}`);
     }
   }
 
@@ -231,11 +224,7 @@ class AlpacaAdapter extends BrokerAdapter {
         changeToday: parseFloat(pos.change_today) * 100
       }));
     } catch (error) {
-      logger.error('[AlpacaAdapter] Error fetching positions', {
-        error: error.message,
-        stack: error.stack
-      });
-      throw new Error(`Failed to get positions: ${error.message}`);
+      this.handleError('get positions', error);
     }
   }
 
@@ -272,14 +261,11 @@ class AlpacaAdapter extends BrokerAdapter {
         trailPercent: parseFloat(response.trail_percent || 0)
       };
     } catch (error) {
-      logger.error('[AlpacaAdapter] Error setting stop-loss', {
-        error: error.message,
-        stack: error.stack,
+      this.handleError('set stop-loss', error, {
         symbol: params.symbol,
         stopPrice: params.stopPrice,
         type: params.type
       });
-      throw new Error(`Failed to set stop-loss: ${error.message}`);
     }
   }
 
@@ -308,13 +294,10 @@ class AlpacaAdapter extends BrokerAdapter {
         limitPrice: parseFloat(response.limit_price)
       };
     } catch (error) {
-      logger.error('[AlpacaAdapter] Error setting take-profit', {
-        error: error.message,
-        stack: error.stack,
+      this.handleError('set take-profit', error, {
         symbol: params.symbol,
         limitPrice: params.limitPrice
       });
-      throw new Error(`Failed to set take-profit: ${error.message}`);
     }
   }
 
@@ -366,12 +349,7 @@ class AlpacaAdapter extends BrokerAdapter {
         filledAt: order.filled_at
       }));
     } catch (error) {
-      logger.error('[AlpacaAdapter] Error fetching order history', {
-        error: error.message,
-        stack: error.stack,
-        filters
-      });
-      throw new Error(`Failed to get order history: ${error.message}`);
+      this.handleError('get order history', error, { filters });
     }
   }
 
@@ -394,12 +372,7 @@ class AlpacaAdapter extends BrokerAdapter {
         timestamp: quote.Timestamp
       };
     } catch (error) {
-      logger.error('[AlpacaAdapter] Error fetching market price', {
-        error: error.message,
-        stack: error.stack,
-        symbol
-      });
-      throw new Error(`Failed to get market price: ${error.message}`);
+      this.handleError('get market price', error, { symbol });
     }
   }
 

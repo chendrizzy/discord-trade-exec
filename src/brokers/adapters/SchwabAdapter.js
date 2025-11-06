@@ -245,12 +245,7 @@ class SchwabAdapter extends BrokerAdapter {
         profitLossPercent: 0 // Schwab doesn't provide this directly
       };
     } catch (error) {
-      logger.error('[SchwabAdapter] Error fetching balance', {
-        error: error.message,
-        stack: error.stack,
-        accountId: this.accountId
-      });
-      throw new Error(`Failed to get balance: ${error.message}`);
+      this.handleError('get balance', error, { accountId: this.accountId });
     }
   }
 
@@ -318,15 +313,12 @@ class SchwabAdapter extends BrokerAdapter {
         updatedAt: orderDetails.enteredTime
       };
     } catch (error) {
-      logger.error('[SchwabAdapter] Error creating order', {
-        error: error.message,
-        stack: error.stack,
+      this.handleError('create order', error, {
         symbol: order.symbol,
         side: order.side,
         type: order.type,
         accountId: this.accountId
       });
-      throw new Error(`Failed to create order: ${error.message}`);
     }
   }
 
@@ -392,12 +384,7 @@ class SchwabAdapter extends BrokerAdapter {
           changeToday: pos.currentDayProfitLossPercentage || 0
         }));
     } catch (error) {
-      logger.error('[SchwabAdapter] Error fetching positions', {
-        error: error.message,
-        stack: error.stack,
-        accountId: this.accountId
-      });
-      throw new Error(`Failed to get positions: ${error.message}`);
+      this.handleError('get positions', error, { accountId: this.accountId });
     }
   }
 
@@ -432,14 +419,11 @@ class SchwabAdapter extends BrokerAdapter {
         trailPercent: params.trailPercent || 0
       };
     } catch (error) {
-      logger.error('[SchwabAdapter] Error setting stop-loss', {
-        error: error.message,
-        stack: error.stack,
+      this.handleError('set stop-loss', error, {
         symbol: params.symbol,
         stopPrice: params.stopPrice,
         type: params.type
       });
-      throw new Error(`Failed to set stop-loss: ${error.message}`);
     }
   }
 
@@ -468,13 +452,10 @@ class SchwabAdapter extends BrokerAdapter {
         limitPrice: params.limitPrice
       };
     } catch (error) {
-      logger.error('[SchwabAdapter] Error setting take-profit', {
-        error: error.message,
-        stack: error.stack,
+      this.handleError('set take-profit', error, {
         symbol: params.symbol,
         limitPrice: params.limitPrice
       });
-      throw new Error(`Failed to set take-profit: ${error.message}`);
     }
   }
 
@@ -535,13 +516,10 @@ class SchwabAdapter extends BrokerAdapter {
         filledAt: order.closeTime
       }));
     } catch (error) {
-      logger.error('[SchwabAdapter] Error fetching order history', {
-        error: error.message,
-        stack: error.stack,
+      this.handleError('get order history', error, {
         accountId: this.accountId,
         filters
       });
-      throw new Error(`Failed to get order history: ${error.message}`);
     }
   }
 
@@ -566,12 +544,7 @@ class SchwabAdapter extends BrokerAdapter {
         timestamp: new Date(quote.quoteTimeInLong || Date.now()).toISOString()
       };
     } catch (error) {
-      logger.error('[SchwabAdapter] Error fetching market price', {
-        error: error.message,
-        stack: error.stack,
-        symbol
-      });
-      throw new Error(`Failed to get market price: ${error.message}`);
+      this.handleError('get market price', error, { symbol });
     }
   }
 

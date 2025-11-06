@@ -122,6 +122,26 @@ class BrokerAdapter {
   }
 
   /**
+   * Centralized error handling for broker operations
+   * Logs error with context and throws a formatted error message
+   * @param {string} operation - Description of the operation that failed (e.g., 'fetching balance', 'creating order')
+   * @param {Error} error - The caught error object
+   * @param {Object} context - Additional context to log (e.g., { orderId, symbol, accountId })
+   * @throws {Error} Formatted error with operation context
+   */
+  handleError(operation, error, context = {}) {
+    const adapterName = this.constructor.name;
+
+    logger.error(`[${adapterName}] Error ${operation}`, {
+      error: error.message,
+      stack: error.stack,
+      ...context
+    });
+
+    throw new Error(`Failed to ${operation}: ${error.message}`);
+  }
+
+  /**
    * Get account balance for specified currency
    * @param {string} currency - Optional currency filter (e.g., 'USD', 'BTC')
    * @returns {Promise<Object>} - Balance information
