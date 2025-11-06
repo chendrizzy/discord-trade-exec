@@ -8,6 +8,7 @@ const User = require('../../models/User');
 const logger = require('../../utils/logger');
 const OrderStatusMapper = require('../../utils/orderStatusMapper');
 const OrderTypeMapper = require('../../utils/orderTypeMapper');
+const SymbolNormalizer = require('../../utils/symbolNormalizer');
 
 /**
  * Charles Schwab Stock Broker Adapter
@@ -698,7 +699,7 @@ class SchwabAdapter extends BrokerAdapter {
    * Normalize symbol format for Schwab (uppercase)
    */
   normalizeSymbol(symbol) {
-    return symbol.replace('/', '').toUpperCase();
+    return SymbolNormalizer.normalize(symbol, 'schwab');
   }
 
   /**

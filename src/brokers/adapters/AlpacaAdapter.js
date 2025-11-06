@@ -6,6 +6,7 @@ const BrokerAdapter = require('../BrokerAdapter');
 const logger = require('../../utils/logger');
 const OrderStatusMapper = require('../../utils/orderStatusMapper');
 const OrderTypeMapper = require('../../utils/orderTypeMapper');
+const SymbolNormalizer = require('../../utils/symbolNormalizer');
 
 /**
  * Alpaca Stock Broker Adapter
@@ -408,8 +409,7 @@ class AlpacaAdapter extends BrokerAdapter {
    * Normalize symbol format for Alpaca (remove slashes, use uppercase)
    */
   normalizeSymbol(symbol) {
-    // Alpaca uses simple symbols: AAPL, TSLA, etc.
-    return symbol.replace('/', '').toUpperCase();
+    return SymbolNormalizer.normalize(symbol, 'alpaca');
   }
 
   /**

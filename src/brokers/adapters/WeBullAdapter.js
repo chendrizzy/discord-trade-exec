@@ -12,6 +12,7 @@ const logger = require('../../utils/logger');
 const axios = require('axios');
 const OrderStatusMapper = require('../../utils/orderStatusMapper');
 const OrderTypeMapper = require('../../utils/orderTypeMapper');
+const SymbolNormalizer = require('../../utils/symbolNormalizer');
 
 /**
  * WeBull adapter for commission-free stock trading
@@ -574,8 +575,7 @@ class WeBullAdapter extends BrokerAdapter {
    * Normalize symbol format for WeBull (uppercase, no special chars)
    */
   normalizeSymbol(symbol) {
-    // WeBull uses simple symbols: AAPL, TSLA, etc.
-    return symbol.replace(/[^A-Z0-9]/gi, '').toUpperCase();
+    return SymbolNormalizer.normalize(symbol, 'webull');
   }
 
   /**

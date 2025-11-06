@@ -5,6 +5,7 @@ const ccxt = require('ccxt');
 const CCXTBrokerAdapter = require('../CCXTBrokerAdapter');
 const { withTimeout } = require('../../utils/promise-timeout');
 const logger = require('../../utils/logger');
+const SymbolNormalizer = require('../../utils/symbolNormalizer');
 
 /**
  * Coinbase Pro (Advanced Trade) Adapter using CCXT
@@ -264,19 +265,7 @@ class CoinbaseProAdapter extends CCXTBrokerAdapter {
    * @returns {string} - Coinbase Pro format (e.g., 'BTC/USD')
    */
   normalizeSymbol(symbol) {
-    // Coinbase Pro uses BTC/USD format
-    if (symbol.includes('/')) {
-      // Replace USDT with USD for Coinbase Pro
-      return symbol.replace('/USDT', '/USD');
-    }
-
-    // Convert BTCUSDT -> BTC/USD
-    const match = symbol.match(/^([A-Z]{3,5})(USDT?|USD)$/);
-    if (match) {
-      return `${match[1]}/USD`;
-    }
-
-    return symbol;
+    return SymbolNormalizer.normalize(symbol, 'coinbasepro');
   }
 
   /**

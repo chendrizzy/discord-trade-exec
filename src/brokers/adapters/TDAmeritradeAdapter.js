@@ -8,6 +8,7 @@ const User = require('../../models/User');
 const logger = require('../../utils/logger');
 const OrderStatusMapper = require('../../utils/orderStatusMapper');
 const OrderTypeMapper = require('../../utils/orderTypeMapper');
+const SymbolNormalizer = require('../../utils/symbolNormalizer');
 
 /**
  * TD Ameritrade Stock Broker Adapter
@@ -534,7 +535,7 @@ class TDAmeritradeAdapter extends BrokerAdapter {
    * Normalize symbol format for TD Ameritrade (uppercase)
    */
   normalizeSymbol(symbol) {
-    return symbol.replace('/', '').toUpperCase();
+    return SymbolNormalizer.normalize(symbol, 'tdameritrade');
   }
 
   /**

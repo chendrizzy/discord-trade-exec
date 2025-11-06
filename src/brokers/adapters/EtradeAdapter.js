@@ -8,6 +8,7 @@ const User = require('../../models/User');
 const logger = require('../../utils/logger');
 const OrderStatusMapper = require('../../utils/orderStatusMapper');
 const OrderTypeMapper = require('../../utils/orderTypeMapper');
+const SymbolNormalizer = require('../../utils/symbolNormalizer');
 
 /**
  * E*TRADE Stock Broker Adapter
@@ -649,7 +650,7 @@ class EtradeAdapter extends BrokerAdapter {
    * Normalize symbol format for E*TRADE (uppercase)
    */
   normalizeSymbol(symbol) {
-    return symbol.replace('/', '').toUpperCase();
+    return SymbolNormalizer.normalize(symbol, 'etrade');
   }
 
   /**

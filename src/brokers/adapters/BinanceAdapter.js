@@ -35,6 +35,7 @@ const { withTimeout } = require('../../utils/promise-timeout');
 const logger = require('../../utils/logger');
 const { handleBrokerError } = require('../utils/errorHandler');
 const OrderTypeMapper = require('../../utils/orderTypeMapper');
+const SymbolNormalizer = require('../../utils/symbolNormalizer');
 
 class BinanceAdapter extends CCXTBrokerAdapter {
   constructor(credentials = {}, options = {}) {
@@ -684,7 +685,7 @@ class BinanceAdapter extends CCXTBrokerAdapter {
    * Binance uses format like 'BTC/USDT'
    */
   normalizeSymbol(symbol) {
-    return symbol.toUpperCase();
+    return SymbolNormalizer.normalize(symbol, 'binance');
   }
 
   /**
