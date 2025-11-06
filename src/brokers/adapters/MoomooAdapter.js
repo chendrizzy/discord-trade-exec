@@ -180,9 +180,7 @@ class MoomooAdapter extends BrokerAdapter {
    * @returns {Promise<Object>} Balance information
    */
   async getBalance(currency = 'USD') {
-    if (!this.isConnected()) {
-      await this.authenticate();
-    }
+    await this.ensureAuthenticated();
 
     try {
       const fundsResponse = await this.moomoo.GetFunds({
@@ -226,9 +224,7 @@ class MoomooAdapter extends BrokerAdapter {
    * @returns {Promise<Object>} Order result
    */
   async createOrder(order) {
-    if (!this.isConnected()) {
-      await this.authenticate();
-    }
+    await this.ensureAuthenticated();
 
     try {
       const { symbol, side, type, quantity, price, stopPrice, timeInForce } = order;
@@ -313,9 +309,7 @@ class MoomooAdapter extends BrokerAdapter {
    * @returns {Promise<boolean>} Cancellation success
    */
   async cancelOrder(orderId) {
-    if (!this.isConnected()) {
-      await this.authenticate();
-    }
+    await this.ensureAuthenticated();
 
     try {
       logger.info('[MoomooAdapter] Cancelling order', {
@@ -359,9 +353,7 @@ class MoomooAdapter extends BrokerAdapter {
    * @returns {Promise<Array>} List of positions
    */
   async getPositions() {
-    if (!this.isConnected()) {
-      await this.authenticate();
-    }
+    await this.ensureAuthenticated();
 
     try {
       const response = await this.moomoo.GetPositionList({
@@ -455,9 +447,7 @@ class MoomooAdapter extends BrokerAdapter {
    * @returns {Promise<Array>} Array of historical orders
    */
   async getOrderHistory(filters = {}) {
-    if (!this.isConnected()) {
-      await this.authenticate();
-    }
+    await this.ensureAuthenticated();
 
     try {
       const response = await this.moomoo.GetHistoryOrderFillList({
@@ -513,9 +503,7 @@ class MoomooAdapter extends BrokerAdapter {
    * @returns {Promise<Object>} Price information
    */
   async getMarketPrice(symbol) {
-    if (!this.isConnected()) {
-      await this.authenticate();
-    }
+    await this.ensureAuthenticated();
 
     try {
       const security = {
@@ -556,9 +544,7 @@ class MoomooAdapter extends BrokerAdapter {
    * @returns {Promise<boolean>} True if symbol is supported
    */
   async isSymbolSupported(symbol) {
-    if (!this.isConnected()) {
-      await this.authenticate();
-    }
+    await this.ensureAuthenticated();
 
     try {
       const security = {

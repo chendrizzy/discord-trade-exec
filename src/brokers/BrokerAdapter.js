@@ -103,6 +103,25 @@ class BrokerAdapter {
   }
 
   /**
+   * Ensure adapter is authenticated before executing operations
+   * Handles both OAuth2 adapters (isAuthenticated flag) and connection-based adapters (isConnected method)
+   * @returns {Promise<void>}
+   */
+  async ensureAuthenticated() {
+    // Check if adapter has isConnected method (IBKR, Moomoo)
+    if (typeof this.isConnected === 'function') {
+      if (!this.isConnected()) {
+        await this.authenticate();
+      }
+    } else {
+      // OAuth2 adapters (Alpaca, Etrade, TDAmeritrade, Schwab, WeBull)
+      if (!this.isAuthenticated) {
+        await this.authenticate();
+      }
+    }
+  }
+
+  /**
    * Get account balance for specified currency
    * @param {string} currency - Optional currency filter (e.g., 'USD', 'BTC')
    * @returns {Promise<Object>} - Balance information

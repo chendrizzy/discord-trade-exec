@@ -189,9 +189,7 @@ class WeBullAdapter extends BrokerAdapter {
    * Get account balance
    */
   async getBalance(currency = 'USD') {
-    if (!this.isAuthenticated) {
-      await this.authenticate();
-    }
+    await this.ensureAuthenticated();
 
     try {
       const response = await this.httpClient.get(`/accounts/${this.accountId}/balance`);
@@ -223,9 +221,7 @@ class WeBullAdapter extends BrokerAdapter {
    * Get open positions
    */
   async getPositions() {
-    if (!this.isAuthenticated) {
-      await this.authenticate();
-    }
+    await this.ensureAuthenticated();
 
     try {
       const response = await this.httpClient.get(`/accounts/${this.accountId}/positions`);
@@ -258,9 +254,7 @@ class WeBullAdapter extends BrokerAdapter {
    * Create order
    */
   async createOrder(order) {
-    if (!this.isAuthenticated) {
-      await this.authenticate();
-    }
+    await this.ensureAuthenticated();
 
     try {
       const webullOrder = {
@@ -320,9 +314,7 @@ class WeBullAdapter extends BrokerAdapter {
    * Cancel order
    */
   async cancelOrder(orderId) {
-    if (!this.isAuthenticated) {
-      await this.authenticate();
-    }
+    await this.ensureAuthenticated();
 
     try {
       const response = await this.httpClient.delete(`/orders/${orderId}`);
@@ -362,9 +354,7 @@ class WeBullAdapter extends BrokerAdapter {
    * Get order status
    */
   async getOrderStatus(orderId) {
-    if (!this.isAuthenticated) {
-      await this.authenticate();
-    }
+    await this.ensureAuthenticated();
 
     try {
       const response = await this.httpClient.get(`/orders/${orderId}`);
@@ -393,9 +383,7 @@ class WeBullAdapter extends BrokerAdapter {
    * Note: WeBull doesn't have native trailing stops, we simulate with regular stops
    */
   async setStopLoss(params) {
-    if (!this.isAuthenticated) {
-      await this.authenticate();
-    }
+    await this.ensureAuthenticated();
 
     try {
       const orderParams = {
@@ -448,9 +436,7 @@ class WeBullAdapter extends BrokerAdapter {
    * Set take-profit order
    */
   async setTakeProfit(params) {
-    if (!this.isAuthenticated) {
-      await this.authenticate();
-    }
+    await this.ensureAuthenticated();
 
     try {
       const orderParams = {
@@ -489,9 +475,7 @@ class WeBullAdapter extends BrokerAdapter {
    * Get order history
    */
   async getOrderHistory(filters = {}) {
-    if (!this.isAuthenticated) {
-      await this.authenticate();
-    }
+    await this.ensureAuthenticated();
 
     try {
       const params = {
@@ -542,9 +526,7 @@ class WeBullAdapter extends BrokerAdapter {
    * Get current market price
    */
   async getMarketPrice(symbol) {
-    if (!this.isAuthenticated) {
-      await this.authenticate();
-    }
+    await this.ensureAuthenticated();
 
     try {
       const normalizedSymbol = this.normalizeSymbol(symbol);
@@ -581,9 +563,7 @@ class WeBullAdapter extends BrokerAdapter {
    * Check if symbol is supported
    */
   async isSymbolSupported(symbol) {
-    if (!this.isAuthenticated) {
-      await this.authenticate();
-    }
+    await this.ensureAuthenticated();
 
     try {
       const normalizedSymbol = this.normalizeSymbol(symbol);

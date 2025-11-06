@@ -201,9 +201,7 @@ class EtradeAdapter extends BrokerAdapter {
    * @private
    */
   async makeRequest(method, endpoint, data = null, params = {}) {
-    if (!this.isAuthenticated) {
-      await this.authenticate();
-    }
+    await this.ensureAuthenticated();
 
     // Check if token needs renewal before API call (2-hour expiry)
     const user = await User.findById(this.userId);
@@ -633,9 +631,7 @@ class EtradeAdapter extends BrokerAdapter {
    * Get current market price (quote)
    */
   async getMarketPrice(symbol) {
-    if (!this.isAuthenticated) {
-      await this.authenticate();
-    }
+    await this.ensureAuthenticated();
 
     try {
       const response = await this.makeRequest('GET', `/v1/market/quote/${this.normalizeSymbol(symbol)}`);
@@ -666,9 +662,7 @@ class EtradeAdapter extends BrokerAdapter {
    * Check if symbol is supported
    */
   async isSymbolSupported(symbol) {
-    if (!this.isAuthenticated) {
-      await this.authenticate();
-    }
+    await this.ensureAuthenticated();
 
     try {
       const response = await this.makeRequest('GET', `/v1/market/lookup/${this.normalizeSymbol(symbol)}`);

@@ -211,9 +211,7 @@ class IBKRAdapter extends BrokerAdapter {
    * @returns {Promise<Object>} Balance information
    */
   async getBalance(currency = 'USD') {
-    if (!this.isConnected()) {
-      await this.authenticate();
-    }
+    await this.ensureAuthenticated();
 
     try {
       return new Promise((resolve, reject) => {
@@ -266,9 +264,7 @@ class IBKRAdapter extends BrokerAdapter {
    * @returns {Promise<Object>} Order result
    */
   async createOrder(order) {
-    if (!this.isConnected()) {
-      await this.authenticate();
-    }
+    await this.ensureAuthenticated();
 
     try {
       const { symbol, side, type, quantity, price, stopPrice, timeInForce } = order;
@@ -370,9 +366,7 @@ class IBKRAdapter extends BrokerAdapter {
    * @returns {Promise<boolean>} Cancellation success
    */
   async cancelOrder(orderId) {
-    if (!this.isConnected()) {
-      await this.authenticate();
-    }
+    await this.ensureAuthenticated();
 
     try {
       const id = parseInt(orderId);
@@ -409,9 +403,7 @@ class IBKRAdapter extends BrokerAdapter {
    * @returns {Promise<Array>} List of positions
    */
   async getPositions() {
-    if (!this.isConnected()) {
-      await this.authenticate();
-    }
+    await this.ensureAuthenticated();
 
     try {
       return new Promise((resolve, reject) => {
@@ -546,9 +538,7 @@ class IBKRAdapter extends BrokerAdapter {
    * @returns {Promise<Array>} Array of historical orders
    */
   async getOrderHistory(filters = {}) {
-    if (!this.isConnected()) {
-      await this.authenticate();
-    }
+    await this.ensureAuthenticated();
 
     try {
       return new Promise((resolve, reject) => {
@@ -600,9 +590,7 @@ class IBKRAdapter extends BrokerAdapter {
    * @returns {Promise<Object>} Price information
    */
   async getMarketPrice(symbol) {
-    if (!this.isConnected()) {
-      await this.authenticate();
-    }
+    await this.ensureAuthenticated();
 
     try {
       return new Promise((resolve, reject) => {
@@ -653,9 +641,7 @@ class IBKRAdapter extends BrokerAdapter {
    * @returns {Promise<boolean>} True if symbol is supported
    */
   async isSymbolSupported(symbol) {
-    if (!this.isConnected()) {
-      await this.authenticate();
-    }
+    await this.ensureAuthenticated();
 
     try {
       return new Promise((resolve, reject) => {

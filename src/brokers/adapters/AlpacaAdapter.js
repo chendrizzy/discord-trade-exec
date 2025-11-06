@@ -98,9 +98,7 @@ class AlpacaAdapter extends BrokerAdapter {
    * Get account balance
    */
   async getBalance(currency = 'USD') {
-    if (!this.isAuthenticated) {
-      await this.authenticate();
-    }
+    await this.ensureAuthenticated();
 
     try {
       const account = await this.alpacaClient.getAccount();
@@ -129,9 +127,7 @@ class AlpacaAdapter extends BrokerAdapter {
    * Create order
    */
   async createOrder(order) {
-    if (!this.isAuthenticated) {
-      await this.authenticate();
-    }
+    await this.ensureAuthenticated();
 
     try {
       const alpacaOrder = {
@@ -191,9 +187,7 @@ class AlpacaAdapter extends BrokerAdapter {
    * Cancel order
    */
   async cancelOrder(orderId) {
-    if (!this.isAuthenticated) {
-      await this.authenticate();
-    }
+    await this.ensureAuthenticated();
 
     try {
       await this.alpacaClient.cancelOrder(orderId);
@@ -218,9 +212,7 @@ class AlpacaAdapter extends BrokerAdapter {
    * Get open positions
    */
   async getPositions() {
-    if (!this.isAuthenticated) {
-      await this.authenticate();
-    }
+    await this.ensureAuthenticated();
 
     try {
       const positions = await this.alpacaClient.getPositions();
@@ -251,9 +243,7 @@ class AlpacaAdapter extends BrokerAdapter {
    * Set stop-loss order
    */
   async setStopLoss(params) {
-    if (!this.isAuthenticated) {
-      await this.authenticate();
-    }
+    await this.ensureAuthenticated();
 
     try {
       const orderParams = {
@@ -297,9 +287,7 @@ class AlpacaAdapter extends BrokerAdapter {
    * Set take-profit order
    */
   async setTakeProfit(params) {
-    if (!this.isAuthenticated) {
-      await this.authenticate();
-    }
+    await this.ensureAuthenticated();
 
     try {
       const orderParams = {
@@ -334,9 +322,7 @@ class AlpacaAdapter extends BrokerAdapter {
    * Get order history
    */
   async getOrderHistory(filters = {}) {
-    if (!this.isAuthenticated) {
-      await this.authenticate();
-    }
+    await this.ensureAuthenticated();
 
     try {
       const params = {
@@ -393,9 +379,7 @@ class AlpacaAdapter extends BrokerAdapter {
    * Get current market price
    */
   async getMarketPrice(symbol) {
-    if (!this.isAuthenticated) {
-      await this.authenticate();
-    }
+    await this.ensureAuthenticated();
 
     try {
       const quote = await this.alpacaClient.getLatestQuote(this.normalizeSymbol(symbol));
@@ -423,9 +407,7 @@ class AlpacaAdapter extends BrokerAdapter {
    * Check if symbol is supported
    */
   async isSymbolSupported(symbol) {
-    if (!this.isAuthenticated) {
-      await this.authenticate();
-    }
+    await this.ensureAuthenticated();
 
     try {
       const asset = await this.alpacaClient.getAsset(this.normalizeSymbol(symbol));

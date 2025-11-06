@@ -220,9 +220,7 @@ class SchwabAdapter extends BrokerAdapter {
    * Get account balance
    */
   async getBalance(currency = 'USD') {
-    if (!this.isAuthenticated) {
-      await this.authenticate();
-    }
+    await this.ensureAuthenticated();
 
     try {
       // Get account ID if not set
@@ -260,9 +258,7 @@ class SchwabAdapter extends BrokerAdapter {
    * Create order
    */
   async createOrder(order) {
-    if (!this.isAuthenticated) {
-      await this.authenticate();
-    }
+    await this.ensureAuthenticated();
 
     try {
       if (!this.accountId) {
@@ -338,9 +334,7 @@ class SchwabAdapter extends BrokerAdapter {
    * Cancel order
    */
   async cancelOrder(orderId) {
-    if (!this.isAuthenticated) {
-      await this.authenticate();
-    }
+    await this.ensureAuthenticated();
 
     try {
       if (!this.accountId) {
@@ -371,9 +365,7 @@ class SchwabAdapter extends BrokerAdapter {
    * Get open positions
    */
   async getPositions() {
-    if (!this.isAuthenticated) {
-      await this.authenticate();
-    }
+    await this.ensureAuthenticated();
 
     try {
       if (!this.accountId) {
@@ -413,9 +405,7 @@ class SchwabAdapter extends BrokerAdapter {
    * Set stop-loss order
    */
   async setStopLoss(params) {
-    if (!this.isAuthenticated) {
-      await this.authenticate();
-    }
+    await this.ensureAuthenticated();
 
     try {
       const orderParams = {
@@ -457,9 +447,7 @@ class SchwabAdapter extends BrokerAdapter {
    * Set take-profit order
    */
   async setTakeProfit(params) {
-    if (!this.isAuthenticated) {
-      await this.authenticate();
-    }
+    await this.ensureAuthenticated();
 
     try {
       const orderParams = {
@@ -494,9 +482,7 @@ class SchwabAdapter extends BrokerAdapter {
    * Get order history
    */
   async getOrderHistory(filters = {}) {
-    if (!this.isAuthenticated) {
-      await this.authenticate();
-    }
+    await this.ensureAuthenticated();
 
     try {
       if (!this.accountId) {
@@ -563,9 +549,7 @@ class SchwabAdapter extends BrokerAdapter {
    * Get current market price
    */
   async getMarketPrice(symbol) {
-    if (!this.isAuthenticated) {
-      await this.authenticate();
-    }
+    await this.ensureAuthenticated();
 
     try {
       const response = await this.makeRequest('GET', `${this.marketDataURL}/quotes/${this.normalizeSymbol(symbol)}`);
@@ -595,9 +579,7 @@ class SchwabAdapter extends BrokerAdapter {
    * Check if symbol is supported
    */
   async isSymbolSupported(symbol) {
-    if (!this.isAuthenticated) {
-      await this.authenticate();
-    }
+    await this.ensureAuthenticated();
 
     try {
       const response = await this.makeRequest('GET', `${this.marketDataURL}/instruments`, null, {

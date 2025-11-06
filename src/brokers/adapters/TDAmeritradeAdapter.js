@@ -133,9 +133,7 @@ class TDAmeritradeAdapter extends BrokerAdapter {
    * @private
    */
   async makeRequest(method, endpoint, data = null, params = {}) {
-    if (!this.isAuthenticated) {
-      await this.authenticate();
-    }
+    await this.ensureAuthenticated();
 
     // Check if token needs refresh before API call (30-minute expiry)
     const user = await User.findById(this.userId);
@@ -516,9 +514,7 @@ class TDAmeritradeAdapter extends BrokerAdapter {
    * Get current market price (quote)
    */
   async getMarketPrice(symbol) {
-    if (!this.isAuthenticated) {
-      await this.authenticate();
-    }
+    await this.ensureAuthenticated();
 
     try {
       const quote = await this.makeRequest('GET', `/marketdata/${this.normalizeSymbol(symbol)}/quotes`);
@@ -548,9 +544,7 @@ class TDAmeritradeAdapter extends BrokerAdapter {
    * Check if symbol is supported
    */
   async isSymbolSupported(symbol) {
-    if (!this.isAuthenticated) {
-      await this.authenticate();
-    }
+    await this.ensureAuthenticated();
 
     try {
       const instrument = await this.makeRequest('GET', `/instruments`, null, {
