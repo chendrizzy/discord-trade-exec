@@ -90,15 +90,12 @@ class CoinbaseProAdapter extends CCXTBrokerAdapter {
         type: order.type
       };
     } catch (error) {
-      logger.error('[CoinbaseProAdapter] Error creating order', {
-        error: error.message,
-        stack: error.stack,
+      this.handleError('create order', error, {
         symbol: order.symbol,
         side: order.side,
         type: order.type,
         quantity: order.quantity
       });
-      throw error;
     }
   }
 
@@ -135,13 +132,10 @@ class CoinbaseProAdapter extends CCXTBrokerAdapter {
         stopPrice: params.stopPrice
       };
     } catch (error) {
-      logger.error('[CoinbaseProAdapter] Error setting stop-loss', {
-        error: error.message,
-        stack: error.stack,
+      this.handleError('set stop-loss', error, {
         symbol: params.symbol,
         stopPrice: params.stopPrice
       });
-      throw error;
     }
   }
 
@@ -169,13 +163,10 @@ class CoinbaseProAdapter extends CCXTBrokerAdapter {
         limitPrice: params.limitPrice
       };
     } catch (error) {
-      logger.error('[CoinbaseProAdapter] Error setting take-profit', {
-        error: error.message,
-        stack: error.stack,
+      this.handleError('set take-profit', error, {
         symbol: params.symbol,
         limitPrice: params.limitPrice
       });
-      throw error;
     }
   }
 
