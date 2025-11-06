@@ -7,6 +7,7 @@ const oauth2Service = require('../../services/OAuth2Service');
 const User = require('../../models/User');
 const logger = require('../../utils/logger');
 const OrderStatusMapper = require('../../utils/orderStatusMapper');
+const OrderTypeMapper = require('../../utils/orderTypeMapper');
 
 /**
  * Charles Schwab Stock Broker Adapter
@@ -701,18 +702,10 @@ class SchwabAdapter extends BrokerAdapter {
   }
 
   /**
-   * Map order type to Schwab format
+   * Map order type to Schwab format using centralized mapper
    */
   mapOrderType(type) {
-    const typeMap = {
-      MARKET: 'MARKET',
-      LIMIT: 'LIMIT',
-      STOP: 'STOP',
-      STOP_LIMIT: 'STOP_LIMIT',
-      TRAILING_STOP: 'TRAILING_STOP'
-    };
-
-    return typeMap[type] || 'MARKET';
+    return OrderTypeMapper.mapType(type, 'schwab');
   }
 
   /**

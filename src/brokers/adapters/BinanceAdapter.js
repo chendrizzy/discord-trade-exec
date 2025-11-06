@@ -34,6 +34,7 @@ const CCXTBrokerAdapter = require('../CCXTBrokerAdapter');
 const { withTimeout } = require('../../utils/promise-timeout');
 const logger = require('../../utils/logger');
 const { handleBrokerError } = require('../utils/errorHandler');
+const OrderTypeMapper = require('../../utils/orderTypeMapper');
 
 class BinanceAdapter extends CCXTBrokerAdapter {
   constructor(credentials = {}, options = {}) {
@@ -687,18 +688,10 @@ class BinanceAdapter extends CCXTBrokerAdapter {
   }
 
   /**
-   * Map order type to Binance format (case-insensitive)
+   * Map order type to Binance format using centralized mapper (case-insensitive)
    */
   mapOrderType(type) {
-    const typeMap = {
-      MARKET: 'market',
-      LIMIT: 'limit',
-      STOP: 'stop_loss',
-      STOP_LIMIT: 'stop_loss_limit',
-      TRAILING_STOP: 'trailing_stop_market'
-    };
-
-    return typeMap[type.toUpperCase()] || 'market';
+    return OrderTypeMapper.mapType(type.toUpperCase(), 'binance');
   }
 
   /**

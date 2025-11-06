@@ -11,6 +11,7 @@ const User = require('../../models/User');
 const logger = require('../../utils/logger');
 const axios = require('axios');
 const OrderStatusMapper = require('../../utils/orderStatusMapper');
+const OrderTypeMapper = require('../../utils/orderTypeMapper');
 
 /**
  * WeBull adapter for commission-free stock trading
@@ -578,18 +579,10 @@ class WeBullAdapter extends BrokerAdapter {
   }
 
   /**
-   * Map order type to WeBull format
+   * Map order type to WeBull format using centralized mapper
    */
   mapOrderType(type) {
-    const typeMap = {
-      'MARKET': 'MARKET',
-      'LIMIT': 'LIMIT',
-      'STOP': 'STOP',
-      'STOP_LIMIT': 'STOP_LIMIT',
-      'TRAILING_STOP': 'STOP' // WeBull doesn't have native trailing stops
-    };
-
-    return typeMap[type] || 'MARKET';
+    return OrderTypeMapper.mapType(type, 'webull');
   }
 
   /**

@@ -1,6 +1,7 @@
 // Internal utilities and services
 const BrokerAdapter = require('../BrokerAdapter');
 const logger = require('../../utils/logger');
+const OrderTypeMapper = require('../../utils/orderTypeMapper');
 
 // Moomoo API loaded dynamically (ES Module)
 let MoomooAPI = null;
@@ -566,19 +567,12 @@ class MoomooAdapter extends BrokerAdapter {
   }
 
   /**
-   * Map standard order types to Moomoo format
+   * Map standard order types to Moomoo format using centralized mapper
    * @param {string} type - Standard order type
    * @returns {number} Moomoo order type
    */
   mapOrderType(type) {
-    const typeMap = {
-      MARKET: 1, // Market order
-      LIMIT: 2, // Limit order
-      STOP: 3, // Stop order
-      STOP_LIMIT: 4, // Stop-limit order
-      TRAILING_STOP: 7 // Trailing stop
-    };
-    return typeMap[type] || 1;
+    return OrderTypeMapper.mapType(type, 'moomoo');
   }
 
   /**

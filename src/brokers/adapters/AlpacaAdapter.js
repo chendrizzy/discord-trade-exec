@@ -5,6 +5,7 @@ const Alpaca = require('@alpacahq/alpaca-trade-api');
 const BrokerAdapter = require('../BrokerAdapter');
 const logger = require('../../utils/logger');
 const OrderStatusMapper = require('../../utils/orderStatusMapper');
+const OrderTypeMapper = require('../../utils/orderTypeMapper');
 
 /**
  * Alpaca Stock Broker Adapter
@@ -412,18 +413,10 @@ class AlpacaAdapter extends BrokerAdapter {
   }
 
   /**
-   * Map order type to Alpaca format
+   * Map order type to Alpaca format using centralized mapper
    */
   mapOrderType(type) {
-    const typeMap = {
-      MARKET: 'market',
-      LIMIT: 'limit',
-      STOP: 'stop',
-      STOP_LIMIT: 'stop_limit',
-      TRAILING_STOP: 'trailing_stop'
-    };
-
-    return typeMap[type] || 'market';
+    return OrderTypeMapper.mapType(type, 'alpaca');
   }
 
   /**

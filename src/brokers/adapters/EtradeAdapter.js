@@ -7,6 +7,7 @@ const oauth2Service = require('../../services/OAuth2Service');
 const User = require('../../models/User');
 const logger = require('../../utils/logger');
 const OrderStatusMapper = require('../../utils/orderStatusMapper');
+const OrderTypeMapper = require('../../utils/orderTypeMapper');
 
 /**
  * E*TRADE Stock Broker Adapter
@@ -652,18 +653,10 @@ class EtradeAdapter extends BrokerAdapter {
   }
 
   /**
-   * Map order type to E*TRADE format
+   * Map order type to E*TRADE format using centralized mapper
    */
   mapOrderType(type) {
-    const typeMap = {
-      MARKET: 'MARKET',
-      LIMIT: 'LIMIT',
-      STOP: 'STOP',
-      STOP_LIMIT: 'STOP_LIMIT',
-      TRAILING_STOP: 'TRAILING_STOP_CNST'
-    };
-
-    return typeMap[type] || 'MARKET';
+    return OrderTypeMapper.mapType(type, 'etrade');
   }
 
   /**

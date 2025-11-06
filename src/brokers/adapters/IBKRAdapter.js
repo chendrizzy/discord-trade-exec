@@ -7,6 +7,7 @@ const oauth2Service = require('../../services/OAuth2Service');
 const User = require('../../models/User');
 const logger = require('../../utils/logger');
 const OrderStatusMapper = require('../../utils/orderStatusMapper');
+const OrderTypeMapper = require('../../utils/orderTypeMapper');
 
 /**
  * Interactive Brokers (IBKR) API Adapter
@@ -422,19 +423,12 @@ class IBKRAdapter extends BrokerAdapter {
   }
 
   /**
-   * Map standard order types to IBKR format
+   * Map standard order types to IBKR format using centralized mapper
    * @param {string} type - Standard order type
    * @returns {string} IBKR order type
    */
   mapOrderType(type) {
-    const typeMap = {
-      MARKET: 'MKT',
-      LIMIT: 'LMT',
-      STOP: 'STP',
-      STOP_LIMIT: 'STP LMT',
-      TRAILING_STOP: 'TRAIL'
-    };
-    return typeMap[type] || 'MKT';
+    return OrderTypeMapper.mapType(type, 'ibkr');
   }
 
   /**

@@ -7,6 +7,7 @@ const oauth2Service = require('../../services/OAuth2Service');
 const User = require('../../models/User');
 const logger = require('../../utils/logger');
 const OrderStatusMapper = require('../../utils/orderStatusMapper');
+const OrderTypeMapper = require('../../utils/orderTypeMapper');
 
 /**
  * TD Ameritrade Stock Broker Adapter
@@ -537,18 +538,10 @@ class TDAmeritradeAdapter extends BrokerAdapter {
   }
 
   /**
-   * Map order type to TD Ameritrade format
+   * Map order type to TD Ameritrade format using centralized mapper
    */
   mapOrderType(type) {
-    const typeMap = {
-      MARKET: 'MARKET',
-      LIMIT: 'LIMIT',
-      STOP: 'STOP',
-      STOP_LIMIT: 'STOP_LIMIT',
-      TRAILING_STOP: 'TRAILING_STOP'
-    };
-
-    return typeMap[type] || 'MARKET';
+    return OrderTypeMapper.mapType(type, 'tdameritrade');
   }
 
   /**
