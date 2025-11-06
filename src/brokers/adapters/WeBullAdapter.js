@@ -209,11 +209,7 @@ class WeBullAdapter extends BrokerAdapter {
         buyingPower: parseFloat(balance.buyingPower || balance.cashBalance || 0)
       };
     } catch (error) {
-      logger.error('[WeBullAdapter] Error fetching balance', {
-        error: error.message,
-        stack: error.stack
-      });
-      throw new Error(`Failed to get balance: ${error.message}`);
+      this.handleError('get balance', error);
     }
   }
 
@@ -242,11 +238,7 @@ class WeBullAdapter extends BrokerAdapter {
         positionType: pos.positionType || 'STOCK'
       }));
     } catch (error) {
-      logger.error('[WeBullAdapter] Error fetching positions', {
-        error: error.message,
-        stack: error.stack
-      });
-      throw new Error(`Failed to get positions: ${error.message}`);
+      this.handleError('get positions', error);
     }
   }
 
@@ -298,15 +290,12 @@ class WeBullAdapter extends BrokerAdapter {
         commission: 0 // WeBull is commission-free
       };
     } catch (error) {
-      logger.error('[WeBullAdapter] Error creating order', {
-        error: error.message,
-        stack: error.stack,
+      this.handleError('create order', error, {
         symbol: order.symbol,
         side: order.side,
         type: order.type,
         quantity: order.quantity
       });
-      throw new Error(`Failed to create order: ${error.message}`);
     }
   }
 
@@ -333,12 +322,6 @@ class WeBullAdapter extends BrokerAdapter {
 
       return false;
     } catch (error) {
-      logger.error('[WeBullAdapter] Error cancelling order', {
-        error: error.message,
-        stack: error.stack,
-        orderId
-      });
-
       // If order already filled/cancelled, consider it success
       if (error.message.includes('already') ||
           error.message.includes('not found') ||
@@ -346,7 +329,7 @@ class WeBullAdapter extends BrokerAdapter {
         return true;
       }
 
-      throw new Error(`Failed to cancel order: ${error.message}`);
+      this.handleError('cancel order', error, { orderId });
     }
   }
 
@@ -369,12 +352,7 @@ class WeBullAdapter extends BrokerAdapter {
         updatedAt: order.updatedTime
       };
     } catch (error) {
-      logger.error('[WeBullAdapter] Error fetching order status', {
-        error: error.message,
-        stack: error.stack,
-        orderId
-      });
-      throw new Error(`Failed to get order status: ${error.message}`);
+      this.handleError('get order status', error, { orderId });
     }
   }
 
@@ -421,14 +399,11 @@ class WeBullAdapter extends BrokerAdapter {
         quantity: parseFloat(order.quantity)
       };
     } catch (error) {
-      logger.error('[WeBullAdapter] Error setting stop-loss', {
-        error: error.message,
-        stack: error.stack,
+      this.handleError('set stop-loss', error, {
         symbol: params.symbol,
         stopPrice: params.stopPrice,
         type: params.type
       });
-      throw new Error(`Failed to set stop-loss: ${error.message}`);
     }
   }
 
@@ -461,13 +436,10 @@ class WeBullAdapter extends BrokerAdapter {
         quantity: parseFloat(order.quantity)
       };
     } catch (error) {
-      logger.error('[WeBullAdapter] Error setting take-profit', {
-        error: error.message,
-        stack: error.stack,
+      this.handleError('set take-profit', error, {
         symbol: params.symbol,
         limitPrice: params.limitPrice
       });
-      throw new Error(`Failed to set take-profit: ${error.message}`);
     }
   }
 
@@ -513,12 +485,7 @@ class WeBullAdapter extends BrokerAdapter {
         commission: 0 // WeBull is commission-free
       }));
     } catch (error) {
-      logger.error('[WeBullAdapter] Error fetching order history', {
-        error: error.message,
-        stack: error.stack,
-        filters
-      });
-      throw new Error(`Failed to get order history: ${error.message}`);
+      this.handleError('get order history', error, { filters });
     }
   }
 
@@ -550,12 +517,7 @@ class WeBullAdapter extends BrokerAdapter {
         timestamp: quote.timestamp || new Date().toISOString()
       };
     } catch (error) {
-      logger.error('[WeBullAdapter] Error fetching market price', {
-        error: error.message,
-        stack: error.stack,
-        symbol
-      });
-      throw new Error(`Failed to get market price: ${error.message}`);
+      this.handleError('get market price', error, { symbol });
     }
   }
 
