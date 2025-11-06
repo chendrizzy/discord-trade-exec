@@ -140,6 +140,11 @@ describe('OAuth2 Authorization & Callback Flow', () => {
     // Reset axios mock
     axios.post.mockReset();
     axios.get.mockReset();
+
+    // Trigger garbage collection to immediately reclaim freed memory
+    if (global.gc) {
+      global.gc();
+    }
   });
 
   describe('Broker OAuth2 Authorization Flow', () => {

@@ -140,6 +140,11 @@ describe('OAuth2 Token Refresh', () => {
     // Reset axios mock
     axios.post.mockReset();
     axios.get.mockReset();
+
+    // Trigger garbage collection to immediately reclaim freed memory
+    if (global.gc) {
+      global.gc();
+    }
   });
 
   describe('Token Refresh Mechanism', () => {
