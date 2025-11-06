@@ -72,12 +72,7 @@ class KrakenAdapter extends CCXTBrokerAdapter {
         currency: 'USD'
       };
     } catch (error) {
-      logger.error('[KrakenAdapter] Error fetching balance', {
-        error: error.message,
-        stack: error.stack,
-        currency
-      });
-      throw error;
+      this.handleError('fetch balance', error, { currency });
     }
   }
 
@@ -126,15 +121,12 @@ class KrakenAdapter extends CCXTBrokerAdapter {
         type: order.type
       };
     } catch (error) {
-      logger.error('[KrakenAdapter] Error creating order', {
-        error: error.message,
-        stack: error.stack,
+      this.handleError('create order', error, {
         symbol: order.symbol,
         side: order.side,
         type: order.type,
         quantity: order.quantity
       });
-      throw error;
     }
   }
 
@@ -165,13 +157,10 @@ class KrakenAdapter extends CCXTBrokerAdapter {
         stopPrice: params.stopPrice
       };
     } catch (error) {
-      logger.error('[KrakenAdapter] Error setting stop-loss', {
+      this.handleError('set stop-loss', error, {
         symbol: params.symbol,
-        stopPrice: params.stopPrice,
-        error: error.message,
-        stack: error.stack
+        stopPrice: params.stopPrice
       });
-      throw error;
     }
   }
 
@@ -202,13 +191,10 @@ class KrakenAdapter extends CCXTBrokerAdapter {
         limitPrice: params.limitPrice
       };
     } catch (error) {
-      logger.error('[KrakenAdapter] Error setting take-profit', {
+      this.handleError('set take-profit', error, {
         symbol: params.symbol,
-        limitPrice: params.limitPrice,
-        error: error.message,
-        stack: error.stack
+        limitPrice: params.limitPrice
       });
-      throw error;
     }
   }
 
