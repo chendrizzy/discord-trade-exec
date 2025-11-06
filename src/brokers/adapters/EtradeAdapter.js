@@ -287,11 +287,7 @@ class EtradeAdapter extends BrokerAdapter {
 
       return [];
     } catch (error) {
-      logger.error('[EtradeAdapter] Error fetching accounts', {
-        error: error.message,
-        stack: error.stack
-      });
-      throw new Error(`Failed to list accounts: ${error.message}`);
+      this.handleError('list accounts', error);
     }
   }
 
@@ -324,12 +320,7 @@ class EtradeAdapter extends BrokerAdapter {
         profitLossPercent: (computed.unrealizedGain / computed.RealTimeValues.totalAccountValue) * 100
       };
     } catch (error) {
-      logger.error('[EtradeAdapter] Error fetching balance', {
-        error: error.message,
-        stack: error.stack,
-        accountIdKey: this.accountIdKey
-      });
-      throw new Error(`Failed to get balance: ${error.message}`);
+      this.handleError('get balance', error, { accountIdKey: this.accountIdKey });
     }
   }
 
@@ -414,15 +405,12 @@ class EtradeAdapter extends BrokerAdapter {
         createdAt: placedOrder.orderPlacedTime
       };
     } catch (error) {
-      logger.error('[EtradeAdapter] Error creating order', {
-        error: error.message,
-        stack: error.stack,
+      this.handleError('create order', error, {
         symbol: order.symbol,
         side: order.side,
         type: order.type,
         accountIdKey: this.accountIdKey
       });
-      throw new Error(`Failed to create order: ${error.message}`);
     }
   }
 
@@ -443,19 +431,12 @@ class EtradeAdapter extends BrokerAdapter {
 
       return response.CancelOrderResponse.resultMessage === 'SUCCESS';
     } catch (error) {
-      logger.error('[EtradeAdapter] Error cancelling order', {
-        orderId,
-        error: error.message,
-        stack: error.stack,
-        accountIdKey: this.accountIdKey
-      });
-
       // If order already filled/cancelled, consider it success
       if (error.message.includes('already') || error.message.includes('not found')) {
         return true;
       }
 
-      throw new Error(`Failed to cancel order: ${error.message}`);
+      this.handleError('cancel order', error, { orderId, accountIdKey: this.accountIdKey });
     }
   }
 
@@ -486,12 +467,7 @@ class EtradeAdapter extends BrokerAdapter {
         dayPnLPercent: pos.daysGainPct
       }));
     } catch (error) {
-      logger.error('[EtradeAdapter] Error fetching positions', {
-        error: error.message,
-        stack: error.stack,
-        accountIdKey: this.accountIdKey
-      });
-      throw new Error(`Failed to get positions: ${error.message}`);
+      this.handleError('get positions', error, { accountIdKey: this.accountIdKey });
     }
   }
 
@@ -527,14 +503,11 @@ class EtradeAdapter extends BrokerAdapter {
         trailPercent: params.trailPercent || 0
       };
     } catch (error) {
-      logger.error('[EtradeAdapter] Error setting stop-loss', {
-        error: error.message,
-        stack: error.stack,
+      this.handleError('set stop-loss', error, {
         symbol: params.symbol,
         stopPrice: params.stopPrice,
         accountIdKey: this.accountIdKey
       });
-      throw new Error(`Failed to set stop-loss: ${error.message}`);
     }
   }
 
@@ -565,14 +538,11 @@ class EtradeAdapter extends BrokerAdapter {
         limitPrice: params.limitPrice
       };
     } catch (error) {
-      logger.error('[EtradeAdapter] Error setting take-profit', {
-        error: error.message,
-        stack: error.stack,
+      this.handleError('set take-profit', error, {
         symbol: params.symbol,
         limitPrice: params.limitPrice,
         accountIdKey: this.accountIdKey
       });
-      throw new Error(`Failed to set take-profit: ${error.message}`);
     }
   }
 
@@ -617,13 +587,7 @@ class EtradeAdapter extends BrokerAdapter {
         updatedAt: order.orderPlacedTime
       }));
     } catch (error) {
-      logger.error('[EtradeAdapter] Error fetching order history', {
-        error: error.message,
-        stack: error.stack,
-        accountIdKey: this.accountIdKey,
-        filters
-      });
-      throw new Error(`Failed to get order history: ${error.message}`);
+      this.handleError('get order history', error, { accountIdKey: this.accountIdKey, filters });
     }
   }
 
@@ -649,12 +613,7 @@ class EtradeAdapter extends BrokerAdapter {
         timestamp: quote.dateTime
       };
     } catch (error) {
-      logger.error('[EtradeAdapter] Error fetching market price', {
-        symbol,
-        error: error.message,
-        stack: error.stack
-      });
-      throw new Error(`Failed to get market price: ${error.message}`);
+      this.handleError('get market price', error, { symbol });
     }
   }
 
