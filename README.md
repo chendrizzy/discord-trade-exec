@@ -1,239 +1,286 @@
-# Documentation Index
+# Discord Trade Executor
 
-**Last Updated**: October 23, 2025
+> **Automate trade execution from Discord trading signals with multi-broker support, real-time analytics, and intelligent risk management**
 
-This directory contains all project documentation organized by type and purpose.
-
-## 📁 Directory Structure
-
-```
-docs/
-├── README.md              # This file - documentation index
-├── guides/                # Setup, integration, and process guides
-├── plans/                 # Planning documents and roadmaps
-├── reports/               # Project reports
-│   ├── summaries/        # Feature and change summaries
-│   ├── analysis/         # Technical analysis and research
-│   └── status/           # Project status and progress reports
-├── diagrams/             # Visual aids and architecture diagrams
-├── deployment/           # Deployment processes and checklists
-├── api/                  # API documentation
-├── architecture/         # Architecture documentation
-├── billing/              # Billing system documentation
-├── oauth2/               # OAuth2 implementation docs
-├── security/             # Security documentation
-├── websocket/            # WebSocket implementation docs
-└── archive/              # Archived/deprecated documentation
-```
-
-## 📖 Guides
-
-**Setup & Configuration:**
-- [Automated Setup](guides/AUTOMATED-SETUP.md)
-- [Broker Setup](guides/BROKER-SETUP.md)
-- [Broker Test Accounts Setup](guides/BROKER_TEST_ACCOUNTS_SETUP.md)
-- [Exchange Setup](guides/EXCHANGE-SETUP.md)
-- [IBKR Setup Guide](guides/IBKR_SETUP_GUIDE.md)
-- [Quick Setup - All Brokers](guides/QUICK_SETUP_ALL_BROKERS.md)
-- [OAuth2 Setup](guides/OAUTH2_SETUP.md)
-- [Polar Setup](guides/POLAR_SETUP.md)
-- [Polar Products Config](guides/POLAR_PRODUCTS_CONFIG.md)
-- [Marketing Setup](guides/MARKETING-SETUP.md)
-
-**Recommended OAuth Brokers** (Commission-Free, Multi-User Ready):
-- [Alpaca Setup Guide](docs/guides/alpaca-setup-guide.md) - Instant API access, stocks, options, crypto
-- [Tradier Setup Guide](docs/guides/tradier-setup-guide.md) - Professional API, free sandbox testing
-- [Schwab Setup Guide](docs/guides/schwab-setup-guide.md) - Trusted brand, comprehensive trading
-
-**Integration & Implementation:**
-- [API Integration Guide](guides/API_INTEGRATION_GUIDE.md)
-- [Analytics API](guides/ANALYTICS_API.md)
-- [Analytics Dashboard Guide](guides/ANALYTICS_DASHBOARD_GUIDE.md)
-- [Event Tracking Integration](guides/EVENT_TRACKING_INTEGRATION.md)
-- [MFA Implementation](guides/MFA_IMPLEMENTATION.md)
-- [Dashboard Setup Guide](guides/DASHBOARD_SETUP_GUIDE.md)
-
-**Monitoring & Performance:**
-- [Performance Monitoring](guides/PERFORMANCE_MONITORING.md)
-- [WebSocket Guide](guides/WEBSOCKET-GUIDE.md)
-- [WebSocket Performance Metrics](guides/WEBSOCKET-PERFORMANCE-METRICS.md)
-- [WebSocket Manual Testing](guides/WEBSOCKET-MANUAL-TESTING.md)
-
-**Troubleshooting:**
-- [Moomoo OpenD Troubleshooting](guides/MOOMOO_OPEND_TROUBLESHOOTING.md)
-- [Moomoo Support Request](guides/MOOMOO_SUPPORT_REQUEST.md)
-- [Cohort Analysis Guide](guides/COHORT_ANALYSIS_GUIDE.md)
-
-## Plans
-
-Strategic planning and roadmaps:
-
-- [Broker Integration Roadmap](plans/BROKER_INTEGRATION_ROADMAP.md) - Broker integration strategy and timeline
-- [Coverage Improvement Plan](plans/COVERAGE_IMPROVEMENT_PLAN.md) - Test coverage improvement strategy
-- [Implementation Plan](plans/IMPLEMENTATION_PLAN.md) - Overall implementation strategy
-- [Implementation Roadmap](plans/IMPLEMENTATION_ROADMAP.md) - Detailed implementation roadmap
-- [Phase 2 Plan](plans/PHASE_2_PLAN.md) - Phase 2 implementation plan
-- [QA Broker Testing Plan](plans/QA_BROKER_TESTING_PLAN.md) - Broker testing strategy
-- [Week 1-2 Parallel Execution Plan](plans/WEEK_1-2_PARALLEL_EXECUTION_PLAN.md) - Parallel workstream strategy
-- [Week 3 Deployment Plan](plans/WEEK_3_DEPLOYMENT_PLAN.md) - Week 3 deployment strategy
-- [Week 3 Deployment Readiness](plans/WEEK_3_DEPLOYMENT_READINESS.md) - Week 3 readiness assessment
-- [Week 3 Track B Deployment Strategy](plans/WEEK3_TRACKB_DEPLOYMENT_STRATEGY.md) - Track B deployment approach
-- [Week 3 Track B Test Strategy](plans/WEEK3_TRACKB_TEST_STRATEGY.md) - Track B testing approach
-
-## Reports
-
-### Summaries
-
-Feature completions and implementation summaries:
-
-- [Broker Integration Summary](reports/summaries/BROKER_INTEGRATION_SUMMARY.md) - OAuth2 broker integration completion
-- [Completion Report](reports/summaries/COMPLETION_REPORT.md) - Overall project completion status
-- [IBKR & Moomoo Warning Update Summary](reports/summaries/ibkr-moomoo-warning-update-summary.md) - Updated broker warnings with cloud deployment clarifications
-- [Dashboard Fix Summary](reports/summaries/DASHBOARD_FIX_SUMMARY.md) - Dashboard UI improvements
-- [Deployment Blockers Complete](reports/summaries/DEPLOYMENT_BLOCKERS_COMPLETE.md) - Resolution of deployment blockers
-- [Deployment Ready Summary](reports/summaries/DEPLOYMENT_READY_SUMMARY.md) - Deployment readiness assessment
-- [Deployment Summary](reports/summaries/DEPLOYMENT_SUMMARY.md) - Deployment milestones and outcomes
-- [Documentation Reorganization](reports/summaries/DOCUMENTATION_REORGANIZATION_2025-10-23.md) - Documentation structure improvements
-- [Dual Dashboard Deployment](reports/summaries/DUAL_DASHBOARD_DEPLOYMENT.md) - Multi-dashboard deployment approach
-- [Implementation Complete T045-T046-T049](reports/summaries/IMPLEMENTATION_COMPLETE_T045_T046_T049.md) - Task completion report
-- [Implementation Summary](reports/summaries/implementation-summary.md) - General implementation progress
-- [Phase 1 Summary](reports/summaries/PHASE_1_SUMMARY.md) - Phase 1 completion report
-- [Phase 1 WebSocket Complete](reports/summaries/PHASE_1_WEBSOCKET_COMPLETE.md) - WebSocket implementation completion
-- [Phase 3 Completion Report](reports/summaries/PHASE_3_COMPLETION_REPORT.md) - Phase 3 milestone completion
-- [Phase 3 Testing Complete](reports/summaries/PHASE_3_TESTING_COMPLETE_SUMMARY.md) - Phase 3 testing outcomes
-- [Session Summary](reports/summaries/SESSION_SUMMARY.md) - Development session summary
-- [SpecKit Implementation Report](reports/summaries/SPECKIT_IMPLEMENTATION_REPORT.md) - SpecKit workflow implementation
-- [Standardization Report](reports/summaries/STANDARDIZATION_REPORT.md) - Code standardization efforts
-- [Testing Ready Summary](reports/summaries/TESTING_READY_SUMMARY.md) - Testing infrastructure readiness
-- [US-008 JWT WebSocket Auth Complete](reports/summaries/US-008_JWT_WEBSOCKET_AUTH_COMPLETE.md) - User story completion
-- [Week 2 Complete](reports/summaries/WEEK_2_COMPLETE.md) - Week 2 milestone completion
-- [Week 3 Complete](reports/summaries/WEEK_3_COMPLETE.md) - Week 3 milestone completion
-- [Week 3 Deployment Success](reports/summaries/WEEK_3_DEPLOYMENT_SUCCESS.md) - Week 3 deployment outcomes
-- [Week 3 Track B Deployment Success](reports/summaries/WEEK_3_TRACKB_DEPLOYMENT_SUCCESS.md) - Track B deployment outcomes
-- [Week 3 Track B Deployment Summary](reports/summaries/WEEK3_TRACKB_DEPLOYMENT_SUMMARY.md) - Track B deployment details
-
-### Analysis
-
-Technical research and architectural analysis:
-
-- [API Signal Quality](reports/analysis/API-SIGNAL-QUALITY.md) - API signal quality assessment
-- [Broker API Access Requirements](reports/analysis/broker-api-access-requirements.md) - API approval processes and timelines
-- [Broker Integration Options Analysis](reports/analysis/broker-integration-options-analysis.md) - SnapTrade viability and alternative solutions for IBKR/Moomoo integration
-- [Churn Prediction Algorithm](reports/analysis/CHURN_PREDICTION_ALGORITHM.md) - User churn prediction model
-- [Component Inventory](reports/analysis/COMPONENT_INVENTORY.md) - System component catalog
-- [Comprehensive Testing Report](reports/analysis/COMPREHENSIVE_TESTING_REPORT.md) - Full testing analysis
-- [CSS Sidebar Fix Analysis](reports/analysis/CSS_SIDEBAR_FIX_ANALYSIS.md) - CSS sidebar issue resolution
-- [Database Queries](reports/analysis/DATABASE_QUERIES.md) - Database query analysis and optimization
-- [IBKR Multi-User Limitation](reports/analysis/ibkr-multi-user-limitation.md) - Interactive Brokers architectural constraints
-- [Mobile Nav Fix Report](reports/analysis/MOBILE_NAV_FIX_REPORT.md) - Mobile navigation improvements
-- [Multi-User Architecture Audit](reports/analysis/multi-user-architecture-audit.md) - Broker compatibility assessment for multi-user deployments
-- [Multi-Tenant Security Architecture](reports/analysis/MULTI_TENANT_SECURITY_ARCHITECTURE.md) - Multi-tenancy security design
-- [OpenSpec Consolidated Review](reports/analysis/OPENSPEC_CONSOLIDATED_REVIEW.md) - OpenSpec implementation review
-- [OpenSpec Status Analysis](reports/analysis/OPENSPEC_STATUS_ANALYSIS.md) - OpenSpec integration status
-- [Performance Infrastructure Assessment](reports/analysis/PERFORMANCE_INFRASTRUCTURE_ASSESSMENT.md) - Performance evaluation
-- [Pricing Recommendations](reports/analysis/PRICING_RECOMMENDATIONS.md) - Pricing strategy recommendations
-- [Pricing Research Specification](reports/analysis/PRICING_RESEARCH_SPECIFICATION.md) - Detailed pricing research
-- [Security Audit](reports/analysis/SECURITY_AUDIT.md) - Security vulnerability assessment
-- [Security Audit Checklist](reports/analysis/SECURITY_AUDIT_CHECKLIST.md) - Security audit procedures
-- [Specification Analysis Report](reports/analysis/SPECIFICATION_ANALYSIS_REPORT.md) - Project specification analysis
-- [Subscription Architecture](reports/analysis/SUBSCRIPTION_ARCHITECTURE.md) - Subscription system design
-- [Technical Debt](reports/analysis/TECH-DEBT.md) - Technical debt inventory
-- [Unit Economics](reports/analysis/UNIT_ECONOMICS.md) - Business unit economics analysis
-- [UX Research and Design Recommendations](reports/analysis/UX_RESEARCH_AND_DESIGN_RECOMMENDATIONS.md) - UX improvements
-
-### Status
-
-Project progress and test status:
-
-- [Broker Integration Status](reports/status/BROKER_INTEGRATION_STATUS.md) - Broker connection implementation status
-- [Broker Testing Bug Report](reports/status/BROKER_TESTING_BUG_REPORT.md) - Broker testing issues
-- [Dashboard UI Testing Status](reports/status/DASHBOARD_UI_TESTING_STATUS.md) - Dashboard UI test coverage
-- [E2E Test Status](reports/status/E2E_TEST_STATUS.md) - End-to-end test progress
-- [Final Test Status](reports/status/FINAL_TEST_STATUS.md) - Final testing status before deployment
-- [Implementation Status](reports/status/IMPLEMENTATION_STATUS.md) - Current implementation progress
-- [Phase 1.5 Features](reports/status/PHASE-1.5-FEATURES.md) - Phase 1.5 feature tracking
-- [Phase 3.8 Monitoring Report](reports/status/PHASE-3.8-MONITORING-REPORT.md) - Phase 3.8 monitoring status
-- [Phase 3.8 Monitoring](reports/status/PHASE_3.8_MONITORING.md) - Monitoring implementation status
-- [Project Completion Requirements](reports/status/PROJECT_COMPLETION_REQUIREMENTS.md) - Outstanding requirements
-- [QA Immediate Next Steps](reports/status/QA_IMMEDIATE_NEXT_STEPS.md) - QA action items
-- [SC-025 Test Coverage Progress](reports/status/SC-025_TEST_COVERAGE_PROGRESS.md) - Test coverage tracking
-- [Test Automation Assessment](reports/status/TEST_AUTOMATION_ASSESSMENT.md) - Test automation evaluation
-- [Test Report](reports/status/TEST_REPORT.md) - Comprehensive test report
-- [Test Results 2025-10-13](reports/status/TEST-RESULTS-2025-10-13.md) - Historical test results
-- [Test Results Summary](reports/status/TEST_RESULTS_SUMMARY.md) - Test results overview
-
-## Architecture
-
-System architecture and design documentation:
-
-- [Multi-User Compatibility](architecture/multi-user-compatibility.md) - Broker deployment modes and multi-user architecture requirements
-- [Cloud Deployment Options](architecture/cloud-deployment-options.md) - IBKR & Moomoo cloud deployment guide with IBeam, Docker, and alternative solutions
-
-## Deployment
-
-Deployment processes and checklists:
-
-- **[🚀 Release-Ready Checklist](deployment/RELEASE_READY_CHECKLIST.md)** - **COMPREHENSIVE** pre-launch checklist (150+ action items, 1,753 lines)
-- [Deploy Now](deployment/DEPLOY-NOW.md) - Quick deployment guide
-- [Deployment](deployment/DEPLOYMENT.md) - Deployment procedures
-- [Deployment Checklist](deployment/DEPLOYMENT_CHECKLIST.md) - General deployment checklist
-- [Final Deployment Checklist](deployment/FINAL_DEPLOYMENT_CHECKLIST.md) - Final pre-deployment verification
-- [Pre-Deployment Checklist](deployment/PRE-DEPLOYMENT-CHECKLIST.md) - Pre-deployment verification
-- [Railway Deployment Fix](deployment/RAILWAY_DEPLOYMENT_FIX.md) - Railway-specific deployment issues
-- [Railway Quick Start](deployment/RAILWAY_QUICK_START.md) - Railway deployment quick start
-- [Week 3 Track B Deployment Checklist](deployment/WEEK3_TRACKB_DEPLOYMENT_CHECKLIST.md) - Track B deployment checklist
-
-## 🎨 Diagrams
-
-Architecture diagrams, flowcharts, and visual aids are stored in the `diagrams/` directory.
-
-## Archive
-
-Historical and deprecated documentation:
-
-- [Claude Session Notes](archive/CLAUDE.md) - Historical AI assistant session logs
-- [Warp Session Notes](archive/WARP.md) - Historical AI assistant session logs
-- Previous versions of documentation
-- Deprecated guides and specifications
-- Historical project records
+[![Node Version](https://img.shields.io/badge/node-%3E%3D22.11.0-green.svg)](https://nodejs.org)
+[![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
+[![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](CONTRIBUTING.md)
 
 ---
 
-## Documentation Standards
+## 🚀 What is This?
 
-All documentation follows these standards:
+Discord Trade Executor is a SaaS platform that automatically executes trades from Discord channel signals across multiple brokers. If you're in a trading Discord server that posts signals like "BUY AAPL @ $150", this bot captures those signals and executes them automatically on your connected brokerage account(s).
 
-- **Clear titles and dates**: Every document has version date
-- **Actionable insights**: Focus on implementation details
-- **Visual aids**: Diagrams for complex concepts
-- **Cross-references**: Links to related documentation
-- **Consistent formatting**: Markdown with proper structure
-- **Regular updates**: Reflect current codebase state
-
-## Contributing to Documentation
-
-When adding new documentation:
-
-1. **Choose the right location**:
-   - Setup/how-to → `guides/`
-   - Future plans → `plans/`
-   - Completion reports → `reports/summaries/`
-   - Research/analysis → `reports/analysis/`
-   - Progress updates → `reports/status/`
-   - Deployment procedures → `deployment/`
-
-2. **Include metadata**:
-   - Title, date, version
-   - Author(s) if applicable
-   - Related documents
-
-3. **Follow naming conventions**:
-   - UPPERCASE_WITH_UNDERSCORES.md or
-   - lowercase-with-hyphens.md
-   - Consistent within each directory
-
-4. **Update this index** after adding new documentation
+**Current Status: Alpha**
+- ✅ **Alpaca broker fully supported**
+- 🔄 Additional brokers (Schwab, E*TRADE, TD Ameritrade, WeBull) coming soon
 
 ---
 
-**For questions about documentation organization, refer to [AGENTS.md](../AGENTS.md) in the root directory.**
+## ✨ Features
+
+### 🤖 Automated Trade Execution
+- Real-time Discord signal detection and parsing
+- Sub-second execution via WebSocket connections
+- Support for stocks, options, and cryptocurrency
+- Stop-loss and take-profit automation
+
+### 🏦 Multi-Broker Support
+- **Alpaca Markets** (Live - stocks, options, crypto)
+- IBKR, Schwab, E*TRADE, TD Ameritrade (Coming soon)
+- Binance, Kraken, Coinbase Pro (Coming soon)
+- Secure OAuth2 broker authentication
+
+### ⚡ Risk Management
+- Intelligent position sizing (fixed, risk-based, Kelly Criterion)
+- Daily loss limits and circuit breakers
+- Real-time portfolio tracking
+- Customizable risk parameters per signal source
+
+### 📊 Analytics Dashboard
+- Real-time performance metrics
+- P&L tracking across all brokers
+- Signal source performance analysis
+- WebSocket live updates
+
+### 🔐 Enterprise Security
+- AWS KMS encryption for credentials
+- Multi-factor authentication (TOTP)
+- Session management with Redis
+- Comprehensive audit logging
+
+### 💳 SaaS Business Model
+- Three subscription tiers ($49-$299/month)
+- Polar.sh billing integration
+- Free tier: 5 signals/day, 1 broker
+- Pro tier: Unlimited signals, multi-broker support
+
+---
+
+## 📸 Screenshots
+
+> Note: Screenshots coming soon - project currently in alpha testing phase
+
+---
+
+## 🚀 Quick Start
+
+### Prerequisites
+
+- Node.js >= 22.11.0
+- MongoDB Atlas account (free tier works)
+- Redis instance (required for queues/caching)
+- Discord bot account
+- Alpaca brokerage account (free sandbox available)
+
+### Installation
+
+```bash
+# 1. Clone the repository
+git clone https://github.com/yourusername/discord-trade-exec.git
+cd discord-trade-exec
+
+# 2. Install dependencies
+npm install
+
+# 3. Copy environment template
+cp .env.example .env
+
+# 4. Configure required environment variables
+# Edit .env with your:
+# - MongoDB connection string
+# - Redis URL
+# - Discord bot credentials
+# - Alpaca API keys
+
+# 5. Run database migrations
+npm run db:migrate
+
+# 6. Start development server
+npm run dev
+
+# 7. Build dashboard (separate terminal)
+npm run dev:dashboard
+```
+
+### Environment Setup
+
+See [`.env.example`](.env.example) for all configuration options. Required variables:
+
+```env
+# Database
+MONGODB_URI=mongodb+srv://...
+REDIS_URL=redis://localhost:6379
+
+# Discord Bot
+DISCORD_BOT_TOKEN=your_bot_token
+DISCORD_CLIENT_ID=your_client_id
+DISCORD_CLIENT_SECRET=your_client_secret
+
+# Security
+SESSION_SECRET=generate_random_32_byte_string
+JWT_SECRET=generate_random_32_byte_string
+ENCRYPTION_KEY=generate_random_32_byte_string
+
+# Alpaca (Sandbox for testing)
+ALPACA_CLIENT_ID=your_alpaca_client_id
+ALPACA_CLIENT_SECRET=your_alpaca_client_secret
+```
+
+### Deployment
+
+One-click deployment to Railway:
+
+```bash
+# Deploy to production
+npm run deploy
+
+# Or use Railway CLI
+railway up
+```
+
+Full deployment guide: [docs/deployment/RAILWAY_QUICK_START.md](docs/deployment/RAILWAY_QUICK_START.md)
+
+---
+
+## 📚 Documentation
+
+### For Users
+- **[Getting Started Guide](docs/guides/QUICK_SETUP_ALL_BROKERS.md)** - Complete setup walkthrough
+- **[Broker Setup Guides](docs/guides/)** - Alpaca, IBKR, Schwab, and more
+- **[FAQ](docs/FAQ.md)** - Common questions and troubleshooting
+
+### For Developers
+- **[API Documentation](docs/api/WEBSOCKET_API.md)** - WebSocket and REST API reference
+- **[Architecture Overview](openspec/project.md)** - System design and tech stack
+- **[Contributing Guide](CONTRIBUTING.md)** - How to contribute
+- **[Full Documentation Index](docs/INDEX.md)** - All guides and references
+
+---
+
+## 🏗️ Architecture
+
+### Tech Stack
+- **Backend:** Node.js, Express, MongoDB, Redis
+- **Frontend:** React, Vite, Tailwind CSS
+- **Real-time:** Socket.IO, WebSockets
+- **Queue:** BullMQ (Redis-backed)
+- **Security:** AWS KMS, bcrypt, JWT
+- **Billing:** Polar.sh
+- **Deployment:** Railway, MongoDB Atlas
+
+### Key Components
+```
+src/
+├── bot/              # Discord bot integration
+├── brokers/          # Broker API adapters
+│   ├── adapters/     # Alpaca, IBKR, Schwab, etc.
+│   └── BrokerAdapter.js  # Base adapter class
+├── services/         # Business logic
+│   ├── TradeExecutionService.js
+│   ├── RiskManagementService.js
+│   ├── OAuth2Service.js
+│   └── billing/      # Subscription management
+├── routes/           # Express API routes
+├── middleware/       # Auth, rate limiting, etc.
+└── dashboard/        # React dashboard UI
+```
+
+---
+
+## ⚠️ Disclaimers
+
+### Trading Risks
+**IMPORTANT:** Automated trading involves substantial risk and is not suitable for all investors. You may lose some or all of your initial investment. Never invest more than you can afford to lose.
+
+### Not Financial Advice
+This software is a technology tool for executing trades. It **does not provide investment advice, trading signals, or recommendations**. Users are solely responsible for their trading decisions.
+
+### Broker Compliance
+You are responsible for ensuring your use of broker APIs complies with their Terms of Service. This platform automates execution but does not bypass broker rules or regulations.
+
+### Alpha Software
+This is alpha-stage software. Bugs may exist. Use at your own risk. **Never connect production accounts with real money during alpha testing.**
+
+---
+
+## 🗺️ Roadmap
+
+### Alpha Phase (Current - Q1 2025)
+- [x] Discord bot with signal parsing
+- [x] Alpaca broker integration
+- [x] Risk management system
+- [x] Analytics dashboard
+- [x] Subscription billing
+- [ ] Security hardening (MFA completion)
+- [ ] Production testing with Alpaca sandbox
+
+### Beta Phase (Q2 2025)
+- [ ] IBKR integration
+- [ ] Schwab integration
+- [ ] Multi-broker portfolio view
+- [ ] Advanced signal parsing (ML/NLP)
+- [ ] Mobile app (React Native)
+
+### Public Launch (Q3 2025)
+- [ ] 5+ broker integrations
+- [ ] Cryptocurrency exchange support
+- [ ] White-label SaaS offering
+- [ ] API for third-party developers
+
+---
+
+## 🤝 Contributing
+
+Contributions are welcome! Please read [CONTRIBUTING.md](CONTRIBUTING.md) for details on our code of conduct and the process for submitting pull requests.
+
+### Development Setup
+
+```bash
+# Run tests
+npm test
+
+# Run tests in watch mode
+npm run test:watch
+
+# Run linter
+npm run lint
+
+# Run type checks
+npm run typecheck
+```
+
+---
+
+## 📜 License
+
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+
+---
+
+## 🙏 Acknowledgments
+
+- Discord.js community for excellent documentation
+- Alpaca Markets for developer-friendly API
+- MongoDB Atlas for reliable database hosting
+- Railway for simple deployment platform
+
+---
+
+## 📞 Support
+
+- **Documentation:** [docs/](docs/INDEX.md)
+- **Issues:** [GitHub Issues](https://github.com/yourusername/discord-trade-exec/issues)
+- **Discussions:** [GitHub Discussions](https://github.com/yourusername/discord-trade-exec/discussions)
+- **Email:** support@yourdomain.com (update with your email)
+
+---
+
+## 🌟 Star History
+
+If this project helps you, consider giving it a ⭐️!
+
+---
+
+**Built with ❤️ by the Discord Trade Executor Team**
