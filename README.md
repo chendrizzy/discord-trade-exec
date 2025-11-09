@@ -1,6 +1,6 @@
 # Discord Trade Executor
 
-> **Automate trade execution from Discord trading signals with multi-broker support, real-time analytics, and intelligent risk management**
+> **Automate trade execution from Discord trading signals with Alpaca broker integration, real-time analytics, and intelligent risk management**
 
 [![Node Version](https://img.shields.io/badge/node-%3E%3D22.11.0-green.svg)](https://nodejs.org)
 [![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
@@ -10,11 +10,12 @@
 
 ## 🚀 What is This?
 
-Discord Trade Executor is a SaaS platform that automatically executes trades from Discord channel signals across multiple brokers. If you're in a trading Discord server that posts signals like "BUY AAPL @ $150", this bot captures those signals and executes them automatically on your connected brokerage account(s).
+Discord Trade Executor is a SaaS platform that automatically executes trades from Discord channel signals. If you're in a trading Discord server that posts signals like "BUY AAPL @ $150", this bot captures those signals and executes them automatically on your Alpaca brokerage account.
 
-**Current Status: Alpha**
-- ✅ **Alpaca broker fully supported**
-- 🔄 Additional brokers (Schwab, E*TRADE, TD Ameritrade, WeBull) coming soon
+**Current Status: Alpha** (Alpaca broker only)
+- ✅ **Alpaca Markets** - stocks and cryptocurrency
+- ⚠️ **Paper trading recommended** - never trade real money during alpha
+- 🔄 Additional brokers planned for beta phase
 
 ---
 
@@ -23,14 +24,14 @@ Discord Trade Executor is a SaaS platform that automatically executes trades fro
 ### 🤖 Automated Trade Execution
 - Real-time Discord signal detection and parsing
 - Sub-second execution via WebSocket connections
-- Support for stocks, options, and cryptocurrency
+- Support for stocks and cryptocurrency (via Alpaca)
 - Stop-loss and take-profit automation
 
-### 🏦 Multi-Broker Support
-- **Alpaca Markets** (Live - stocks, options, crypto)
-- IBKR, Schwab, E*TRADE, TD Ameritrade (Coming soon)
-- Binance, Kraken, Coinbase Pro (Coming soon)
-- Secure OAuth2 broker authentication
+### 🏦 Broker Integration
+- **Alpaca Markets** (Alpha - stocks and crypto)
+- Secure OAuth2 authentication
+- Additional brokers planned for beta phase
+- Paper trading sandbox available
 
 ### ⚡ Risk Management
 - Intelligent position sizing (fixed, risk-based, Kelly Criterion)
@@ -40,7 +41,7 @@ Discord Trade Executor is a SaaS platform that automatically executes trades fro
 
 ### 📊 Analytics Dashboard
 - Real-time performance metrics
-- P&L tracking across all brokers
+- P&L tracking and portfolio monitoring
 - Signal source performance analysis
 - WebSocket live updates
 
@@ -50,11 +51,11 @@ Discord Trade Executor is a SaaS platform that automatically executes trades fro
 - Session management with Redis
 - Comprehensive audit logging
 
-### 💳 SaaS Business Model
-- Three subscription tiers ($49-$299/month)
+### 💳 SaaS Business Model (Planned)
+- Subscription tiers planned for beta phase
 - Polar.sh billing integration
-- Free tier: 5 signals/day, 1 broker
-- Pro tier: Unlimited signals, multi-broker support
+- Alpha testing currently free
+- Pricing TBD based on beta feedback
 
 ---
 
@@ -78,7 +79,7 @@ Discord Trade Executor is a SaaS platform that automatically executes trades fro
 
 ```bash
 # 1. Clone the repository
-git clone https://github.com/yourusername/discord-trade-exec.git
+git clone https://github.com/chendrizzy/discord-trade-exec.git
 cd discord-trade-exec
 
 # 2. Install dependencies
@@ -147,9 +148,9 @@ Full deployment guide: [docs/deployment/RAILWAY_QUICK_START.md](docs/deployment/
 ## 📚 Documentation
 
 ### For Users
-- **[Getting Started Guide](docs/guides/QUICK_SETUP_ALL_BROKERS.md)** - Complete setup walkthrough
-- **[Broker Setup Guides](docs/guides/)** - Alpaca, IBKR, Schwab, and more
-- **[FAQ](docs/FAQ.md)** - Common questions and troubleshooting
+- **[Getting Started Guide](https://github.com/chendrizzy/discord-trade-exec#-quick-start)** - Complete setup walkthrough
+- **[Alpaca Setup Guide](CONTRIBUTING.md#broker-adapter-development)** - Broker integration guide
+- **[FAQ](FAQ.md)** - Common questions and troubleshooting
 
 ### For Developers
 - **[API Documentation](docs/api/WEBSOCKET_API.md)** - WebSocket and REST API reference
@@ -175,7 +176,7 @@ Full deployment guide: [docs/deployment/RAILWAY_QUICK_START.md](docs/deployment/
 src/
 ├── bot/              # Discord bot integration
 ├── brokers/          # Broker API adapters
-│   ├── adapters/     # Alpaca, IBKR, Schwab, etc.
+│   ├── adapters/     # Alpaca adapter (extendable for others)
 │   └── BrokerAdapter.js  # Base adapter class
 ├── services/         # Business logic
 │   ├── TradeExecutionService.js
