@@ -16,20 +16,81 @@ const mongoose = require('mongoose');
 const { getConfig } = require('./env');
 const logger = require('../utils/logger');
 
+/**
+ * @typedef {Object} ConnectionOptions
+ * @property {number} maxPoolSize - Maximum connection pool size
+ * @property {number} minPoolSize - Minimum connection pool size
+ * @property {number} serverSelectionTimeoutMS - Server selection timeout
+ * @property {number} socketTimeoutMS - Socket timeout
+ * @property {boolean} retryWrites - Enable write retries
+ * @property {boolean} retryReads - Enable read retries
+ * @property {string} dbName - Database name
+ */
+
+/**
+ * @typedef {Object} ConnectionStatus
+ * @property {boolean} connected - Connection status
+ * @property {number} readyState - Mongoose ready state (0-3)
+ * @property {string} readyStateText - Human-readable ready state
+ * @property {string} host - Database host
+ * @property {string} database - Database name
+ */
+
+/**
+ * @typedef {Object} SlowQuery
+ * @property {string} operation - Query operation type
+ * @property {string} collection - Collection namespace
+ * @property {string} duration - Query duration in milliseconds
+ * @property {Date} timestamp - Query timestamp
+ * @property {string} [plan] - Query plan summary
+ */
+
+/**
+ * @typedef {Object} ProfilingStats
+ * @property {boolean} enabled - Profiling enabled status
+ * @property {number} [profilingLevel] - MongoDB profiling level
+ * @property {number} [slowThreshold] - Slow query threshold in ms
+ * @property {number} [slowQueriesThisHour] - Count of slow queries this hour
+ * @property {number} [alertThreshold] - Alert threshold for slow queries
+ * @property {number} [totalSlowQueriesLogged] - Total slow queries in profile collection
+ * @property {SlowQuery[]} [recentSlowQueries] - Recent slow queries
+ * @property {string} [error] - Error message if stats retrieval failed
+ */
+
+/**
+ * @typedef {Object} QueryLogEntry
+ * @property {string} queryType - Type of query operation
+ * @property {Object} params - Query parameters
+ * @property {number} executionTime - Execution time in milliseconds
+ * @property {string} collection - Collection name
+ * @property {number} resultSize - Number of results returned
+ * @property {Date} timestamp - Query timestamp
+ */
+
+/** @type {boolean} */
 let isConnected = false;
+/** @type {number} */
 let connectionAttempts = 0;
+/** @type {number} */
 const MAX_RETRIES = 5;
+/** @type {number} */
 const INITIAL_RETRY_DELAY = 1000; // 1 second
 
 // Slow query profiling state (US2-T05)
+/** @type {boolean} */
 let profilingEnabled = false;
+/** @type {number} */
 let slowQueryCount = 0;
+/** @type {NodeJS.Timeout | null} */
 let slowQueryResetInterval = null;
+/** @type {number} */
 const SLOW_QUERY_THRESHOLD = 100; // milliseconds
+/** @type {number} */
 const SLOW_QUERY_ALERT_THRESHOLD = 10; // queries per hour
 
 /**
  * MongoDB connection options optimized for production
+ * @type {ConnectionOptions}
  */
 const connectionOptions = {
   // Connection pool settings
@@ -92,11 +153,14 @@ async function connect() {
 
     return mongoose.connection;
   } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    const errorStack = error instanceof Error ? error.stack : undefined;
+
     logger.error('[Database] MongoDB connection failed', {
       attempt: connectionAttempts,
       maxRetries: MAX_RETRIES,
-      error: error.message,
-      stack: error.stack
+      error: errorMessage,
+      stack: errorStack
     });
 
     if (connectionAttempts < MAX_RETRIES) {
@@ -117,6 +181,7 @@ async function connect() {
 
 /**
  * Set up MongoDB connection event listeners
+ * @returns {void}
  */
 function setupEventListeners() {
   mongoose.connection.on('error', err => {
@@ -168,13 +233,19 @@ async function disconnect() {
     isConnected = false;
     logger.info('✅ MongoDB connection closed gracefully');
   } catch (error) {
-    logger.error('❌ Error closing MongoDB connection:', { error: error.message, stack: error.stack });
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    const errorStack = error instanceof Error ? error.stack : undefined;
+    logger.error('❌ Error closing MongoDB connection:', {
+      error: errorMessage,
+      stack: errorStack
+    });
     throw error;
   }
 }
 
 /**
  * Graceful shutdown handler
+ * @returns {Promise<void>}
  */
 async function gracefulShutdown() {
   logger.info('\n📊 Received shutdown signal, closing MongoDB connection...');
@@ -192,13 +263,22 @@ async function healthCheck() {
       return false;
     }
 
+    // Check if db is available before pinging
+    if (!mongoose.connection.db) {
+      logger.warn('[Database] MongoDB connection.db is undefined');
+      return false;
+    }
+
     // Ping database to verify connection
     await mongoose.connection.db.admin().ping();
     return true;
   } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    const errorStack = error instanceof Error ? error.stack : undefined;
+
     logger.error('[Database] MongoDB health check failed', {
-      error: error.message,
-      stack: error.stack,
+      error: errorMessage,
+      stack: errorStack,
       readyState: mongoose.connection.readyState
     });
     return false;
@@ -207,7 +287,7 @@ async function healthCheck() {
 
 /**
  * Get connection status
- * @returns {Object} Connection status information
+ * @returns {ConnectionStatus} Connection status information
  */
 function getStatus() {
   return {
@@ -299,6 +379,7 @@ async function disableSlowQueryProfiling() {
 /**
  * Start monitoring slow queries from system.profile collection
  * Runs every 30 seconds to check for new slow queries
+ * @returns {void}
  */
 function startSlowQueryMonitoring() {
   let lastCheckTime = new Date();
@@ -384,7 +465,7 @@ function sanitizeQueryCommand(command) {
 
 /**
  * Get slow query profiling statistics
- * @returns {Promise<Object>} Profiling stats
+ * @returns {Promise<ProfilingStats>} Profiling stats
  */
 async function getProfilingStats() {
   try {
@@ -443,6 +524,7 @@ async function getProfilingStats() {
 /**
  * Set up query pattern logging middleware (US6-T03)
  * Instruments all Mongoose queries to track performance
+ * @returns {void}
  */
 function setupQueryPatternLogging() {
   const { getQueryLoggerInstance } = require('../utils/analytics-query-logger');
