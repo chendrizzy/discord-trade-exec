@@ -1,0 +1,83 @@
+<svg width="1200" height="630" xmlns="http://www.w3.org/2000/svg">
+  <!-- Background -->
+  <rect width="1200" height="630" fill="#1a202c"/>
+
+  <!-- Gradient overlay -->
+  <defs>
+    <linearGradient id="grad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#d4af37;stop-opacity:0.15" />
+      <stop offset="100%" style="stop-color:#c5a028;stop-opacity:0.05" />
+    </linearGradient>
+  </defs>
+  <rect width="1200" height="630" fill="url(#grad)"/>
+
+  <!-- Main Title -->
+  <text x="600" y="220"
+        font-family="Arial, sans-serif"
+        font-size="72"
+        font-weight="900"
+        fill="#ffffff"
+        text-anchor="middle">
+    Discord Trade Executor
+  </text>
+
+  <!-- Subtitle -->
+  <text x="600" y="300"
+        font-family="Arial, sans-serif"
+        font-size="36"
+        fill="#d4af37"
+        text-anchor="middle">
+    Automated Trading Made Simple
+  </text>
+
+  <!-- Description -->
+  <text x="600" y="380"
+        font-family="Arial, sans-serif"
+        font-size="28"
+        fill="#cbd5e0"
+        text-anchor="middle">
+    Execute trades automatically from Discord signals
+  </text>
+
+  <!-- Features badges -->
+  <g transform="translate(200, 450)">
+    <!-- Security badge -->
+    <rect x="0" y="0" width="250" height="60" rx="8" fill="#2d3748"/>
+    <text x="125" y="40"
+          font-family="Arial, sans-serif"
+          font-size="20"
+          fill="#10b981"
+          text-anchor="middle">
+      🔒 Bank-Level Security
+    </text>
+
+    <!-- Speed badge -->
+    <rect x="280" y="0" width="250" height="60" rx="8" fill="#2d3748"/>
+    <text x="405" y="40"
+          font-family="Arial, sans-serif"
+          font-size="20"
+          fill="#d4af37"
+          text-anchor="middle">
+      ⚡ Sub-Second Execution
+    </text>
+
+    <!-- Alpaca badge -->
+    <rect x="560" y="0" width="250" height="60" rx="8" fill="#2d3748"/>
+    <text x="685" y="40"
+          font-family="Arial, sans-serif"
+          font-size="20"
+          fill="#3b82f6"
+          text-anchor="middle">
+      📊 Alpaca Integration
+    </text>
+  </g>
+
+  <!-- Alpha notice -->
+  <text x="600" y="580"
+        font-family="Arial, sans-serif"
+        font-size="18"
+        fill="#ffc107"
+        text-anchor="middle">
+    ⚠️ Alpha Status • Alpaca Broker Only • Not Financial Advice
+  </text>
+</svg>
