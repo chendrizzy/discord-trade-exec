@@ -12,7 +12,7 @@ graph TB
     subgraph "Data Sources"
         A[User Events]
         B[Trade Executions]
-        C[Stripe Webhooks]
+        C[Polar.sh Webhooks]
         D[Exchange APIs]
         E[Discord Activity]
         F[Application Logs]
@@ -155,33 +155,37 @@ sequenceDiagram
 
 ```mermaid
 graph LR
-    subgraph "Stripe Events"
-        A[invoice.paid]
-        B[invoice.payment_failed]
-        C[customer.subscription.created]
-        D[customer.subscription.updated]
-        E[customer.subscription.deleted]
+    subgraph "Polar.sh Events"
+        A[subscription.created]
+        B[subscription.updated]
+        C[subscription.canceled]
+        D[order.created]
     end
 
     subgraph "Webhook Processing"
-        F[Stripe Webhook Handler]
-        F --> G[Verify Signature]
+        F[Polar.sh Webhook Handler<br/>subscription-manager.js:73]
+        F --> G[Verify Webhook]
         G --> H[Parse Event]
-        H --> I[Update Database]
+        H --> I[Update User Subscription]
+        I --> I2[Update Tier Limits]
     end
 
     subgraph "Revenue Calculations"
-        I --> J[Calculate MRR]
-        I --> K[Calculate ARR]
-        I --> L[Update LTV]
-        I --> M[Track Churn]
+        I2 --> J[Calculate MRR]
+        I2 --> K[Calculate ARR]
+        I2 --> L[Update LTV]
+        I2 --> M[Track Churn]
+    end
+
+    subgraph "Trade Execution Gate"
+        I2 --> O[Update Trade Limits<br/>increments limits]
+        O --> P[Subscription Gate<br/>user.canExecuteTrade()]
     end
 
     A --> F
     B --> F
     C --> F
     D --> F
-    E --> F
 
     J --> N[(Revenue Metrics DB)]
     K --> N
@@ -190,29 +194,38 @@ graph LR
 
     style F fill:#e1f5fe
     style N fill:#c8e6c9
+    style P fill:#7C3AED
 ```
 
-**Stripe Webhook Handler**:
+**Polar.sh Webhook Handler**:
 ```javascript
-// src/webhooks/stripe.js
-router.post('/stripe/webhook', async (req, res) => {
-  const sig = req.headers['stripe-signature'];
-  const event = stripe.webhooks.constructEvent(req.body, sig, webhookSecret);
+// src/routes/polar.js
+router.post('/webhook/polar', async (req, res) => {
+  const event = req.body;
+
+  // Verify webhook authenticity (Polar.sh signature verification)
+  // Implementation depends on Polar.sh webhook security
 
   switch (event.type) {
-    case 'invoice.paid':
-      await handleInvoicePaid(event.data.object);
+    case 'subscription.created':
+      await subscriptionManager.handleSubscriptionCreated(event.data);
+      await analyticsEventService.trackSubscriptionCreated(event.data);
       await recalculateMRR();
       break;
 
-    case 'customer.subscription.created':
-      await handleSubscriptionCreated(event.data.object);
-      await updateUserTier(event.data.object.customer);
+    case 'subscription.updated':
+      await subscriptionManager.handleSubscriptionUpdated(event.data);
+      await recalculateMRR();
       break;
 
-    case 'customer.subscription.deleted':
-      await handleSubscriptionCancelled(event.data.object);
-      await updateChurnMetrics(event.data.object.customer);
+    case 'subscription.canceled':
+      await subscriptionManager.handleSubscriptionCanceled(event.data);
+      await updateChurnMetrics(event.data.customer_id);
+      await recalculateMRR();
+      break;
+
+    case 'order.created':
+      await analyticsEventService.trackOrderCreated(event.data);
       break;
   }
 
@@ -221,12 +234,14 @@ router.post('/stripe/webhook', async (req, res) => {
 
 // Revenue calculations
 const recalculateMRR = async () => {
-  const activeSubscriptions = await Subscription.find({ status: 'active' });
+  // Query users with active subscriptions
+  const activeSubscribers = await User.find({
+    'subscription.status': 'active'
+  });
 
-  const mrr = activeSubscriptions.reduce((sum, sub) => {
-    const monthlyAmount = sub.interval === 'year'
-      ? sub.amount / 12
-      : sub.amount;
+  const mrr = activeSubscribers.reduce((sum, user) => {
+    const tier = user.subscription.tier;
+    const monthlyAmount = getTierPricing(tier); // From pricing config
     return sum + monthlyAmount;
   }, 0);
 
@@ -236,7 +251,21 @@ const recalculateMRR = async () => {
     { upsert: true }
   );
 
+  // Emit WebSocket event for real-time admin dashboard update
+  io.to('admin').emit('revenue_update', { mrr });
+
   return mrr;
+};
+
+// Tier pricing configuration
+const getTierPricing = (tier) => {
+  const pricing = {
+    free: 0,
+    basic: 49,
+    pro: 99,
+    premium: 299
+  };
+  return pricing[tier] || 0;
 };
 ```
 
@@ -494,7 +523,7 @@ const getRetentionActions = (probability, features) => {
 ```mermaid
 graph TB
     subgraph "Input Data"
-        A[Stripe Subscriptions]
+        A[Polar.sh Subscriptions<br/>User.subscription]
         B[User Lifetime Trades]
         C[Marketing Attribution]
     end
@@ -539,14 +568,14 @@ graph TB
 // src/analytics/revenue.js
 const calculateRevenueMetrics = async () => {
   // 1. Monthly Recurring Revenue (MRR)
-  const activeSubscriptions = await Subscription.find({
-    status: 'active'
-  }).populate('user');
+  // Subscription data is stored on User model via Polar.sh webhooks
+  const activeSubscribers = await User.find({
+    'subscription.status': 'active'
+  });
 
-  const mrr = activeSubscriptions.reduce((sum, sub) => {
-    const monthlyAmount = sub.plan.interval === 'year'
-      ? sub.plan.amount / 12
-      : sub.plan.amount;
+  const mrr = activeSubscribers.reduce((sum, user) => {
+    const tier = user.subscription.tier;
+    const monthlyAmount = getTierPricing(tier);
     return sum + monthlyAmount;
   }, 0);
 
@@ -1383,10 +1412,11 @@ The admin dashboard data flow is designed for real-time insights and data-driven
 
 ### Key Features:
 - **Real-time Metrics**: 1-second updates via WebSocket for active users, trades/min, latency
-- **Revenue Intelligence**: MRR/ARR tracking, LTV:CAC analysis, 6-month forecasting
+- **Revenue Intelligence**: MRR/ARR tracking via Polar.sh webhooks, LTV:CAC analysis, 6-month forecasting
 - **User Analytics**: Cohort retention, churn prediction, at-risk user identification
 - **Trading Performance**: Platform-wide stats, provider rankings, symbol analysis
 - **Platform Health**: Exchange status, API latency, error monitoring
+- **Subscription Integration**: Polar.sh webhooks update tier limits that gate trade execution
 
 ### Performance:
 - **Sub-second dashboard load** with Redis caching (5 min TTL for hot metrics)
@@ -1396,8 +1426,15 @@ The admin dashboard data flow is designed for real-time insights and data-driven
 
 ### Architecture:
 - **3-layer caching**: Hot (1-5 min) → Warm (1 hour) → Cold (24 hours)
-- **Event-driven pipeline**: MongoDB → Redis → WebSocket → Dashboard
+- **Event-driven pipeline**: Polar.sh Webhooks → MongoDB → Redis → WebSocket → Dashboard
+- **Subscription Flow**: Polar.sh webhooks → subscription-manager.js → User.subscription → Trade execution gate
 - **Automated alerts**: Slack, PagerDuty, Email for threshold breaches
 - **Scalable**: Handles 10K+ concurrent users, 1M+ daily trades
 
-This comprehensive data flow ensures admins have full visibility into platform operations, user behavior, and business metrics in real-time.
+### Data Flow Integration:
+- **Subscription webhooks** (subscription.created, subscription.updated, subscription.canceled, order.created) trigger tier limit updates
+- **Tier limits** (dailySignalLimit, maxOpenPositions) gate trade execution via `user.canExecuteTrade()`
+- **Revenue calculations** derive from User.subscription fields updated by Polar.sh events
+- **Analytics tracking** monitors subscription lifecycle and revenue metrics in real-time
+
+This comprehensive data flow ensures admins have full visibility into platform operations, user behavior, and business metrics in real-time, with direct integration between subscription management and trade execution gating.

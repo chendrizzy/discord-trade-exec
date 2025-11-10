@@ -64,10 +64,19 @@ graph TB
         FINAL_POSITION[Final Position Size<br/>+ Risk amount<br/>+ Stop-loss distance<br/>+ Expected loss]
     end
 
-    subgraph "Exchange Order Execution"
-        INIT_EXCHANGE[Initialize CCXT Exchange<br/>new ccxt.binance({credentials})]
+    subgraph "Broker Authentication & Adapter Creation"
+        RETRIEVE_OAUTH[Retrieve OAuth2 Tokens<br/>OAuth2Service.getTokens(userId, broker)]
+        DECRYPT_TOKENS[Decrypt Tokens<br/>OAuth2Service.decryptToken()]
+        TOKEN_CHECK{Tokens<br/>Valid?}
+        REFRESH_TOKENS[Refresh Access Token<br/>OAuth2Service.refreshToken()]
+        CREATE_ADAPTER[Create Broker Adapter<br/>BrokerFactory.createBroker(<br/>  type, credentials<br/>)]
+        ADAPTER_INIT[Initialize Broker Connection<br/>Verify credentials & API access]
+    end
 
-        CREATE_MARKET_ORDER[Create Market Order<br/>exchange.createMarketOrder(<br/>  symbol: 'BTC/USDT',<br/>  side: 'buy',<br/>  amount: positionSize<br/>)]
+    subgraph "Exchange Order Execution"
+        INIT_EXCHANGE[Initialize Exchange Client<br/>Via Broker Adapter]
+
+        CREATE_MARKET_ORDER[Create Market Order<br/>brokerAdapter.createMarketOrder(<br/>  symbol: 'BTC/USDT',<br/>  side: 'buy',<br/>  amount: positionSize<br/>)]
 
         ORDER_RESPONSE{Order<br/>Filled?}
 
@@ -179,7 +188,14 @@ graph TB
     RISK_METHOD --> FINAL_POSITION
     KELLY_METHOD --> FINAL_POSITION
 
-    FINAL_POSITION --> INIT_EXCHANGE
+    FINAL_POSITION --> RETRIEVE_OAUTH
+    RETRIEVE_OAUTH --> DECRYPT_TOKENS
+    DECRYPT_TOKENS --> TOKEN_CHECK
+    TOKEN_CHECK -->|Expired| REFRESH_TOKENS
+    TOKEN_CHECK -->|Valid| CREATE_ADAPTER
+    REFRESH_TOKENS --> CREATE_ADAPTER
+    CREATE_ADAPTER --> ADAPTER_INIT
+    ADAPTER_INIT --> INIT_EXCHANGE
     INIT_EXCHANGE --> CREATE_MARKET_ORDER
     CREATE_MARKET_ORDER --> ORDER_RESPONSE
     ORDER_RESPONSE -->|No| ERROR_ORDER_FAILED
@@ -217,8 +233,8 @@ graph TB
     classDef database fill:#9f7aea,stroke:#805ad5,stroke-width:2px,color:#fff
 
     class SIGNAL_POST input
-    class EVENT_LISTENER,EXTRACT_RAW,NLP_PARSE,REGEX_PATTERNS,TOKEN_ANALYSIS,PARSED_DATA,USER_LOOKUP,FETCH_SUBSCRIBERS,USER_CONFIG,GATE1,GATE2,GATE3,GATE4,GATE5,VALIDATION_SUCCESS,FETCH_BALANCE,FIXED_METHOD,RISK_METHOD,KELLY_METHOD,FINAL_POSITION,INIT_EXCHANGE,CREATE_MARKET_ORDER,EXTRACT_ORDER,FIXED_STOP,TRAILING_STOP,CREATE_TP,CREATE_TRADE_RECORD,UPDATE_USER_STATS,SEND_NOTIFICATION,LOG_TRADE,UPDATE_DASHBOARD,ANALYTICS_UPDATE process
-    class MESSAGE_FILTER,PARSE_RESULT,VALIDATION_START,GATE1_RESULT,GATE2_RESULT,GATE3_RESULT,GATE4_RESULT,GATE5_RESULT,BALANCE_CHECK,SIZING_METHOD,ORDER_RESPONSE,SET_STOP_LOSS,TRAILING_CHECK,SET_TAKE_PROFIT decision
+    class EVENT_LISTENER,EXTRACT_RAW,NLP_PARSE,REGEX_PATTERNS,TOKEN_ANALYSIS,PARSED_DATA,USER_LOOKUP,FETCH_SUBSCRIBERS,USER_CONFIG,GATE1,GATE2,GATE3,GATE4,GATE5,VALIDATION_SUCCESS,FETCH_BALANCE,FIXED_METHOD,RISK_METHOD,KELLY_METHOD,FINAL_POSITION,RETRIEVE_OAUTH,DECRYPT_TOKENS,REFRESH_TOKENS,CREATE_ADAPTER,ADAPTER_INIT,INIT_EXCHANGE,CREATE_MARKET_ORDER,EXTRACT_ORDER,FIXED_STOP,TRAILING_STOP,CREATE_TP,CREATE_TRADE_RECORD,UPDATE_USER_STATS,SEND_NOTIFICATION,LOG_TRADE,UPDATE_DASHBOARD,ANALYTICS_UPDATE process
+    class MESSAGE_FILTER,PARSE_RESULT,VALIDATION_START,GATE1_RESULT,GATE2_RESULT,GATE3_RESULT,GATE4_RESULT,GATE5_RESULT,BALANCE_CHECK,SIZING_METHOD,TOKEN_CHECK,ORDER_RESPONSE,SET_STOP_LOSS,TRAILING_CHECK,SET_TAKE_PROFIT decision
     class ERROR_PARSE,ERROR_SUBSCRIPTION,ERROR_DAILY_LIMIT,ERROR_TRADING_HOURS,ERROR_DAILY_LOSS,ERROR_POSITION_LIMIT,ERROR_INSUFFICIENT_BALANCE,ERROR_ORDER_FAILED,ALL_ERRORS error
     class SUCCESS,END1,END2 success
     class SAVE_DB,SAVE_USER_DB database
@@ -585,7 +601,114 @@ quantity = positionValue / entryPrice
 }
 ```
 
-### 6. CCXT Order Execution → Exchange Response
+### 6. OAuth2 Broker Authentication → Broker Adapter
+**Input**: User ID + Broker Type
+```javascript
+userId = "user_abc123"
+brokerType = "alpaca"  // or "binance", "coinbase", etc.
+```
+
+**Retrieve OAuth2 Tokens**:
+```javascript
+const oauth2Service = new OAuth2Service();
+const tokens = await oauth2Service.getTokens(userId, brokerType);
+
+// Result from database (encrypted)
+{
+  userId: "user_abc123",
+  broker: "alpaca",
+  accessToken: "encrypted_access_token_xyz...",
+  refreshToken: "encrypted_refresh_token_abc...",
+  expiresAt: ISODate("2025-10-11T11:00:00Z"),
+  tokenType: "Bearer"
+}
+```
+
+**Decrypt Tokens**:
+```javascript
+const decryptedAccess = oauth2Service.decryptToken(tokens.accessToken);
+const decryptedRefresh = oauth2Service.decryptToken(tokens.refreshToken);
+
+// Decrypted tokens
+{
+  accessToken: "actual_alpaca_access_token_here",
+  refreshToken: "actual_alpaca_refresh_token_here",
+  expiresAt: ISODate("2025-10-11T11:00:00Z")
+}
+```
+
+**Token Validation & Refresh**:
+```javascript
+const now = new Date();
+const isExpired = tokens.expiresAt < now;
+
+if (isExpired) {
+  // Refresh the access token
+  const newTokens = await oauth2Service.refreshToken(
+    decryptedRefresh,
+    brokerType
+  );
+
+  // Save encrypted new tokens
+  await oauth2Service.saveTokens(userId, brokerType, newTokens);
+}
+```
+
+**Create Broker Adapter**:
+```javascript
+const brokerFactory = new BrokerFactory();
+const brokerAdapter = brokerFactory.createBroker({
+  type: brokerType,
+  credentials: {
+    accessToken: decryptedAccess,
+    refreshToken: decryptedRefresh
+  },
+  userId: userId
+});
+
+// Result: Broker-specific adapter
+{
+  type: "alpaca",
+  credentials: { accessToken: "...", refreshToken: "..." },
+  client: AlpacaBrokerAdapter,  // Specific implementation
+  isInitialized: false
+}
+```
+
+**Initialize Broker Connection**:
+```javascript
+await brokerAdapter.initialize();
+
+// Verify connection
+const accountInfo = await brokerAdapter.getAccount();
+
+// Result
+{
+  broker: "alpaca",
+  accountId: "alpaca_account_123",
+  accountStatus: "ACTIVE",
+  buyingPower: 10000.00,
+  cash: 10000.00,
+  portfolioValue: 10000.00,
+  connectionVerified: true
+}
+```
+
+**Output**: Ready Broker Adapter
+```javascript
+{
+  adapter: brokerAdapter,
+  brokerType: "alpaca",
+  accountInfo: {
+    accountId: "alpaca_account_123",
+    buyingPower: 10000.00,
+    cash: 10000.00
+  },
+  isReady: true
+}
+```
+
+### 7. Exchange Order Execution → Exchange Response
 **Input**: Order Request
 ```javascript
 const order = await exchange.createMarketOrder(
@@ -627,7 +750,7 @@ const order = await exchange.createMarketOrder(
 }
 ```
 
-### 7. Database Persistence → Trade Record
+### 8. Database Persistence → Trade Record
 **Input**: Order Response + User Config
 ```javascript
 const tradeData = {
@@ -706,7 +829,7 @@ const trade = await Trade.create(tradeData);
 }
 ```
 
-### 8. User Stats Update → Modified User Document
+### 9. User Stats Update → Modified User Document
 **Input**: Trade Created Event
 ```javascript
 const tradeCreated = {
@@ -881,14 +1004,16 @@ const ALERTS = {
 ```
 
 ## Source Code References
-- Signal Parser: `src/signal-parser.js:1`
-- Trade Executor: `src/trade-executor.js:1`
-- Risk Validation: `src/trade-executor.js:45-120`
-- Position Sizing: `src/trade-executor.js:200-350`
-- CCXT Integration: `src/trade-executor.js:400-500`
+- Signal Parser: `src/services/SignalParser.js:14`
+- Trade Executor: `src/services/TradeExecutionService.js:33`
+- OAuth2 Service: `src/services/OAuth2Service.js:138`
+- Broker Factory: `src/brokers/BrokerFactory.js:243`
+- Risk Validation: `src/services/TradeExecutionService.js:45`
+- Position Sizing: `src/services/TradeExecutionService.js:89`
+- CCXT Integration: `src/brokers/BrokerFactory.js:243`
 - User Model: `src/models/User.js:1`
 - Trade Model: `src/models/Trade.js:1`
-- Discord Bot: `src/bot.js:1`
+- Discord Bot: `src/bot/DiscordBot.js:56`
 
 ## Next Diagram
 See [Signal Processing Sequence](./04-signal-processing-sequence.md) for detailed sequence diagram of component interactions.

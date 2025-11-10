@@ -45,37 +45,71 @@ const BillingSettings = () => {
 
   const handleManageSubscription = async () => {
     try {
-      // TODO: Integrate with Polar customer portal
-      // const response = await fetch('/api/community/billing/portal', {
-      //   method: 'POST'
-      // });
-      // const { url } = await response.json();
-      // window.location.href = url;
+      const response = await fetch('/api/community/billing/portal', {
+        method: 'POST'
+      });
 
-      debugLog('Polar portal integration not yet implemented');
-      alert('You will be redirected to the Polar portal to manage your subscription');
+      const data = await response.json();
+
+      if (!response.ok || !data.success) {
+        throw new Error(data.error || 'Failed to create customer portal session');
+      }
+
+      debugLog('Redirecting to Polar customer portal');
+      window.location.href = data.data.url;
     } catch (err) {
       console.error('[BillingSettings] Portal error:', err);
       setError(err.message);
+      alert(`Failed to open billing portal: ${err.message}`);
     }
   };
 
   const handleUpgrade = async (tier) => {
     try {
-      // TODO: Integrate with Polar checkout
-      // const response = await fetch('/api/community/billing/upgrade', {
-      //   method: 'POST',
-      //   headers: { 'Content-Type': 'application/json' },
-      //   body: JSON.stringify({ tier })
-      // });
-      // const { url } = await response.json();
-      // window.location.href = url;
+      const response = await fetch('/api/community/billing/upgrade', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ tier })
+      });
 
-      debugLog(`Upgrade to ${tier} tier requested`);
-      alert(`Upgrade to ${tier} tier will be available soon`);
+      const data = await response.json();
+
+      if (!response.ok || !data.success) {
+        throw new Error(data.error || 'Failed to create checkout session');
+      }
+
+      debugLog(`Redirecting to checkout for ${tier} tier`);
+      window.location.href = data.data.url;
     } catch (err) {
       console.error('[BillingSettings] Upgrade error:', err);
       setError(err.message);
+      alert(`Failed to upgrade subscription: ${err.message}`);
+    }
+  };
+
+  const handleCancelSubscription = async () => {
+    if (!confirm('Are you sure you want to cancel your subscription? It will remain active until the end of the current billing period.')) {
+      return;
+    }
+
+    try {
+      const response = await fetch('/api/community/billing/cancel', {
+        method: 'POST'
+      });
+
+      const data = await response.json();
+
+      if (!response.ok || !data.success) {
+        throw new Error(data.error || 'Failed to cancel subscription');
+      }
+
+      debugLog('Subscription cancelled successfully');
+      alert(data.message || 'Subscription will be cancelled at the end of the billing period');
+      await fetchBillingInfo();
+    } catch (err) {
+      console.error('[BillingSettings] Cancel error:', err);
+      setError(err.message);
+      alert(`Failed to cancel subscription: ${err.message}`);
     }
   };
 
@@ -155,7 +189,9 @@ const BillingSettings = () => {
             <Button onClick={handleManageSubscription}>
               Open Billing Portal
             </Button>
-            <Button variant="outline">Cancel Subscription</Button>
+            <Button variant="outline" onClick={handleCancelSubscription}>
+              Cancel Subscription
+            </Button>
           </div>
         </CardContent>
       </Card>
@@ -354,12 +390,6 @@ const BillingSettings = () => {
           </div>
         </CardContent>
       </Card>
-
-      {/* TODO: Integrate Polar customer portal for subscription management */}
-      {/* TODO: Implement Polar checkout for plan upgrades/downgrades */}
-      {/* TODO: Add webhook handlers for subscription events (renewal, cancellation, etc.) */}
-      {/* TODO: Implement usage alerts when approaching limits */}
-      {/* TODO: Add invoice PDF generation and email delivery */}
     </div>
   );
 };

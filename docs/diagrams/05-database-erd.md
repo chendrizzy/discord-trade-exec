@@ -467,8 +467,8 @@ const riskSettings = {
 await executeTrade(signal, user, riskSettings);
 ```
 
-### 6. StripeCustomers Collection
-**Purpose**: Stripe subscription and payment data
+### 6. StripeCustomers Collection [ARCHIVED - LEGACY]
+**Purpose**: Legacy Stripe subscription and payment data (replaced by Polar.sh integration in User collection)
 
 **Key Fields**:
 - **Stripe IDs**: `stripeCustomerId`, `stripeSubscriptionId`

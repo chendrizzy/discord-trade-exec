@@ -85,11 +85,11 @@ graph TB
     CURRENT_PLAN --> PLAN_DECISION{Change<br/>Plan?}
     PLAN_DECISION -->|No| DASHBOARD
     PLAN_DECISION -->|Yes| CHOOSE_PLAN[Select New Plan<br/>Free/Basic/Pro/Premium]
-    CHOOSE_PLAN --> STRIPE_CHECKOUT[Stripe Checkout Page]
-    STRIPE_CHECKOUT --> PAYMENT_SUCCESS{Payment<br/>Successful?}
+    CHOOSE_PLAN --> POLAR_CHECKOUT[Polar.sh Checkout Page]
+    POLAR_CHECKOUT --> PAYMENT_SUCCESS{Payment<br/>Successful?}
     PAYMENT_SUCCESS -->|No| PAYMENT_ERROR[Payment Failed<br/>Try Again]
-    PAYMENT_ERROR --> STRIPE_CHECKOUT
-    PAYMENT_SUCCESS -->|Yes| UPDATE_SUBSCRIPTION[Update User Tier<br/>Increase Limits]
+    PAYMENT_ERROR --> POLAR_CHECKOUT
+    PAYMENT_SUCCESS -->|Yes| UPDATE_SUBSCRIPTION[Update User Tier via Webhook<br/>Increase Limits]
     UPDATE_SUBSCRIPTION --> SUBSCRIPTION_CONFIRM[Subscription Confirmed<br/>Show New Features]
     SUBSCRIPTION_CONFIRM --> DASHBOARD
 
@@ -256,10 +256,11 @@ User Notification (Discord DM or Email)
    - **Pro ($99/mo)**: Unlimited signals, multi-exchange
    - **Premium ($299/mo)**: Multi-broker (stocks), priority support
 
-3. **Stripe Checkout**:
+3. **Polar.sh Checkout**:
    - Secure payment processing
    - Credit card or bank account
    - Automatic billing
+   - Webhook-based subscription activation
 
 4. **Instant Activation**:
    - Immediate tier upgrade

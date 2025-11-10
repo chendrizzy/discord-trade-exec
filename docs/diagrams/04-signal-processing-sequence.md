@@ -14,6 +14,8 @@ sequenceDiagram
     participant Validator as Risk Validator<br/>(Pipeline)
     participant DB as MongoDB<br/>Database
     participant Executor as Trade Executor<br/>(Core Logic)
+    participant OAuth2 as OAuth2Service<br/>(Token Management)
+    participant Factory as BrokerFactory<br/>(Adapter Creation)
     participant CCXT as CCXT Library<br/>(Exchange API)
     participant Binance as Binance<br/>Exchange
     participant Notifier as Notification<br/>Service
@@ -126,9 +128,27 @@ sequenceDiagram
         Note over Bot,Binance: 💱 Trade Execution (500-2000ms)
         Bot->>+Executor: Execute trade<br/>(signal, user, validated)
 
+        %% Broker Authentication & Adapter Creation
+        Note over Executor,Factory: 🔐 Broker Authentication (100-200ms)
+        Executor->>+OAuth2: Get broker tokens<br/>getTokens(userId, brokerType)
+        OAuth2->>+DB: Fetch encrypted tokens<br/>User.brokerCredentials
+        DB-->>-OAuth2: Encrypted access/refresh tokens
+        OAuth2->>OAuth2: Decrypt tokens<br/>decryptToken(accessToken)
+
+        alt Token expired
+            OAuth2->>OAuth2: Refresh access token<br/>refreshToken(refreshToken)
+            OAuth2->>DB: Save new tokens
+        end
+
+        OAuth2-->>-Executor: Decrypted credentials
+
+        Executor->>+Factory: Create broker adapter<br/>createBroker(type, credentials)
+        Factory->>Factory: Initialize broker-specific adapter<br/>AlpacaBroker | BinanceBroker
+        Factory->>+CCXT: Initialize exchange<br/>with OAuth2 credentials
+        CCXT-->>-Factory: Exchange instance
+        Factory-->>-Executor: Broker adapter ready
+
         %% Position Sizing
-        Executor->>+CCXT: Initialize exchange<br/>apiKey, apiSecret
-        CCXT-->>-Executor: Exchange instance
 
         Executor->>+CCXT: Fetch balance<br/>exchange.fetchBalance()
         CCXT->>+Binance: GET /api/v3/account

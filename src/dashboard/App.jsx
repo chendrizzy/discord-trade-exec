@@ -3,6 +3,7 @@ import { Routes, Route, Navigate, useNavigate, useLocation } from 'react-router-
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from './components/ui/card';
 import { Badge } from './components/ui/badge';
 import { Button } from './components/ui/button';
+import { LoadingSpinner, EmptyState } from './components/ui';
 import { Navigation } from './components/Navigation';
 import { WebSocketProvider } from './contexts/WebSocketContext';
 import { ConnectionStatusIndicator } from './components/ConnectionStatusIndicator';
@@ -65,6 +66,9 @@ function App() {
   const [commandPaletteOpen, setCommandPaletteOpen] = useState(false);
   const [portfolioLoading, setPortfolioLoading] = useState(false);
   const [portfolioData, setPortfolioData] = useState(null);
+  const [bots, setBots] = useState([]);
+  const [botsLoading, setBotsLoading] = useState(true);
+  const [botsError, setBotsError] = useState(null);
 
   // Extract session credentials for WebSocket authentication
   const sessionID = getSessionID();
@@ -104,6 +108,38 @@ function App() {
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, []);
+
+  // Fetch trading bots
+  useEffect(() => {
+    const fetchBots = async () => {
+      try {
+        setBotsLoading(true);
+        setBotsError(null);
+
+        const response = await fetch('/api/trader/bots');
+        const data = await response.json();
+
+        if (data.success) {
+          setBots(data.data || []);
+        } else {
+          throw new Error(data.error || 'Failed to fetch bots');
+        }
+      } catch (err) {
+        console.error('[App] Failed to fetch bots:', err);
+        setBotsError(err.message);
+        setBots([]);
+      } finally {
+        setBotsLoading(false);
+      }
+    };
+
+    // Only fetch bots if user is authenticated
+    if (user) {
+      fetchBots();
+    } else {
+      setBotsLoading(false);
+    }
+  }, [user]);
 
   const handleLogin = () => {
     window.location.href = '/auth/discord';
@@ -490,86 +526,76 @@ function App() {
                       <CardDescription>Your currently running trading bots</CardDescription>
                     </CardHeader>
                     <CardContent>
-                      <div className="space-y-3" role="list" aria-label="Trading bots list">
-                        {/* Example bot entries */}
-                        <div
-                          className="flex items-center justify-between p-3 border border-border rounded-lg hover:border-gold-600 transition-all duration-200 animate-fade-in"
-                          style={{ animationDelay: '0.3s' }}
-                          role="listitem"
-                          aria-label="BTC DCA Bot, Conservative strategy, BTC/USDT pair, Running, Profit $234.56"
-                        >
-                          <div className="flex-1">
-                            <h4 className="text-sm font-semibold">BTC DCA Bot</h4>
-                            <p className="text-xs text-muted-foreground">BTC/USDT • Conservative</p>
-                          </div>
-                          <div className="flex items-center gap-3">
-                            <div className="text-right">
-                              <div className="text-sm font-mono text-profit-text" aria-label="24 hour profit and loss">
-                                +$234.56
-                              </div>
-                              <div className="text-xs text-muted-foreground" aria-hidden="true">
-                                24h P&L
-                              </div>
-                            </div>
-                            <Badge variant="profit" className="animate-pulse-glow" aria-label="Bot is running">
-                              Running
-                            </Badge>
-                          </div>
+                      {botsLoading ? (
+                        <div className="flex justify-center items-center py-8">
+                          <LoadingSpinner text="Loading trading bots..." />
                         </div>
+                      ) : botsError ? (
+                        <EmptyState
+                          title="Failed to Load Bots"
+                          description={botsError}
+                          action={{
+                            label: "Try Again",
+                            onClick: () => window.location.reload()
+                          }}
+                        />
+                      ) : bots.length === 0 ? (
+                        <EmptyState
+                          title="No Trading Bots"
+                          description="Create your first trading bot to get started with automated trading"
+                          action={{
+                            label: "Create Bot",
+                            onClick: () => navigate('/bots')
+                          }}
+                        />
+                      ) : (
+                        <div className="space-y-3" role="list" aria-label="Trading bots list">
+                          {bots.map((bot, index) => {
+                            const pnl24h = bot.performance?.pnl24h || 0;
+                            const isProfitable = pnl24h >= 0;
+                            const isRunning = bot.status === 'running';
+                            const statusVariant = isRunning ? 'profit' : bot.status === 'error' ? 'destructive' : 'outline';
+                            const statusLabel = bot.status.charAt(0).toUpperCase() + bot.status.slice(1);
 
-                        <div
-                          className="flex items-center justify-between p-3 border border-border rounded-lg hover:border-gold-600 transition-all duration-200 animate-fade-in"
-                          style={{ animationDelay: '0.4s' }}
-                          role="listitem"
-                          aria-label="ETH Grid Bot, Moderate strategy, ETH/USDT pair, Running, Profit $89.12"
-                        >
-                          <div className="flex-1">
-                            <h4 className="text-sm font-semibold">ETH Grid Bot</h4>
-                            <p className="text-xs text-muted-foreground">ETH/USDT • Moderate</p>
-                          </div>
-                          <div className="flex items-center gap-3">
-                            <div className="text-right">
-                              <div className="text-sm font-mono text-profit-text" aria-label="24 hour profit and loss">
-                                +$89.12
-                              </div>
-                              <div className="text-xs text-muted-foreground" aria-hidden="true">
-                                24h P&L
-                              </div>
-                            </div>
-                            <Badge variant="profit" className="animate-pulse-glow" aria-label="Bot is running">
-                              Running
-                            </Badge>
-                          </div>
-                        </div>
-
-                        <div
-                          className="flex items-center justify-between p-3 border border-border rounded-lg opacity-60 transition-all duration-200 animate-fade-in"
-                          style={{ animationDelay: '0.5s' }}
-                          role="listitem"
-                          aria-label="SOL Trend Bot, Aggressive strategy, SOL/USDT pair, Paused, No trading activity"
-                        >
-                          <div className="flex-1">
-                            <h4 className="text-sm font-semibold">SOL Trend Bot</h4>
-                            <p className="text-xs text-muted-foreground">SOL/USDT • Aggressive</p>
-                          </div>
-                          <div className="flex items-center gap-3">
-                            <div className="text-right">
+                            return (
                               <div
-                                className="text-sm font-mono text-muted-foreground"
-                                aria-label="24 hour profit and loss"
+                                key={bot._id}
+                                className={`flex items-center justify-between p-3 border border-border rounded-lg hover:border-gold-600 transition-all duration-200 animate-fade-in ${!isRunning ? 'opacity-60' : ''}`}
+                                style={{ animationDelay: `${0.3 + index * 0.1}s` }}
+                                role="listitem"
+                                aria-label={`${bot.name}, ${bot.strategy} strategy, ${bot.tradingPair} pair, ${statusLabel}, ${isProfitable ? 'Profit' : 'Loss'} $${Math.abs(pnl24h).toFixed(2)}`}
                               >
-                                $0.00
+                                <div className="flex-1">
+                                  <h4 className="text-sm font-semibold">{bot.name}</h4>
+                                  <p className="text-xs text-muted-foreground">
+                                    {bot.tradingPair} • {bot.strategy.charAt(0).toUpperCase() + bot.strategy.slice(1)}
+                                  </p>
+                                </div>
+                                <div className="flex items-center gap-3">
+                                  <div className="text-right">
+                                    <div
+                                      className={`text-sm font-mono ${isProfitable ? 'text-profit-text' : 'text-loss-text'}`}
+                                      aria-label="24 hour profit and loss"
+                                    >
+                                      {isProfitable ? '+' : ''}${pnl24h.toFixed(2)}
+                                    </div>
+                                    <div className="text-xs text-muted-foreground" aria-hidden="true">
+                                      24h P&L
+                                    </div>
+                                  </div>
+                                  <Badge
+                                    variant={statusVariant}
+                                    className={isRunning ? 'animate-pulse-glow' : ''}
+                                    aria-label={`Bot is ${bot.status}`}
+                                  >
+                                    {statusLabel}
+                                  </Badge>
+                                </div>
                               </div>
-                              <div className="text-xs text-muted-foreground" aria-hidden="true">
-                                24h P&L
-                              </div>
-                            </div>
-                            <Badge variant="outline" aria-label="Bot is paused">
-                              Paused
-                            </Badge>
-                          </div>
+                            );
+                          })}
                         </div>
-                      </div>
+                      )}
                     </CardContent>
                   </Card>
                 </div>

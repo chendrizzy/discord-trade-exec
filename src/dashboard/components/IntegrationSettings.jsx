@@ -57,6 +57,44 @@ const IntegrationSettings = () => {
   const handleSaveSettings = async () => {
     try {
       setSaving(true);
+      setError(null);
+
+      // Validate webhook URL if provided
+      if (formData.webhookUrl) {
+        const webhookValidation = await fetch(
+          `/api/community/integration/webhook/validate?url=${encodeURIComponent(formData.webhookUrl)}`
+        );
+        const webhookResult = await webhookValidation.json();
+
+        if (!webhookResult.valid) {
+          throw new Error('Invalid webhook URL or webhook is disabled');
+        }
+      }
+
+      // Validate channel IDs if provided
+      if (formData.notificationChannelId) {
+        const channelValidation = await fetch(
+          `/api/community/integration/channel/validate?channelId=${formData.notificationChannelId}`
+        );
+        const channelResult = await channelValidation.json();
+
+        if (!channelResult.valid) {
+          throw new Error('Invalid notification channel ID or bot lacks access');
+        }
+      }
+
+      if (formData.alertChannelId) {
+        const alertChannelValidation = await fetch(
+          `/api/community/integration/channel/validate?channelId=${formData.alertChannelId}`
+        );
+        const alertChannelResult = await alertChannelValidation.json();
+
+        if (!alertChannelResult.valid) {
+          throw new Error('Invalid alert channel ID or bot lacks access');
+        }
+      }
+
+      // Save settings after validation
       const response = await fetch('/api/community/integration', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
@@ -64,12 +102,9 @@ const IntegrationSettings = () => {
       });
 
       if (!response.ok) {
-        throw new Error('Failed to save integration settings');
+        const data = await response.json();
+        throw new Error(data.error || 'Failed to save integration settings');
       }
-
-      // TODO: Validate webhook URL and channel IDs via Discord API
-      // await validateDiscordWebhook(formData.webhookUrl);
-      // await validateDiscordChannel(formData.notificationChannelId);
 
       await fetchIntegrationSettings();
       alert('Settings saved successfully');
@@ -84,22 +119,33 @@ const IntegrationSettings = () => {
   const handleTestNotification = async () => {
     try {
       setTesting(true);
+      setError(null);
 
-      // TODO: Integrate with Discord API to send test notification
-      // const response = await fetch('/api/community/integration/test', {
-      //   method: 'POST',
-      //   headers: { 'Content-Type': 'application/json' },
-      //   body: JSON.stringify({
-      //     channelId: formData.notificationChannelId,
-      //     message: 'This is a test notification from your trading community!'
-      //   })
-      // });
+      if (!formData.notificationChannelId) {
+        throw new Error('Please configure a notification channel first');
+      }
+
+      const response = await fetch('/api/community/integration/test', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          channelId: formData.notificationChannelId,
+          message: 'This is a test notification from your trading community!'
+        })
+      });
+
+      const data = await response.json();
+
+      if (!response.ok || !data.success) {
+        throw new Error(data.error || 'Failed to send test notification');
+      }
 
       debugLog('Test notification sent');
-      alert('Test notification sent! Check your Discord channel.');
+      alert('Test notification sent successfully! Check your Discord channel.');
     } catch (err) {
       console.error('[IntegrationSettings] Test error:', err);
       setError(err.message);
+      alert(`Failed to send test notification: ${err.message}`);
     } finally {
       setTesting(false);
     }
@@ -107,17 +153,25 @@ const IntegrationSettings = () => {
 
   const handleReconnectBot = async () => {
     try {
-      // TODO: Implement Discord bot reconnection logic
-      // const response = await fetch('/api/community/integration/reconnect', {
-      //   method: 'POST'
-      // });
+      setError(null);
 
-      debugLog('Bot reconnection initiated');
-      alert('Bot reconnection initiated. This may take a few moments.');
+      const response = await fetch('/api/community/integration/reconnect', {
+        method: 'POST'
+      });
+
+      const data = await response.json();
+
+      if (!response.ok || !data.success) {
+        throw new Error(data.error || 'Failed to reconnect bot');
+      }
+
+      debugLog('Bot reconnection successful');
+      alert(`Bot reconnected successfully! Bot: ${data.botInfo.username}`);
       await fetchIntegrationSettings();
     } catch (err) {
       console.error('[IntegrationSettings] Reconnect error:', err);
       setError(err.message);
+      alert(`Failed to reconnect bot: ${err.message}`);
     }
   };
 
@@ -402,13 +456,6 @@ const IntegrationSettings = () => {
           </div>
         </CardContent>
       </Card>
-
-      {/* TODO: Implement Discord API integration for webhook validation */}
-      {/* TODO: Add Discord API integration for channel validation */}
-      {/* TODO: Implement real-time bot status monitoring via WebSocket */}
-      {/* TODO: Add Discord OAuth2 for automated bot setup */}
-      {/* TODO: Implement notification queue with retry logic */}
-      {/* TODO: Add rate limiting awareness and visual indicators */}
     </div>
   );
 };
